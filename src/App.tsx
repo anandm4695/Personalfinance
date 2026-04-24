@@ -173,29 +173,65 @@ const loadState = () => {
   }
 };
 
-const DEFAULT_STATE = {
-  profile: { name: "", fy: "2025-26", regime: "new" },
-  bankAccounts: [],
-  transactions: [],
-  fixedDeposits: [],
-  recurringDeposits: [],
-  bonds: [],
-  ppf: [],
-  nps: [],
-  lic: [],
-  termPlans: [],
-  mutualFunds: [],
-  stocks: [],
-  demat: [],
-  creditCards: [],
-  prepaidCards: [],
-  loansTaken: [],
-  loansGiven: [],
-  subscriptions: [],
-  goals: [],
-  income: [],
-  taxPayments: [],
-};
+const DEFAULT_STATE = (() => {
+  const d = new Date();
+  const ym = d.toISOString().slice(0, 7);
+  const lastM = new Date(d.setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
+  return {
+    profile: { name: "Anand", fy: "2025-26", regime: "new" },
+    bankAccounts: [
+      { id: "1", bankName: "HDFC Bank", accountNo: "1234", balance: "150000" },
+      { id: "2", bankName: "SBI", accountNo: "5678", balance: "45000" }
+    ],
+    transactions: [
+      { id: "t1", date: `${ym}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t2", date: `${ym}-05`, amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
+      { id: "t3", date: `${ym}-10`, amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
+      { id: "t4", date: `${ym}-15`, amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
+      { id: "t5", date: `${lastM}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t6", date: `${lastM}-05`, amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
+    ],
+    fixedDeposits: [
+      { id: "fd1", bankName: "HDFC", amount: "500000", rate: "7", startDate: "2023-01-01", maturityDate: "2026-01-01" }
+    ],
+    recurringDeposits: [],
+    bonds: [],
+    ppf: [
+      { id: "p1", currentBalance: "350000", yearlyContribution: "150000" }
+    ],
+    nps: [],
+    lic: [],
+    termPlans: [],
+    mutualFunds: [
+      { id: "m1", fundName: "Parag Parikh Flexi Cap", invested: "200000", current: "260000" },
+      { id: "m2", fundName: "Nifty 50 Index", invested: "150000", current: "185000" }
+    ],
+    stocks: [
+      { id: "s1", stockName: "Reliance", invested: "50000", current: "45000" },
+      { id: "s2", stockName: "TCS", invested: "80000", current: "110000" }
+    ],
+    demat: [],
+    creditCards: [
+      { id: "c1", cardName: "Amazon Pay ICICI", limit: "300000", outstanding: "24000", dueDate: `${ym}-20` }
+    ],
+    prepaidCards: [],
+    loansTaken: [
+      { id: "l1", loanName: "Car Loan", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5" }
+    ],
+    loansGiven: [],
+    subscriptions: [
+      { id: "sub1", name: "Netflix", amount: "649", cycle: "monthly" },
+      { id: "sub2", name: "Amazon Prime", amount: "1499", cycle: "yearly" }
+    ],
+    goals: [
+      { id: "g1", name: "Emergency Fund", target: "600000", current: "400000" }
+    ],
+    income: [
+      { id: "i1", source: "Salary", amount: "1440000", date: `${ym}-01` }
+    ],
+    taxPayments: [],
+  };
+})();
 
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
@@ -352,6 +388,32 @@ export default function FinanceDashboard() {
       return s + m;
     }, 0);
 
+    const liquidAssets = cashInBanks + mfValue + stockValue;
+    const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + licValue;
+    const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
+    const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
+    
+    const taxDue = state.profile.regime === "old"
+      ? calcTaxOld(annualIncome).total
+      : calcTaxNew(annualIncome).total;
+
+    const expenseBreakdownMap = monthTxns
+      .filter((t) => t.type === "debit")
+      .reduce((acc, t) => {
+        const cat = t.category || "Uncategorized";
+        acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
+        return acc;
+      }, {});
+    const expenseBreakdown = Object.keys(expenseBreakdownMap).map((k) => ({
+      name: k,
+      value: expenseBreakdownMap[k],
+    })).sort((a, b) => b.value - a.value);
+
+    const portfolioPerformance = [
+      { name: "Mutual Funds", Invested: mfInvested, Current: mfValue },
+      { name: "Stocks", Invested: stockInvested, Current: stockValue },
+    ].filter(x => x.Invested > 0 || x.Current > 0);
+
     return {
       cashInBanks,
       fdValue,
@@ -377,6 +439,13 @@ export default function FinanceDashboard() {
       subTotal,
       mfPnL: mfValue - mfInvested,
       stockPnL: stockValue - stockInvested,
+      liquidAssets,
+      lockedAssets,
+      savingsRate,
+      debtToAssetRatio,
+      taxDue,
+      expenseBreakdown,
+      portfolioPerformance,
     };
   }, [state]);
 
@@ -877,29 +946,62 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           </div>
           <div
             style={{
-              display: "flex",
-              gap: 32,
-              marginTop: 24,
-              flexWrap: "wrap",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: "24px 32px",
+              marginTop: 32,
             }}
           >
-            <HeroStat label="Total Assets" value={metrics.totalAssets} />
-            <HeroStat
-              label="Total Liabilities"
-              value={metrics.totalLiabilities}
-              negative
-            />
-            <HeroStat
-              label="This Month · In"
-              value={metrics.monthIncome}
-              sage
-            />
-            <HeroStat
-              label="This Month · Out"
-              value={metrics.monthExpense}
-              rust
-            />
+            <HeroStat label="Cash Available" value={metrics.cashInBanks} />
+            <HeroStat label="Investments" value={metrics.mfValue + metrics.stockValue} />
+            <HeroStat label="Monthly Income" value={metrics.monthIncome} sage />
+            <HeroStat label="Monthly Expense" value={metrics.monthExpense} rust />
+            <HeroStat label="Total Debt" value={metrics.totalLiabilities} negative />
+            <HeroStat label="CC Outstanding" value={metrics.ccOutstanding} negative />
+            <HeroStat label="Tax Due (Est.)" value={metrics.taxDue} negative />
           </div>
+        </div>
+      </div>
+
+      {/* QUICK INSIGHTS GRID */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
+          marginBottom: 32,
+        }}
+      >
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Savings Rate</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: metrics.savingsRate >= 20 ? THEME.sage : THEME.ink }}>
+            {metrics.savingsRate.toFixed(1)}%
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Of current month income</div>
+        </div>
+
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Debt-to-Asset</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.ink }}>
+            {metrics.debtToAssetRatio.toFixed(1)}%
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Healthy if under 40%</div>
+        </div>
+
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Liquidity</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: THEME.ink }}>
+            {metrics.totalAssets > 0 ? ((metrics.liquidAssets / metrics.totalAssets) * 100).toFixed(1) : 0}%
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Liquid vs Locked assets</div>
+        </div>
+
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Investment PnL</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: (metrics.mfPnL + metrics.stockPnL) >= 0 ? THEME.sage : THEME.rust }}>
+            {(metrics.mfPnL + metrics.stockPnL) >= 0 ? "+" : ""}{fmtINRFull(metrics.mfPnL + metrics.stockPnL)}
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Unrealized returns</div>
         </div>
       </div>
 
@@ -1062,6 +1164,72 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* NEW CHARTS */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+          gap: 24,
+          marginBottom: 32,
+        }}
+      >
+        <div style={card}>
+          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>
+            Expense Breakup
+          </div>
+          {metrics.expenseBreakdown && metrics.expenseBreakdown.length ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={55} paddingAngle={2}>
+                  {metrics.expenseBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", fontFamily: "inherit", borderRadius: 8 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <EmptyHint text="No expenses this month" />}
+        </div>
+        
+        <div style={card}>
+          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>
+            Net Worth Growth
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={netWorthTrend}>
+              <defs>
+                <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.5} />
+                  <stop offset="100%" stopColor={THEME.accent} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+              <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+              <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNw)" name="Net Worth" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{ ...card, marginBottom: 32 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>
+          Portfolio Performance
+        </div>
+        {metrics.portfolioPerformance && metrics.portfolioPerformance.length ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={metrics.portfolioPerformance}>
+              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+              <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} />
+              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+              <Bar dataKey="Invested" fill={THEME.muted} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Current" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <EmptyHint text="No investments to show" />}
       </div>
 
       {/* QUICK TILES */}
