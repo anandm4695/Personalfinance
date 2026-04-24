@@ -51,30 +51,27 @@ import {
   Legend,
 } from "recharts";
 
-// ================== DESIGN TOKENS ==================
-// Aesthetic: Editorial/financial-journal — deep navy + parchment cream + ledger-red accent
-// Inspired by old-world bank ledgers meets modern analytics terminal
 const THEME = {
-  ink: "#0A1628", // deep navy
-  paper: "#F5EFE3", // parchment cream
-  accent: "#B5322C", // ledger red
-  gold: "#C9A961", // muted gold
-  sage: "#6B8E6F", // sage green (gains)
-  rust: "#A64B2A", // rust (losses)
-  muted: "#8B7D6B", // taupe
-  line: "#D4C9B4", // divider
-  darkInk: "#061020",
+  ink: "#202124", // material dark text
+  paper: "#F8F9FA", // material light grey background
+  accent: "#1A73E8", // material blue primary
+  gold: "#F9AB00", // material yellow warning
+  sage: "#1E8E3E", // material green success
+  rust: "#D93025", // material red error
+  muted: "#5F6368", // material secondary text
+  line: "#DADCE0", // material divider
+  darkInk: "#FFFFFF", // material white (for cards)
 };
 
 const PIE_COLORS = [
-  "#0A1628",
-  "#B5322C",
-  "#C9A961",
-  "#6B8E6F",
-  "#A64B2A",
-  "#8B7D6B",
-  "#4A5D73",
-  "#8B4C6B",
+  "#1A73E8",
+  "#34A853",
+  "#FBBC04",
+  "#EA4335",
+  "#4285F4",
+  "#0F9D58",
+  "#F4B400",
+  "#DB4437",
 ];
 
 // ================== HELPERS ==================
@@ -214,7 +211,7 @@ export default function FinanceDashboard() {
     link.id = "finance-dash-fonts";
     link.rel = "stylesheet";
     link.href =
-      "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap";
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
   }, []);
 
@@ -487,11 +484,11 @@ export default function FinanceDashboard() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "'Cormorant Garamond', serif",
+          fontFamily: "'Inter', sans-serif",
           color: THEME.ink,
         }}
       >
-        Loading ledger…
+        Loading...
       </div>
     );
   }
@@ -500,33 +497,22 @@ export default function FinanceDashboard() {
     <div
       style={{
         minHeight: "100vh",
-        background: `radial-gradient(ellipse at top, ${THEME.paper} 0%, #ECE3D0 100%)`,
-        fontFamily: "'EB Garamond', 'Cormorant Garamond', Georgia, serif",
+        background: THEME.paper,
+        fontFamily: "'Inter', sans-serif",
         color: THEME.ink,
         position: "relative",
       }}
     >
-      {/* Grain texture overlay */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          pointerEvents: "none",
-          opacity: 0.04,
-          zIndex: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-      />
 
       {/* HEADER */}
       <header
         style={{
-          borderBottom: `2px solid ${THEME.ink}`,
-          background: THEME.paper,
+          borderBottom: `1px solid ${THEME.line}`,
+          background: THEME.darkInk,
           position: "sticky",
           top: 0,
           zIndex: 40,
-          boxShadow: "0 1px 0 rgba(10,22,40,0.1)",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
         }}
       >
         <div
@@ -551,20 +537,20 @@ export default function FinanceDashboard() {
                 marginBottom: 4,
               }}
             >
-              Private Financial Ledger · FY {state.profile.fy}
+              Personal Finance · FY {state.profile.fy}
             </div>
             <h1
               style={{
-                fontFamily: "'Playfair Display', 'EB Garamond', serif",
-                fontSize: 38,
-                fontWeight: 900,
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 28,
+                fontWeight: 700,
                 margin: 0,
                 letterSpacing: "-0.02em",
                 color: THEME.ink,
                 lineHeight: 1,
               }}
             >
-              The Counting House
+              Finance Dashboard
             </h1>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -618,10 +604,9 @@ export default function FinanceDashboard() {
                   cursor: "pointer",
                   padding: "14px 20px",
                   fontFamily: "inherit",
-                  fontSize: 13,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: active ? THEME.accent : THEME.ink,
+                  fontSize: 14,
+                  letterSpacing: "0.02em",
+                  color: active ? THEME.accent : THEME.muted,
                   borderBottom: `3px solid ${
                     active ? THEME.accent : "transparent"
                   }`,
@@ -710,13 +695,12 @@ export default function FinanceDashboard() {
           textAlign: "center",
           padding: "40px 20px",
           color: THEME.muted,
-          fontSize: 12,
-          letterSpacing: "0.1em",
+          fontSize: 14,
           borderTop: `1px solid ${THEME.line}`,
           marginTop: 40,
         }}
       >
-        — Kept in the old manner · Data stored locally on your device —
+        Personal Finance Dashboard
       </footer>
     </div>
   );
@@ -725,79 +709,82 @@ export default function FinanceDashboard() {
 // ================== SHARED STYLES ==================
 const btnGhost = {
   background: "transparent",
-  border: `1px solid ${THEME.ink}`,
+  border: `1px solid ${THEME.line}`,
   color: THEME.ink,
-  padding: "8px 14px",
-  fontFamily: "'EB Garamond', serif",
-  fontSize: 13,
-  letterSpacing: "0.05em",
+  padding: "8px 16px",
+  fontFamily: "'Inter', sans-serif",
+  fontSize: 14,
+  fontWeight: 500,
+  borderRadius: 6,
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  transition: "all 0.15s",
+  transition: "all 0.2s ease",
 };
 const btnSolid = {
   background: THEME.ink,
-  color: THEME.paper,
+  color: THEME.darkInk,
   border: `1px solid ${THEME.ink}`,
-  padding: "10px 18px",
-  fontFamily: "'EB Garamond', serif",
-  fontSize: 13,
-  letterSpacing: "0.08em",
+  padding: "10px 20px",
+  fontFamily: "'Inter', sans-serif",
+  fontSize: 14,
+  fontWeight: 500,
+  borderRadius: 6,
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  textTransform: "uppercase",
-  fontWeight: 600,
+  transition: "all 0.2s ease",
 };
 const btnAccent = {
   ...btnSolid,
   background: THEME.accent,
   borderColor: THEME.accent,
+  color: "#FFFFFF",
 };
 
 const card = {
-  background: "#FBF6EA",
+  background: THEME.darkInk,
   border: `1px solid ${THEME.line}`,
+  borderRadius: 12,
   padding: 24,
-  boxShadow: "0 1px 2px rgba(10,22,40,0.04)",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
 };
 const cardDark = {
   background: THEME.ink,
-  color: THEME.paper,
+  color: THEME.darkInk,
+  borderRadius: 12,
   padding: 24,
-  boxShadow: "0 4px 12px rgba(10,22,40,0.25)",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
 };
 
 const input = {
   width: "100%",
-  padding: "10px 12px",
+  padding: "10px 14px",
   border: `1px solid ${THEME.line}`,
-  background: "#FFFDF7",
-  fontFamily: "inherit",
+  background: THEME.darkInk,
+  fontFamily: "'Inter', sans-serif",
   fontSize: 14,
   color: THEME.ink,
-  borderRadius: 0,
+  borderRadius: 6,
+  transition: "border-color 0.2s ease",
 };
 const label = {
   display: "block",
-  fontSize: 11,
-  letterSpacing: "0.15em",
-  textTransform: "uppercase",
-  color: THEME.muted,
+  fontSize: 12,
+  color: THEME.ink,
   marginBottom: 6,
-  fontWeight: 600,
+  fontWeight: 500,
 };
 
 const SectionTitle = ({ children, sub }) => (
   <div style={{ marginBottom: 24 }}>
     <h2
       style={{
-        fontFamily: "'Playfair Display', serif",
-        fontSize: 32,
-        fontWeight: 800,
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 24,
+        fontWeight: 600,
         margin: 0,
         letterSpacing: "-0.02em",
         color: THEME.ink,
@@ -811,7 +798,7 @@ const SectionTitle = ({ children, sub }) => (
           fontSize: 13,
           color: THEME.muted,
           marginTop: 4,
-          fontStyle: "italic",
+          fontStyle: "normal",
         }}
       >
         {sub}
@@ -852,7 +839,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
             right: -40,
             opacity: 0.06,
             fontSize: 300,
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 900,
             lineHeight: 1,
             color: THEME.gold,
@@ -879,7 +866,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 72,
               fontWeight: 900,
               lineHeight: 1,
@@ -1233,7 +1220,7 @@ const HeroStat = ({ label, value, negative, sage, rust }) => (
     <div
       style={{
         fontSize: 10,
-        letterSpacing: "0.2em",
+        letterSpacing: "0.05em",
         textTransform: "uppercase",
         color: "rgba(245,239,227,0.6)",
         marginBottom: 4,
@@ -1243,7 +1230,7 @@ const HeroStat = ({ label, value, negative, sage, rust }) => (
     </div>
     <div
       style={{
-        fontFamily: "'Playfair Display', serif",
+        fontFamily: "'Inter', sans-serif",
         fontSize: 24,
         fontWeight: 700,
         color: negative
@@ -1276,7 +1263,7 @@ const Tile = ({ icon: Icon, label, value, sub, subColor, negative }) => (
     </div>
     <div
       style={{
-        fontFamily: "'Playfair Display', serif",
+        fontFamily: "'Inter', sans-serif",
         fontSize: 22,
         fontWeight: 700,
         color: negative ? THEME.accent : THEME.ink,
@@ -1306,11 +1293,11 @@ const EmptyHint = ({ text }) => (
       padding: "40px 20px",
       textAlign: "center",
       color: THEME.muted,
-      fontStyle: "italic",
+      fontStyle: "normal",
       fontSize: 14,
     }}
   >
-    ∞ {text}
+    {text}
   </div>
 );
 
@@ -1383,7 +1370,7 @@ function BanksTab({ state, addItem, removeItem }) {
             <div
               style={{
                 fontSize: 10,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 color: THEME.muted,
                 marginBottom: 4,
@@ -1393,7 +1380,7 @@ function BanksTab({ state, addItem, removeItem }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 20,
                 fontWeight: 700,
                 marginBottom: 2,
@@ -1406,7 +1393,7 @@ function BanksTab({ state, addItem, removeItem }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 28,
                 fontWeight: 800,
                 color: THEME.ink,
@@ -1432,7 +1419,7 @@ function BanksTab({ state, addItem, removeItem }) {
         >
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 700,
             }}
@@ -1557,7 +1544,7 @@ const th = {
   textAlign: "left",
   padding: "10px 8px",
   fontSize: 10,
-  letterSpacing: "0.2em",
+  letterSpacing: "0.05em",
   textTransform: "uppercase",
   color: THEME.muted,
   fontWeight: 700,
@@ -1966,7 +1953,7 @@ function FDList({ items, onRemove }) {
             <div
               style={{
                 fontSize: 10,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 color: THEME.muted,
               }}
@@ -1975,7 +1962,7 @@ function FDList({ items, onRemove }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 24,
                 fontWeight: 800,
                 marginTop: 4,
@@ -2039,7 +2026,7 @@ function RDList({ items, onRemove }) {
             <div
               style={{
                 fontSize: 10,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 color: THEME.muted,
               }}
@@ -2048,7 +2035,7 @@ function RDList({ items, onRemove }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 24,
                 fontWeight: 800,
                 marginTop: 4,
@@ -2086,7 +2073,7 @@ function BondList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -2095,7 +2082,7 @@ function BondList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 800,
               marginTop: 4,
@@ -2133,7 +2120,7 @@ function PPFList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -2142,7 +2129,7 @@ function PPFList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 28,
               fontWeight: 800,
               marginTop: 4,
@@ -2177,7 +2164,7 @@ function NPSList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -2186,7 +2173,7 @@ function NPSList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 28,
               fontWeight: 800,
               marginTop: 4,
@@ -2225,7 +2212,7 @@ function MFList({ items, onRemove }) {
             <div
               style={{
                 fontSize: 10,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 color: THEME.muted,
               }}
@@ -2234,7 +2221,7 @@ function MFList({ items, onRemove }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 18,
                 fontWeight: 700,
                 marginTop: 4,
@@ -2284,7 +2271,7 @@ function LICList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -2293,7 +2280,7 @@ function LICList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               marginTop: 4,
@@ -2330,7 +2317,7 @@ function TermList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -2339,7 +2326,7 @@ function TermList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               marginTop: 4,
@@ -2906,7 +2893,7 @@ function DematTab({ state, addItem, removeItem }) {
       >
         <div
           style={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 22,
             fontWeight: 700,
           }}
@@ -2926,7 +2913,7 @@ function DematTab({ state, addItem, removeItem }) {
             <div
               style={{
                 fontSize: 10,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 color: THEME.muted,
               }}
@@ -2935,7 +2922,7 @@ function DematTab({ state, addItem, removeItem }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 20,
                 fontWeight: 700,
                 marginTop: 4,
@@ -2962,7 +2949,7 @@ function DematTab({ state, addItem, removeItem }) {
       >
         <div
           style={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 22,
             fontWeight: 700,
           }}
@@ -3393,7 +3380,7 @@ function CCList({ items, onRemove }) {
             </div>
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 20,
                 fontWeight: 700,
                 marginTop: 8,
@@ -3402,7 +3389,7 @@ function CCList({ items, onRemove }) {
               {c.issuer}
             </div>
             <div
-              style={{ fontSize: 16, letterSpacing: "0.2em", marginTop: 20 }}
+              style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 20 }}
             >
               •••• •••• •••• {c.last4 || "****"}
             </div>
@@ -3420,7 +3407,7 @@ function CCList({ items, onRemove }) {
                   style={{
                     color: "rgba(245,239,227,0.6)",
                     fontSize: 9,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -3435,7 +3422,7 @@ function CCList({ items, onRemove }) {
                   style={{
                     color: "rgba(245,239,227,0.6)",
                     fontSize: 9,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.05em",
                     textTransform: "uppercase",
                   }}
                 >
@@ -3490,7 +3477,7 @@ function PrepaidList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.muted,
             }}
@@ -3499,7 +3486,7 @@ function PrepaidList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 20,
               fontWeight: 700,
               marginTop: 4,
@@ -3509,7 +3496,7 @@ function PrepaidList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 24,
               fontWeight: 800,
               marginTop: 12,
@@ -3532,7 +3519,7 @@ function LoanTakenList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.accent,
             }}
@@ -3541,7 +3528,7 @@ function LoanTakenList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               marginTop: 4,
@@ -3551,7 +3538,7 @@ function LoanTakenList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 800,
               marginTop: 12,
@@ -3589,7 +3576,7 @@ function LoanGivenList({ items, onRemove }) {
           <div
             style={{
               fontSize: 10,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.05em",
               textTransform: "uppercase",
               color: THEME.sage,
             }}
@@ -3598,7 +3585,7 @@ function LoanGivenList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 18,
               fontWeight: 700,
               marginTop: 4,
@@ -3608,7 +3595,7 @@ function LoanGivenList({ items, onRemove }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 800,
               marginTop: 12,
@@ -3637,7 +3624,7 @@ function LoanGivenList({ items, onRemove }) {
                 fontSize: 12,
                 color: THEME.muted,
                 marginTop: 8,
-                fontStyle: "italic",
+                fontStyle: "normal",
               }}
             >
               "{l.note}"
@@ -4207,7 +4194,7 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
                     </div>
                     <div
                       style={{
-                        fontFamily: "'Playfair Display', serif",
+                        fontFamily: "'Inter', sans-serif",
                         fontSize: 26,
                         fontWeight: 800,
                         marginTop: 4,
@@ -4230,7 +4217,7 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
                   <div style={{ textAlign: "right" }}>
                     <div
                       style={{
-                        fontFamily: "'Playfair Display', serif",
+                        fontFamily: "'Inter', sans-serif",
                         fontSize: 22,
                         fontWeight: 800,
                       }}
@@ -4276,7 +4263,7 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
                       marginTop: 12,
                       fontSize: 13,
                       color: THEME.ink,
-                      fontStyle: "italic",
+                      fontStyle: "normal",
                     }}
                   >
                     → Save <b>{fmtINRFull(monthlyNeeded)}</b>/month to reach
@@ -4468,7 +4455,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 34,
               fontWeight: 800,
               marginTop: 12,
@@ -4532,7 +4519,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 34,
               fontWeight: 800,
               marginTop: 12,
@@ -4616,7 +4603,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
         >
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 700,
             }}
@@ -4650,7 +4637,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
                 <div
                   style={{
                     fontSize: 10,
-                    letterSpacing: "0.2em",
+                    letterSpacing: "0.05em",
                     textTransform: "uppercase",
                     color: THEME.muted,
                   }}
@@ -4662,7 +4649,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
                 </div>
                 <div
                   style={{
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "'Inter', sans-serif",
                     fontSize: 20,
                     fontWeight: 800,
                     marginTop: 8,
@@ -4701,7 +4688,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           >
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 18,
                 fontWeight: 700,
               }}
@@ -4775,7 +4762,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           >
             <div
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 18,
                 fontWeight: 700,
               }}
@@ -4855,7 +4842,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           style={{
             fontSize: 12,
             color: THEME.muted,
-            fontStyle: "italic",
+            fontStyle: "normal",
             marginTop: 12,
           }}
         >
@@ -5017,13 +5004,14 @@ function Modal({ title, children, onClose }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: THEME.paper,
+          background: THEME.darkInk,
           width: "100%",
           maxWidth: 560,
           maxHeight: "90vh",
           overflowY: "auto",
-          border: `2px solid ${THEME.ink}`,
-          boxShadow: "0 20px 60px rgba(10,22,40,0.4)",
+          border: "none",
+          borderRadius: 12,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
         }}
       >
         <div
@@ -5037,7 +5025,7 @@ function Modal({ title, children, onClose }) {
         >
           <div
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 800,
             }}
