@@ -176,12 +176,12 @@ const loadState = () => {
 const DEFAULT_STATE = (() => {
   const d = new Date();
   const ym = d.toISOString().slice(0, 7);
-  const lastM = new Date(d.setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
+  const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
   return {
     profile: { name: "Anand", fy: "2025-26", regime: "new" },
     bankAccounts: [
-      { id: "1", bankName: "HDFC Bank", accountNo: "1234", balance: "150000" },
-      { id: "2", bankName: "SBI", accountNo: "5678", balance: "45000" }
+      { id: "1", bankName: "HDFC Bank", accountNo: "XXXX1234", balance: "150000" },
+      { id: "2", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" }
     ],
     transactions: [
       { id: "t1", date: `${ym}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
@@ -191,24 +191,27 @@ const DEFAULT_STATE = (() => {
       { id: "t5", date: `${lastM}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
       { id: "t6", date: `${lastM}-05`, amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
     ],
+    // FD uses 'principal' field
     fixedDeposits: [
-      { id: "fd1", bankName: "HDFC", amount: "500000", rate: "7", startDate: "2023-01-01", maturityDate: "2026-01-01" }
+      { id: "fd1", bankName: "HDFC", principal: "500000", rate: "7", startDate: "2023-01-01", maturityDate: "2026-01-01" }
     ],
     recurringDeposits: [],
     bonds: [],
     ppf: [
-      { id: "p1", currentBalance: "350000", yearlyContribution: "150000" }
+      { id: "p1", balance: "350000", yearlyContribution: "150000" }
     ],
     nps: [],
     lic: [],
     termPlans: [],
+    // MF uses 'units' * 'currentNav' for value; 'invested' for cost basis
     mutualFunds: [
-      { id: "m1", fundName: "Parag Parikh Flexi Cap", invested: "200000", current: "260000" },
-      { id: "m2", fundName: "Nifty 50 Index", invested: "150000", current: "185000" }
+      { id: "m1", fundName: "Parag Parikh Flexi Cap", units: "800", currentNav: "325", invested: "200000" },
+      { id: "m2", fundName: "Nifty 50 Index", units: "500", currentNav: "370", invested: "150000" }
     ],
+    // Stocks use 'qty' * 'currentPrice' for value; 'qty' * 'avgPrice' for cost basis
     stocks: [
-      { id: "s1", stockName: "Reliance", invested: "50000", current: "45000" },
-      { id: "s2", stockName: "TCS", invested: "80000", current: "110000" }
+      { id: "s1", stockName: "Reliance", qty: "20", currentPrice: "2250", avgPrice: "2500" },
+      { id: "s2", stockName: "TCS", qty: "15", currentPrice: "3600", avgPrice: "2800" }
     ],
     demat: [],
     creditCards: [
