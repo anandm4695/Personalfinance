@@ -49,6 +49,9 @@ import {
   Zap,
   Heart,
   TrendingDown,
+  Hash,
+  FileUp,
+  Percent,
 } from "lucide-react";
 import {
   LineChart,
@@ -711,6 +714,7 @@ export default function FinanceDashboard() {
     { id: "budget", label: "Budget", icon: Wallet },
     { id: "reminders", label: "Reminders", icon: Bell },
     { id: "analytics", label: "Analytics", icon: PieIcon },
+    { id: "calculators", label: "Calculators", icon: Hash },
     { id: "tax", label: "Tax Vault", icon: Calculator },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -1085,6 +1089,7 @@ export default function FinanceDashboard() {
             trendData={trendData}
           />
         )}
+        {tab === "calculators" && <CalculatorsTab />}
         {tab === "settings" && (
           <SettingsTab
             state={state}
@@ -1247,6 +1252,7 @@ const SectionTitle = ({ children, sub }) => (
 
 // ================== OVERVIEW ==================
 function Overview({ metrics, state, assetBreakdown, trendData }) {
+  const [drillCat, setDrillCat] = useState(null);
   const netWorthTrend = useMemo(() => {
     // simple monthly snapshot: cumulative net cash flow + current assets snapshot (approximation)
     return trendData.map((t, i) => ({
@@ -1343,10 +1349,28 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
       >
         <div style={{ ...card, padding: 20 }}>
           <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Savings Rate</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: metrics.savingsRate >= 20 ? THEME.sage : THEME.ink }}>
-            {metrics.savingsRate.toFixed(1)}%
-          </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Of current month income</div>
+          {(() => {
+            const rate = Math.min(100, Math.max(0, metrics.savingsRate));
+            const r = 26, circ = 2 * Math.PI * r;
+            const dash = (rate / 100) * circ;
+            const col = rate >= 20 ? THEME.sage : rate >= 10 ? THEME.gold : THEME.rust;
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <svg width="68" height="68" viewBox="0 0 68 68">
+                  <circle cx="34" cy="34" r={r} fill="none" stroke={THEME.line} strokeWidth="6" />
+                  <circle cx="34" cy="34" r={r} fill="none" stroke={col} strokeWidth="6"
+                    strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={circ / 4}
+                    strokeLinecap="round" style={{ transition: "stroke-dasharray 0.6s" }} />
+                  <text x="34" y="39" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: col, fontFamily: "inherit" }}>{rate.toFixed(0)}%</text>
+                </svg>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: col }}>{metrics.savingsRate.toFixed(1)}%</div>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>Of monthly income</div>
+                  <div style={{ fontSize: 11, color: rate >= 20 ? THEME.sage : THEME.gold, marginTop: 1 }}>{rate >= 20 ? "On track" : "Target: 20%+"}</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div style={{ ...card, padding: 20 }}>
@@ -1372,6 +1396,23 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           </div>
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Unrealized returns</div>
         </div>
+      </div>
+
+      {/* MONTHLY P&L BAR */}
+      <div style={{ ...card, marginBottom: 32 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Monthly P&L · Last 6 Months</div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={trendData.slice(-6)} barGap={4}>
+            <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+            <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+            <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+            <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+            <Bar dataKey="income" name="Income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" name="Expense" fill={THEME.rust} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="net" name="Saved" fill={THEME.accent} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* FINANCIAL HEALTH + CASH FLOW + UPCOMING DUES */}
@@ -1521,6 +1562,71 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* BILL CALENDAR */}
+      {(() => {
+        const now = new Date();
+        const year = now.getFullYear(), month = now.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today2 = now.getDate();
+        // Collect due dates this month
+        const dueDays = {};
+        state.creditCards.forEach((c) => {
+          if (c.dueDate) {
+            const d = new Date(c.dueDate);
+            if (d.getFullYear() === year && d.getMonth() === month)
+              dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: c.issuer || "Card", color: THEME.rust });
+          }
+        });
+        state.subscriptions.filter(s => !s.paused).forEach((s) => {
+          if (s.renewalDate) {
+            const d = new Date(s.renewalDate);
+            if (d.getFullYear() === year && d.getMonth() === month)
+              dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: s.name, color: THEME.gold });
+          }
+        });
+        // Advance tax dates
+        [15].forEach((day) => { // June 15
+          if (month === 5) dueDays[day] = (dueDays[day] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+        });
+        if (month === 8) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+        if (month === 11) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+        if (month === 2) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+        const cells = [];
+        for (let i = 0; i < firstDay; i++) cells.push(null);
+        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+        const monthName = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
+        return (
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>Bill Calendar · {monthName}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
+              {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+                <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
+              ))}
+              {cells.map((d, i) => (
+                <div key={i} style={{
+                  minHeight: 44, padding: 4, borderRadius: 6, fontSize: 11,
+                  background: d === today2 ? THEME.accent + "22" : dueDays[d] ? "rgba(249,171,0,0.1)" : "transparent",
+                  border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent",
+                }}>
+                  {d && <>
+                    <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
+                    {(dueDays[d] || []).slice(0, 2).map((due, j) => (
+                      <div key={j} style={{ fontSize: 9, color: due.color, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{due.label}</div>
+                    ))}
+                  </>}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+              <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
+              <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscription renewals</span>
+              <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
             </div>
           </div>
         );
@@ -1714,8 +1820,11 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                 {metrics.expenseBreakdown.slice(0, 8).map((cat, i) => {
                   const total = metrics.expenseBreakdown.reduce((s, c) => s + c.value, 0);
                   const pct = total > 0 ? ((cat.value / total) * 100).toFixed(1) : "0";
+                  const active = drillCat === cat.name;
                   return (
-                    <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "rgba(128,128,128,0.06)" }}>
+                    <div key={cat.name}
+                      onClick={() => setDrillCat(active ? null : cat.name)}
+                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: active ? PIE_COLORS[i % PIE_COLORS.length] + "22" : "rgba(128,128,128,0.06)", border: active ? `1.5px solid ${PIE_COLORS[i % PIE_COLORS.length]}` : "1.5px solid transparent", cursor: "pointer" }}>
                       <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.name}</div>
@@ -1725,6 +1834,22 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                   );
                 })}
               </div>
+              {drillCat && (() => {
+                const now = new Date();
+                const ym = now.toISOString().slice(0, 7);
+                const txns = state.transactions.filter(t => t.date && t.date.startsWith(ym) && t.type === "debit" && t.category === drillCat);
+                return txns.length > 0 ? (
+                  <div style={{ marginTop: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent, marginBottom: 6 }}>{drillCat} transactions this month</div>
+                    {txns.map(t => (
+                      <div key={t.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                        <span style={{ color: THEME.muted }}>{t.date} · {t.note || "—"}</span>
+                        <span style={{ fontWeight: 600, color: THEME.rust }}>{fmtINRFull(t.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </>
           ) : <EmptyHint text="No expenses this month" />}
         </div>
@@ -1768,6 +1893,89 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
             </BarChart>
           </ResponsiveContainer>
         ) : <EmptyHint text="No investments to show" />}
+      </div>
+
+      {/* INVESTMENT ALLOCATION + NET WORTH DONUT */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+        {/* C8: Investment Allocation Pie */}
+        {(() => {
+          const invBreakdown = [
+            { name: "Fixed Deposits", value: metrics.fdValue },
+            { name: "Recurring Dep.", value: metrics.rdValue },
+            { name: "Bonds", value: metrics.bondValue },
+            { name: "PPF", value: metrics.ppfValue },
+            { name: "NPS", value: metrics.npsValue },
+            { name: "LIC", value: metrics.licValue },
+            { name: "Mutual Funds", value: metrics.mfValue },
+            { name: "Stocks", value: metrics.stockValue },
+          ].filter(x => x.value > 0);
+          const total = invBreakdown.reduce((s, x) => s + x.value, 0);
+          return (
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>Investment Allocation</div>
+              {invBreakdown.length ? (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={invBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={2}>
+                        {invBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 8 }}>
+                    {invBreakdown.map((x, i) => (
+                      <div key={x.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                        <span style={{ color: THEME.ink }}>{x.name}</span>
+                        <span style={{ color: THEME.muted, marginLeft: "auto" }}>{total > 0 ? ((x.value / total) * 100).toFixed(0) : 0}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : <EmptyHint text="Add investments to see allocation" />}
+            </div>
+          );
+        })()}
+        {/* C9: Net Worth Donut */}
+        {(() => {
+          const nwData = [
+            { name: "Assets", value: metrics.totalAssets },
+            { name: "Liabilities", value: metrics.totalLiabilities },
+          ].filter(x => x.value > 0);
+          return (
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>Net Worth Breakdown</div>
+              {metrics.totalAssets > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={nwData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={3}>
+                        <Cell fill={THEME.sage} />
+                        <Cell fill={THEME.rust} />
+                      </Pie>
+                      <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+                    <div style={{ textAlign: "center", padding: 12, background: "rgba(30,142,62,0.08)", borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>Total Assets</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(metrics.totalAssets)}</div>
+                    </div>
+                    <div style={{ textAlign: "center", padding: 12, background: "rgba(217,48,37,0.08)", borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>Total Liabilities</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(metrics.totalLiabilities)}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center", marginTop: 12, padding: "8px 0", borderTop: `1px solid ${THEME.line}` }}>
+                    <span style={{ fontSize: 12, color: THEME.muted }}>Net Worth: </span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust }}>{fmtINRFull(metrics.netWorth)}</span>
+                  </div>
+                </>
+              ) : <EmptyHint text="Add accounts and investments" />}
+            </div>
+          );
+        })()}
       </div>
 
       {/* QUICK TILES */}
@@ -2018,6 +2226,17 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
   const [dateTo, setDateTo] = useState("");
   const [editBankId, setEditBankId] = useState(null);
   const [editTxnId, setEditTxnId] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+
+  // D12: Recurring detection — transactions with same note+amount appearing ≥2 times
+  const recurringKeys = useMemo(() => {
+    const freq = {};
+    state.transactions.forEach((t) => {
+      const key = (t.note || "") + "|" + t.amount + "|" + t.type;
+      freq[key] = (freq[key] || 0) + 1;
+    });
+    return new Set(Object.keys(freq).filter((k) => freq[k] >= 2));
+  }, [state.transactions]);
 
   const filteredTxns = state.transactions
     .filter((t) => filterAcc === "all" || t.accountId === filterAcc)
@@ -2048,6 +2267,9 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
         <div style={{ display: "flex", gap: 8 }}>
           <button style={btnGhost} onClick={() => setShowBank(true)}>
             <Plus size={14} /> Account
+          </button>
+          <button style={btnGhost} onClick={() => setShowImport(true)} title="Import transactions from CSV">
+            <FileUp size={14} /> Import CSV
           </button>
           <button style={btnSolid} onClick={() => setShowTxn(true)}>
             <Plus size={14} /> Transaction
@@ -2229,7 +2451,14 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
                       style={{ borderBottom: `1px dashed ${THEME.line}` }}
                     >
                       <td style={td}>{t.date}</td>
-                      <td style={td}>{t.note || "—"}</td>
+                      <td style={td}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {t.note || "—"}
+                          {recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
+                            <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
+                          )}
+                        </div>
+                      </td>
                       <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
                         {t.category}
                       </td>
@@ -2318,6 +2547,16 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
           onSave={(v) => {
             addItem("transactions", v);
             setShowTxn(false);
+          }}
+        />
+      )}
+      {showImport && (
+        <CsvImportModal
+          accounts={state.bankAccounts}
+          onClose={() => setShowImport(false)}
+          onImport={(rows) => {
+            rows.forEach((v) => addItem("transactions", v));
+            setShowImport(false);
           }}
         />
       )}
@@ -6782,5 +7021,203 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ================== CALCULATORS TAB ==================
+function CalculatorsTab() {
+  // EMI Calculator
+  const [emiP, setEmiP] = useState("1000000");
+  const [emiR, setEmiR] = useState("8.5");
+  const [emiN, setEmiN] = useState("240");
+  const emiResult = useMemo(() => {
+    const p = Number(emiP) || 0, r = (Number(emiR) || 0) / 12 / 100, n = Number(emiN) || 1;
+    if (r === 0) return { emi: p / n, total: p, interest: 0 };
+    const emi = p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    return { emi, total: emi * n, interest: emi * n - p };
+  }, [emiP, emiR, emiN]);
+
+  // SIP Returns Projector
+  const [sipAmt, setSipAmt] = useState("10000");
+  const [sipYrs, setSipYrs] = useState("10");
+  const [sipRate, setSipRate] = useState("12");
+  const sipResult = useMemo(() => {
+    const m = Number(sipAmt) || 0, y = Number(sipYrs) || 1, r = (Number(sipRate) || 0) / 12 / 100;
+    const n = y * 12;
+    const corpus = r === 0 ? m * n : m * (Math.pow(1 + r, n) - 1) / r * (1 + r);
+    return { corpus, invested: m * n, gains: corpus - m * n };
+  }, [sipAmt, sipYrs, sipRate]);
+
+  // FD / RD Maturity Calculator
+  const [fdP, setFdP] = useState("100000");
+  const [fdR, setFdR] = useState("6.5");
+  const [fdYrs, setFdYrs] = useState("3");
+  const [fdType, setFdType] = useState("fd");
+  const fdResult = useMemo(() => {
+    const p = Number(fdP) || 0, r = (Number(fdR) || 0) / 100, y = Number(fdYrs) || 1;
+    if (fdType === "fd") {
+      const maturity = p * Math.pow(1 + r / 4, 4 * y);
+      return { maturity, interest: maturity - p };
+    } else {
+      const n = y * 12, mr = r / 12;
+      const maturity = mr === 0 ? p * n : p * (Math.pow(1 + mr, n) - 1) / mr * (1 + mr);
+      return { maturity, interest: maturity - p * n, totalDeposited: p * n };
+    }
+  }, [fdP, fdR, fdYrs, fdType]);
+
+  const calcCard = { ...card as any, marginBottom: 0 };
+  const inpRow = (lbl, val, set) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 500 }}>{lbl}</div>
+      <input style={{ ...input, fontSize: 14 }} type="number" value={val} onChange={(e) => set(e.target.value)} />
+    </div>
+  );
+  const resultRow = (lbl, val, highlight?) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
+      <span style={{ color: THEME.muted }}>{lbl}</span>
+      <span style={{ fontWeight: highlight ? 800 : 600, color: highlight ? THEME.sage : THEME.ink }}>{fmtINRFull(val)}</span>
+    </div>
+  );
+
+  return (
+    <div>
+      <SectionTitle sub="Quick financial calculators — EMI, SIP projector, FD/RD maturity">Calculators</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
+
+        {/* EMI Calculator */}
+        <div style={calcCard}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 20 }}>EMI Calculator</div>
+          {inpRow("Loan Amount (₹)", emiP, setEmiP)}
+          {inpRow("Annual Interest Rate (%)", emiR, setEmiR)}
+          {inpRow("Tenure (months)", emiN, setEmiN)}
+          <div style={{ background: "rgba(128,128,128,0.05)", borderRadius: 10, padding: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, letterSpacing: "0.15em", textTransform: "uppercase" }}>Result</div>
+            {resultRow("Monthly EMI", emiResult.emi)}
+            {resultRow("Total Payment", emiResult.total)}
+            {resultRow("Total Interest", emiResult.interest)}
+            <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ height: 10, flex: 1, background: THEME.line, borderRadius: 5, overflow: "hidden", display: "flex" }}>
+                <div style={{ height: "100%", width: emiResult.total > 0 ? ((Number(emiP) / emiResult.total) * 100) + "%" : "0%", background: THEME.accent }} />
+                <div style={{ height: "100%", flex: 1, background: THEME.rust }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", fontSize: 11, color: THEME.muted, gap: 16, marginTop: 4 }}>
+              <span><span style={{ color: THEME.accent }}>■</span> Principal</span>
+              <span><span style={{ color: THEME.rust }}>■</span> Interest</span>
+            </div>
+          </div>
+        </div>
+
+        {/* SIP Returns Projector */}
+        <div style={calcCard}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 20 }}>SIP Returns Projector</div>
+          {inpRow("Monthly SIP Amount (₹)", sipAmt, setSipAmt)}
+          {inpRow("Investment Period (years)", sipYrs, setSipYrs)}
+          {inpRow("Expected Annual Return (%)", sipRate, setSipRate)}
+          <div style={{ background: "rgba(128,128,128,0.05)", borderRadius: 10, padding: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, letterSpacing: "0.15em", textTransform: "uppercase" }}>Result</div>
+            {resultRow("Amount Invested", sipResult.invested)}
+            {resultRow("Estimated Gains", sipResult.gains)}
+            {resultRow("Total Corpus", sipResult.corpus, true)}
+            <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ height: 10, flex: 1, background: THEME.line, borderRadius: 5, overflow: "hidden", display: "flex" }}>
+                <div style={{ height: "100%", width: sipResult.corpus > 0 ? ((sipResult.invested / sipResult.corpus) * 100) + "%" : "0%", background: THEME.muted }} />
+                <div style={{ height: "100%", flex: 1, background: THEME.sage }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", fontSize: 11, color: THEME.muted, gap: 16, marginTop: 4 }}>
+              <span><span style={{ color: THEME.muted }}>■</span> Invested</span>
+              <span><span style={{ color: THEME.sage }}>■</span> Gains</span>
+            </div>
+          </div>
+        </div>
+
+        {/* FD / RD Maturity Calculator */}
+        <div style={calcCard}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 20 }}>FD / RD Maturity Calculator</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {["fd", "rd"].map((t) => (
+              <button key={t} onClick={() => setFdType(t)} style={{ ...btnGhost, flex: 1, background: fdType === t ? THEME.accent : "transparent", color: fdType === t ? THEME.paper : THEME.ink }}>
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          {inpRow(fdType === "fd" ? "Principal Amount (₹)" : "Monthly Deposit (₹)", fdP, setFdP)}
+          {inpRow("Annual Interest Rate (%)", fdR, setFdR)}
+          {inpRow("Tenure (years)", fdYrs, setFdYrs)}
+          <div style={{ background: "rgba(128,128,128,0.05)", borderRadius: 10, padding: 16, marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, letterSpacing: "0.15em", textTransform: "uppercase" }}>Result</div>
+            {fdType === "rd" && resultRow("Total Deposited", fdResult.totalDeposited || 0)}
+            {resultRow("Interest Earned", fdResult.interest)}
+            {resultRow("Maturity Value", fdResult.maturity, true)}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ================== CSV IMPORT MODAL ==================
+function CsvImportModal({ accounts, onClose, onImport }) {
+  const [csvText, setCsvText] = useState("");
+  const [preview, setPreview] = useState([]);
+  const [error, setError] = useState("");
+
+  const parseCSV = () => {
+    setError("");
+    try {
+      const lines = csvText.trim().split("\n").filter(Boolean);
+      if (lines.length === 0) { setError("Paste at least one row."); return; }
+      const rows = lines.map((line, i) => {
+        const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+        // Expected: date, amount, type (credit/debit), category, note, accountId (optional)
+        if (parts.length < 4) throw new Error(`Row ${i + 1}: need at least date, amount, type, category`);
+        const [date, amount, type, category, note, accountId] = parts;
+        if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
+        if (!["credit", "debit"].includes(type.toLowerCase())) throw new Error(`Row ${i + 1}: type must be credit or debit`);
+        return { date, amount: String(Number(amount)), type: type.toLowerCase(), category: category || "Other", note: note || "", accountId: accountId || (accounts[0]?.id || "") };
+      });
+      setPreview(rows);
+    } catch (e) {
+      setError(e.message);
+      setPreview([]);
+    }
+  };
+
+  return (
+    <Modal title="Import Transactions (CSV)" onClose={onClose}>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>
+        Format: <code style={{ background: "rgba(128,128,128,0.1)", padding: "1px 4px" }}>date, amount, type, category, note, accountId</code>
+        <div style={{ marginTop: 4 }}>Example: <code style={{ background: "rgba(128,128,128,0.1)", padding: "1px 4px" }}>2025-04-01, 120000, credit, Salary, April Salary, 1</code></div>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ ...label }}>Paste CSV rows</label>
+        <textarea
+          style={{ ...input, height: 120, resize: "vertical", fontFamily: "monospace", fontSize: 12 }}
+          value={csvText}
+          onChange={(e) => { setCsvText(e.target.value); setPreview([]); }}
+          placeholder={"2025-04-01, 120000, credit, Salary, April Salary\n2025-04-05, 15000, debit, Rent, House Rent"}
+        />
+      </div>
+      <button style={{ ...btnGhost, marginBottom: 12 }} onClick={parseCSV}>Preview</button>
+      {error && <div style={{ color: THEME.rust, fontSize: 12, marginBottom: 8 }}>{error}</div>}
+      {preview.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{preview.length} rows parsed — review before importing:</div>
+          <div style={{ maxHeight: 180, overflow: "auto", fontSize: 12 }}>
+            {preview.map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                <span style={{ color: THEME.muted }}>{r.date}</span>
+                <span style={{ color: r.type === "credit" ? THEME.sage : THEME.rust }}>{r.type === "credit" ? "+" : "−"}{fmtINRFull(r.amount)}</span>
+                <span style={{ color: THEME.muted }}>{r.category}</span>
+                <span>{r.note}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <ModalActions onSave={() => preview.length > 0 && onImport(preview)} onClose={onClose} />
+    </Modal>
   );
 }

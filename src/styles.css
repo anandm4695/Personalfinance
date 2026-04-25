@@ -33,3 +33,11 @@ button, a, input, select, textarea {
   font-family: sans-serif;
 }
 
+@media print {
+  nav, header, footer, button, .no-print { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  main { padding: 0 !important; max-width: 100% !important; }
+  * { box-shadow: none !important; border-radius: 0 !important; }
+  @page { margin: 15mm; }
+}
+
