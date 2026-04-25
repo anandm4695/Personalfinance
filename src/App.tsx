@@ -220,16 +220,15 @@ const DEFAULT_STATE = (() => {
       { id: "2", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" }
     ],
     transactions: [
-      { id: "t1", date: `${ym}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t2", date: `${ym}-05`, amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
-      { id: "t3", date: `${ym}-10`, amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
-      { id: "t4", date: `${ym}-15`, amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
-      { id: "t5", date: `${lastM}-01`, amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t6", date: `${lastM}-05`, amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
+      { id: "t1", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t2", date: `${ym}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
+      { id: "t3", date: `${ym}-10`, accountId: "2", amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
+      { id: "t4", date: `${ym}-15`, accountId: "2", amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
+      { id: "t5", date: `${lastM}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t6", date: `${lastM}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
     ],
-    // FD uses 'principal' field
     fixedDeposits: [
-      { id: "fd1", bankName: "HDFC", principal: "500000", rate: "7", startDate: "2023-01-01", maturityDate: "2026-01-01" }
+      { id: "fd1", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" }
     ],
     recurringDeposits: [
       { id: "rd1", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
@@ -240,7 +239,7 @@ const DEFAULT_STATE = (() => {
       { id: "b2", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
     ],
     ppf: [
-      { id: "p1", balance: "350000", yearlyContribution: "150000" }
+      { id: "p1", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" }
     ],
     nps: [
       { id: "n1", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
@@ -253,23 +252,21 @@ const DEFAULT_STATE = (() => {
       { id: "tp1", insurer: "HDFC Life", planName: "Click 2 Protect", coverAmount: "10000000", annualPremium: "12000", expiryDate: "2055-08-01" },
       { id: "tp2", insurer: "LIC", planName: "Tech Term", coverAmount: "5000000", annualPremium: "8500", expiryDate: "2050-04-15" },
     ],
-    // MF uses 'units' * 'currentNav' for value; 'invested' for cost basis
     mutualFunds: [
-      { id: "m1", fundName: "Parag Parikh Flexi Cap", units: "800", currentNav: "325", invested: "200000" },
-      { id: "m2", fundName: "Nifty 50 Index", units: "500", currentNav: "370", invested: "150000" }
+      { id: "m1", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
+      { id: "m2", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" }
     ],
-    // Stocks use 'qty' * 'currentPrice' for value; 'qty' * 'avgPrice' for cost basis
     stocks: [
-      { id: "s1", stockName: "Reliance", qty: "20", currentPrice: "2250", avgPrice: "2500" },
-      { id: "s2", stockName: "TCS", qty: "15", currentPrice: "3600", avgPrice: "2800" }
+      { id: "s1", symbol: "RELIANCE", dematId: "", qty: "20", currentPrice: "2250", avgPrice: "2500" },
+      { id: "s2", symbol: "TCS", dematId: "", qty: "15", currentPrice: "3600", avgPrice: "2800" }
     ],
     demat: [],
     creditCards: [
-      { id: "c1", cardName: "Amazon Pay ICICI", limit: "300000", outstanding: "24000", dueDate: `${ym}-20` }
+      { id: "c1", issuer: "Amazon Pay ICICI", network: "Visa", last4: "5678", limit: "300000", outstanding: "24000", dueDate: `${ym}-20` }
     ],
     prepaidCards: [],
     loansTaken: [
-      { id: "l1", loanName: "Car Loan", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5" }
+      { id: "l1", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
     ],
     loansGiven: [],
     subscriptions: [
@@ -873,7 +870,7 @@ export default function FinanceDashboard() {
           />
         )}
         {tab === "demat" && (
-          <DematTab state={state} addItem={addItem} removeItem={removeItem} />
+          <DematTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
         )}
         {tab === "credit" && (
           <CreditTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
@@ -3318,9 +3315,10 @@ function TermModal({ onClose, onSave, initial = null }: any) {
 }
 
 // ================== DEMAT TAB ==================
-function DematTab({ state, addItem, removeItem }) {
+function DematTab({ state, addItem, removeItem, updateItem }) {
   const [showDemat, setShowDemat] = useState(false);
   const [showStock, setShowStock] = useState(false);
+  const [editStockId, setEditStockId] = useState(null);
   const [sortCol, setSortCol] = useState("pnl");
   const [sortDir, setSortDir] = useState(-1);
 
@@ -3587,12 +3585,14 @@ function DematTab({ state, addItem, removeItem }) {
                         </span>
                       </td>
                       <td style={td}>
-                        <button
-                          onClick={() => removeItem("stocks", s.id)}
-                          style={iconBtn}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div style={{ display: "flex", gap: 2 }}>
+                          <button onClick={() => setEditStockId(s.id)} style={iconBtn}>
+                            <Edit3 size={13} />
+                          </button>
+                          <button onClick={() => removeItem("stocks", s.id)} style={iconBtn}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -3619,6 +3619,17 @@ function DematTab({ state, addItem, removeItem }) {
           onSave={(v) => {
             addItem("stocks", v);
             setShowStock(false);
+          }}
+        />
+      )}
+      {editStockId && (
+        <StockModal
+          demats={state.demat}
+          initial={state.stocks.find(x => x.id === editStockId)}
+          onClose={() => setEditStockId(null)}
+          onSave={(v) => {
+            updateItem("stocks", editStockId, v);
+            setEditStockId(null);
           }}
         />
       )}
@@ -3659,8 +3670,8 @@ function DematModal({ onClose, onSave }) {
   );
 }
 
-function StockModal({ demats, onClose, onSave }) {
-  const [f, setF] = useState({
+function StockModal({ demats, onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     symbol: "",
     dematId: demats[0]?.id || "",
     qty: "",
@@ -3668,7 +3679,7 @@ function StockModal({ demats, onClose, onSave }) {
     currentPrice: "",
   });
   return (
-    <Modal title="Add Stock" onClose={onClose}>
+    <Modal title={initial ? "Edit Stock" : "Add Stock"} onClose={onClose}>
       <Field label="Symbol">
         <input
           style={input}
