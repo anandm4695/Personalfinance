@@ -1639,6 +1639,7 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
   const [filterType, setFilterType] = useState("all");
   const [search, setSearch] = useState("");
   const [editBankId, setEditBankId] = useState(null);
+  const [editTxnId, setEditTxnId] = useState(null);
 
   const filteredTxns = state.transactions
     .filter((t) => filterAcc === "all" || t.accountId === filterAcc)
@@ -1853,12 +1854,20 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
                         {t.type === "credit" ? fmtINRFull(t.amount) : ""}
                       </td>
                       <td style={td}>
-                        <button
-                          onClick={() => removeItem("transactions", t.id)}
-                          style={iconBtn}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div style={{ display: "flex", gap: 2 }}>
+                          <button
+                            onClick={() => setEditTxnId(t.id)}
+                            style={iconBtn}
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button
+                            onClick={() => removeItem("transactions", t.id)}
+                            style={iconBtn}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1876,6 +1885,17 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
           onSave={(v) => {
             updateItem("bankAccounts", editBankId, v);
             setEditBankId(null);
+          }}
+        />
+      )}
+      {editTxnId && (
+        <TxnEditModal
+          txn={state.transactions.find((t) => t.id === editTxnId)}
+          accounts={state.bankAccounts}
+          onClose={() => setEditTxnId(null)}
+          onSave={(v) => {
+            updateItem("transactions", editTxnId, v);
+            setEditTxnId(null);
           }}
         />
       )}
@@ -2065,6 +2085,52 @@ function TxnModal({ accounts, onClose, onSave }) {
         onSave={() => f.amount && f.accountId && onSave(f)}
         onClose={onClose}
       />
+    </Modal>
+  );
+}
+
+function TxnEditModal({ txn, accounts, onClose, onSave }) {
+  const cats = ["General", "Food", "Transport", "Shopping", "Bills", "Salary", "Transfer", "Investment", "Tax", "Medical", "Entertainment", "Rent", "Utilities", "Other"];
+  const [f, setF] = useState({
+    date: txn?.date || today(),
+    accountId: txn?.accountId || accounts[0]?.id || "",
+    type: txn?.type || "debit",
+    amount: txn?.amount || "",
+    category: txn?.category || "General",
+    note: txn?.note || "",
+  });
+  return (
+    <Modal title="Edit Transaction" onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+        <Field label="Account">
+          <select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.bankName}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Type">
+          <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+            <option value="debit">Debit (money out)</option>
+            <option value="credit">Credit (money in)</option>
+          </select>
+        </Field>
+        <Field label="Amount">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Category">
+        <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+          {cats.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      </Field>
+      <Field label="Note">
+        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Swiggy order" />
+      </Field>
+      <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
