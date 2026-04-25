@@ -231,14 +231,28 @@ const DEFAULT_STATE = (() => {
     fixedDeposits: [
       { id: "fd1", bankName: "HDFC", principal: "500000", rate: "7", startDate: "2023-01-01", maturityDate: "2026-01-01" }
     ],
-    recurringDeposits: [],
-    bonds: [],
+    recurringDeposits: [
+      { id: "rd1", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
+      { id: "rd2", bank: "Post Office", monthly: "3000", rate: "6.8", tenureMonths: "36", startDate: "2023-06-01" },
+    ],
+    bonds: [
+      { id: "b1", name: "G-Sec 7.26% 2033", type: "Government", faceValue: "100000", coupon: "7.26", maturityDate: "2033-09-15" },
+      { id: "b2", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
+    ],
     ppf: [
       { id: "p1", balance: "350000", yearlyContribution: "150000" }
     ],
-    nps: [],
-    lic: [],
-    termPlans: [],
+    nps: [
+      { id: "n1", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
+    ],
+    lic: [
+      { id: "lic1", policyNumber: "12345678", planName: "Jeevan Anand", sumAssured: "1000000", annualPremium: "45000", premiumPaid: "180000", maturityDate: "2035-06-15" },
+      { id: "lic2", policyNumber: "98765432", planName: "Money Back 20yr", sumAssured: "500000", annualPremium: "28000", premiumPaid: "84000", maturityDate: "2030-12-31" },
+    ],
+    termPlans: [
+      { id: "tp1", insurer: "HDFC Life", planName: "Click 2 Protect", coverAmount: "10000000", annualPremium: "12000", expiryDate: "2055-08-01" },
+      { id: "tp2", insurer: "LIC", planName: "Tech Term", coverAmount: "5000000", annualPremium: "8500", expiryDate: "2050-04-15" },
+    ],
     // MF uses 'units' * 'currentNav' for value; 'invested' for cost basis
     mutualFunds: [
       { id: "m1", fundName: "Parag Parikh Flexi Cap", units: "800", currentNav: "325", invested: "200000" },
@@ -855,13 +869,14 @@ export default function FinanceDashboard() {
             state={state}
             addItem={addItem}
             removeItem={removeItem}
+            updateItem={updateItem}
           />
         )}
         {tab === "demat" && (
           <DematTab state={state} addItem={addItem} removeItem={removeItem} />
         )}
         {tab === "credit" && (
-          <CreditTab state={state} addItem={addItem} removeItem={removeItem} />
+          <CreditTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
         )}
         {tab === "subs" && (
           <SubsTab
@@ -1638,12 +1653,16 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
   const [filterAcc, setFilterAcc] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [editBankId, setEditBankId] = useState(null);
   const [editTxnId, setEditTxnId] = useState(null);
 
   const filteredTxns = state.transactions
     .filter((t) => filterAcc === "all" || t.accountId === filterAcc)
     .filter((t) => filterType === "all" || t.type === filterType)
+    .filter((t) => !dateFrom || t.date >= dateFrom)
+    .filter((t) => !dateTo || t.date <= dateTo)
     .filter((t) =>
       !search ||
       (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -1764,7 +1783,7 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
           >
             Transaction Ledger
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <input
               style={{ ...input, width: "auto", minWidth: 160 }}
               placeholder="Search notes or category…"
@@ -1790,6 +1809,29 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
               <option value="credit">Credit only</option>
               <option value="debit">Debit only</option>
             </select>
+            <input
+              type="date"
+              style={{ ...input, width: "auto" }}
+              title="From date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+            <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
+            <input
+              type="date"
+              style={{ ...input, width: "auto" }}
+              title="To date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                style={{ ...btnGhost, padding: "4px 8px", fontSize: 12 }}
+                onClick={() => { setDateFrom(""); setDateTo(""); }}
+              >
+                Clear dates
+              </button>
+            )}
           </div>
         </div>
 
@@ -2136,9 +2178,10 @@ function TxnEditModal({ txn, accounts, onClose, onSave }) {
 }
 
 // ================== INVESTMENTS TAB ==================
-function InvestmentsTab({ state, addItem, removeItem }) {
+function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
   const [sub, setSub] = useState("fd");
   const [modal, setModal] = useState(null);
+  const [editId, setEditId] = useState(null);
 
   const subs = [
     { id: "fd", label: "Fixed Deposits", key: "fixedDeposits", icon: Coins },
@@ -2219,43 +2262,28 @@ function InvestmentsTab({ state, addItem, removeItem }) {
       </div>
 
       {sub === "fd" && (
-        <FDList
-          items={state.fixedDeposits}
-          onRemove={(id) => removeItem("fixedDeposits", id)}
-        />
+        <FDList items={state.fixedDeposits} onRemove={(id) => removeItem("fixedDeposits", id)} onEdit={setEditId} />
       )}
       {sub === "rd" && (
-        <RDList
-          items={state.recurringDeposits}
-          onRemove={(id) => removeItem("recurringDeposits", id)}
-        />
+        <RDList items={state.recurringDeposits} onRemove={(id) => removeItem("recurringDeposits", id)} onEdit={setEditId} />
       )}
       {sub === "bond" && (
-        <BondList
-          items={state.bonds}
-          onRemove={(id) => removeItem("bonds", id)}
-        />
+        <BondList items={state.bonds} onRemove={(id) => removeItem("bonds", id)} onEdit={setEditId} />
       )}
       {sub === "ppf" && (
-        <PPFList items={state.ppf} onRemove={(id) => removeItem("ppf", id)} />
+        <PPFList items={state.ppf} onRemove={(id) => removeItem("ppf", id)} onEdit={setEditId} />
       )}
       {sub === "nps" && (
-        <NPSList items={state.nps} onRemove={(id) => removeItem("nps", id)} />
+        <NPSList items={state.nps} onRemove={(id) => removeItem("nps", id)} onEdit={setEditId} />
       )}
       {sub === "mf" && (
-        <MFList
-          items={state.mutualFunds}
-          onRemove={(id) => removeItem("mutualFunds", id)}
-        />
+        <MFList items={state.mutualFunds} onRemove={(id) => removeItem("mutualFunds", id)} onEdit={setEditId} />
       )}
       {sub === "lic" && (
-        <LICList items={state.lic} onRemove={(id) => removeItem("lic", id)} />
+        <LICList items={state.lic} onRemove={(id) => removeItem("lic", id)} onEdit={setEditId} />
       )}
       {sub === "term" && (
-        <TermList
-          items={state.termPlans}
-          onRemove={(id) => removeItem("termPlans", id)}
-        />
+        <TermList items={state.termPlans} onRemove={(id) => removeItem("termPlans", id)} onEdit={setEditId} />
       )}
 
       {modal === "fd" && (
@@ -2330,26 +2358,55 @@ function InvestmentsTab({ state, addItem, removeItem }) {
           }}
         />
       )}
+
+      {editId && sub === "fd" && (
+        <FDModal initial={state.fixedDeposits.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("fixedDeposits", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "rd" && (
+        <RDModal initial={state.recurringDeposits.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("recurringDeposits", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "bond" && (
+        <BondModal initial={state.bonds.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("bonds", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "ppf" && (
+        <PPFModal initial={state.ppf.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("ppf", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "nps" && (
+        <NPSModal initial={state.nps.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("nps", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "mf" && (
+        <MFModal initial={state.mutualFunds.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("mutualFunds", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "lic" && (
+        <LICModal initial={state.lic.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("lic", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "term" && (
+        <TermModal initial={state.termPlans.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("termPlans", editId, v); setEditId(null); }} />
+      )}
     </div>
   );
 }
 
-const InvestCard = ({ children, onRemove }) => (
+const InvestCard = ({ children, onRemove, onEdit }: any) => (
   <div style={{ ...card, position: "relative" }}>
-    <button
-      onClick={onRemove}
-      style={{
-        position: "absolute",
-        top: 12,
-        right: 12,
-        background: "transparent",
-        border: "none",
-        cursor: "pointer",
-        color: THEME.muted,
-      }}
-    >
-      <Trash2 size={14} />
-    </button>
+    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+      {onEdit && (
+        <button onClick={onEdit} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
+          <Edit3 size={14} />
+        </button>
+      )}
+      <button onClick={onRemove} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
+        <Trash2 size={14} />
+      </button>
+    </div>
     {children}
   </div>
 );
@@ -2366,7 +2423,7 @@ const Grid = ({ children }) => (
   </div>
 );
 
-function FDList({ items, onRemove }) {
+function FDList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No fixed deposits yet" />;
   return (
     <Grid>
@@ -2377,7 +2434,7 @@ function FDList({ items, onRemove }) {
           Number(f.years)
         );
         return (
-          <InvestCard key={f.id} onRemove={() => onRemove(f.id)}>
+          <InvestCard key={f.id} onRemove={() => onRemove(f.id)} onEdit={() => onEdit(f.id)}>
             <div
               style={{
                 fontSize: 10,
@@ -2434,7 +2491,7 @@ const Stat = ({ k, v }) => (
   </div>
 );
 
-function RDList({ items, onRemove }) {
+function RDList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No RDs yet" />;
   return (
     <Grid>
@@ -2450,7 +2507,7 @@ function RDList({ items, onRemove }) {
           Number(r.tenureMonths)
         );
         return (
-          <InvestCard key={r.id} onRemove={() => onRemove(r.id)}>
+          <InvestCard key={r.id} onRemove={() => onRemove(r.id)} onEdit={() => onEdit(r.id)}>
             <div
               style={{
                 fontSize: 10,
@@ -2492,12 +2549,12 @@ function RDList({ items, onRemove }) {
   );
 }
 
-function BondList({ items, onRemove }) {
+function BondList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No bonds yet" />;
   return (
     <Grid>
       {items.map((b) => (
-        <InvestCard key={b.id} onRemove={() => onRemove(b.id)}>
+        <InvestCard key={b.id} onRemove={() => onRemove(b.id)} onEdit={() => onEdit(b.id)}>
           <div
             style={{
               fontSize: 10,
@@ -2539,12 +2596,12 @@ function BondList({ items, onRemove }) {
   );
 }
 
-function PPFList({ items, onRemove }) {
+function PPFList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No PPF account yet" />;
   return (
     <Grid>
       {items.map((p) => (
-        <InvestCard key={p.id} onRemove={() => onRemove(p.id)}>
+        <InvestCard key={p.id} onRemove={() => onRemove(p.id)} onEdit={() => onEdit(p.id)}>
           <div
             style={{
               fontSize: 10,
@@ -2583,12 +2640,12 @@ function PPFList({ items, onRemove }) {
   );
 }
 
-function NPSList({ items, onRemove }) {
+function NPSList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No NPS account yet" />;
   return (
     <Grid>
       {items.map((n) => (
-        <InvestCard key={n.id} onRemove={() => onRemove(n.id)}>
+        <InvestCard key={n.id} onRemove={() => onRemove(n.id)} onEdit={() => onEdit(n.id)}>
           <div
             style={{
               fontSize: 10,
@@ -2627,7 +2684,7 @@ function NPSList({ items, onRemove }) {
   );
 }
 
-function MFList({ items, onRemove }) {
+function MFList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No mutual fund holdings yet" />;
   return (
     <Grid>
@@ -2636,7 +2693,7 @@ function MFList({ items, onRemove }) {
         const pnl = current - Number(m.invested);
         const pct = Number(m.invested) ? (pnl / Number(m.invested)) * 100 : 0;
         return (
-          <InvestCard key={m.id} onRemove={() => onRemove(m.id)}>
+          <InvestCard key={m.id} onRemove={() => onRemove(m.id)} onEdit={() => onEdit(m.id)}>
             <div
               style={{
                 fontSize: 10,
@@ -2690,12 +2747,12 @@ function MFList({ items, onRemove }) {
   );
 }
 
-function LICList({ items, onRemove }) {
+function LICList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No LIC policies yet" />;
   return (
     <Grid>
       {items.map((l) => (
-        <InvestCard key={l.id} onRemove={() => onRemove(l.id)}>
+        <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
           <div
             style={{
               fontSize: 10,
@@ -2736,12 +2793,12 @@ function LICList({ items, onRemove }) {
   );
 }
 
-function TermList({ items, onRemove }) {
+function TermList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No term plans yet" />;
   return (
     <Grid>
       {items.map((t) => (
-        <InvestCard key={t.id} onRemove={() => onRemove(t.id)}>
+        <InvestCard key={t.id} onRemove={() => onRemove(t.id)} onEdit={() => onEdit(t.id)}>
           <div
             style={{
               fontSize: 10,
@@ -2782,8 +2839,8 @@ function TermList({ items, onRemove }) {
 }
 
 // ===== Investment modals =====
-function FDModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function FDModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     bank: "",
     principal: "",
     rate: "7",
@@ -2792,7 +2849,7 @@ function FDModal({ onClose, onSave }) {
     maturityDate: "",
   });
   return (
-    <Modal title="Add Fixed Deposit" onClose={onClose}>
+    <Modal title={initial ? "Edit Fixed Deposit" : "Add Fixed Deposit"} onClose={onClose}>
       <Field label="Bank">
         <input
           style={input}
@@ -2843,8 +2900,8 @@ function FDModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function RDModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function RDModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     bank: "",
     monthly: "",
     rate: "6.5",
@@ -2852,7 +2909,7 @@ function RDModal({ onClose, onSave }) {
     startDate: today(),
   });
   return (
-    <Modal title="Add Recurring Deposit" onClose={onClose}>
+    <Modal title={initial ? "Edit Recurring Deposit" : "Add Recurring Deposit"} onClose={onClose}>
       <Field label="Bank">
         <input
           style={input}
@@ -2902,8 +2959,8 @@ function RDModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function BondModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function BondModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     name: "",
     type: "Government",
     faceValue: "",
@@ -2911,7 +2968,7 @@ function BondModal({ onClose, onSave }) {
     maturityDate: "",
   });
   return (
-    <Modal title="Add Bond" onClose={onClose}>
+    <Modal title={initial ? "Edit Bond" : "Add Bond"} onClose={onClose}>
       <Field label="Bond Name">
         <input
           style={input}
@@ -2969,15 +3026,15 @@ function BondModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function PPFModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function PPFModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     bank: "",
     balance: "",
     openDate: "",
     thisYearContribution: "",
   });
   return (
-    <Modal title="Add PPF Account" onClose={onClose}>
+    <Modal title={initial ? "Edit PPF Account" : "Add PPF Account"} onClose={onClose}>
       <Field label="Bank/Post Office">
         <input
           style={input}
@@ -3017,15 +3074,15 @@ function PPFModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function NPSModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function NPSModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     pran: "",
     tier: "I",
     balance: "",
     thisYearContribution: "",
   });
   return (
-    <Modal title="Add NPS Account" onClose={onClose}>
+    <Modal title={initial ? "Edit NPS Account" : "Add NPS Account"} onClose={onClose}>
       <Field label="PRAN (last 6 ok)">
         <input
           style={input}
@@ -3069,8 +3126,8 @@ function NPSModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function MFModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function MFModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     scheme: "",
     type: "Equity",
     units: "",
@@ -3078,7 +3135,7 @@ function MFModal({ onClose, onSave }) {
     currentNav: "",
   });
   return (
-    <Modal title="Add Mutual Fund Holding" onClose={onClose}>
+    <Modal title={initial ? "Edit Mutual Fund Holding" : "Add Mutual Fund Holding"} onClose={onClose}>
       <Field label="Scheme Name">
         <input
           style={input}
@@ -3139,8 +3196,8 @@ function MFModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function LICModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function LICModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     policyNumber: "",
     planName: "",
     sumAssured: "",
@@ -3149,7 +3206,7 @@ function LICModal({ onClose, onSave }) {
     maturityDate: "",
   });
   return (
-    <Modal title="Add LIC Policy" onClose={onClose}>
+    <Modal title={initial ? "Edit LIC Policy" : "Add LIC Policy"} onClose={onClose}>
       <Field label="Policy Number">
         <input
           style={input}
@@ -3203,8 +3260,8 @@ function LICModal({ onClose, onSave }) {
     </Modal>
   );
 }
-function TermModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function TermModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     insurer: "",
     planName: "",
     coverAmount: "",
@@ -3212,7 +3269,7 @@ function TermModal({ onClose, onSave }) {
     expiryDate: "",
   });
   return (
-    <Modal title="Add Term Plan" onClose={onClose}>
+    <Modal title={initial ? "Edit Term Plan" : "Add Term Plan"} onClose={onClose}>
       <Field label="Insurer">
         <input
           style={input}
@@ -3673,9 +3730,10 @@ function StockModal({ demats, onClose, onSave }) {
 }
 
 // ================== CREDIT & LOANS TAB ==================
-function CreditTab({ state, addItem, removeItem }) {
+function CreditTab({ state, addItem, removeItem, updateItem }) {
   const [sub, setSub] = useState("cc");
   const [modal, setModal] = useState(null);
+  const [editId, setEditId] = useState(null);
 
   const subs = [
     { id: "cc", label: "Credit Cards", key: "creditCards" },
@@ -3739,28 +3797,16 @@ function CreditTab({ state, addItem, removeItem }) {
       </div>
 
       {sub === "cc" && (
-        <CCList
-          items={state.creditCards}
-          onRemove={(id) => removeItem("creditCards", id)}
-        />
+        <CCList items={state.creditCards} onRemove={(id) => removeItem("creditCards", id)} onEdit={setEditId} />
       )}
       {sub === "prepaid" && (
-        <PrepaidList
-          items={state.prepaidCards}
-          onRemove={(id) => removeItem("prepaidCards", id)}
-        />
+        <PrepaidList items={state.prepaidCards} onRemove={(id) => removeItem("prepaidCards", id)} onEdit={setEditId} />
       )}
       {sub === "taken" && (
-        <LoanTakenList
-          items={state.loansTaken}
-          onRemove={(id) => removeItem("loansTaken", id)}
-        />
+        <LoanTakenList items={state.loansTaken} onRemove={(id) => removeItem("loansTaken", id)} onEdit={setEditId} />
       )}
       {sub === "given" && (
-        <LoanGivenList
-          items={state.loansGiven}
-          onRemove={(id) => removeItem("loansGiven", id)}
-        />
+        <LoanGivenList items={state.loansGiven} onRemove={(id) => removeItem("loansGiven", id)} onEdit={setEditId} />
       )}
 
       {modal === "cc" && (
@@ -3799,11 +3845,28 @@ function CreditTab({ state, addItem, removeItem }) {
           }}
         />
       )}
+
+      {editId && sub === "cc" && (
+        <CCModal initial={state.creditCards.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("creditCards", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "prepaid" && (
+        <PrepaidModal initial={state.prepaidCards.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("prepaidCards", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "taken" && (
+        <LoanTakenModal initial={state.loansTaken.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("loansTaken", editId, v); setEditId(null); }} />
+      )}
+      {editId && sub === "given" && (
+        <LoanGivenModal initial={state.loansGiven.find(x => x.id === editId)} onClose={() => setEditId(null)}
+          onSave={(v) => { updateItem("loansGiven", editId, v); setEditId(null); }} />
+      )}
     </div>
   );
 }
 
-function CCList({ items, onRemove }) {
+function CCList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No credit cards yet" />;
   return (
     <Grid>
@@ -3820,20 +3883,14 @@ function CCList({ items, onRemove }) {
               background: `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`,
             }}
           >
-            <button
-              onClick={() => onRemove(c.id)}
-              style={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "rgba(245,239,227,0.6)",
-              }}
-            >
-              <Trash2 size={14} />
-            </button>
+            <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+              <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
+                <Edit3 size={14} />
+              </button>
+              <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
             <div
               style={{
                 fontSize: 10,
@@ -3934,12 +3991,12 @@ function CCList({ items, onRemove }) {
   );
 }
 
-function PrepaidList({ items, onRemove }) {
+function PrepaidList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No prepaid cards/wallets" />;
   return (
     <Grid>
       {items.map((p) => (
-        <InvestCard key={p.id} onRemove={() => onRemove(p.id)}>
+        <InvestCard key={p.id} onRemove={() => onRemove(p.id)} onEdit={() => onEdit(p.id)}>
           <div
             style={{
               fontSize: 10,
@@ -3976,12 +4033,12 @@ function PrepaidList({ items, onRemove }) {
   );
 }
 
-function LoanTakenList({ items, onRemove }) {
+function LoanTakenList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No loans taken" />;
   return (
     <Grid>
       {items.map((l) => (
-        <InvestCard key={l.id} onRemove={() => onRemove(l.id)}>
+        <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
           <div
             style={{
               fontSize: 10,
@@ -4033,12 +4090,12 @@ function LoanTakenList({ items, onRemove }) {
   );
 }
 
-function LoanGivenList({ items, onRemove }) {
+function LoanGivenList({ items, onRemove, onEdit }: any) {
   if (!items.length) return <EmptyHint text="No loans given" />;
   return (
     <Grid>
       {items.map((l) => (
-        <InvestCard key={l.id} onRemove={() => onRemove(l.id)}>
+        <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
           <div
             style={{
               fontSize: 10,
@@ -4102,8 +4159,8 @@ function LoanGivenList({ items, onRemove }) {
   );
 }
 
-function CCModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function CCModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     issuer: "",
     network: "Visa",
     last4: "",
@@ -4113,7 +4170,7 @@ function CCModal({ onClose, onSave }) {
     statementDate: "",
   });
   return (
-    <Modal title="Add Credit Card" onClose={onClose}>
+    <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
         <Field label="Issuer">
           <input
@@ -4188,10 +4245,10 @@ function CCModal({ onClose, onSave }) {
   );
 }
 
-function PrepaidModal({ onClose, onSave }) {
-  const [f, setF] = useState({ provider: "", name: "", balance: "" });
+function PrepaidModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || { provider: "", name: "", balance: "" });
   return (
-    <Modal title="Add Prepaid Card / Wallet" onClose={onClose}>
+    <Modal title={initial ? "Edit Prepaid Card / Wallet" : "Add Prepaid Card / Wallet"} onClose={onClose}>
       <Field label="Provider">
         <input
           style={input}
@@ -4220,8 +4277,8 @@ function PrepaidModal({ onClose, onSave }) {
   );
 }
 
-function LoanTakenModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function LoanTakenModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     lender: "",
     type: "Personal",
     principal: "",
@@ -4231,7 +4288,7 @@ function LoanTakenModal({ onClose, onSave }) {
     monthsRemaining: "",
   });
   return (
-    <Modal title="Add Loan Taken" onClose={onClose}>
+    <Modal title={initial ? "Edit Loan Taken" : "Add Loan Taken"} onClose={onClose}>
       <Field label="Lender">
         <input
           style={input}
@@ -4302,8 +4359,8 @@ function LoanTakenModal({ onClose, onSave }) {
   );
 }
 
-function LoanGivenModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function LoanGivenModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || {
     borrower: "",
     principal: "",
     outstanding: "",
@@ -4313,7 +4370,7 @@ function LoanGivenModal({ onClose, onSave }) {
     note: "",
   });
   return (
-    <Modal title="Record Loan Given" onClose={onClose}>
+    <Modal title={initial ? "Edit Loan Given" : "Record Loan Given"} onClose={onClose}>
       <Field label="Borrower Name">
         <input
           style={input}
