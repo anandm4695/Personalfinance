@@ -257,10 +257,15 @@ const DEFAULT_STATE = (() => {
       { id: "m2", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" }
     ],
     stocks: [
-      { id: "s1", symbol: "RELIANCE", dematId: "", qty: "20", currentPrice: "2250", avgPrice: "2500" },
-      { id: "s2", symbol: "TCS", dematId: "", qty: "15", currentPrice: "3600", avgPrice: "2800" }
+      { id: "s1", symbol: "RELIANCE", dematId: "d1", qty: "20", currentPrice: "2250", avgPrice: "2500" },
+      { id: "s2", symbol: "TCS", dematId: "d1", qty: "15", currentPrice: "3600", avgPrice: "2800" },
+      { id: "s3", symbol: "INFY", dematId: "d2", qty: "25", currentPrice: "1580", avgPrice: "1400" },
+      { id: "s4", symbol: "HDFCBANK", dematId: "d2", qty: "10", currentPrice: "1720", avgPrice: "1650" },
     ],
-    demat: [],
+    demat: [
+      { id: "d1", broker: "Zerodha", dpId: "IN300095", clientId: "AB1234" },
+      { id: "d2", broker: "Groww", dpId: "IN303719", clientId: "GW5678" },
+    ],
     creditCards: [
       { id: "c1", issuer: "Amazon Pay ICICI", network: "Visa", last4: "5678", limit: "300000", outstanding: "24000", dueDate: `${ym}-20` }
     ],
