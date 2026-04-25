@@ -1359,14 +1359,31 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
             Expense Breakup
           </div>
           {metrics.expenseBreakdown && metrics.expenseBreakdown.length ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={55} paddingAngle={2}>
-                  {metrics.expenseBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", fontFamily: "inherit", borderRadius: 8 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
+                    {metrics.expenseBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", fontFamily: "inherit", borderRadius: 8 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px", marginTop: 12 }}>
+                {metrics.expenseBreakdown.slice(0, 8).map((cat, i) => {
+                  const total = metrics.expenseBreakdown.reduce((s, c) => s + c.value, 0);
+                  const pct = total > 0 ? ((cat.value / total) * 100).toFixed(1) : "0";
+                  return (
+                    <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: "rgba(128,128,128,0.06)" }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>{fmtINR(cat.value)} · {pct}%</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           ) : <EmptyHint text="No expenses this month" />}
         </div>
         
