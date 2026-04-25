@@ -32,6 +32,8 @@ import {
   Banknote,
   LineChart as LineIcon,
   Sparkles,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   LineChart,
@@ -51,16 +53,42 @@ import {
   Legend,
 } from "recharts";
 
+// ── THEME: all values are CSS custom-property references so they react
+//    automatically when we swap --t-xxx vars on :root for dark/light mode.
 const THEME = {
-  ink: "#202124", // material dark text
-  paper: "#F8F9FA", // material light grey background
-  accent: "#1A73E8", // material blue primary
-  gold: "#F9AB00", // material yellow warning
-  sage: "#1E8E3E", // material green success
-  rust: "#D93025", // material red error
-  muted: "#5F6368", // material secondary text
-  line: "#DADCE0", // material divider
-  darkInk: "#FFFFFF", // material white (for cards)
+  ink:     "var(--t-ink)",
+  paper:   "var(--t-paper)",
+  accent:  "var(--t-accent)",
+  gold:    "var(--t-gold)",
+  sage:    "var(--t-sage)",
+  rust:    "var(--t-rust)",
+  muted:   "var(--t-muted)",
+  line:    "var(--t-line)",
+  darkInk: "var(--t-darkInk)",
+};
+
+const LIGHT_VARS: Record<string, string> = {
+  "--t-ink":     "#202124",
+  "--t-paper":   "#F8F9FA",
+  "--t-accent":  "#1A73E8",
+  "--t-gold":    "#F9AB00",
+  "--t-sage":    "#1E8E3E",
+  "--t-rust":    "#D93025",
+  "--t-muted":   "#5F6368",
+  "--t-line":    "#DADCE0",
+  "--t-darkInk": "#FFFFFF",
+};
+
+const DARK_VARS: Record<string, string> = {
+  "--t-ink":     "#E8EAED",
+  "--t-paper":   "#0F0F1A",
+  "--t-accent":  "#6BA8FF",
+  "--t-gold":    "#FBBC04",
+  "--t-sage":    "#46C56A",
+  "--t-rust":    "#FF6B6B",
+  "--t-muted":   "#9AA0A6",
+  "--t-line":    "#3C4043",
+  "--t-darkInk": "#1E1E2E",
 };
 
 const PIE_COLORS = [
@@ -242,6 +270,18 @@ export default function FinanceDashboard() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("overview");
   const [modal, setModal] = useState(null);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
+  });
+
+  // Apply theme CSS vars whenever darkMode changes
+  useEffect(() => {
+    const vars = darkMode ? DARK_VARS : LIGHT_VARS;
+    Object.entries(vars).forEach(([k, v]) =>
+      document.documentElement.style.setProperty(k, v)
+    );
+    try { localStorage.setItem("finance-theme", darkMode ? "dark" : "light"); } catch {}
+  }, [darkMode]);
 
   // Inject Google Fonts once
   useEffect(() => {
@@ -626,6 +666,37 @@ export default function FinanceDashboard() {
             </h1>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* ── THEME TOGGLE ── */}
+            <button
+              id="theme-toggle-btn"
+              onClick={() => setDarkMode((d) => !d)}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              style={{
+                background: darkMode
+                  ? "linear-gradient(135deg,#2d2d3f,#1e1e2e)"
+                  : "linear-gradient(135deg,#e8f0fe,#d2e3fc)",
+                border: `1.5px solid ${darkMode ? "#6BA8FF" : "#1A73E8"}`,
+                borderRadius: 10,
+                cursor: "pointer",
+                padding: "7px 14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "'Inter', sans-serif",
+                color: darkMode ? "#6BA8FF" : "#1A73E8",
+                boxShadow: darkMode
+                  ? "0 2px 8px rgba(107,168,255,0.25)"
+                  : "0 2px 8px rgba(26,115,232,0.18)",
+                letterSpacing: "0.01em",
+                transition: "all 0.25s ease",
+              }}
+            >
+              {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+              {darkMode ? "Light" : "Dark"}
+            </button>
+
             <button onClick={exportJSON} style={btnGhost}>
               <Download size={14} /> Export
             </button>
