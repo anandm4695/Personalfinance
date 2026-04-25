@@ -205,6 +205,49 @@ const calcTaxOld = (income, deductions = 0) => {
   return { tax, cess, total: tax + cess, taxable };
 };
 
+const calcNewSlabs = (taxable) => {
+  const slabs = [
+    { label: "0 – ₹4L",     from: 0,       to: 400000,   rate: 0  },
+    { label: "₹4L – ₹8L",   from: 400000,  to: 800000,   rate: 5  },
+    { label: "₹8L – ₹12L",  from: 800000,  to: 1200000,  rate: 10 },
+    { label: "₹12L – ₹16L", from: 1200000, to: 1600000,  rate: 15 },
+    { label: "₹16L – ₹20L", from: 1600000, to: 2000000,  rate: 20 },
+    { label: "₹20L – ₹24L", from: 2000000, to: 2400000,  rate: 25 },
+    { label: "Above ₹24L",  from: 2400000, to: Infinity, rate: 30 },
+  ];
+  let grossTax = 0;
+  const breakdown = slabs.map((s) => {
+    const inSlab = Math.max(0, Math.min(taxable, s.to === Infinity ? taxable : s.to) - s.from);
+    const slabTax = (inSlab * s.rate) / 100;
+    grossTax += slabTax;
+    return { ...s, inSlab, slabTax };
+  });
+  const rebate = taxable <= 1200000 ? grossTax : 0;
+  const afterRebate = Math.max(0, grossTax - rebate);
+  const cess = afterRebate * 0.04;
+  return { breakdown, grossTax, rebate, afterRebate, cess, total: afterRebate + cess };
+};
+
+const calcOldSlabs = (taxable) => {
+  const slabs = [
+    { label: "0 – ₹2.5L",   from: 0,       to: 250000,   rate: 0  },
+    { label: "₹2.5L – ₹5L", from: 250000,  to: 500000,   rate: 5  },
+    { label: "₹5L – ₹10L",  from: 500000,  to: 1000000,  rate: 20 },
+    { label: "Above ₹10L",  from: 1000000, to: Infinity,  rate: 30 },
+  ];
+  let grossTax = 0;
+  const breakdown = slabs.map((s) => {
+    const inSlab = Math.max(0, Math.min(taxable, s.to === Infinity ? taxable : s.to) - s.from);
+    const slabTax = (inSlab * s.rate) / 100;
+    grossTax += slabTax;
+    return { ...s, inSlab, slabTax };
+  });
+  const rebate = taxable <= 500000 ? grossTax : 0;
+  const afterRebate = Math.max(0, grossTax - rebate);
+  const cess = afterRebate * 0.04;
+  return { breakdown, grossTax, rebate, afterRebate, cess, total: afterRebate + cess };
+};
+
 // ================== STORAGE ==================
 const STORAGE_KEY = "finance_dashboard_v1";
 const loadState = () => {
@@ -5252,349 +5295,375 @@ function GoalModal({ onClose, onSave }) {
 function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   const [showIncome, setShowIncome] = useState(false);
   const [showTaxPmt, setShowTaxPmt] = useState(false);
-  const [deductions, setDeductions] = useState(
-    state.profile.deductions80C || "150000"
-  );
+  const [showSlabs, setShowSlabs] = useState(false);
 
-  const income = metrics.annualIncome;
-  const newReg = calcTaxNew(income);
-  const oldReg = calcTaxOld(income, Number(deductions) + 50000); // standard ded 50k old
+  // ── Income inputs ──
+  const [grossSalary, setGrossSalary] = useState(String(metrics.annualIncome || ""));
+  const [hraReceived, setHraReceived] = useState("0");
+  const [housePropertyIncome, setHousePropertyIncome] = useState("0");
+  const [capitalGainsST, setCapitalGainsST] = useState("0");
+  const [capitalGainsLT, setCapitalGainsLT] = useState("0");
+  const [otherIncome, setOtherIncome] = useState("0");
 
-  // Advance tax schedule
+  // ── Old Regime deduction inputs (pre-fill from state where possible) ──
+  const [hraExemption, setHraExemption] = useState("0");
+  const [lic80C,  setLic80C]  = useState(() => String(state.lic.reduce((s,l) => s + Number(l.annualPremium || 0), 0)));
+  const [ppf80C,  setPpf80C]  = useState(() => String(state.ppf.reduce((s,p) => s + Number(p.thisYearContribution || 0), 0)));
+  const [elss80C, setElss80C] = useState("0");
+  const [nsc80C,  setNsc80C]  = useState("0");
+  const [hlPrincipal80C, setHlPrincipal80C] = useState("0");
+  const [tuition80C, setTuition80C] = useState("0");
+  const [other80C,   setOther80C]   = useState("0");
+  const [nps80CCD,  setNps80CCD]  = useState(() => String(state.nps.reduce((s,n) => s + Number(n.thisYearContribution || 0), 0)));
+  const [medSelf80D,    setMedSelf80D]    = useState("0");
+  const [medParents80D, setMedParents80D] = useState("0");
+  const [parentsIsSenior, setParentsIsSenior] = useState(false);
+  const [hlInterest24B, setHlInterest24B] = useState("0");
+  const [donations80G,  setDonations80G]  = useState("0");
+  const [tta80TTA,  setTta80TTA]  = useState("0");
+  const [profTax,   setProfTax]   = useState("0");
+
+  const regime = state.profile.regime || "new";
+
+  // ── Derived numbers ──
+  const gSalary  = Math.max(0, Number(grossSalary)         || 0);
+  const hpIncome = Number(housePropertyIncome) || 0;   // can be negative (loss)
+  const stcg     = Math.max(0, Number(capitalGainsST)  || 0);
+  const ltcg     = Math.max(0, Number(capitalGainsLT)  || 0);
+  const other    = Math.max(0, Number(otherIncome)     || 0);
+
+  // Capital gains special taxes (separate from slab)
+  const stcgTaxAmt  = stcg * 0.20 * 1.04;
+  const ltcgTaxable = Math.max(0, ltcg - 125000);
+  const ltcgTaxAmt  = ltcgTaxable * 0.125 * 1.04;
+
+  // ── New Regime ──
+  const stdDedNew   = Math.min(gSalary, 75000);
+  const taxableNew  = Math.max(0, gSalary - stdDedNew + hpIncome + other);
+  const newCalc     = calcNewSlabs(taxableNew);
+  const newGrandTotal = newCalc.total + stcgTaxAmt + ltcgTaxAmt;
+
+  // ── Old Regime ──
+  const stdDedOld   = Math.min(gSalary, 50000);
+  const hraEx       = Math.max(0, Number(hraExemption)   || 0);
+  const total80C    = Math.min(150000,
+    (Number(lic80C) || 0) + (Number(ppf80C) || 0) + (Number(elss80C) || 0) +
+    (Number(nsc80C) || 0) + (Number(hlPrincipal80C) || 0) +
+    (Number(tuition80C) || 0) + (Number(other80C) || 0));
+  const totalNPS80CCD = Math.min(50000, Number(nps80CCD) || 0);
+  const med80D   = Math.min(Number(medSelf80D) || 0, 25000) +
+                   Math.min(Number(medParents80D) || 0, parentsIsSenior ? 50000 : 25000);
+  const hl24B    = Math.min(200000, Number(hlInterest24B) || 0);
+  const don80G   = Math.max(0, Number(donations80G) || 0);
+  const tta      = Math.min(10000, Number(tta80TTA) || 0);
+  const pTax     = Math.min(2500, Number(profTax) || 0);
+
+  const totalOldDed = stdDedOld + hraEx + total80C + totalNPS80CCD + med80D + hl24B + don80G + tta + pTax;
+  const taxableOld  = Math.max(0, gSalary - stdDedOld - hraEx - total80C - totalNPS80CCD - med80D - hl24B - don80G - tta - pTax + hpIncome + other);
+  const oldCalc     = calcOldSlabs(taxableOld);
+  const oldGrandTotal = oldCalc.total + stcgTaxAmt + ltcgTaxAmt;
+
+  const saving    = Math.abs(newGrandTotal - oldGrandTotal);
+  const betterReg = newGrandTotal <= oldGrandTotal ? "new" : "old";
+
+  // Advance tax
+  const expectedTax   = regime === "new" ? newGrandTotal : oldGrandTotal;
+  const paidAdvance   = state.taxPayments.reduce((s, t) => s + Number(t.amount || 0), 0);
   const advanceTaxDue = [
-    { date: "15 Jun", pct: 15 },
-    { date: "15 Sep", pct: 45 },
-    { date: "15 Dec", pct: 75 },
-    { date: "15 Mar", pct: 100 },
+    { date: "15 Jun", pct: 15 }, { date: "15 Sep", pct: 45 },
+    { date: "15 Dec", pct: 75 }, { date: "15 Mar", pct: 100 },
   ];
 
-  const paidAdvance = state.taxPayments.reduce(
-    (s, t) => s + Number(t.amount || 0),
-    0
-  );
-  const regime = state.profile.regime || "new";
-  const expectedTax = regime === "new" ? newReg.total : oldReg.total;
-
-  // Capital gains from stocks (realized not tracked — show unrealized for estimation)
-  const unrealizedSTCG = 0; // placeholder: user adds realized separately
   const unrealizedLTCG = state.stocks.reduce(
-    (s, st) =>
-      s +
-      (Number(st.qty) * Number(st.currentPrice) -
-        Number(st.qty) * Number(st.avgPrice)),
-    0
+    (s, st) => s + (Number(st.qty) * Number(st.currentPrice) - Number(st.qty) * Number(st.avgPrice)), 0);
+
+  const income = metrics.annualIncome; // for income ledger display below
+
+  // ── Style helpers ──
+  const sectionHead = { fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 };
+  const rowSep = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 };
+  const deductionRow = (lbl, val, cap?) => (
+    <div style={rowSep}>
+      <span style={{ color: THEME.muted }}>{lbl}{cap ? <span style={{ fontSize: 11, marginLeft: 4 }}>(max {fmtINR(cap)})</span> : null}</span>
+      <span style={{ color: THEME.sage, fontWeight: 600 }}>− {fmtINR(val)}</span>
+    </div>
+  );
+  const inpRow = (lbl, val, setter, note?) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 500 }}>{lbl}{note ? <span style={{ marginLeft: 6, fontSize: 11 }}>{note}</span> : null}</div>
+      <input style={{ ...input, fontSize: 13 }} type="number" value={val} onChange={(e) => setter(e.target.value)} placeholder="0" />
+    </div>
   );
 
   return (
     <div>
-      <SectionTitle
-        sub={`FY ${state.profile.fy} · Advance tax, regime comparison, 80C planning`}
-      >
+      <SectionTitle sub={`FY ${state.profile.fy} · Enter income & deductions to compare New vs Old regime`}>
         Tax Vault
       </SectionTitle>
 
-      {/* Regime comparison */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
-        <div
-          style={{
-            ...card,
-            borderTop: `4px solid ${
-              regime === "new" ? THEME.accent : THEME.line
-            }`,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.25em",
-                textTransform: "uppercase",
-                color: THEME.muted,
-              }}
-            >
-              New Regime
-            </div>
-            {regime === "new" && (
-              <span
-                style={{
-                  fontSize: 10,
-                  padding: "2px 8px",
-                  background: THEME.accent,
-                  color: THEME.paper,
-                  letterSpacing: "0.15em",
-                }}
-              >
-                SELECTED
-              </span>
-            )}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 34,
-              fontWeight: 800,
-              marginTop: 12,
-            }}
-          >
-            {fmtINRFull(newReg.total)}
-          </div>
-          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-            Tax + 4% cess on {fmtINRFull(income)}
-          </div>
-          <button
-            onClick={() =>
-              setState((s) => ({
-                ...s,
-                profile: { ...s.profile, regime: "new" },
-              }))
-            }
-            style={{ ...btnGhost, marginTop: 16, fontSize: 11 }}
-          >
-            Use this regime
-          </button>
-        </div>
-        <div
-          style={{
-            ...card,
-            borderTop: `4px solid ${
-              regime === "old" ? THEME.accent : THEME.line
-            }`,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.25em",
-                textTransform: "uppercase",
-                color: THEME.muted,
-              }}
-            >
-              Old Regime
-            </div>
-            {regime === "old" && (
-              <span
-                style={{
-                  fontSize: 10,
-                  padding: "2px 8px",
-                  background: THEME.accent,
-                  color: THEME.paper,
-                  letterSpacing: "0.15em",
-                }}
-              >
-                SELECTED
-              </span>
-            )}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 34,
-              fontWeight: 800,
-              marginTop: 12,
-            }}
-          >
-            {fmtINRFull(oldReg.total)}
-          </div>
-          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-            After {fmtINRFull(Number(deductions) + 50000)} deductions (incl.
-            ₹50k std)
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <label style={{ ...label, fontSize: 10 }}>
-              80C Deductions (₹1.5L max)
-            </label>
-            <input
-              style={{ ...input, fontSize: 13 }}
-              type="number"
-              value={deductions}
-              onChange={(e) => {
-                setDeductions(e.target.value);
-                setState((s) => ({
-                  ...s,
-                  profile: { ...s.profile, deductions80C: e.target.value },
-                }));
-              }}
-            />
-          </div>
-          <button
-            onClick={() =>
-              setState((s) => ({
-                ...s,
-                profile: { ...s.profile, regime: "old" },
-              }))
-            }
-            style={{ ...btnGhost, marginTop: 12, fontSize: 11 }}
-          >
-            Use this regime
-          </button>
+      {/* ── 1. Income Inputs ── */}
+      <div style={{ ...card, marginBottom: 24 }}>
+        <div style={sectionHead}>Income Details</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {inpRow("Gross Salary / Business Income", grossSalary, setGrossSalary, "(annual, pre-tax)")}
+          {inpRow("HRA Received", hraReceived, setHraReceived)}
+          {inpRow("House Property Income / Loss", housePropertyIncome, setHousePropertyIncome, "(negative = loss)")}
+          {inpRow("Short-Term Capital Gains (STCG)", capitalGainsST, setCapitalGainsST, "(taxed @20%)")}
+          {inpRow("Long-Term Capital Gains (LTCG)", capitalGainsLT, setCapitalGainsLT, "(taxed @12.5% above ₹1.25L)")}
+          {inpRow("Other Income (interest, freelance…)", otherIncome, setOtherIncome)}
         </div>
       </div>
 
-      {/* Recommendation banner */}
-      <div
-        style={{
-          ...card,
-          marginBottom: 24,
-          background: newReg.total < oldReg.total ? "#F0F3ED" : "#F7EFDE",
-          borderLeft: `4px solid ${THEME.gold}`,
-        }}
-      >
+      {/* ── 2. Old Regime Deductions ── */}
+      <div style={{ ...card, marginBottom: 24 }}>
+        <div style={sectionHead}>Old Regime Deductions <span style={{ fontSize: 12, fontWeight: 400, color: THEME.muted }}>(not applicable under New Regime)</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${THEME.line}` }}>Section 80C (max ₹1.5L total)</div>
+            {inpRow("LIC Premium", lic80C, setLic80C, "(auto-filled)")}
+            {inpRow("PPF Contribution", ppf80C, setPpf80C, "(auto-filled)")}
+            {inpRow("ELSS / Tax-saving MF", elss80C, setElss80C)}
+            {inpRow("NSC", nsc80C, setNsc80C)}
+            {inpRow("Home Loan Principal Repayment", hlPrincipal80C, setHlPrincipal80C)}
+            {inpRow("Children Tuition Fees", tuition80C, setTuition80C)}
+            {inpRow("Other 80C (FD, ULIP, etc.)", other80C, setOther80C)}
+            <div style={{ padding: "10px 12px", background: total80C >= 150000 ? "rgba(90,130,80,0.1)" : "rgba(128,128,128,0.07)", borderRadius: 6, fontSize: 13, marginTop: 4 }}>
+              <span style={{ color: THEME.muted }}>Total 80C used: </span>
+              <b style={{ color: total80C >= 150000 ? THEME.sage : THEME.ink }}>{fmtINRFull(total80C)}</b>
+              {total80C < 150000
+                ? <span style={{ color: THEME.gold }}> · {fmtINRFull(150000 - total80C)} remaining</span>
+                : <span style={{ color: THEME.sage }}> · Limit reached!</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${THEME.line}` }}>Other Deductions</div>
+            {inpRow("HRA Exemption u/s 10(13A)", hraExemption, setHraExemption)}
+            {inpRow("NPS 80CCD(1B)", nps80CCD, setNps80CCD, "(auto-filled · max ₹50K)")}
+            {inpRow("Mediclaim – Self/Family 80D", medSelf80D, setMedSelf80D, "(max ₹25K)")}
+            {inpRow("Mediclaim – Parents 80D", medParents80D, setMedParents80D, `(max ${parentsIsSenior ? "₹50K" : "₹25K"})`)}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <input type="checkbox" id="parentsSenior" checked={parentsIsSenior} onChange={(e) => setParentsIsSenior(e.target.checked)} />
+              <label htmlFor="parentsSenior" style={{ fontSize: 12, color: THEME.muted, cursor: "pointer" }}>Parents are Senior Citizens (60+)</label>
+            </div>
+            {inpRow("Home Loan Interest 24(B)", hlInterest24B, setHlInterest24B, "(max ₹2L)")}
+            {inpRow("Donations 80G", donations80G, setDonations80G)}
+            {inpRow("Savings Interest 80TTA", tta80TTA, setTta80TTA, "(max ₹10K)")}
+            {inpRow("Professional Tax", profTax, setProfTax, "(max ₹2,500)")}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. Regime Comparison ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        {/* New Regime */}
+        <div style={{ ...card, borderTop: `4px solid ${regime === "new" ? THEME.accent : THEME.line}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted }}>New Regime</div>
+            {regime === "new" && <span style={{ fontSize: 10, padding: "2px 8px", background: THEME.accent, color: THEME.paper }}>SELECTED</span>}
+          </div>
+          <div style={rowSep}>
+            <span style={{ color: THEME.muted }}>Gross Income</span>
+            <span style={{ fontWeight: 600 }}>{fmtINRFull(gSalary + hpIncome + other)}</span>
+          </div>
+          {deductionRow("Standard Deduction", stdDedNew, 75000)}
+          <div style={rowSep}>
+            <span style={{ color: THEME.muted, fontWeight: 600 }}>Taxable Income</span>
+            <span style={{ fontWeight: 700 }}>{fmtINRFull(taxableNew)}</span>
+          </div>
+          <div style={{ borderTop: `1px dashed ${THEME.line}`, paddingTop: 8, marginTop: 4, marginBottom: 8 }}>
+            <div style={rowSep}>
+              <span style={{ color: THEME.muted }}>Slab Tax</span>
+              <span>{fmtINRFull(newCalc.grossTax)}</span>
+            </div>
+            {newCalc.rebate > 0 && (
+              <div style={rowSep}>
+                <span style={{ color: THEME.sage }}>87A Rebate</span>
+                <span style={{ color: THEME.sage }}>−{fmtINRFull(newCalc.rebate)}</span>
+              </div>
+            )}
+            <div style={rowSep}>
+              <span style={{ color: THEME.muted }}>4% Cess</span>
+              <span>{fmtINRFull(newCalc.cess)}</span>
+            </div>
+            {stcg > 0 && <div style={rowSep}><span style={{ color: THEME.muted }}>STCG Tax (20% + cess)</span><span>{fmtINRFull(stcgTaxAmt)}</span></div>}
+            {ltcg > 0 && <div style={rowSep}><span style={{ color: THEME.muted }}>LTCG Tax (12.5% + cess)</span><span>{fmtINRFull(ltcgTaxAmt)}</span></div>}
+          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 32, fontWeight: 800 }}>{fmtINRFull(newGrandTotal)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12 }}>Total tax liability</div>
+          <button onClick={() => setState((s) => ({ ...s, profile: { ...s.profile, regime: "new" } }))} style={{ ...btnGhost, fontSize: 11 }}>Use this regime</button>
+        </div>
+        {/* Old Regime */}
+        <div style={{ ...card, borderTop: `4px solid ${regime === "old" ? THEME.accent : THEME.line}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted }}>Old Regime</div>
+            {regime === "old" && <span style={{ fontSize: 10, padding: "2px 8px", background: THEME.accent, color: THEME.paper }}>SELECTED</span>}
+          </div>
+          <div style={rowSep}>
+            <span style={{ color: THEME.muted }}>Gross Income</span>
+            <span style={{ fontWeight: 600 }}>{fmtINRFull(gSalary + hpIncome + other)}</span>
+          </div>
+          {deductionRow("Standard Deduction", stdDedOld, 50000)}
+          {hraEx > 0 && deductionRow("HRA Exemption", hraEx)}
+          {total80C > 0 && deductionRow("80C Deductions", total80C, 150000)}
+          {totalNPS80CCD > 0 && deductionRow("NPS 80CCD(1B)", totalNPS80CCD, 50000)}
+          {med80D > 0 && deductionRow("80D Mediclaim", med80D)}
+          {hl24B > 0 && deductionRow("Home Loan Interest 24B", hl24B, 200000)}
+          {don80G > 0 && deductionRow("80G Donations", don80G)}
+          {tta > 0 && deductionRow("80TTA Savings Interest", tta, 10000)}
+          {pTax > 0 && deductionRow("Professional Tax", pTax, 2500)}
+          <div style={rowSep}>
+            <span style={{ color: THEME.muted, fontWeight: 600 }}>Taxable Income</span>
+            <span style={{ fontWeight: 700 }}>{fmtINRFull(taxableOld)}</span>
+          </div>
+          <div style={{ borderTop: `1px dashed ${THEME.line}`, paddingTop: 8, marginTop: 4, marginBottom: 8 }}>
+            <div style={rowSep}>
+              <span style={{ color: THEME.muted }}>Slab Tax</span>
+              <span>{fmtINRFull(oldCalc.grossTax)}</span>
+            </div>
+            {oldCalc.rebate > 0 && (
+              <div style={rowSep}>
+                <span style={{ color: THEME.sage }}>87A Rebate</span>
+                <span style={{ color: THEME.sage }}>−{fmtINRFull(oldCalc.rebate)}</span>
+              </div>
+            )}
+            <div style={rowSep}>
+              <span style={{ color: THEME.muted }}>4% Cess</span>
+              <span>{fmtINRFull(oldCalc.cess)}</span>
+            </div>
+            {stcg > 0 && <div style={rowSep}><span style={{ color: THEME.muted }}>STCG Tax (20% + cess)</span><span>{fmtINRFull(stcgTaxAmt)}</span></div>}
+            {ltcg > 0 && <div style={rowSep}><span style={{ color: THEME.muted }}>LTCG Tax (12.5% + cess)</span><span>{fmtINRFull(ltcgTaxAmt)}</span></div>}
+          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 32, fontWeight: 800 }}>{fmtINRFull(oldGrandTotal)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12 }}>Total tax liability · {fmtINRFull(totalOldDed)} deductions</div>
+          <button onClick={() => setState((s) => ({ ...s, profile: { ...s.profile, regime: "old" } }))} style={{ ...btnGhost, fontSize: 11 }}>Use this regime</button>
+        </div>
+      </div>
+
+      {/* ── 4. Recommendation Banner ── */}
+      <div style={{ ...card, marginBottom: 24, background: betterReg === "new" ? "#F0F3ED" : "#F7EFDE", borderLeft: `4px solid ${THEME.gold}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Sparkles size={20} style={{ color: THEME.gold }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>
-              {newReg.total < oldReg.total
-                ? `New regime saves you ${fmtINRFull(
-                    oldReg.total - newReg.total
-                  )} this year`
-                : `Old regime saves you ${fmtINRFull(
-                    newReg.total - oldReg.total
-                  )} this year`}
+              {saving === 0
+                ? "Both regimes result in the same tax liability."
+                : `${betterReg === "new" ? "New" : "Old"} Regime saves you ${fmtINRFull(saving)} this FY`}
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
-              Based on income of {fmtINRFull(income)}. Adjust deductions or add
-              more income to recompute.
+              {betterReg === "new"
+                ? "New regime's lower slabs benefit you more than available deductions."
+                : "Your deductions under the old regime lower your taxable income significantly."}
+              {" "}Update income or deductions above to recompute live.
             </div>
           </div>
         </div>
       </div>
 
-      {/* 80C Deductions Tracker */}
-      {(() => {
-        const ppf80C = state.ppf.reduce((s, p) => s + Number(p.thisYearContribution || 0), 0);
-        const nps80C = state.nps.reduce((s, n) => s + Number(n.thisYearContribution || 0), 0);
-        const elss80C = state.mutualFunds.filter((m) => m.type === "ELSS").reduce((s, m) => s + Number(m.invested || 0), 0);
-        const total80C = ppf80C + nps80C + elss80C;
-        const limit80C = 150000;
-        const pct80C = Math.min((total80C / limit80C) * 100, 100);
-        const remaining80C = Math.max(0, limit80C - total80C);
-        return (
-          <div style={{ ...card, marginBottom: 24 }}>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>80C Deductions Tracker</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
-              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: THEME.muted }}>PPF Contribution</div>
-                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(ppf80C)}</div>
-              </div>
-              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: THEME.muted }}>NPS Contribution</div>
-                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(nps80C)}</div>
-              </div>
-              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: THEME.muted }}>ELSS Invested</div>
-                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(elss80C)}</div>
-              </div>
-            </div>
-            <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ height: "100%", width: pct80C + "%", background: pct80C >= 100 ? THEME.sage : THEME.accent, borderRadius: 5, transition: "width 0.5s" }} />
-            </div>
-            <div style={{ fontSize: 13, color: THEME.ink }}>
-              <b>{fmtINRFull(total80C)}</b> used of <b>₹1.5L</b> 80C limit.{" "}
-              <span style={{ color: remaining80C === 0 ? THEME.sage : THEME.gold }}>
-                {remaining80C === 0 ? "Fully utilized!" : `${fmtINRFull(remaining80C)} remaining.`}
-              </span>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Advance tax schedule */}
+      {/* ── 5. Slab-wise Breakdown Toggle ── */}
       <div style={{ ...card, marginBottom: 24 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 22,
-              fontWeight: 700,
-            }}
-          >
-            Advance Tax Schedule
-          </div>
-          <div style={{ fontSize: 13, color: THEME.muted }}>
-            Expected: {fmtINRFull(expectedTax)} · Paid:{" "}
-            {fmtINRFull(paidAdvance)}
-          </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showSlabs ? 20 : 0 }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700 }}>Slab-wise Tax Breakdown</div>
+          <button style={btnGhost} onClick={() => setShowSlabs((v) => !v)}>{showSlabs ? "Hide" : "Show"}</button>
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-          }}
-        >
+        {showSlabs && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: THEME.accent, marginBottom: 8 }}>New Regime (FY 25-26)</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead><tr><th style={th}>Slab</th><th style={th}>Rate</th><th style={{ ...th, textAlign: "right" }}>Tax</th></tr></thead>
+                <tbody>
+                  {newCalc.breakdown.filter((r) => r.inSlab > 0).map((r, i) => (
+                    <tr key={i}><td style={td}>{r.label}</td><td style={td}>{r.rate}%</td><td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(r.slabTax)}</td></tr>
+                  ))}
+                  <tr style={{ background: "rgba(128,128,128,0.05)" }}>
+                    <td style={{ ...td, fontWeight: 700 }} colSpan={2}>Gross Tax</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(newCalc.grossTax)}</td>
+                  </tr>
+                  {newCalc.rebate > 0 && (
+                    <tr><td style={{ ...td, color: THEME.sage }} colSpan={2}>87A Rebate</td><td style={{ ...td, textAlign: "right", color: THEME.sage }}>−{fmtINR(newCalc.rebate)}</td></tr>
+                  )}
+                  <tr><td style={{ ...td, color: THEME.muted }} colSpan={2}>4% Health & Edu Cess</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtINR(newCalc.cess)}</td></tr>
+                  <tr style={{ background: "rgba(128,128,128,0.08)" }}>
+                    <td style={{ ...td, fontWeight: 700 }} colSpan={2}>Total (incl. cess)</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(newCalc.total)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: THEME.accent, marginBottom: 8 }}>Old Regime</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead><tr><th style={th}>Slab</th><th style={th}>Rate</th><th style={{ ...th, textAlign: "right" }}>Tax</th></tr></thead>
+                <tbody>
+                  {oldCalc.breakdown.filter((r) => r.inSlab > 0).map((r, i) => (
+                    <tr key={i}><td style={td}>{r.label}</td><td style={td}>{r.rate}%</td><td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(r.slabTax)}</td></tr>
+                  ))}
+                  <tr style={{ background: "rgba(128,128,128,0.05)" }}>
+                    <td style={{ ...td, fontWeight: 700 }} colSpan={2}>Gross Tax</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(oldCalc.grossTax)}</td>
+                  </tr>
+                  {oldCalc.rebate > 0 && (
+                    <tr><td style={{ ...td, color: THEME.sage }} colSpan={2}>87A Rebate</td><td style={{ ...td, textAlign: "right", color: THEME.sage }}>−{fmtINR(oldCalc.rebate)}</td></tr>
+                  )}
+                  <tr><td style={{ ...td, color: THEME.muted }} colSpan={2}>4% Health & Edu Cess</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtINR(oldCalc.cess)}</td></tr>
+                  <tr style={{ background: "rgba(128,128,128,0.08)" }}>
+                    <td style={{ ...td, fontWeight: 700 }} colSpan={2}>Total (incl. cess)</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(oldCalc.total)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 6. 80C Tracker ── */}
+      <div style={{ ...card, marginBottom: 24 }}>
+        <div style={sectionHead}>80C Deductions Tracker</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+          {([
+            ["LIC Premium", Number(lic80C) || 0],
+            ["PPF", Number(ppf80C) || 0],
+            ["ELSS", Number(elss80C) || 0],
+            ["NSC", Number(nsc80C) || 0],
+            ["HL Principal", Number(hlPrincipal80C) || 0],
+            ["Tuition Fees", Number(tuition80C) || 0],
+            ["Other 80C", Number(other80C) || 0],
+          ] as [string, number][]).filter(([, v]) => v > 0).map(([lbl, val]) => (
+            <div key={lbl} style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: THEME.muted }}>{lbl}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(val)}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
+          <div style={{ height: "100%", width: Math.min((total80C / 150000) * 100, 100) + "%", background: total80C >= 150000 ? THEME.sage : THEME.accent, borderRadius: 5, transition: "width 0.5s" }} />
+        </div>
+        <div style={{ fontSize: 13 }}>
+          <b>{fmtINRFull(total80C)}</b> used of <b>₹1.5L</b> limit.{" "}
+          <span style={{ color: total80C >= 150000 ? THEME.sage : THEME.gold }}>
+            {total80C >= 150000 ? "Fully utilized!" : `${fmtINRFull(150000 - total80C)} remaining.`}
+          </span>
+        </div>
+      </div>
+
+      {/* ── 7. Advance Tax Schedule ── */}
+      <div style={{ ...card, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Advance Tax Schedule</div>
+          <div style={{ fontSize: 13, color: THEME.muted }}>Expected: {fmtINRFull(expectedTax)} · Paid: {fmtINRFull(paidAdvance)}</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
           {advanceTaxDue.map((d) => {
             const cumulative = (expectedTax * d.pct) / 100;
             const met = paidAdvance >= cumulative;
             return (
-              <div
-                key={d.date}
-                style={{
-                  padding: 16,
-                  border: `1px solid ${met ? THEME.sage : THEME.line}`,
-                  background: met ? "#F0F3ED" : "transparent",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 10,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    color: THEME.muted,
-                  }}
-                >
-                  By {d.date}
-                </div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                  {d.pct}% of liability
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 20,
-                    fontWeight: 800,
-                    marginTop: 8,
-                  }}
-                >
-                  {fmtINR(cumulative)}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: met ? THEME.sage : THEME.accent,
-                    marginTop: 4,
-                    fontWeight: 600,
-                  }}
-                >
-                  {met
-                    ? "✓ Covered"
-                    : `Short ${fmtINR(cumulative - paidAdvance)}`}
+              <div key={d.date} style={{ padding: 16, border: `1px solid ${met ? THEME.sage : THEME.line}`, background: met ? "#F0F3ED" : "transparent" }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>By {d.date}</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{d.pct}% of liability</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 800, marginTop: 8 }}>{fmtINR(cumulative)}</div>
+                <div style={{ fontSize: 11, color: met ? THEME.sage : THEME.accent, marginTop: 4, fontWeight: 600 }}>
+                  {met ? "✓ Covered" : `Short ${fmtINR(cumulative - paidAdvance)}`}
                 </div>
               </div>
             );
@@ -5602,133 +5671,45 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
         </div>
       </div>
 
-      {/* Income & payments */}
+      {/* ── 8. Income Ledger & Tax Payments ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 18,
-                fontWeight: 700,
-              }}
-            >
-              Income (this FY)
-            </div>
-            <button style={btnGhost} onClick={() => setShowIncome(true)}>
-              <Plus size={12} />
-            </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700 }}>Income (this FY)</div>
+            <button style={btnGhost} onClick={() => setShowIncome(true)}><Plus size={12} /></button>
           </div>
-          {state.income.length === 0 ? (
-            <EmptyHint text="No income logged" />
-          ) : (
+          {state.income.length === 0 ? <EmptyHint text="No income logged" /> : (
             <div style={{ display: "grid", gap: 6 }}>
-              {state.income
-                .slice(-10)
-                .reverse()
-                .map((i) => (
-                  <div
-                    key={i.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 13,
-                      padding: "8px 0",
-                      borderBottom: `1px dashed ${THEME.line}`,
-                    }}
-                  >
-                    <span>
-                      <div style={{ fontWeight: 500 }}>{i.source}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>
-                        {i.date} · {i.category}
-                      </div>
-                    </span>
-                    <span
-                      style={{
-                        color: THEME.sage,
-                        fontWeight: 600,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {fmtINRFull(i.amount)}
-                    </span>
-                  </div>
-                ))}
-              <div
-                style={{
-                  borderTop: `2px solid ${THEME.ink}`,
-                  padding: "10px 0 0",
-                  marginTop: 6,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: 700,
-                }}
-              >
+              {state.income.slice(-10).reverse().map((i) => (
+                <div key={i.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "8px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                  <span>
+                    <div style={{ fontWeight: 500 }}>{i.source}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{i.date} · {i.category}</div>
+                  </span>
+                  <span style={{ color: THEME.sage, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(i.amount)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: `2px solid ${THEME.ink}`, padding: "10px 0 0", marginTop: 6, display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
                 <span>Total FY</span>
                 <span style={{ color: THEME.sage }}>{fmtINRFull(income)}</span>
               </div>
             </div>
           )}
         </div>
-
         <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 18,
-                fontWeight: 700,
-              }}
-            >
-              Tax Payments
-            </div>
-            <button style={btnGhost} onClick={() => setShowTaxPmt(true)}>
-              <Plus size={12} />
-            </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700 }}>Tax Payments</div>
+            <button style={btnGhost} onClick={() => setShowTaxPmt(true)}><Plus size={12} /></button>
           </div>
-          {state.taxPayments.length === 0 ? (
-            <EmptyHint text="No advance tax / TDS logged" />
-          ) : (
+          {state.taxPayments.length === 0 ? <EmptyHint text="No advance tax / TDS logged" /> : (
             <div style={{ display: "grid", gap: 6 }}>
               {state.taxPayments.map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 13,
-                    padding: "8px 0",
-                    borderBottom: `1px dashed ${THEME.line}`,
-                  }}
-                >
+                <div key={t.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "8px 0", borderBottom: `1px dashed ${THEME.line}` }}>
                   <span>
                     <div style={{ fontWeight: 500 }}>{t.type}</div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>
-                      {t.date} · {t.challan || ""}
-                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{t.date} · {t.challan || ""}</div>
                   </span>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {fmtINRFull(t.amount)}
-                  </span>
+                  <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(t.amount)}</span>
                 </div>
               ))}
             </div>
@@ -5736,66 +5717,24 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
         </div>
       </div>
 
-      {/* Capital gains hint */}
-      <div
-        style={{ ...card, marginTop: 24, borderLeft: `4px solid ${THEME.ink}` }}
-      >
-        <div
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.25em",
-            textTransform: "uppercase",
-            color: THEME.muted,
-          }}
-        >
-          Capital Gains Snapshot
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 16,
-            marginTop: 12,
-          }}
-        >
+      {/* ── 9. Capital Gains Snapshot ── */}
+      <div style={{ ...card, marginTop: 24, borderLeft: `4px solid ${THEME.ink}` }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted }}>Capital Gains Snapshot</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 12 }}>
           <Stat k="Unrealized Equity" v={fmtINRFull(unrealizedLTCG)} />
-          <Stat
-            k="Est. LTCG tax (12.5% above ₹1.25L)"
-            v={fmtINR(Math.max(0, unrealizedLTCG - 125000) * 0.125)}
-          />
+          <Stat k="Est. LTCG tax (12.5% above ₹1.25L)" v={fmtINR(Math.max(0, unrealizedLTCG - 125000) * 0.125)} />
           <Stat k="Realized (track separately)" v="—" />
         </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: THEME.muted,
-            fontStyle: "normal",
-            marginTop: 12,
-          }}
-        >
-          LTCG on listed equity: 12.5% above ₹1.25L exemption (FY 25-26). STCG
-          on listed equity: 20%. Log realized gains via transactions for
-          accurate reporting.
+        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 12 }}>
+          LTCG on listed equity: 12.5% above ₹1.25L exemption (FY 25-26). STCG on listed equity: 20%. Log realized gains via transactions for accurate reporting.
         </div>
       </div>
 
       {showIncome && (
-        <IncomeModal
-          onClose={() => setShowIncome(false)}
-          onSave={(v) => {
-            addItem("income", v);
-            setShowIncome(false);
-          }}
-        />
+        <IncomeModal onClose={() => setShowIncome(false)} onSave={(v) => { addItem("income", v); setShowIncome(false); }} />
       )}
       {showTaxPmt && (
-        <TaxPmtModal
-          onClose={() => setShowTaxPmt(false)}
-          onSave={(v) => {
-            addItem("taxPayments", v);
-            setShowTaxPmt(false);
-          }}
-        />
+        <TaxPmtModal onClose={() => setShowTaxPmt(false)} onSave={(v) => { addItem("taxPayments", v); setShowTaxPmt(false); }} />
       )}
     </div>
   );
