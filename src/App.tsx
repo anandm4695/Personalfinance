@@ -34,6 +34,14 @@ import {
   Sparkles,
   Sun,
   Moon,
+  Bell,
+  Settings,
+  Printer,
+  Copy,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  User,
 } from "lucide-react";
 import {
   LineChart,
@@ -261,6 +269,13 @@ const DEFAULT_STATE = (() => {
       { id: "i1", source: "Salary", amount: "1440000", date: `${ym}-01` }
     ],
     taxPayments: [],
+    budgets: [
+      { id: "b1", category: "Food", monthly: "10000" },
+      { id: "b2", category: "Rent", monthly: "15000" },
+      { id: "b3", category: "Transport", monthly: "3000" },
+      { id: "b4", category: "Entertainment", monthly: "2000" },
+    ],
+    reminders: [],
   };
 })();
 
@@ -270,6 +285,7 @@ export default function FinanceDashboard() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("overview");
   const [modal, setModal] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
   });
@@ -575,6 +591,21 @@ export default function FinanceDashboard() {
       setState(DEFAULT_STATE);
   };
 
+  const copySummary = () => {
+    const text = [
+      "Personal Finance Dashboard · FY " + state.profile.fy,
+      "Net Worth: " + fmtINRFull(metrics.netWorth),
+      "Assets: " + fmtINRFull(metrics.totalAssets) + " | Liabilities: " + fmtINRFull(metrics.totalLiabilities),
+      "Monthly Income: " + fmtINRFull(metrics.monthIncome) + " | Expenses: " + fmtINRFull(metrics.monthExpense),
+      "MF: " + fmtINRFull(metrics.mfValue) + " | Stocks: " + fmtINRFull(metrics.stockValue),
+      "Savings Rate: " + metrics.savingsRate.toFixed(1) + "%",
+    ].join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   // ================== TABS ==================
   const tabs = [
     { id: "overview", label: "Ledger", icon: LineIcon },
@@ -584,7 +615,11 @@ export default function FinanceDashboard() {
     { id: "credit", label: "Credit & Loans", icon: CreditCard },
     { id: "subs", label: "Subscriptions", icon: Repeat },
     { id: "goals", label: "Goals", icon: Target },
+    { id: "budget", label: "Budget", icon: Wallet },
+    { id: "reminders", label: "Reminders", icon: Bell },
+    { id: "analytics", label: "Analytics", icon: PieIcon },
     { id: "tax", label: "Tax Vault", icon: Calculator },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   if (!loaded) {
@@ -710,6 +745,28 @@ export default function FinanceDashboard() {
               />
             </label>
             <button
+              onClick={() => window.print()}
+              style={btnGhost}
+              title="Print / Save as PDF"
+            >
+              <Printer size={14} /> Print
+            </button>
+            <button
+              onClick={copySummary}
+              style={btnGhost}
+              title="Copy summary to clipboard"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={() => setTab("settings")}
+              style={btnGhost}
+              title="Settings"
+            >
+              <Settings size={14} />
+            </button>
+            <button
               onClick={resetAll}
               style={{
                 ...btnGhost,
@@ -829,6 +886,37 @@ export default function FinanceDashboard() {
             removeItem={removeItem}
             metrics={metrics}
             setState={setState}
+          />
+        )}
+        {tab === "budget" && (
+          <BudgetTab
+            state={state}
+            addItem={addItem}
+            removeItem={removeItem}
+            updateItem={updateItem}
+            metrics={metrics}
+          />
+        )}
+        {tab === "reminders" && (
+          <RemindersTab
+            state={state}
+            addItem={addItem}
+            removeItem={removeItem}
+          />
+        )}
+        {tab === "analytics" && (
+          <AnalyticsTab
+            metrics={metrics}
+            state={state}
+            trendData={trendData}
+          />
+        )}
+        {tab === "settings" && (
+          <SettingsTab
+            state={state}
+            setState={setState}
+            exportJSON={exportJSON}
+            resetAll={resetAll}
           />
         )}
       </main>
@@ -1544,15 +1632,22 @@ const EmptyHint = ({ text }) => (
 );
 
 // ================== BANKS TAB ==================
-function BanksTab({ state, addItem, removeItem }) {
+function BanksTab({ state, addItem, removeItem, updateItem }) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
   const [filterAcc, setFilterAcc] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [editBankId, setEditBankId] = useState(null);
 
-  const filteredTxns =
-    filterAcc === "all"
-      ? state.transactions
-      : state.transactions.filter((t) => t.accountId === filterAcc);
+  const filteredTxns = state.transactions
+    .filter((t) => filterAcc === "all" || t.accountId === filterAcc)
+    .filter((t) => filterType === "all" || t.type === filterType)
+    .filter((t) =>
+      !search ||
+      (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.category || "").toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
     <div>
@@ -1595,20 +1690,20 @@ function BanksTab({ state, addItem, removeItem }) {
         )}
         {state.bankAccounts.map((a) => (
           <div key={a.id} style={{ ...card, position: "relative" }}>
-            <button
-              onClick={() => removeItem("bankAccounts", a.id)}
-              style={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: THEME.muted,
-              }}
-            >
-              <Trash2 size={14} />
-            </button>
+            <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+              <button
+                onClick={() => setEditBankId(a.id)}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}
+              >
+                <Edit3 size={14} />
+              </button>
+              <button
+                onClick={() => removeItem("bankAccounts", a.id)}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
             <div
               style={{
                 fontSize: 10,
@@ -1668,18 +1763,33 @@ function BanksTab({ state, addItem, removeItem }) {
           >
             Transaction Ledger
           </div>
-          <select
-            style={{ ...input, width: "auto", minWidth: 180 }}
-            value={filterAcc}
-            onChange={(e) => setFilterAcc(e.target.value)}
-          >
-            <option value="all">All accounts</option>
-            {state.bankAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.bankName}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              style={{ ...input, width: "auto", minWidth: 160 }}
+              placeholder="Search notes or category…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <select
+              style={{ ...input, width: "auto", minWidth: 140 }}
+              value={filterAcc}
+              onChange={(e) => setFilterAcc(e.target.value)}
+            >
+              <option value="all">All accounts</option>
+              {state.bankAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.bankName}</option>
+              ))}
+            </select>
+            <select
+              style={{ ...input, width: "auto", minWidth: 120 }}
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="all">All types</option>
+              <option value="credit">Credit only</option>
+              <option value="debit">Debit only</option>
+            </select>
+          </div>
         </div>
 
         {filteredTxns.length === 0 ? (
@@ -1759,6 +1869,16 @@ function BanksTab({ state, addItem, removeItem }) {
         )}
       </div>
 
+      {editBankId && (
+        <BankEditModal
+          account={state.bankAccounts.find((a) => a.id === editBankId)}
+          onClose={() => setEditBankId(null)}
+          onSave={(v) => {
+            updateItem("bankAccounts", editBankId, v);
+            setEditBankId(null);
+          }}
+        />
+      )}
       {showBank && (
         <BankModal
           onClose={() => setShowBank(false)}
@@ -3078,6 +3198,27 @@ function TermModal({ onClose, onSave }) {
 function DematTab({ state, addItem, removeItem }) {
   const [showDemat, setShowDemat] = useState(false);
   const [showStock, setShowStock] = useState(false);
+  const [sortCol, setSortCol] = useState("pnl");
+  const [sortDir, setSortDir] = useState(-1);
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir((d) => d * -1);
+    else { setSortCol(col); setSortDir(-1); }
+  };
+
+  const SortTh = ({ col, label, right = false }) => (
+    <th
+      style={{ ...th, textAlign: right ? "right" : "left", cursor: "pointer", userSelect: "none" }}
+      onClick={() => handleSort(col)}
+    >
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+        {label}
+        {sortCol === col
+          ? sortDir === -1 ? <ChevronDown size={11} /> : <ChevronUp size={11} />
+          : <ChevronDown size={11} style={{ opacity: 0.3 }} />}
+      </span>
+    </th>
+  );
 
   const totalValue = state.stocks.reduce(
     (s, st) => s + Number(st.qty) * Number(st.currentPrice),
@@ -3217,19 +3358,36 @@ function DematTab({ state, addItem, removeItem }) {
             >
               <thead>
                 <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
-                  <th style={th}>Symbol</th>
+                  <SortTh col="symbol" label="Symbol" />
                   <th style={th}>Broker</th>
-                  <th style={{ ...th, textAlign: "right" }}>Qty</th>
+                  <SortTh col="qty" label="Qty" right />
                   <th style={{ ...th, textAlign: "right" }}>Avg</th>
-                  <th style={{ ...th, textAlign: "right" }}>LTP</th>
-                  <th style={{ ...th, textAlign: "right" }}>Invested</th>
-                  <th style={{ ...th, textAlign: "right" }}>Current</th>
-                  <th style={{ ...th, textAlign: "right" }}>P&L</th>
+                  <SortTh col="ltp" label="LTP" right />
+                  <SortTh col="invested" label="Invested" right />
+                  <SortTh col="current" label="Current" right />
+                  <SortTh col="pnl" label="P&L" right />
                   <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
-                {state.stocks.map((s) => {
+                {[...state.stocks].sort((a, b) => {
+                  const ai = Number(a.qty) * Number(a.avgPrice);
+                  const bi = Number(b.qty) * Number(b.avgPrice);
+                  const ac = Number(a.qty) * Number(a.currentPrice);
+                  const bc = Number(b.qty) * Number(b.currentPrice);
+                  const vals = {
+                    symbol: [a.symbol, b.symbol],
+                    qty: [Number(a.qty), Number(b.qty)],
+                    ltp: [Number(a.currentPrice), Number(b.currentPrice)],
+                    invested: [ai, bi],
+                    current: [ac, bc],
+                    pnl: [ac - ai, bc - bi],
+                  };
+                  const [av, bv] = vals[sortCol] || [0, 0];
+                  if (av < bv) return sortDir;
+                  if (av > bv) return -sortDir;
+                  return 0;
+                }).map((s) => {
                   const invested = Number(s.qty) * Number(s.avgPrice);
                   const current = Number(s.qty) * Number(s.currentPrice);
                   const p = current - invested;
@@ -5317,6 +5475,538 @@ function ModalActions({ onSave, onClose }) {
       <button style={btnAccent} onClick={onSave}>
         Save
       </button>
+    </div>
+  );
+}
+
+// ================== BANK EDIT MODAL ==================
+function BankEditModal({ account, onClose, onSave }) {
+  const [f, setF] = useState({
+    bankName: account?.bankName || "",
+    accountNumber: account?.accountNumber || "",
+    type: account?.type || "Savings",
+    balance: account?.balance || "",
+  });
+  return (
+    <Modal title="Edit Bank Account" onClose={onClose}>
+      <Field label="Bank Name">
+        <input style={input} value={f.bankName} onChange={(e) => setF({ ...f, bankName: e.target.value })} />
+      </Field>
+      <Field label="Account Number (last 4 ok)">
+        <input style={input} value={f.accountNumber} onChange={(e) => setF({ ...f, accountNumber: e.target.value })} />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Type">
+          <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+            <option>Savings</option>
+            <option>Current</option>
+            <option>Salary</option>
+            <option>Joint</option>
+          </select>
+        </Field>
+        <Field label="Current Balance">
+          <input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} />
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== BUDGET TAB ==================
+function BudgetTab({ state, addItem, removeItem, metrics }) {
+  const [show, setShow] = useState(false);
+  const ym = new Date().toISOString().slice(0, 7);
+
+  const monthSpending = useMemo(() => {
+    return state.transactions
+      .filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit")
+      .reduce((acc, t) => {
+        const cat = t.category || "Uncategorized";
+        acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
+        return acc;
+      }, {});
+  }, [state.transactions, ym]);
+
+  const totalBudget = state.budgets.reduce((s, b) => s + Number(b.monthly || 0), 0);
+  const totalSpent = state.budgets.reduce((s, b) => s + (monthSpending[b.category] || 0), 0);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <SectionTitle sub="Set monthly limits per category and track real spending">
+          Budget Planner
+        </SectionTitle>
+        <button style={btnSolid} onClick={() => setShow(true)}>
+          <Plus size={14} /> Add Budget
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <Tile icon={Wallet} label="Total Budgeted" value={fmtINRFull(totalBudget)} />
+        <Tile icon={Receipt} label="Spent This Month" value={fmtINRFull(totalSpent)} negative={totalSpent > totalBudget} />
+        <Tile icon={TrendingUp} label="Remaining" value={fmtINRFull(Math.max(0, totalBudget - totalSpent))} />
+        <Tile icon={Target} label="Categories" value={state.budgets.length} />
+      </div>
+
+      {state.budgets.length === 0 ? (
+        <div style={card}>
+          <EmptyHint text="Add budget limits for categories like Food, Rent, Entertainment…" />
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 16 }}>
+          {state.budgets.map((b) => {
+            const spent = monthSpending[b.category] || 0;
+            const budget = Number(b.monthly || 0);
+            const pct = budget > 0 ? (spent / budget) * 100 : 0;
+            const over = pct > 100;
+            return (
+              <div key={b.id} style={{ ...card, position: "relative" }}>
+                <button onClick={() => removeItem("budgets", b.id)} style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
+                  <Trash2 size={14} />
+                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, paddingRight: 28 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 18 }}>{b.category}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {fmtINRFull(spent)} spent of {fmtINRFull(budget)} budget
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: over ? THEME.rust : THEME.ink }}>{pct.toFixed(0)}%</div>
+                    <div style={{ fontSize: 11, color: over ? THEME.rust : THEME.sage, fontWeight: 600 }}>
+                      {over ? fmtINR(spent - budget) + " over" : fmtINR(budget - spent) + " left"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: over ? THEME.rust : pct > 80 ? THEME.gold : THEME.sage, borderRadius: 4, transition: "width 0.5s" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {(() => {
+        const budgetedCats = new Set(state.budgets.map((b) => b.category));
+        const unbudgeted = Object.entries(monthSpending).filter(([cat]) => !budgetedCats.has(cat));
+        if (!unbudgeted.length) return null;
+        return (
+          <div style={{ ...card, marginTop: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, color: THEME.muted }}>Unbudgeted Spending This Month</div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {unbudgeted.sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
+                <div key={cat} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "8px 0", borderBottom: "1px dashed " + THEME.line }}>
+                  <span>{cat}</span>
+                  <span style={{ fontWeight: 600 }}>{fmtINRFull(amt)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {show && (
+        <BudgetModal
+          existing={state.budgets.map((b) => b.category)}
+          onClose={() => setShow(false)}
+          onSave={(v) => { addItem("budgets", v); setShow(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BudgetModal({ existing, onClose, onSave }) {
+  const allCats = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
+  const [f, setF] = useState({ category: allCats[0], monthly: "" });
+  return (
+    <Modal title="Add Budget" onClose={onClose}>
+      <Field label="Category">
+        <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+          {allCats.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      </Field>
+      <Field label="Monthly Limit (₹)">
+        <input style={input} type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
+      </Field>
+      <ModalActions onSave={() => f.monthly && onSave(f)} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== REMINDERS TAB ==================
+function RemindersTab({ state, addItem, removeItem }) {
+  const [show, setShow] = useState(false);
+  const todayStr = today();
+
+  const allReminders = useMemo(() => {
+    const list = [];
+    state.creditCards.forEach((c) => {
+      if (c.dueDate) list.push({ id: "cc-" + c.id, title: (c.issuer || "Card") + " — Bill Due", subtitle: "Outstanding: " + fmtINRFull(c.outstanding), date: c.dueDate, type: "Credit Card", icon: CreditCard });
+    });
+    state.subscriptions.forEach((s) => {
+      if (s.renewalDate) list.push({ id: "sub-" + s.id, title: s.name + " Renewal", subtitle: s.cycle + " · " + fmtINRFull(s.amount), date: s.renewalDate, type: "Subscription", icon: Repeat });
+    });
+    state.fixedDeposits.forEach((f) => {
+      if (f.maturityDate) list.push({ id: "fd-" + f.id, title: "FD Maturity — " + (f.bank || f.bankName || "Bank"), subtitle: "Principal: " + fmtINRFull(f.principal), date: f.maturityDate, type: "Fixed Deposit", icon: Coins });
+    });
+    state.bonds.forEach((b) => {
+      if (b.maturityDate) list.push({ id: "bond-" + b.id, title: "Bond Maturity — " + b.name, subtitle: "Face Value: " + fmtINRFull(b.faceValue), date: b.maturityDate, type: "Bond", icon: FileText });
+    });
+    state.lic.forEach((l) => {
+      if (l.maturityDate) list.push({ id: "lic-" + l.id, title: "LIC Maturity — " + l.planName, subtitle: "Annual Premium: " + fmtINRFull(l.annualPremium), date: l.maturityDate, type: "LIC", icon: Shield });
+    });
+    state.termPlans.forEach((t) => {
+      if (t.expiryDate) list.push({ id: "term-" + t.id, title: "Term Plan Expiry — " + t.planName, subtitle: "Cover: " + fmtINRFull(t.coverAmount), date: t.expiryDate, type: "Term Plan", icon: Shield });
+    });
+    state.loansGiven.forEach((l) => {
+      if (l.dueDate) list.push({ id: "loan-" + l.id, title: "Loan Recovery — " + l.borrower, subtitle: "Outstanding: " + fmtINRFull(l.outstanding), date: l.dueDate, type: "Loan Given", icon: HandCoins });
+    });
+    state.reminders.forEach((r) => {
+      list.push({ id: r.id, title: r.title, subtitle: r.note || "", date: r.date, type: "Reminder", icon: Bell, manual: true });
+    });
+    return list.filter((r) => r.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [state]);
+
+  const daysLeft = (d) => Math.ceil((new Date(d) - new Date(todayStr)) / 86400000);
+  const urgencyColor = (days) => days < 0 ? THEME.muted : days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
+
+  const upcoming = allReminders.filter((r) => daysLeft(r.date) >= 0);
+  const past = allReminders.filter((r) => daysLeft(r.date) < 0);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <SectionTitle sub="Upcoming dues, maturities, renewals and custom alerts">
+          Reminders & Alerts
+        </SectionTitle>
+        <button style={btnSolid} onClick={() => setShow(true)}>
+          <Plus size={14} /> Add Reminder
+        </button>
+      </div>
+
+      {upcoming.length === 0 && past.length === 0 ? (
+        <div style={card}>
+          <EmptyHint text="No reminders yet. Add credit cards, FDs, or subscriptions with due dates to see them here." />
+        </div>
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <div style={{ display: "grid", gap: 12, marginBottom: 32 }}>
+              {upcoming.map((r) => {
+                const days = daysLeft(r.date);
+                const color = urgencyColor(days);
+                const Icon = r.icon;
+                return (
+                  <div key={r.id} style={{ ...card, display: "flex", alignItems: "center", gap: 16, borderLeft: "4px solid " + color, padding: "16px 20px" }}>
+                    <Icon size={20} style={{ color, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{r.title}</div>
+                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{r.subtitle}{r.subtitle ? " · " : ""}{r.type}</div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontWeight: 700, color, fontSize: 16 }}>
+                        {days === 0 ? "Today" : days === 1 ? "Tomorrow" : days + " days"}
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>{r.date}</div>
+                    </div>
+                    {r.manual && (
+                      <button onClick={() => removeItem("reminders", r.id)} style={iconBtn}>
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {past.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Past Due</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {past.slice(-5).map((r) => {
+                  const days = Math.abs(daysLeft(r.date));
+                  const Icon = r.icon;
+                  return (
+                    <div key={r.id} style={{ ...card, display: "flex", alignItems: "center", gap: 12, opacity: 0.6, padding: "12px 16px" }}>
+                      <Icon size={16} style={{ color: THEME.muted, flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontSize: 14 }}>
+                        <span style={{ fontWeight: 600 }}>{r.title}</span>
+                        <span style={{ color: THEME.muted }}> · {r.date}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>{days}d ago</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {show && (
+        <ReminderModal
+          onClose={() => setShow(false)}
+          onSave={(v) => { addItem("reminders", v); setShow(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReminderModal({ onClose, onSave }) {
+  const [f, setF] = useState({ title: "", amount: "", date: "", note: "" });
+  return (
+    <Modal title="Add Reminder" onClose={onClose}>
+      <Field label="Title">
+        <input style={input} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Car Insurance Renewal" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Due Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+        <Field label="Amount (optional)">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Note (optional)">
+        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+      </Field>
+      <ModalActions onSave={() => f.title && f.date && onSave(f)} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== ANALYTICS TAB ==================
+function AnalyticsTab({ metrics, state, trendData }) {
+  const savingsData = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const ym = d.toISOString().slice(0, 7);
+      const label = d.toLocaleString("en-IN", { month: "short" });
+      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym));
+      const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      return { month: label, rate: parseFloat((inc > 0 ? ((inc - exp) / inc) * 100 : 0).toFixed(1)), income: inc, expense: exp };
+    });
+  }, [state.transactions]);
+
+  const catTrend = useMemo(() => {
+    const topCatNames = metrics.expenseBreakdown.slice(0, 4).map((c) => c.name);
+    const now = new Date();
+    const data = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const ym = d.toISOString().slice(0, 7);
+      const label = d.toLocaleString("en-IN", { month: "short" });
+      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit");
+      const entry: any = { month: label };
+      topCatNames.forEach((cat) => { entry[cat] = txns.filter((t) => t.category === cat).reduce((s, t) => s + Number(t.amount || 0), 0); });
+      return entry;
+    });
+    return { data, cats: topCatNames };
+  }, [state.transactions, metrics.expenseBreakdown]);
+
+  const incomeBySrc = useMemo(() => {
+    const map = {};
+    state.income.forEach((i) => { map[i.source] = (map[i.source] || 0) + Number(i.amount || 0); });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a: any, b: any) => b.value - a.value);
+  }, [state.income]);
+
+  const avgIncome = trendData.filter((t) => t.income > 0).reduce((s, t) => s + t.income, 0) / Math.max(1, trendData.filter((t) => t.income > 0).length);
+  const avgExpense = trendData.filter((t) => t.expense > 0).reduce((s, t) => s + t.expense, 0) / Math.max(1, trendData.filter((t) => t.expense > 0).length);
+
+  return (
+    <div>
+      <SectionTitle sub="Deeper insights into your spending patterns and financial health">
+        Analytics
+      </SectionTitle>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <Tile icon={TrendingUp} label="Avg Monthly Income" value={fmtINRFull(avgIncome)} />
+        <Tile icon={Receipt} label="Avg Monthly Expense" value={fmtINRFull(avgExpense)} />
+        <Tile icon={Target} label="Savings Rate (This Month)" value={metrics.savingsRate.toFixed(1) + "%"} />
+        <Tile icon={Wallet} label="Net Worth" value={fmtINRFull(metrics.netWorth)} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+        <div style={card}>
+          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Savings Rate — 6 Months</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={savingsData}>
+              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+              <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={(v) => v + "%"} />
+              <Tooltip formatter={(v) => v + "%"} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+              <Bar dataKey="rate" fill={THEME.accent} radius={[4, 4, 0, 0]} name="Savings Rate %" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div style={card}>
+          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Income by Source (This FY)</div>
+          {incomeBySrc.length ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={incomeBySrc} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={45} paddingAngle={2}>
+                  {incomeBySrc.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <EmptyHint text="Log income in Tax Vault to see breakdown" />}
+        </div>
+      </div>
+
+      <div style={{ ...card, marginBottom: 32 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Category Spending — 6 Months (Stacked)</div>
+        {catTrend.cats.length ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={catTrend.data}>
+              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+              <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {catTrend.cats.map((cat, i) => (
+                <Bar key={cat} dataKey={cat} fill={PIE_COLORS[i % PIE_COLORS.length]} radius={[2, 2, 0, 0]} stackId="a" />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <EmptyHint text="Add categorized transactions to see trends" />}
+      </div>
+
+      <div style={card}>
+        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Expenses This Month</div>
+        {metrics.expenseBreakdown.length ? (
+          <div style={{ display: "grid", gap: 14 }}>
+            {metrics.expenseBreakdown.slice(0, 6).map((cat, i) => {
+              const maxVal = metrics.expenseBreakdown[0].value;
+              const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
+              return (
+                <div key={cat.name}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 14 }}>
+                    <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                    <span style={{ fontWeight: 700 }}>{fmtINRFull(cat.value)}</span>
+                  </div>
+                  <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <EmptyHint text="No expense data for this month" />}
+      </div>
+    </div>
+  );
+}
+
+// ================== SETTINGS TAB ==================
+function SettingsTab({ state, setState, exportJSON, resetAll }) {
+  const [prof, setProf] = useState({ ...state.profile });
+  const [saved, setSaved] = useState(false);
+
+  const saveProfile = () => {
+    setState((s) => ({ ...s, profile: { ...s.profile, ...prof } }));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result as string);
+        setState((s) => ({ ...s, ...parsed }));
+        alert("Backup restored successfully");
+      } catch {
+        alert("Invalid backup file");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div>
+      <SectionTitle sub="Personalise your dashboard and manage your financial data">
+        Settings & Profile
+      </SectionTitle>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+        <div style={card}>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <User size={18} /> Profile
+          </div>
+          <Field label="Display Name">
+            <input style={input} value={prof.name || ""} onChange={(e) => setProf({ ...prof, name: e.target.value })} placeholder="Your name" />
+          </Field>
+          <Field label="Financial Year">
+            <select style={input} value={prof.fy || "2025-26"} onChange={(e) => setProf({ ...prof, fy: e.target.value })}>
+              <option value="2023-24">FY 2023-24</option>
+              <option value="2024-25">FY 2024-25</option>
+              <option value="2025-26">FY 2025-26</option>
+              <option value="2026-27">FY 2026-27</option>
+            </select>
+          </Field>
+          <Field label="Tax Regime">
+            <select style={input} value={prof.regime || "new"} onChange={(e) => setProf({ ...prof, regime: e.target.value })}>
+              <option value="new">New Regime (Default)</option>
+              <option value="old">Old Regime</option>
+            </select>
+          </Field>
+          <button style={{ ...btnAccent, marginTop: 8 }} onClick={saveProfile}>
+            {saved ? "Saved!" : "Save Changes"}
+          </button>
+        </div>
+
+        <div style={card}>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText size={18} /> Data Management
+          </div>
+          <div style={{ display: "grid", gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Export Backup</div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Download all data as a JSON file</div>
+              <button style={btnGhost} onClick={exportJSON}><Download size={14} /> Export JSON</button>
+            </div>
+            <div style={{ borderTop: "1px solid " + THEME.line, paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Import Backup</div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Restore from a previously exported file</div>
+              <label style={btnGhost}>
+                <Upload size={14} /> Import JSON
+                <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+              </label>
+            </div>
+            <div style={{ borderTop: "1px solid " + THEME.line, paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: THEME.rust }}>Reset All Data</div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Delete all data and start fresh — cannot be undone</div>
+              <button style={{ ...btnGhost, color: THEME.rust, borderColor: THEME.rust }} onClick={resetAll}><Trash2 size={14} /> Reset All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={card}>
+        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles size={18} /> Dashboard Summary
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <Stat k="Name" v={state.profile.name || "—"} />
+          <Stat k="Financial Year" v={state.profile.fy} />
+          <Stat k="Tax Regime" v={state.profile.regime === "new" ? "New Regime" : "Old Regime"} />
+          <Stat k="Transactions" v={state.transactions.length + " entries"} />
+          <Stat k="Bank Accounts" v={state.bankAccounts.length} />
+          <Stat k="Goals" v={state.goals.length} />
+          <Stat k="Subscriptions" v={state.subscriptions.length} />
+          <Stat k="Budgets Set" v={state.budgets.length} />
+        </div>
+      </div>
     </div>
   );
 }
