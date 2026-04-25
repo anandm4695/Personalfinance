@@ -42,6 +42,13 @@ import {
   ChevronUp,
   ChevronDown,
   User,
+  Search,
+  Activity,
+  Pause,
+  Play,
+  Zap,
+  Heart,
+  TrendingDown,
 } from "lucide-react";
 import {
   LineChart,
@@ -292,6 +299,11 @@ const DEFAULT_STATE = (() => {
       { id: "b4", category: "Entertainment", monthly: "2000" },
     ],
     reminders: [],
+    sips: [
+      { id: "sip1", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
+      { id: "sip2", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
+      { id: "sip3", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
+    ],
   };
 })();
 
@@ -305,6 +317,10 @@ export default function FinanceDashboard() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
   });
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFAB, setShowFAB] = useState(false);
+  const [fabModal, setFabModal] = useState(false);
 
   // Apply theme CSS vars whenever darkMode changes
   useEffect(() => {
@@ -453,7 +469,7 @@ export default function FinanceDashboard() {
       .filter((i) => new Date(i.date) >= fyStart)
       .reduce((s, i) => s + Number(i.amount || 0), 0);
 
-    const subTotal = state.subscriptions.reduce((s, sub) => {
+    const subTotal = state.subscriptions.filter(sub => !sub.paused).reduce((s, sub) => {
       const m =
         sub.cycle === "yearly"
           ? Number(sub.amount || 0) / 12
@@ -602,6 +618,22 @@ export default function FinanceDashboard() {
     reader.readAsText(file);
   };
 
+  const exportCSV = () => {
+    const rows = [["Date", "Account", "Type", "Category", "Amount", "Note"]];
+    state.transactions.forEach((t) => {
+      const bank = state.bankAccounts.find((b) => b.id === t.accountId);
+      rows.push([t.date || "", bank ? bank.bankName : "", t.type || "", t.category || "", t.amount || "", t.note || ""]);
+    });
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${today()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const resetAll = () => {
     if (confirm("Delete ALL data? This cannot be undone."))
       setState(DEFAULT_STATE);
@@ -630,6 +662,8 @@ export default function FinanceDashboard() {
     { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
     { id: "credit", label: "Credit & Loans", icon: CreditCard },
     { id: "subs", label: "Subscriptions", icon: Repeat },
+    { id: "sip", label: "SIP Tracker", icon: Activity },
+    { id: "insurance", label: "Insurance", icon: Heart },
     { id: "goals", label: "Goals", icon: Target },
     { id: "budget", label: "Budget", icon: Wallet },
     { id: "reminders", label: "Reminders", icon: Bell },
@@ -637,6 +671,39 @@ export default function FinanceDashboard() {
     { id: "tax", label: "Tax Vault", icon: Calculator },
     { id: "settings", label: "Settings", icon: Settings },
   ];
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!search.trim() || search.length < 2) return [];
+    const q = search.toLowerCase();
+    const results = [];
+    state.transactions.forEach((t) => {
+      if ((t.note || "").toLowerCase().includes(q) || (t.category || "").toLowerCase().includes(q)) {
+        results.push({ type: "Transaction", name: t.note || t.category, detail: `${t.date} · ${fmtINR(t.amount)}`, tab: "banks" });
+      }
+    });
+    state.stocks.forEach((s) => {
+      if ((s.symbol || "").toLowerCase().includes(q)) {
+        results.push({ type: "Stock", name: s.symbol, detail: fmtINRFull(Number(s.qty) * Number(s.currentPrice)), tab: "demat" });
+      }
+    });
+    state.mutualFunds.forEach((m) => {
+      if ((m.scheme || "").toLowerCase().includes(q)) {
+        results.push({ type: "Mutual Fund", name: m.scheme, detail: fmtINRFull(Number(m.units) * Number(m.currentNav)), tab: "investments" });
+      }
+    });
+    state.goals.forEach((g) => {
+      if ((g.name || "").toLowerCase().includes(q)) {
+        results.push({ type: "Goal", name: g.name, detail: fmtINRFull(g.currentAmount) + " / " + fmtINRFull(g.targetAmount), tab: "goals" });
+      }
+    });
+    state.subscriptions.forEach((s) => {
+      if ((s.name || "").toLowerCase().includes(q)) {
+        results.push({ type: "Subscription", name: s.name, detail: fmtINRFull(s.amount) + " / " + s.cycle, tab: "subs" });
+      }
+    });
+    return results.slice(0, 8);
+  }, [search, state]);
 
   if (!loaded) {
     return (
@@ -716,6 +783,36 @@ export default function FinanceDashboard() {
               Finance Dashboard
             </h1>
           </div>
+          {/* GLOBAL SEARCH */}
+          <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "8px 12px" }}>
+              <Search size={14} style={{ color: THEME.muted, flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search transactions, stocks, goals…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setShowSearch(true); }}
+                onFocus={() => setShowSearch(true)}
+                onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+                style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: THEME.ink, fontFamily: "inherit", width: "100%" }}
+              />
+              {search && <button onClick={() => setSearch("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 0, lineHeight: 1 }}><X size={13} /></button>}
+            </div>
+            {showSearch && searchResults.length > 0 && (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 8, marginTop: 4, zIndex: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+                {searchResults.map((r, i) => (
+                  <div key={i} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{r.name}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.accent }}>{r.detail}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {/* ── THEME TOGGLE ── */}
             <button
@@ -750,6 +847,9 @@ export default function FinanceDashboard() {
 
             <button onClick={exportJSON} style={btnGhost}>
               <Download size={14} /> Export
+            </button>
+            <button onClick={exportCSV} style={btnGhost} title="Export transactions as CSV">
+              <Download size={14} /> CSV
             </button>
             <label style={btnGhost}>
               <Upload size={14} /> Import
@@ -885,6 +985,20 @@ export default function FinanceDashboard() {
             state={state}
             addItem={addItem}
             removeItem={removeItem}
+            updateItem={updateItem}
+            metrics={metrics}
+          />
+        )}
+        {tab === "sip" && (
+          <SIPTrackerTab
+            state={state}
+            addItem={addItem}
+            removeItem={removeItem}
+          />
+        )}
+        {tab === "insurance" && (
+          <InsuranceSummaryTab
+            state={state}
             metrics={metrics}
           />
         )}
@@ -950,6 +1064,39 @@ export default function FinanceDashboard() {
       >
         Personal Finance Dashboard
       </footer>
+
+      {/* QUICK-ADD FAB */}
+      <button
+        onClick={() => setFabModal(true)}
+        title="Quick add transaction"
+        style={{
+          position: "fixed",
+          bottom: 32,
+          right: 32,
+          zIndex: 999,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          background: THEME.accent,
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+          color: "#fff",
+        }}
+      >
+        <Plus size={24} />
+      </button>
+
+      {fabModal && (
+        <QuickAddModal
+          onClose={() => setFabModal(false)}
+          onSave={(v) => { addItem("transactions", v); setFabModal(false); }}
+          bankAccounts={state.bankAccounts}
+        />
+      )}
     </div>
   );
 }
@@ -1183,6 +1330,158 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Unrealized returns</div>
         </div>
       </div>
+
+      {/* FINANCIAL HEALTH + CASH FLOW + UPCOMING DUES */}
+      {(() => {
+        // Financial Health Score calculation
+        let savingsScore = 0;
+        if (metrics.savingsRate >= 30) savingsScore = 25;
+        else if (metrics.savingsRate >= 20) savingsScore = 18;
+        else if (metrics.savingsRate >= 10) savingsScore = 10;
+        else savingsScore = 4;
+
+        let debtScore = 0;
+        if (metrics.debtToAssetRatio < 10) debtScore = 25;
+        else if (metrics.debtToAssetRatio < 25) debtScore = 18;
+        else if (metrics.debtToAssetRatio < 50) debtScore = 10;
+        else debtScore = 4;
+
+        const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+        let emergencyScore = 0;
+        if (emergencyMonths > 6) emergencyScore = 25;
+        else if (emergencyMonths >= 3) emergencyScore = 18;
+        else if (emergencyMonths >= 1) emergencyScore = 10;
+        else emergencyScore = 4;
+
+        let divScore = 0;
+        if (state.mutualFunds.length > 0) divScore += 6;
+        if (state.stocks.length > 0) divScore += 6;
+        if (state.fixedDeposits.length > 0) divScore += 6;
+        if (state.ppf.length > 0 || state.nps.length > 0) divScore += 7;
+
+        const totalScore = savingsScore + debtScore + emergencyScore + divScore;
+        const scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
+
+        // Upcoming dues within 30 days
+        const todayMs = new Date().getTime();
+        const plus30Ms = todayMs + 30 * 86400000;
+        const dues = [];
+        state.creditCards.forEach((c) => {
+          if (c.dueDate) {
+            const ms = new Date(c.dueDate).getTime();
+            const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+            if (daysLeft >= 0 && ms <= plus30Ms) {
+              dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: c.dueDate });
+            }
+          }
+        });
+        state.subscriptions.forEach((s) => {
+          if (s.renewalDate) {
+            const ms = new Date(s.renewalDate).getTime();
+            const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+            if (daysLeft >= 0 && ms <= plus30Ms) {
+              dues.push({ name: s.name + " Renewal", amount: Number(s.amount || 0), daysLeft, date: s.renewalDate });
+            }
+          }
+        });
+        dues.sort((a, b) => a.daysLeft - b.daysLeft);
+
+        const saved = metrics.monthIncome - metrics.monthExpense;
+        const expensePct = metrics.monthIncome > 0 ? (metrics.monthExpense / metrics.monthIncome) * 100 : 0;
+        const savedPct = metrics.monthIncome > 0 ? Math.max(0, (saved / metrics.monthIncome) * 100) : 0;
+
+        const subScores = [
+          { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100 },
+          { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100 },
+          { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100 },
+          { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100 },
+        ];
+
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 32 }}>
+            {/* Financial Health Score */}
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Financial Health Score</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, color: scoreColor, fontFamily: "'Inter', sans-serif" }}>{totalScore}</div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: scoreColor }}>{totalScore >= 75 ? "Excellent" : totalScore >= 50 ? "Good" : "Needs Work"}</div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>out of 100</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {subScores.map((s) => (
+                  <div key={s.label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: THEME.muted }}>{s.label}</span>
+                      <span style={{ fontWeight: 600 }}>{s.score}/{s.max}</span>
+                    </div>
+                    <div style={{ height: 5, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: s.pct + "%", background: scoreColor, borderRadius: 3, transition: "width 0.5s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Cash Flow Summary */}
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>This Month's Cash Flow</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Income</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: THEME.sage }}>{fmtINR(metrics.monthIncome)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Expenses</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: THEME.rust }}>{fmtINR(metrics.monthExpense)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Saved</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: saved >= 0 ? THEME.accent : THEME.rust }}>{fmtINR(Math.abs(saved))}</div>
+                </div>
+              </div>
+              {metrics.monthIncome > 0 ? (
+                <div>
+                  <div style={{ height: 20, background: THEME.line, borderRadius: 10, overflow: "hidden", display: "flex" }}>
+                    <div style={{ height: "100%", width: Math.min(expensePct, 100) + "%", background: THEME.rust, transition: "width 0.5s" }} />
+                    <div style={{ height: "100%", width: Math.min(savedPct, 100 - Math.min(expensePct, 100)) + "%", background: THEME.sage, transition: "width 0.5s" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                    <span style={{ color: THEME.rust }}>{expensePct.toFixed(1)}% spent</span>
+                    <span style={{ color: THEME.sage }}>{savedPct.toFixed(1)}% saved</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: THEME.muted, textAlign: "center", padding: "20px 0" }}>No income recorded this month</div>
+              )}
+            </div>
+
+            {/* Upcoming Dues */}
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Upcoming Dues (30 days)</div>
+              {dues.length === 0 ? (
+                <div style={{ fontSize: 13, color: THEME.muted, textAlign: "center", padding: "24px 0" }}>No dues in the next 30 days</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {dues.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: d.daysLeft <= 5 ? "rgba(217,48,37,0.06)" : "rgba(128,128,128,0.04)", borderLeft: `3px solid ${d.daysLeft <= 5 ? THEME.rust : d.daysLeft <= 10 ? THEME.gold : THEME.line}` }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{fmtINR(d.amount)}</div>
+                        <div style={{ fontSize: 11, color: d.daysLeft <= 5 ? THEME.rust : THEME.muted }}>{d.daysLeft === 0 ? "Today" : d.daysLeft + "d"}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ALLOCATION + TREND */}
       <div
@@ -4470,9 +4769,10 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
 }
 
 // ================== SUBSCRIPTIONS TAB ==================
-function SubsTab({ state, addItem, removeItem, metrics }) {
+function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
   const annual = metrics.subTotal * 12;
+  const activeSubs = state.subscriptions.filter(s => !s.paused).length;
 
   return (
     <div>
@@ -4490,7 +4790,7 @@ function SubsTab({ state, addItem, removeItem, metrics }) {
         <Tile
           icon={Repeat}
           label="Active Subs"
-          value={state.subscriptions.length}
+          value={activeSubs}
         />
         <Tile
           icon={Calendar}
@@ -4543,9 +4843,12 @@ function SubsTab({ state, addItem, removeItem, metrics }) {
                 return (
                   <tr
                     key={s.id}
-                    style={{ borderBottom: `1px dashed ${THEME.line}` }}
+                    style={{ borderBottom: `1px dashed ${THEME.line}`, opacity: s.paused ? 0.5 : 1 }}
                   >
-                    <td style={{ ...td, fontWeight: 600 }}>{s.name}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>
+                      {s.name}
+                      {s.paused && <span style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px", background: THEME.muted, color: THEME.paper, borderRadius: 4, letterSpacing: "0.1em" }}>PAUSED</span>}
+                    </td>
                     <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
                       {s.category}
                     </td>
@@ -4572,7 +4875,14 @@ function SubsTab({ state, addItem, removeItem, metrics }) {
                     >
                       {fmtINRFull(monthly)}
                     </td>
-                    <td style={td}>
+                    <td style={{ ...td, display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() => updateItem("subscriptions", s.id, { paused: !s.paused })}
+                        style={{ ...iconBtn, color: s.paused ? THEME.sage : THEME.gold }}
+                        title={s.paused ? "Resume" : "Pause"}
+                      >
+                        {s.paused ? <Play size={13} /> : <Pause size={13} />}
+                      </button>
                       <button
                         onClick={() => removeItem("subscriptions", s.id)}
                         style={iconBtn}
@@ -4794,24 +5104,46 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
                     </div>
                   </div>
                 </div>
-                <div
-                  style={{
-                    height: 8,
-                    background: THEME.line,
-                    marginTop: 16,
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: `${Math.min(progress, 100)}%`,
-                      background: `linear-gradient(90deg, ${THEME.gold} 0%, ${THEME.accent} 100%)`,
-                      transition: "width 0.5s",
-                    }}
-                  />
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16 }}>
+                  {/* Circular SVG ring */}
+                  {(() => {
+                    const ringColor = progress >= 100 ? THEME.sage : progress >= 50 ? THEME.gold : THEME.accent;
+                    const r = 24;
+                    const circ = 2 * Math.PI * r;
+                    const dashArr = circ;
+                    const dashOff = circ * (1 - Math.min(progress, 100) / 100);
+                    return (
+                      <svg width="60" height="60" style={{ flexShrink: 0 }}>
+                        <circle cx="30" cy="30" r={r} fill="none" stroke={THEME.line} strokeWidth="5" />
+                        <circle cx="30" cy="30" r={r} fill="none" stroke={ringColor} strokeWidth="5"
+                          strokeDasharray={dashArr} strokeDashoffset={dashOff}
+                          strokeLinecap="round"
+                          style={{ transformOrigin: "30px 30px", transform: "rotate(-90deg)", transition: "stroke-dashoffset 0.5s" }}
+                        />
+                        <text x="30" y="35" textAnchor="middle" fontSize="11" fontWeight="700" fill={ringColor}>{Math.min(Math.round(progress), 100)}%</text>
+                      </svg>
+                    );
+                  })()}
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        height: 8,
+                        background: THEME.line,
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          width: `${Math.min(progress, 100)}%`,
+                          background: `linear-gradient(90deg, ${THEME.gold} 0%, ${THEME.accent} 100%)`,
+                          transition: "width 0.5s",
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
                 {monthlyNeeded > 0 && (
                   <div
@@ -5146,6 +5478,45 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           </div>
         </div>
       </div>
+
+      {/* 80C Deductions Tracker */}
+      {(() => {
+        const ppf80C = state.ppf.reduce((s, p) => s + Number(p.thisYearContribution || 0), 0);
+        const nps80C = state.nps.reduce((s, n) => s + Number(n.thisYearContribution || 0), 0);
+        const elss80C = state.mutualFunds.filter((m) => m.type === "ELSS").reduce((s, m) => s + Number(m.invested || 0), 0);
+        const total80C = ppf80C + nps80C + elss80C;
+        const limit80C = 150000;
+        const pct80C = Math.min((total80C / limit80C) * 100, 100);
+        const remaining80C = Math.max(0, limit80C - total80C);
+        return (
+          <div style={{ ...card, marginBottom: 24 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>80C Deductions Tracker</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
+              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: THEME.muted }}>PPF Contribution</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(ppf80C)}</div>
+              </div>
+              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: THEME.muted }}>NPS Contribution</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(nps80C)}</div>
+              </div>
+              <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: THEME.muted }}>ELSS Invested</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{fmtINRFull(elss80C)}</div>
+              </div>
+            </div>
+            <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ height: "100%", width: pct80C + "%", background: pct80C >= 100 ? THEME.sage : THEME.accent, borderRadius: 5, transition: "width 0.5s" }} />
+            </div>
+            <div style={{ fontSize: 13, color: THEME.ink }}>
+              <b>{fmtINRFull(total80C)}</b> used of <b>₹1.5L</b> 80C limit.{" "}
+              <span style={{ color: remaining80C === 0 ? THEME.sage : THEME.gold }}>
+                {remaining80C === 0 ? "Fully utilized!" : `${fmtINRFull(remaining80C)} remaining.`}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Advance tax schedule */}
       <div style={{ ...card, marginBottom: 24 }}>
@@ -5687,8 +6058,19 @@ function BudgetTab({ state, addItem, removeItem, metrics }) {
   const totalBudget = state.budgets.reduce((s, b) => s + Number(b.monthly || 0), 0);
   const totalSpent = state.budgets.reduce((s, b) => s + (monthSpending[b.category] || 0), 0);
 
+  const overBudgetCount = state.budgets.filter((b) => {
+    const spent = monthSpending[b.category] || 0;
+    return spent > Number(b.monthly || 0);
+  }).length;
+
   return (
     <div>
+      {overBudgetCount > 0 && (
+        <div style={{ background: "rgba(217,48,37,0.08)", border: `1px solid ${THEME.rust}`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, color: THEME.rust }}>
+          <AlertCircle size={16} />
+          <span style={{ fontWeight: 600, fontSize: 14 }}>⚠ {overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget this month</span>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <SectionTitle sub="Set monthly limits per category and track real spending">
           Budget Planner
@@ -5937,6 +6319,13 @@ function ReminderModal({ onClose, onSave }) {
 
 // ================== ANALYTICS TAB ==================
 function AnalyticsTab({ metrics, state, trendData }) {
+  const netWorthTrend = useMemo(() => {
+    return trendData.map((t, i) => ({
+      month: t.month,
+      value: metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.85,
+    }));
+  }, [trendData, metrics]);
+
   const savingsData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 6 }, (_, i) => {
@@ -5979,6 +6368,26 @@ function AnalyticsTab({ metrics, state, trendData }) {
       <SectionTitle sub="Deeper insights into your spending patterns and financial health">
         Analytics
       </SectionTitle>
+
+      {/* Net Worth Timeline */}
+      <div style={{ ...card, marginBottom: 32 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Net Worth Timeline — Trailing 12 Months</div>
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={netWorthTrend}>
+            <defs>
+              <linearGradient id="gNwAnalytics" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={THEME.accent} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+            <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+            <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+            <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+            <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNwAnalytics)" name="Net Worth" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
         <Tile icon={TrendingUp} label="Avg Monthly Income" value={fmtINRFull(avgIncome)} />
@@ -6058,6 +6467,276 @@ function AnalyticsTab({ metrics, state, trendData }) {
         ) : <EmptyHint text="No expense data for this month" />}
       </div>
     </div>
+  );
+}
+
+// ================== SIP TRACKER TAB ==================
+function SIPTrackerTab({ state, addItem, removeItem }) {
+  const [show, setShow] = useState(false);
+  const todayStr = today();
+
+  const sipsWithCalc = useMemo(() => {
+    return (state.sips || []).map((sip) => {
+      const paid = Math.min(
+        Math.max(0, monthsBetween(sip.startDate, todayStr)),
+        Number(sip.totalInstallments || 0)
+      );
+      const totalInvested = paid * Number(sip.amount || 0);
+      return { ...sip, paid, totalInvested };
+    });
+  }, [state.sips, todayStr]);
+
+  const totalMonthly = sipsWithCalc.reduce((s, sip) => s + Number(sip.amount || 0), 0);
+  const totalInvested = sipsWithCalc.reduce((s, sip) => s + sip.totalInvested, 0);
+
+  return (
+    <div>
+      <SectionTitle sub="Track your systematic investment plans across mutual funds">
+        SIP Tracker
+      </SectionTitle>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+        <Tile icon={Activity} label="Monthly SIP" value={fmtINRFull(totalMonthly)} />
+        <Tile icon={TrendingUp} label="Total Invested" value={fmtINRFull(totalInvested)} />
+        <Tile icon={Repeat} label="Active SIPs" value={sipsWithCalc.length} />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <button style={btnSolid} onClick={() => setShow(true)}>
+          <Plus size={14} /> Add SIP
+        </button>
+      </div>
+
+      {sipsWithCalc.length === 0 ? (
+        <div style={card}><EmptyHint text="Add your SIPs to track investments" /></div>
+      ) : (
+        <div style={card}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <th style={th}>Scheme</th>
+                <th style={th}>Type</th>
+                <th style={{ ...th, textAlign: "right" }}>Amount/mo</th>
+                <th style={th}>Started</th>
+                <th style={{ ...th, textAlign: "right" }}>Installments Paid</th>
+                <th style={{ ...th, textAlign: "right" }}>Total Invested</th>
+                <th style={th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sipsWithCalc.map((sip) => (
+                <tr key={sip.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                  <td style={{ ...td, fontWeight: 600 }}>{sip.scheme}</td>
+                  <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{sip.fundType}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(sip.amount)}</td>
+                  <td style={td}>{sip.startDate}</td>
+                  <td style={{ ...td, textAlign: "right" }}>{sip.paid} / {sip.totalInstallments}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtINRFull(sip.totalInvested)}</td>
+                  <td style={td}>
+                    <button onClick={() => removeItem("sips", sip.id)} style={iconBtn}><Trash2 size={13} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {show && (
+        <SIPModal
+          onClose={() => setShow(false)}
+          onSave={(v) => { addItem("sips", v); setShow(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SIPModal({ onClose, onSave }) {
+  const [f, setF] = useState({ scheme: "", fundType: "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
+  return (
+    <Modal title="Add SIP" onClose={onClose}>
+      <Field label="Scheme Name">
+        <input style={input} value={f.scheme} onChange={(e) => setF({ ...f, scheme: e.target.value })} placeholder="e.g. Parag Parikh Flexi Cap" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Fund Type">
+          <select style={input} value={f.fundType} onChange={(e) => setF({ ...f, fundType: e.target.value })}>
+            <option>Equity</option>
+            <option>Index</option>
+            <option>Hybrid</option>
+            <option>Debt</option>
+            <option>ELSS</option>
+          </select>
+        </Field>
+        <Field label="Frequency">
+          <select style={input} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value })}>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        <Field label="Amount (₹)">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+        </Field>
+        <Field label="Start Date">
+          <input style={input} type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} />
+        </Field>
+        <Field label="Total Installments">
+          <input style={input} type="number" value={f.totalInstallments} onChange={(e) => setF({ ...f, totalInstallments: e.target.value })} />
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.scheme && f.amount && onSave(f)} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== INSURANCE SUMMARY TAB ==================
+function InsuranceSummaryTab({ state, metrics }) {
+  const totalLICAssured = state.lic.reduce((s, l) => s + Number(l.sumAssured || 0), 0);
+  const totalTermCover = state.termPlans.reduce((s, t) => s + Number(t.coverAmount || 0), 0);
+  const licAnnualPremium = state.lic.reduce((s, l) => s + Number(l.annualPremium || 0), 0);
+  const termAnnualPremium = state.termPlans.reduce((s, t) => s + Number(t.annualPremium || 0), 0);
+  const totalAnnualPremium = licAnnualPremium + termAnnualPremium;
+  const annualIncome = state.income.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const coverageGap = totalTermCover < annualIncome * 10;
+
+  return (
+    <div>
+      <SectionTitle sub="Life Insurance, LIC policies and term plan coverage at a glance">
+        Insurance Summary
+      </SectionTitle>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+        <Tile icon={Shield} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} />
+        <Tile icon={Heart} label="Total Term Cover" value={fmtINRFull(totalTermCover)} />
+        <Tile icon={Wallet} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} />
+      </div>
+
+      {coverageGap && annualIncome > 0 && (
+        <div style={{ ...card, marginBottom: 24, background: "rgba(217,48,37,0.06)", borderLeft: `4px solid ${THEME.rust}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AlertCircle size={18} style={{ color: THEME.rust, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 700, color: THEME.rust }}>Coverage Gap Detected</div>
+              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+                Your term cover ({fmtINRFull(totalTermCover)}) is below the recommended 10× annual income ({fmtINRFull(annualIncome * 10)}). Consider increasing your term insurance.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIC Policies */}
+      <div style={{ ...card, marginBottom: 24 }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Life Insurance (LIC)</div>
+        {state.lic.length === 0 ? (
+          <EmptyHint text="No LIC policies added" />
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <th style={th}>Policy No</th>
+                <th style={th}>Plan Name</th>
+                <th style={{ ...th, textAlign: "right" }}>Sum Assured</th>
+                <th style={{ ...th, textAlign: "right" }}>Annual Premium</th>
+                <th style={th}>Maturity Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.lic.map((l) => (
+                <tr key={l.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                  <td style={td}>****{String(l.policyNumber || "").slice(-4)}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{l.planName}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(l.sumAssured)}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(l.annualPremium)}</td>
+                  <td style={td}>{l.maturityDate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Term Plans */}
+      <div style={card}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Term Plans</div>
+        {state.termPlans.length === 0 ? (
+          <EmptyHint text="No term plans added" />
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <th style={th}>Insurer</th>
+                <th style={th}>Plan Name</th>
+                <th style={{ ...th, textAlign: "right" }}>Cover Amount</th>
+                <th style={{ ...th, textAlign: "right" }}>Annual Premium</th>
+                <th style={th}>Expiry Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.termPlans.map((t) => (
+                <tr key={t.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                  <td style={td}>{t.insurer}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{t.planName}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(t.coverAmount)}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(t.annualPremium)}</td>
+                  <td style={td}>{t.expiryDate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ================== QUICK ADD MODAL ==================
+function QuickAddModal({ onClose, onSave, bankAccounts }) {
+  const [f, setF] = useState({
+    date: today(),
+    type: "debit",
+    amount: "",
+    category: "Food",
+    note: "",
+    accountId: bankAccounts[0]?.id || "",
+  });
+  const categories = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
+  return (
+    <Modal title="Quick Add Transaction" onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+        <Field label="Type">
+          <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+            <option value="debit">Debit (Expense)</option>
+            <option value="credit">Credit (Income)</option>
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Amount (₹)">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="0" />
+        </Field>
+        <Field label="Category">
+          <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+            {categories.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Account">
+        <select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>
+          {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.bankName}</option>)}
+        </select>
+      </Field>
+      <Field label="Note">
+        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Optional note" />
+      </Field>
+      <ModalActions onSave={() => f.amount && onSave(f)} onClose={onClose} />
+    </Modal>
   );
 }
 
