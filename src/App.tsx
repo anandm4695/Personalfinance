@@ -391,9 +391,6 @@ export default function FinanceDashboard() {
   const [sidebarNav, setSidebarNav] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-sidebar") === "true"; } catch { return false; }
   });
-  const [headerGradient, setHeaderGradient] = useState<boolean>(() => {
-    try { return localStorage.getItem("finance-hgrad") !== "false"; } catch { return true; }
-  });
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
@@ -426,9 +423,8 @@ export default function FinanceDashboard() {
       localStorage.setItem("finance-accent", accentKey);
       localStorage.setItem("finance-density", density);
       localStorage.setItem("finance-sidebar", String(sidebarNav));
-      localStorage.setItem("finance-hgrad", String(headerGradient));
     } catch {}
-  }, [darkMode, accentKey, density, sidebarNav, headerGradient]);
+  }, [darkMode, accentKey, density, sidebarNav]);
 
   // Inject Google Fonts once
   useEffect(() => {
@@ -971,10 +967,9 @@ export default function FinanceDashboard() {
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* HEADER */}
         <header
-          className={headerGradient ? "animated-header-bg" : ""}
           style={{
             borderBottom: `1px solid ${THEME.line}`,
-            background: headerGradient ? "transparent" : THEME.darkInk,
+            background: THEME.darkInk,
             position: "sticky",
             top: 0,
             zIndex: 40,
@@ -1069,7 +1064,7 @@ export default function FinanceDashboard() {
 
           {/* TOP TAB NAV (only if not sidebar) */}
           {!sidebarNav && (
-            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}` }} className="no-scrollbar">
+            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }} className="no-scrollbar">
               {tabs.map((t) => {
                 const Icon = t.icon;
                 const active = tab === t.id;
@@ -1110,7 +1105,7 @@ export default function FinanceDashboard() {
               { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
             ];
             return (
-              <div style={{ borderTop: `1px solid ${THEME.line}`, background: "rgba(0,0,0,0.03)" }}>
+              <div style={{ borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }}>
                 <div style={{ maxWidth: 1400, margin: "0 auto", padding: "8px 32px", display: "flex", gap: 32, alignItems: "center" }}>
                   {items.map(({ label, value, color }) => (
                     <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1156,7 +1151,6 @@ export default function FinanceDashboard() {
               accentKey={accentKey} setAccentKey={setAccentKey}
               density={density} setDensity={setDensity}
               sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
-              headerGradient={headerGradient} setHeaderGradient={setHeaderGradient}
             />
           )}
         </main>
@@ -7559,8 +7553,7 @@ function SettingsTab({
   state, setState, exportJSON, resetAll,
   accentKey, setAccentKey,
   density, setDensity,
-  sidebarNav, setSidebarNav,
-  headerGradient, setHeaderGradient
+  sidebarNav, setSidebarNav
 }) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
@@ -7636,10 +7629,7 @@ function SettingsTab({
           </div>
 
           <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 14 }}>
-              <input type="checkbox" checked={headerGradient} onChange={(e) => setHeaderGradient(e.target.checked)} style={{ width: 18, height: 18 }} />
-              Animated Header Gradient
-            </label>
+            {/* NO GRADIENT OPTIONS */}
           </div>
         </div>
 

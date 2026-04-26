@@ -30,24 +30,6 @@ button, a, input, select, textarea {
               color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
-/* Header Gradient Animation */
-@keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animated-header-bg {
-  background: linear-gradient(-45deg, 
-    color-mix(in srgb, var(--t-accent) 15%, transparent), 
-    color-mix(in srgb, var(--t-paper) 20%, transparent),
-    color-mix(in srgb, var(--t-gold) 10%, transparent),
-    color-mix(in srgb, var(--t-accent) 15%, transparent)
-  ) !important;
-  background-size: 400% 400% !important;
-  animation: gradientBG 15s ease infinite !important;
-}
-
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
