@@ -1,1 +1,7 @@
 node_modules
+build
+.DS_Store
+.eslintcache
+*.tsbuildinfo
+.tempmediaStorage
+.system_generated

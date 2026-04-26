@@ -16,6 +16,7 @@
 body {
   margin: 0;
   transition: background 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
 }
 
 /* Smooth transitions for theme switch */
@@ -29,8 +30,31 @@ button, a, input, select, textarea {
               color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
-.App {
-  font-family: sans-serif;
+/* Header Gradient Animation */
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-header-bg {
+  background: linear-gradient(-45deg, 
+    color-mix(in srgb, var(--t-accent) 15%, transparent), 
+    color-mix(in srgb, var(--t-paper) 20%, transparent),
+    color-mix(in srgb, var(--t-gold) 10%, transparent),
+    color-mix(in srgb, var(--t-accent) 15%, transparent)
+  ) !important;
+  background-size: 400% 400% !important;
+  animation: gradientBG 15s ease infinite !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @media print {
@@ -40,4 +64,3 @@ button, a, input, select, textarea {
   * { box-shadow: none !important; border-radius: 0 !important; }
   @page { margin: 15mm; }
 }
-

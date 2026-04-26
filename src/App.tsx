@@ -85,6 +85,25 @@ const THEME = {
   darkInk: "var(--t-darkInk)",
 };
 
+// ── ACCENT COLOUR PALETTES ──────────────────────────────────────────────────
+const ACCENT_PALETTES = {
+  blue:    { light: "#1A73E8", dark: "#6BA8FF", label: "Ocean Blue",    dot: "#1A73E8" },
+  purple:  { light: "#7B2FF7", dark: "#B07CFF", label: "Violet",        dot: "#7B2FF7" },
+  emerald: { light: "#059669", dark: "#34D399", label: "Emerald",       dot: "#059669" },
+  amber:   { light: "#D97706", dark: "#FBBF24", label: "Amber",         dot: "#D97706" },
+  rose:    { light: "#E11D48", dark: "#FB7185", label: "Rose",          dot: "#E11D48" },
+  indigo:  { light: "#4F46E5", dark: "#818CF8", label: "Indigo",        dot: "#4F46E5" },
+};
+type AccentKey = keyof typeof ACCENT_PALETTES;
+
+// ── DENSITY PRESETS ─────────────────────────────────────────────────────────
+const DENSITY = {
+  compact:      { cardPad: 16, gap: 12, fontSize: 13, sectionGap: 20 },
+  normal:       { cardPad: 24, gap: 16, fontSize: 14, sectionGap: 32 },
+  comfortable:  { cardPad: 32, gap: 24, fontSize: 15, sectionGap: 40 },
+};
+type DensityKey = keyof typeof DENSITY;
+
 const LIGHT_VARS: Record<string, string> = {
   "--t-ink":     "#202124",
   "--t-paper":   "#F8F9FA",
@@ -363,20 +382,53 @@ export default function FinanceDashboard() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
   });
+  const [accentKey, setAccentKey] = useState<AccentKey>(() => {
+    try { return (localStorage.getItem("finance-accent") as AccentKey) || "blue"; } catch { return "blue"; }
+  });
+  const [density, setDensity] = useState<DensityKey>(() => {
+    try { return (localStorage.getItem("finance-density") as DensityKey) || "normal"; } catch { return "normal"; }
+  });
+  const [sidebarNav, setSidebarNav] = useState<boolean>(() => {
+    try { return localStorage.getItem("finance-sidebar") === "true"; } catch { return false; }
+  });
+  const [headerGradient, setHeaderGradient] = useState<boolean>(() => {
+    try { return localStorage.getItem("finance-hgrad") !== "false"; } catch { return true; }
+  });
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
 
-  // Apply theme CSS vars whenever darkMode changes
+  // Apply theme CSS vars whenever darkMode, accentKey, or other UI settings change
   useEffect(() => {
     const vars = darkMode ? DARK_VARS : LIGHT_VARS;
-    Object.entries(vars).forEach(([k, v]) =>
+    const palette = ACCENT_PALETTES[accentKey] || ACCENT_PALETTES.blue;
+    const d = DENSITY[density] || DENSITY.normal;
+    
+    const merged = { 
+      ...vars, 
+      "--t-accent": darkMode ? palette.dark : palette.light,
+      "--card-pad": `${d.cardPad}px`,
+      "--app-font-size": `${d.fontSize}px`,
+      "--section-gap": `${d.sectionGap}px`,
+      "--t-card-bg": vars["--t-darkInk"],
+      "--t-card-shadow": darkMode ? "0 10px 40px rgba(0,0,0,0.3)" : "0 10px 30px rgba(0,0,0,0.04)",
+      "--t-card-blur": "none",
+      "--t-card-border": `1px solid ${vars["--t-line"]}`,
+    };
+
+    Object.entries(merged).forEach(([k, v]) =>
       document.documentElement.style.setProperty(k, v)
     );
-    try { localStorage.setItem("finance-theme", darkMode ? "dark" : "light"); } catch {}
-  }, [darkMode]);
+    try {
+      localStorage.setItem("finance-theme", darkMode ? "dark" : "light");
+      localStorage.setItem("finance-accent", accentKey);
+      localStorage.setItem("finance-density", density);
+      localStorage.setItem("finance-sidebar", String(sidebarNav));
+      localStorage.setItem("finance-hgrad", String(headerGradient));
+    } catch {}
+  }, [darkMode, accentKey, density, sidebarNav, headerGradient]);
 
   // Inject Google Fonts once
   useEffect(() => {
@@ -832,23 +884,7 @@ export default function FinanceDashboard() {
     return results.slice(0, 8);
   }, [search, state]);
 
-  if (!loaded) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: THEME.paper,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "'Inter', sans-serif",
-          color: THEME.ink,
-        }}
-      >
-        Loading...
-      </div>
-    );
-  }
+  const d = DENSITY[density] || DENSITY.normal;
 
   return (
     <div
@@ -858,449 +894,295 @@ export default function FinanceDashboard() {
         fontFamily: "'Inter', sans-serif",
         color: THEME.ink,
         position: "relative",
+        display: sidebarNav ? "flex" : "block",
+        fontSize: d.fontSize,
       }}
     >
-
-      {/* HEADER */}
-      <header
-        style={{
-          borderBottom: `1px solid ${THEME.line}`,
-          background: THEME.darkInk,
-          position: "sticky",
-          top: 0,
-          zIndex: 40,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        }}
-      >
-        <div
+      {/* ── SIDEBAR NAVIGATION ── */}
+      {sidebarNav && (
+        <aside
           style={{
-            maxWidth: 1400,
-            margin: "0 auto",
-            padding: "20px 32px",
+            width: 280,
+            background: THEME.darkInk,
+            borderRight: `1px solid ${THEME.line}`,
+            position: "sticky",
+            top: 0,
+            height: "100vh",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 16,
+            flexDirection: "column",
+            zIndex: 100,
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.3em",
-                color: THEME.muted,
-                textTransform: "uppercase",
-                marginBottom: 4,
-              }}
-            >
-              Personal Finance · FY {state.profile.fy}
+          <div style={{ padding: "32px 24px" }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.3em", color: THEME.muted, textTransform: "uppercase", marginBottom: 8 }}>
+              Personal Finance
             </div>
-            <h1
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 28,
-                fontWeight: 700,
-                margin: 0,
-                letterSpacing: "-0.02em",
-                color: THEME.ink,
-                lineHeight: 1,
-              }}
-            >
-              Finance Dashboard
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+              Dashboard
             </h1>
           </div>
-          {/* GLOBAL SEARCH */}
-          <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "8px 12px" }}>
-              <Search size={14} style={{ color: THEME.muted, flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="Search transactions, stocks, goals…"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowSearch(true); }}
-                onFocus={() => setShowSearch(true)}
-                onBlur={() => setTimeout(() => setShowSearch(false), 200)}
-                style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: THEME.ink, fontFamily: "inherit", width: "100%" }}
-              />
-              {search && <button onClick={() => setSearch("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 0, lineHeight: 1 }}><X size={13} /></button>}
-            </div>
-            {showSearch && searchResults.length > 0 && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 8, marginTop: 4, zIndex: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
-                {searchResults.map((r, i) => (
-                  <div key={i} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{r.name}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.accent }}>{r.detail}</div>
-                  </div>
-                ))}
+
+          <nav style={{ flex: 1, overflowY: "auto", padding: "0 16px" }} className="no-scrollbar">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 4,
+                    color: active ? THEME.accent : THEME.muted,
+                    fontWeight: active ? 700 : 500,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <Icon size={18} />
+                  <span style={{ fontSize: 14 }}>{t.label}</span>
+                  {active && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: THEME.accent }} />}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div style={{ padding: 24, borderTop: `1px solid ${THEME.line}` }}>
+             <button
+              onClick={() => setDarkMode(!darkMode)}
+              style={{ ...btnGhost, width: "100%", justifyContent: "center" }}
+            >
+              {darkMode ? <Sun size={14} /> : <Moon size={14} />}
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+          </div>
+        </aside>
+      )}
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* HEADER */}
+        <header
+          className={headerGradient ? "animated-header-bg" : ""}
+          style={{
+            borderBottom: `1px solid ${THEME.line}`,
+            background: headerGradient ? "transparent" : THEME.darkInk,
+            position: "sticky",
+            top: 0,
+            zIndex: 40,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1400,
+              margin: "0 auto",
+              padding: sidebarNav ? "16px 32px" : "20px 32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+            }}
+          >
+            {!sidebarNav && (
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: "0.3em", color: THEME.muted, textTransform: "uppercase", marginBottom: 4 }}>
+                  Personal Finance · FY {state.profile.fy}
+                </div>
+                <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: THEME.ink, lineHeight: 1 }}>
+                  Finance Dashboard
+                </h1>
               </div>
             )}
-          </div>
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {/* ── ALERT BELL ── */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowAlerts((v) => !v)}
-                style={{ ...btnGhost, position: "relative", padding: "7px 10px" }}
-                title="Alerts"
-              >
-                <Bell size={15} />
-                {alerts.length > 0 && (
-                  <span style={{
-                    position: "absolute", top: 2, right: 2,
-                    background: alerts.some((a) => a.level === "error") ? THEME.rust : THEME.gold,
-                    color: "#fff", borderRadius: "50%", width: 16, height: 16,
-                    fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
-                    lineHeight: 1,
-                  }}>{alerts.length}</span>
-                )}
-              </button>
-              {showAlerts && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 8px)", right: 0,
-                  width: 340, background: THEME.paper, border: `1px solid ${THEME.line}`,
-                  borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
-                  zIndex: 300, overflow: "hidden",
-                }}>
-                  <div style={{ padding: "12px 16px", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>Alerts & Reminders</span>
-                    <button onClick={() => setShowAlerts(false)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 0, lineHeight: 1 }}><X size={14} /></button>
+            {sidebarNav && (
+               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--t-accent) 10%, transparent)", borderRadius: 8, color: THEME.accent, fontWeight: 700, fontSize: 13 }}>
+                    {tabs.find(t => t.id === tab)?.label}
                   </div>
-                  {alerts.length === 0 ? (
-                    <div style={{ padding: "20px 16px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>All clear — no alerts 🎉</div>
-                  ) : (
-                    <div style={{ maxHeight: 380, overflowY: "auto" }}>
-                      {alerts.map((a, i) => {
-                        const col = a.level === "error" ? THEME.rust : a.level === "warn" ? THEME.gold : THEME.accent;
-                        return (
-                          <div key={i} onClick={() => { setTab(a.tab); setShowAlerts(false); }}
-                            style={{ padding: "12px 16px", borderBottom: `1px solid ${THEME.line}`, cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: col, marginTop: 4, flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{a.title}</div>
-                              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{a.detail}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
+               </div>
+            )}
+
+            {/* GLOBAL SEARCH */}
+            <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
+                <Search size={14} style={{ color: THEME.muted, flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search everything..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setShowSearch(true); }}
+                  onFocus={() => setShowSearch(true)}
+                  onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+                  style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: THEME.ink, fontFamily: "inherit", width: "100%" }}
+                />
+              </div>
+              {showSearch && searchResults.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 12, marginTop: 8, zIndex: 200, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                  {searchResults.map((r, i) => (
+                    <div key={i} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "12px 16px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{r.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.accent }}>{r.detail}</div>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
-            {/* ── THEME TOGGLE ── */}
-            <button
-              id="theme-toggle-btn"
-              onClick={() => setDarkMode((d) => !d)}
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              style={{
-                background: darkMode
-                  ? "linear-gradient(135deg,#2d2d3f,#1e1e2e)"
-                  : "linear-gradient(135deg,#e8f0fe,#d2e3fc)",
-                border: `1.5px solid ${darkMode ? "#6BA8FF" : "#1A73E8"}`,
-                borderRadius: 10,
-                cursor: "pointer",
-                padding: "7px 14px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: "'Inter', sans-serif",
-                color: darkMode ? "#6BA8FF" : "#1A73E8",
-                boxShadow: darkMode
-                  ? "0 2px 8px rgba(107,168,255,0.25)"
-                  : "0 2px 8px rgba(26,115,232,0.18)",
-                letterSpacing: "0.01em",
-                transition: "all 0.25s ease",
-              }}
-            >
-              {darkMode ? <Sun size={15} /> : <Moon size={15} />}
-              {darkMode ? "Light" : "Dark"}
-            </button>
 
-            <button onClick={exportJSON} style={btnGhost}>
-              <Download size={14} /> Export
-            </button>
-            <button onClick={exportCSV} style={btnGhost} title="Export transactions as CSV">
-              <Download size={14} /> CSV
-            </button>
-            <label style={btnGhost}>
-              <Upload size={14} /> Import
-              <input
-                type="file"
-                accept=".json"
-                onChange={importJSON}
-                style={{ display: "none" }}
-              />
-            </label>
-            <button
-              onClick={() => window.print()}
-              style={btnGhost}
-              title="Print / Save as PDF"
-            >
-              <Printer size={14} /> Print
-            </button>
-            <button
-              onClick={copySummary}
-              style={btnGhost}
-              title="Copy summary to clipboard"
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "Copied!" : "Copy"}
-            </button>
-            <button
-              onClick={() => setTab("settings")}
-              style={btnGhost}
-              title="Settings"
-            >
-              <Settings size={14} />
-            </button>
-            <button
-              onClick={resetAll}
-              style={{
-                ...btnGhost,
-                color: THEME.accent,
-                borderColor: THEME.accent,
-              }}
-            >
-              <Trash2 size={14} /> Reset
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button onClick={() => setShowAlerts((v) => !v)} style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}>
+                <Bell size={16} />
+                {alerts.length > 0 && (
+                  <span style={{ position: "absolute", top: -4, right: -4, background: THEME.rust, color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${THEME.darkInk}` }}>
+                    {alerts.length}
+                  </span>
+                )}
+              </button>
+              
+              {!sidebarNav && (
+                <button onClick={() => setDarkMode(!darkMode)} style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}>
+                  {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+                </button>
+              )}
+
+              <button onClick={exportJSON} style={{ ...btnGhost, display: window.innerWidth < 1000 ? "none" : "flex" }}>
+                <Download size={14} /> Export
+              </button>
+              
+              <button onClick={() => setTab("settings")} style={{ ...btnGhost, background: tab === "settings" ? THEME.accent : "transparent", color: tab === "settings" ? "#fff" : THEME.ink, borderColor: tab === "settings" ? THEME.accent : THEME.line }}>
+                <Settings size={14} />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* TAB NAV */}
-        <nav
+          {/* TOP TAB NAV (only if not sidebar) */}
+          {!sidebarNav && (
+            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}` }} className="no-scrollbar">
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                const active = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "16px 20px",
+                      fontFamily: "inherit",
+                      fontSize: 14,
+                      color: active ? THEME.accent : THEME.muted,
+                      borderBottom: `3px solid ${active ? THEME.accent : "transparent"}`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      whiteSpace: "nowrap",
+                      fontWeight: active ? 700 : 500,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <Icon size={14} /> {t.label}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Quick Stats Bar */}
+          {(() => {
+            const saved = metrics.monthIncome - metrics.monthExpense;
+            const items = [
+              { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
+              { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
+              { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+            ];
+            return (
+              <div style={{ borderTop: `1px solid ${THEME.line}`, background: "rgba(0,0,0,0.03)" }}>
+                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "8px 32px", display: "flex", gap: 32, alignItems: "center" }}>
+                  {items.map(({ label, value, color }) => (
+                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </header>
+
+        <main
           style={{
-            maxWidth: 1400,
-            margin: "0 auto",
-            padding: "0 32px",
-            display: "flex",
-            gap: 0,
-            overflowX: "auto",
-            borderTop: `1px solid ${THEME.line}`,
+            maxWidth: sidebarNav ? 1200 : 1400,
+            margin: sidebarNav ? "0" : "0 auto",
+            padding: sidebarNav ? "40px" : "32px",
+            position: "relative",
+            zIndex: 1,
           }}
         >
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "14px 20px",
-                  fontFamily: "inherit",
-                  fontSize: 14,
-                  letterSpacing: "0.02em",
-                  color: active ? THEME.accent : THEME.muted,
-                  borderBottom: `3px solid ${
-                    active ? THEME.accent : "transparent"
-                  }`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap",
-                  fontWeight: active ? 700 : 500,
-                  transition: "all 0.2s",
-                }}
-              >
-                <Icon size={14} /> {t.label}
-              </button>
-            );
-          })}
-        </nav>
-        {/* ── H11. Quick Stats Sticky Bar ── */}
-        {(() => {
-          const saved = metrics.monthIncome - metrics.monthExpense;
-          const now2 = new Date();
-          const allDues = [
-            ...state.creditCards.map((c) => ({ name: c.bankName + " CC", date: c.dueDate })),
-            ...state.subscriptions.map((s) => ({ name: s.name, date: s.renewalDate })),
-          ].filter((d) => d.date);
-          const nextDue = allDues.reduce((best, d) => {
-            const diff = Math.ceil((new Date(d.date).getTime() - now2.getTime()) / 86400000);
-            if (diff < 0) return best;
-            if (!best || diff < best.diff) return { ...d, diff };
-            return best;
-          }, null as null | { name: string; date: string; diff: number });
-          const items = [
-            { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
-            { label: "Saved This Month", value: fmtINRFull(saved), color: saved >= 0 ? THEME.sage : THEME.rust },
-            { label: "Tax Due (Est.)", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
-            { label: "Next Due", value: nextDue ? `${nextDue.name} · ${nextDue.diff}d` : "None scheduled", color: nextDue && nextDue.diff <= 3 ? THEME.rust : nextDue && nextDue.diff <= 7 ? THEME.gold : THEME.muted },
-          ];
-          return (
-            <div style={{ borderTop: `1px solid ${THEME.line}`, background: "rgba(0,0,0,0.08)" }}>
-              <div style={{ maxWidth: 1400, margin: "0 auto", padding: "6px 32px", display: "flex", gap: 40, alignItems: "center", flexWrap: "wrap" }}>
-                {items.map(({ label, value, color }) => (
-                  <div key={label} style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-                    <span style={{ fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: THEME.muted }}>{label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-      </header>
+          {tab === "overview" && <Overview metrics={metrics} state={state} assetBreakdown={assetBreakdown} trendData={trendData} />}
+          {tab === "banks" && <BanksTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "investments" && <InvestmentsTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "demat" && <DematTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "credit" && <CreditTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "subs" && <SubsTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+          {tab === "sip" && <SIPTrackerTab state={state} addItem={addItem} removeItem={removeItem} />}
+          {tab === "insurance" && <InsuranceSummaryTab state={state} metrics={metrics} />}
+          {tab === "goals" && <GoalsTab state={state} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
+          {tab === "tax" && <TaxTab state={state} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
+          {tab === "budget" && <BudgetTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+          {tab === "reminders" && <RemindersTab state={state} addItem={addItem} removeItem={removeItem} />}
+          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={state} trendData={trendData} />}
+          {tab === "calculators" && <CalculatorsTab />}
+          {tab === "settings" && (
+            <SettingsTab
+              state={state}
+              setState={setState}
+              exportJSON={exportJSON}
+              resetAll={resetAll}
+              accentKey={accentKey} setAccentKey={setAccentKey}
+              density={density} setDensity={setDensity}
+              sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
+              headerGradient={headerGradient} setHeaderGradient={setHeaderGradient}
+            />
+          )}
+        </main>
 
-      <main
-        style={{
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "32px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {tab === "overview" && (
-          <Overview
-            metrics={metrics}
-            state={state}
-            assetBreakdown={assetBreakdown}
-            trendData={trendData}
-          />
-        )}
-        {tab === "banks" && (
-          <BanksTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            updateItem={updateItem}
-          />
-        )}
-        {tab === "investments" && (
-          <InvestmentsTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            updateItem={updateItem}
-          />
-        )}
-        {tab === "demat" && (
-          <DematTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
-        )}
-        {tab === "credit" && (
-          <CreditTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
-        )}
-        {tab === "subs" && (
-          <SubsTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            updateItem={updateItem}
-            metrics={metrics}
-          />
-        )}
-        {tab === "sip" && (
-          <SIPTrackerTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-          />
-        )}
-        {tab === "insurance" && (
-          <InsuranceSummaryTab
-            state={state}
-            metrics={metrics}
-          />
-        )}
-        {tab === "goals" && (
-          <GoalsTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            metrics={metrics}
-          />
-        )}
-        {tab === "tax" && (
-          <TaxTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            metrics={metrics}
-            setState={setState}
-          />
-        )}
-        {tab === "budget" && (
-          <BudgetTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-            updateItem={updateItem}
-            metrics={metrics}
-          />
-        )}
-        {tab === "reminders" && (
-          <RemindersTab
-            state={state}
-            addItem={addItem}
-            removeItem={removeItem}
-          />
-        )}
-        {tab === "analytics" && (
-          <AnalyticsTab
-            metrics={metrics}
-            state={state}
-            trendData={trendData}
-          />
-        )}
-        {tab === "calculators" && <CalculatorsTab />}
-        {tab === "settings" && (
-          <SettingsTab
-            state={state}
-            setState={setState}
-            exportJSON={exportJSON}
-            resetAll={resetAll}
-          />
-        )}
-      </main>
-
-      <footer
-        style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          color: THEME.muted,
-          fontSize: 14,
-          borderTop: `1px solid ${THEME.line}`,
-          marginTop: 40,
-        }}
-      >
-        Personal Finance Dashboard
-      </footer>
+        <footer style={{ textAlign: "center", padding: "40px 20px", color: THEME.muted, fontSize: 13, borderTop: `1px solid ${THEME.line}`, marginTop: 40 }}>
+          Personal Finance Dashboard · Made with care
+        </footer>
+      </div>
 
       {/* QUICK-ADD FAB */}
       <button
         onClick={() => setFabModal(true)}
-        title="Quick add transaction"
         style={{
-          position: "fixed",
-          bottom: 32,
-          right: 32,
-          zIndex: 999,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          background: THEME.accent,
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-          color: "#fff",
+          position: "fixed", bottom: 32, right: 32, zIndex: 999,
+          width: 60, height: 60, borderRadius: 20,
+          background: THEME.accent, border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: `0 8px 24px color-mix(in srgb, var(--t-accent) 30%, transparent)`,
+          color: "#fff", transition: "all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
         }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1) translateY(-4px)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1) translateY(0)"}
       >
-        <Plus size={24} />
+        <Plus size={28} strokeWidth={3} />
       </button>
+
 
       {fabModal && (
         <QuickAddModal
@@ -1352,30 +1234,33 @@ const btnAccent = {
 };
 
 const card = {
-  background: THEME.darkInk,
-  border: `1px solid ${THEME.line}`,
-  borderRadius: 12,
-  padding: 24,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+  background: "var(--t-card-bg)",
+  border: "var(--t-card-border)",
+  borderRadius: 24,
+  padding: "var(--card-pad, 24px)",
+  boxShadow: "var(--t-card-shadow)",
+  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
 };
 const cardDark = {
-  background: THEME.ink,
-  color: THEME.darkInk,
-  borderRadius: 12,
-  padding: 24,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  background: "linear-gradient(135deg, var(--t-ink), #000)",
+  color: "#fff",
+  borderRadius: 28,
+  padding: "var(--card-pad, 24px)",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+  position: "relative",
+  overflow: "hidden",
 };
 
 const input = {
   width: "100%",
-  padding: "10px 14px",
-  border: `1px solid ${THEME.line}`,
-  background: THEME.darkInk,
+  padding: "12px 16px",
+  border: "1.5px solid var(--t-line)",
+  background: "var(--t-card-bg)",
   fontFamily: "'Inter', sans-serif",
-  fontSize: 14,
-  color: THEME.ink,
-  borderRadius: 6,
-  transition: "border-color 0.2s ease",
+  fontSize: "var(--app-font-size, 14px)",
+  color: "var(--t-ink)",
+  borderRadius: 14,
+  transition: "all 0.2s ease",
 };
 const label = {
   display: "block",
@@ -7670,7 +7555,13 @@ function QuickAddModal({ onClose, onSave, bankAccounts }) {
 }
 
 // ================== SETTINGS TAB ==================
-function SettingsTab({ state, setState, exportJSON, resetAll }) {
+function SettingsTab({ 
+  state, setState, exportJSON, resetAll,
+  accentKey, setAccentKey,
+  density, setDensity,
+  sidebarNav, setSidebarNav,
+  headerGradient, setHeaderGradient
+}) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
 
@@ -7697,12 +7588,61 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
   };
 
   return (
-    <div>
+    <div style={{ maxWidth: 1000 }}>
       <SectionTitle sub="Personalise your dashboard and manage your financial data">
-        Settings & Profile
+        Settings & UI Preferences
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 24, marginBottom: 24 }}>
+        
+        {/* UI PREFERENCES */}
+        <div style={card}>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <Sparkles size={18} color={THEME.accent} /> Visual Theme
+          </div>
+          
+          <Field label="Accent Color">
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {Object.entries(ACCENT_PALETTES).map(([k, p]) => (
+                <button
+                  key={k}
+                  onClick={() => setAccentKey(k as AccentKey)}
+                  title={p.label}
+                  style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: p.dot, border: accentKey === k ? `4px solid ${THEME.line}` : "none",
+                    cursor: "pointer", transition: "transform 0.2s",
+                    transform: accentKey === k ? "scale(1.1)" : "scale(1)"
+                  }}
+                />
+              ))}
+            </div>
+          </Field>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
+            <Field label="Layout Density">
+              <select style={input} value={density} onChange={(e) => setDensity(e.target.value as DensityKey)}>
+                <option value="compact">Compact</option>
+                <option value="normal">Normal</option>
+                <option value="comfortable">Comfortable</option>
+              </select>
+            </Field>
+            <Field label="Navigation Style">
+              <select style={input} value={sidebarNav ? "sidebar" : "top"} onChange={(e) => setSidebarNav(e.target.value === "sidebar")}>
+                <option value="top">Top Tabs</option>
+                <option value="sidebar">Sidebar Menu</option>
+              </select>
+            </Field>
+          </div>
+
+          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 14 }}>
+              <input type="checkbox" checked={headerGradient} onChange={(e) => setHeaderGradient(e.target.checked)} style={{ width: 18, height: 18 }} />
+              Animated Header Gradient
+            </label>
+          </div>
+        </div>
+
         <div style={card}>
           <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
             <User size={18} /> Profile
@@ -7712,7 +7652,6 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
           </Field>
           <Field label="Financial Year">
             <select style={input} value={prof.fy || "2025-26"} onChange={(e) => setProf({ ...prof, fy: e.target.value })}>
-              <option value="2023-24">FY 2023-24</option>
               <option value="2024-25">FY 2024-25</option>
               <option value="2025-26">FY 2025-26</option>
               <option value="2026-27">FY 2026-27</option>
@@ -7720,12 +7659,12 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
           </Field>
           <Field label="Tax Regime">
             <select style={input} value={prof.regime || "new"} onChange={(e) => setProf({ ...prof, regime: e.target.value })}>
-              <option value="new">New Regime (Default)</option>
+              <option value="new">New Regime</option>
               <option value="old">Old Regime</option>
             </select>
           </Field>
           <button style={{ ...btnAccent, marginTop: 8 }} onClick={saveProfile}>
-            {saved ? "Saved!" : "Save Changes"}
+            {saved ? "Saved!" : "Save Profile"}
           </button>
         </div>
 
@@ -7734,41 +7673,25 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
             <FileText size={18} /> Data Management
           </div>
           <div style={{ display: "grid", gap: 16 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Export Backup</div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Download all data as a JSON file</div>
-              <button style={btnGhost} onClick={exportJSON}><Download size={14} /> Export JSON</button>
-            </div>
-            <div style={{ borderTop: "1px solid " + THEME.line, paddingTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Import Backup</div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Restore from a previously exported file</div>
-              <label style={btnGhost}>
-                <Upload size={14} /> Import JSON
-                <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
-              </label>
-            </div>
-            <div style={{ borderTop: "1px solid " + THEME.line, paddingTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: THEME.rust }}>Reset All Data</div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>Delete all data and start fresh — cannot be undone</div>
-              <button style={{ ...btnGhost, color: THEME.rust, borderColor: THEME.rust }} onClick={resetAll}><Trash2 size={14} /> Reset All</button>
-            </div>
+            <button style={btnGhost} onClick={exportJSON}><Download size={14} /> Export Backup</button>
+            <label style={btnGhost}>
+              <Upload size={14} /> Import Backup
+              <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+            </label>
+            <button style={{ ...btnGhost, color: THEME.rust, borderColor: THEME.rust }} onClick={resetAll}><Trash2 size={14} /> Reset All</button>
           </div>
         </div>
-      </div>
 
-      <div style={card}>
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <Sparkles size={18} /> Dashboard Summary
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          <Stat k="Name" v={state.profile.name || "—"} />
-          <Stat k="Financial Year" v={state.profile.fy} />
-          <Stat k="Tax Regime" v={state.profile.regime === "new" ? "New Regime" : "Old Regime"} />
-          <Stat k="Transactions" v={state.transactions.length + " entries"} />
-          <Stat k="Bank Accounts" v={state.bankAccounts.length} />
-          <Stat k="Goals" v={state.goals.length} />
-          <Stat k="Subscriptions" v={state.subscriptions.length} />
-          <Stat k="Budgets Set" v={state.budgets.length} />
+        <div style={card}>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            <Activity size={18} /> System Summary
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Stat k="Transactions" v={state.transactions.length} />
+            <Stat k="Accounts" v={state.bankAccounts.length} />
+            <Stat k="Investments" v={state.mutualFunds.length + state.stocks.length} />
+            <Stat k="Goals" v={state.goals.length} />
+          </div>
         </div>
       </div>
     </div>
