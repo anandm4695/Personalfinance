@@ -408,6 +408,15 @@ export default function FinanceDashboard() {
   const [sidebarNav, setSidebarNav] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-sidebar") === "true"; } catch { return false; }
   });
+  const [radiusKey, setRadiusKey] = useState<string>(() => {
+    try { return localStorage.getItem("finance-radius") || "modern"; } catch { return "modern"; }
+  });
+  const [fontKey, setFontKey] = useState<string>(() => {
+    try { return localStorage.getItem("finance-font") || "inter"; } catch { return "inter"; }
+  });
+  const [bgStyle, setBgStyle] = useState<string>(() => {
+    try { return localStorage.getItem("finance-bg") || "plain"; } catch { return "plain"; }
+  });
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
@@ -420,12 +429,21 @@ export default function FinanceDashboard() {
     const palette = ACCENT_PALETTES[accentKey] || ACCENT_PALETTES.blue;
     const d = DENSITY[density] || DENSITY.normal;
     
+    const radiuses = { sharp: "4px", modern: "12px", round: "24px" };
+    const fonts = { 
+      inter: "'Inter', sans-serif", 
+      outfit: "'Outfit', sans-serif", 
+      roboto: "'Roboto', sans-serif" 
+    };
+    
     const merged = { 
       ...vars, 
       "--t-accent": darkMode ? palette.dark : palette.light,
       "--card-pad": `${d.cardPad}px`,
       "--app-font-size": `${d.fontSize}px`,
       "--section-gap": `${d.sectionGap}px`,
+      "--t-radius": radiuses[radiusKey] || "12px",
+      "--t-font": fonts[fontKey] || "'Inter', sans-serif",
       "--t-card-bg": vars["--t-darkInk"],
       "--t-card-shadow": darkMode ? "0 10px 40px rgba(0,0,0,0.3)" : "0 10px 30px rgba(0,0,0,0.04)",
       "--t-card-blur": "none",
@@ -440,26 +458,38 @@ export default function FinanceDashboard() {
       localStorage.setItem("finance-accent", accentKey);
       localStorage.setItem("finance-density", density);
       localStorage.setItem("finance-sidebar", String(sidebarNav));
+      localStorage.setItem("finance-radius", radiusKey);
+      localStorage.setItem("finance-font", fontKey);
+      localStorage.setItem("finance-bg", bgStyle);
     } catch {}
-  }, [darkMode, accentKey, density, sidebarNav]);
+  }, [darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle]);
 
-  // Inject Google Fonts once
   useEffect(() => {
     if (document.getElementById("finance-dash-fonts")) return;
     const link = document.createElement("link");
     link.id = "finance-dash-fonts";
     link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+    link.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap";
     document.head.appendChild(link);
   }, []);
 
-  // Inject global hover/focus styles once
   useEffect(() => {
-    if (document.getElementById("finance-dash-styles")) return;
-    const style = document.createElement("style");
-    style.id = "finance-dash-styles";
+    const id = "finance-dash-styles-dynamic";
+    let style = document.getElementById(id);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = id;
+      document.head.appendChild(style);
+    }
     style.textContent = `
+      body { 
+        font-family: var(--t-font); 
+        background: ${bgStyle === "dots" ? "radial-gradient(circle, var(--t-line) 1px, transparent 1px)" : bgStyle === "mesh" ? "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 5%, transparent) 0%, transparent 100%)" : "var(--t-paper)"} !important;
+        background-size: ${bgStyle === "dots" ? "24px 24px" : "auto"} !important;
+        background-attachment: fixed !important;
+      }
+      button, input, select, textarea { font-family: var(--t-font) !important; }
+      .card-base { border-radius: var(--t-radius) !important; }
       button:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 2px; }
       button { transition: opacity 0.15s ease, background 0.15s ease; }
       button:hover { opacity: 0.82; }
@@ -1168,6 +1198,9 @@ export default function FinanceDashboard() {
               accentKey={accentKey} setAccentKey={setAccentKey}
               density={density} setDensity={setDensity}
               sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
+              radiusKey={radiusKey} setRadiusKey={setRadiusKey}
+              fontKey={fontKey} setFontKey={setFontKey}
+              bgStyle={bgStyle} setBgStyle={setBgStyle}
             />
           )}
         </main>
@@ -1247,7 +1280,7 @@ const btnAccent = {
 const card = {
   background: "var(--t-card-bg)",
   border: "var(--t-card-border)",
-  borderRadius: 24,
+  borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
   boxShadow: "var(--t-card-shadow)",
   transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -1255,7 +1288,7 @@ const card = {
 const cardDark = {
   background: "linear-gradient(135deg, var(--t-ink), #000)",
   color: "#fff",
-  borderRadius: 28,
+  borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
   boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
   position: "relative",
@@ -7667,7 +7700,10 @@ function SettingsTab({
   state, setState, exportJSON, resetAll,
   accentKey, setAccentKey,
   density, setDensity,
-  sidebarNav, setSidebarNav
+  sidebarNav, setSidebarNav,
+  radiusKey, setRadiusKey,
+  fontKey, setFontKey,
+  bgStyle, setBgStyle
 }) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
@@ -7742,8 +7778,48 @@ function SettingsTab({
             </Field>
           </div>
 
-          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* NO GRADIENT OPTIONS */}
+          <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <Field label="Card Roundness">
+              <select style={input} value={radiusKey} onChange={(e) => setRadiusKey(e.target.value)}>
+                <option value="sharp">Sharp (4px)</option>
+                <option value="modern">Modern (12px)</option>
+                <option value="round">Round (24px)</option>
+              </select>
+            </Field>
+            <Field label="Typography">
+              <select style={input} value={fontKey} onChange={(e) => setFontKey(e.target.value)}>
+                <option value="inter">Inter (Default)</option>
+                <option value="outfit">Outfit (Modern)</option>
+                <option value="roboto">Roboto (Pro)</option>
+              </select>
+            </Field>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <Field label="Background Style">
+              <div style={{ display: "flex", gap: 8 }}>
+                {["plain", "mesh", "dots"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setBgStyle(s)}
+                    style={{
+                      flex: 1,
+                      padding: "8px",
+                      borderRadius: 8,
+                      border: `1px solid ${bgStyle === s ? THEME.accent : THEME.line}`,
+                      background: bgStyle === s ? THEME.accent + "11" : THEME.darkInk,
+                      color: bgStyle === s ? THEME.accent : THEME.muted,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textTransform: "capitalize"
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </Field>
           </div>
         </div>
 
