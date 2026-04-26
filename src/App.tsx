@@ -389,6 +389,31 @@ export default function FinanceDashboard() {
     document.head.appendChild(link);
   }, []);
 
+  // Inject global hover/focus styles once
+  useEffect(() => {
+    if (document.getElementById("finance-dash-styles")) return;
+    const style = document.createElement("style");
+    style.id = "finance-dash-styles";
+    style.textContent = `
+      button:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 2px; }
+      button { transition: opacity 0.15s ease, background 0.15s ease; }
+      button:hover { opacity: 0.82; }
+      button:active { opacity: 0.65; transform: scale(0.97); }
+      select:focus, input:focus, textarea:focus {
+        outline: none;
+        border-color: var(--t-accent) !important;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 20%, transparent);
+      }
+      tr:hover td { background: color-mix(in srgb, var(--t-accent) 4%, transparent); }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--t-line); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--t-muted); }
+      * { box-sizing: border-box; }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Load from persistent storage on mount
   useEffect(() => {
     (async () => {
@@ -1675,7 +1700,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
             {/* Cash Flow Summary */}
             <div style={{ ...card, padding: 24 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>This Month's Cash Flow</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 16 }}>
                 <div>
                   <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Income</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: THEME.sage }}>{fmtINR(metrics.monthIncome)}</div>
@@ -2060,7 +2085,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
       </div>
 
       {/* INVESTMENT ALLOCATION + NET WORTH DONUT */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginBottom: 32 }}>
         {/* C8: Investment Allocation Pie */}
         {(() => {
           const invBreakdown = [
@@ -2232,7 +2257,8 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           </div>
         </div>
         {state.transactions.length ? (
-          <div style={{ display: "grid", gap: 2 }}>
+          <div style={{ overflowX: "auto" }}>
+          <div style={{ display: "grid", gap: 2, minWidth: 480 }}>
             {state.transactions
               .slice(-10)
               .reverse()
@@ -2245,7 +2271,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                     key={t.id}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "110px 1fr 140px 140px",
+                      gridTemplateColumns: "110px 1fr 100px 140px",
                       padding: "10px 0",
                       borderBottom: `1px dashed ${THEME.line}`,
                       fontSize: 14,
@@ -2255,9 +2281,9 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                     <span style={{ color: THEME.muted, fontSize: 12 }}>
                       {t.date}
                     </span>
-                    <span>
-                      <div style={{ fontWeight: 500 }}>{t.note || "—"}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>
+                    <span style={{ overflow: "hidden" }}>
+                      <div style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note || "—"}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t.category} · {bank?.bankName || "—"}
                       </div>
                     </span>
@@ -2284,7 +2310,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                   </div>
                 );
               })}
-          </div>
+          </div></div>
         ) : (
           <EmptyHint text="No transactions yet. Add some from the Banks tab." />
         )}
@@ -3223,7 +3249,7 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
             {all.length === 0 ? <div style={card}><EmptyHint text="Add FDs, Bonds, or RDs to see interest income" /></div> : (
               <div style={card}>
                 <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Income Breakdown</div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                       <th style={th}>Instrument</th>
@@ -3247,7 +3273,7 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
                       <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.sage }}>{fmtINRFull(totalMonthly)}</td>
                     </tr>
                   </tbody>
-                </table>
+                </table></div>
               </div>
             )}
           </div>
@@ -3364,15 +3390,15 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
 }
 
 const InvestCard = ({ children, onRemove, onEdit }: any) => (
-  <div style={{ ...card, position: "relative" }}>
-    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+  <div style={{ ...card, position: "relative", overflow: "hidden" }}>
+    <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 2, zIndex: 2 }}>
       {onEdit && (
-        <button onClick={onEdit} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-          <Edit3 size={14} />
+        <button onClick={onEdit} title="Edit" style={{ ...iconBtn, padding: "4px 6px", borderRadius: 6 }}>
+          <Edit3 size={13} />
         </button>
       )}
-      <button onClick={onRemove} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-        <Trash2 size={14} />
+      <button onClick={onRemove} title="Delete" style={{ ...iconBtn, padding: "4px 6px", borderRadius: 6, color: THEME.rust }}>
+        <Trash2 size={13} />
       </button>
     </div>
     {children}
@@ -3383,7 +3409,7 @@ const Grid = ({ children }) => (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
       gap: 16,
     }}
   >
@@ -3959,7 +3985,7 @@ function BondModal({ onClose, onSave, initial = null }: any) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Face Value">
           <input
@@ -4059,7 +4085,7 @@ function NPSModal({ onClose, onSave, initial = null }: any) {
         />
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Tier">
           <select
@@ -4128,7 +4154,7 @@ function MFModal({ onClose, onSave, initial = null }: any) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Units">
           <input
@@ -4253,7 +4279,7 @@ function TermModal({ onClose, onSave, initial = null }: any) {
         />
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Cover">
           <input
@@ -4676,7 +4702,7 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Quantity">
           <input
@@ -4821,7 +4847,7 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
                       <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
                         <div style={{ height: "100%", width: Math.min(paidPct, 100) + "%", background: paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust, borderRadius: 5, transition: "width 0.6s" }} />
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, fontSize: 12 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, fontSize: 12 }}>
                         <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Principal paid</div><div style={{ fontWeight: 700, color: THEME.sage }}>{fmtINR(paid)}</div></div>
                         <div><div style={{ color: THEME.muted, marginBottom: 2 }}>EMI</div><div style={{ fontWeight: 700 }}>{fmtINR(emi)}/mo</div></div>
                         <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Interest remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINR(interestRemaining)}</div></div>
@@ -5226,7 +5252,7 @@ function CCModal({ onClose, onSave, initial = null }: any) {
         </Field>
       </div>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Last 4 digits">
           <input
@@ -5517,7 +5543,7 @@ function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
         </div>
       ) : (
         <div style={card}>
-          <table
+          <div style={{ overflowX: "auto" }}><table
             style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}
           >
             <thead>
@@ -5593,7 +5619,7 @@ function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -5643,7 +5669,7 @@ function SubModal({ onClose, onSave }) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Amount">
           <input
@@ -5888,7 +5914,7 @@ function GoalModal({ onClose, onSave }) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
         <Field label="Target Amount">
           <input
@@ -6039,7 +6065,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
       {/* ── 1. Income Inputs ── */}
       <div style={{ ...card, marginBottom: 24 }}>
         <div style={sectionHead}>Income Details</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
           {inpRow("Gross Salary / Business Income", grossSalary, setGrossSalary, "(annual, pre-tax)")}
           {inpRow("HRA Received", hraReceived, setHraReceived)}
           {inpRow("House Property Income / Loss", housePropertyIncome, setHousePropertyIncome, "(negative = loss)")}
@@ -6052,7 +6078,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
       {/* ── 2. Old Regime Deductions ── */}
       <div style={{ ...card, marginBottom: 24 }}>
         <div style={sectionHead}>Old Regime Deductions <span style={{ fontSize: 12, fontWeight: 400, color: THEME.muted }}>(not applicable under New Regime)</span></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 32 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${THEME.line}` }}>Section 80C (max ₹1.5L total)</div>
             {inpRow("LIC Premium", lic80C, setLic80C, "(auto-filled)")}
@@ -6175,7 +6201,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
       </div>
 
       {/* ── 4. Recommendation Banner ── */}
-      <div style={{ ...card, marginBottom: 24, background: betterReg === "new" ? "#F0F3ED" : "#F7EFDE", borderLeft: `4px solid ${THEME.gold}` }}>
+      <div style={{ ...card, marginBottom: 24, background: betterReg === "new" ? THEME.sage + "18" : THEME.gold + "18", borderLeft: `4px solid ${THEME.gold}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Sparkles size={20} style={{ color: THEME.gold }} />
           <div>
@@ -6201,10 +6227,10 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           <button style={btnGhost} onClick={() => setShowSlabs((v) => !v)}>{showSlabs ? "Hide" : "Show"}</button>
         </div>
         {showSlabs && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: THEME.accent, marginBottom: 8 }}>New Regime (FY 25-26)</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead><tr><th style={th}>Slab</th><th style={th}>Rate</th><th style={{ ...th, textAlign: "right" }}>Tax</th></tr></thead>
                 <tbody>
                   {newCalc.breakdown.filter((r) => r.inSlab > 0).map((r, i) => (
@@ -6223,11 +6249,11 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
                     <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(newCalc.total)}</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: THEME.accent, marginBottom: 8 }}>Old Regime</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead><tr><th style={th}>Slab</th><th style={th}>Rate</th><th style={{ ...th, textAlign: "right" }}>Tax</th></tr></thead>
                 <tbody>
                   {oldCalc.breakdown.filter((r) => r.inSlab > 0).map((r, i) => (
@@ -6246,7 +6272,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
                     <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmtINR(oldCalc.total)}</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
             </div>
           </div>
         )}
@@ -6288,12 +6314,12 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Advance Tax Schedule</div>
           <div style={{ fontSize: 13, color: THEME.muted }}>Expected: {fmtINRFull(expectedTax)} · Paid: {fmtINRFull(paidAdvance)}</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           {advanceTaxDue.map((d) => {
             const cumulative = (expectedTax * d.pct) / 100;
             const met = paidAdvance >= cumulative;
             return (
-              <div key={d.date} style={{ padding: 16, border: `1px solid ${met ? THEME.sage : THEME.line}`, background: met ? "#F0F3ED" : "transparent" }}>
+              <div key={d.date} style={{ padding: 16, borderRadius: 8, border: `1px solid ${met ? THEME.sage : THEME.line}`, background: met ? THEME.sage + "15" : "transparent" }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>By {d.date}</div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{d.pct}% of liability</div>
                 <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 800, marginTop: 8 }}>{fmtINR(cumulative)}</div>
@@ -6414,7 +6440,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           <div style={{ ...card, marginTop: 24 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>G8 · Capital Gains Tax Planner — Enter Planned Sell Dates</div>
             {state.stocks.length === 0 ? <EmptyHint text="Add stocks in Demat & Stocks tab" /> : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead><tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                   <th style={th}>Stock</th>
                   <th style={{ ...th, textAlign: "right" }}>Gain</th>
@@ -6439,7 +6465,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
                     </tr>
                   )}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
         );
@@ -7149,7 +7175,7 @@ function AnalyticsTab({ metrics, state, trendData }) {
         <Tile icon={Wallet} label="Net Worth" value={fmtINRFull(metrics.netWorth)} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginBottom: 32 }}>
         <div style={card}>
           <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Savings Rate — 6 Months</div>
           <ResponsiveContainer width="100%" height={240}>
@@ -7383,7 +7409,7 @@ function SIPTrackerTab({ state, addItem, removeItem }) {
         <div style={card}><EmptyHint text="Add your SIPs to track investments" /></div>
       ) : (
         <div style={card}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                 <th style={th}>Scheme</th>
@@ -7399,7 +7425,7 @@ function SIPTrackerTab({ state, addItem, removeItem }) {
             <tbody>
               {sipsWithCalc.map((sip) => (
                 <tr key={sip.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                  <td style={{ ...td, fontWeight: 600 }}>{sip.scheme}</td>
+                  <td style={{ ...td, fontWeight: 600, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sip.scheme}</td>
                   <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{sip.fundType}</td>
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(sip.amount)}</td>
                   <td style={td}>{sip.startDate}</td>
@@ -7415,7 +7441,7 @@ function SIPTrackerTab({ state, addItem, removeItem }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -7453,7 +7479,7 @@ function SIPModal({ onClose, onSave }) {
           </select>
         </Field>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         <Field label="Amount (₹)">
           <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
         </Field>
@@ -7537,7 +7563,7 @@ function InsuranceSummaryTab({ state, metrics }) {
         {state.lic.length === 0 ? (
           <EmptyHint text="No LIC policies added" />
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                 <th style={th}>Policy No</th>
@@ -7558,7 +7584,7 @@ function InsuranceSummaryTab({ state, metrics }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
@@ -7568,7 +7594,7 @@ function InsuranceSummaryTab({ state, metrics }) {
         {state.termPlans.length === 0 ? (
           <EmptyHint text="No term plans added" />
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                 <th style={th}>Insurer</th>
@@ -7589,7 +7615,7 @@ function InsuranceSummaryTab({ state, metrics }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
@@ -7676,7 +7702,7 @@ function SettingsTab({ state, setState, exportJSON, resetAll }) {
         Settings & Profile
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, marginBottom: 24 }}>
         <div style={card}>
           <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
             <User size={18} /> Profile
