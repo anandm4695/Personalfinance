@@ -522,7 +522,8 @@ export default function FinanceDashboard() {
     style.textContent = `
       body { 
         font-family: var(--t-font); 
-        background: ${bgStyle === "dots" ? "radial-gradient(circle, var(--t-line) 1px, transparent 1px)" : bgStyle === "mesh" ? "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 5%, transparent) 0%, transparent 100%)" : "var(--t-paper)"} !important;
+        background-color: var(--t-paper) !important;
+        background-image: ${bgStyle === "dots" ? "radial-gradient(circle, var(--t-line) 1.5px, transparent 1.5px)" : bgStyle === "mesh" ? "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 8%, transparent) 0%, transparent 100%)" : "none"} !important;
         background-size: ${bgStyle === "dots" ? "24px 24px" : "auto"} !important;
         background-attachment: fixed !important;
       }
@@ -1002,7 +1003,7 @@ export default function FinanceDashboard() {
     <div
       style={{
         minHeight: "100vh",
-        background: THEME.paper,
+        background: "transparent",
         fontFamily: "'Inter', sans-serif",
         color: THEME.ink,
         position: "relative",
