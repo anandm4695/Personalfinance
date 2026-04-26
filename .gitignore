@@ -5,3 +5,6 @@ build
 *.tsbuildinfo
 .tempmediaStorage
 .system_generated
+.env
+.vercel
+.cache

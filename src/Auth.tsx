@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
-import { Shield, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Shield, FileText, Activity, ArrowUpRight } from "lucide-react";
 
 export default function Auth({ onLogin }) {
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,7 @@ export default function Auth({ onLogin }) {
     }
   };
 
+  console.log("Auth rendering, session callback exists:", !!onLogin);
   return (
     <div style={{
       minHeight: "100vh",
@@ -92,7 +93,7 @@ export default function Auth({ onLogin }) {
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "rgba(245,239,227,0.7)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Email Address</label>
             <div style={{ position: "relative" }}>
-              <Mail size={16} color="rgba(245,239,227,0.4)" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
+              <FileText size={16} color="rgba(245,239,227,0.4)" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
               <input
                 type="email"
                 required
@@ -120,7 +121,7 @@ export default function Auth({ onLogin }) {
           <div style={{ marginBottom: 32 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "rgba(245,239,227,0.7)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Password</label>
             <div style={{ position: "relative" }}>
-              <Lock size={16} color="rgba(245,239,227,0.4)" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
+              <Shield size={16} color="rgba(245,239,227,0.4)" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
               <input
                 type="password"
                 required
@@ -166,10 +167,10 @@ export default function Auth({ onLogin }) {
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? <Loader2 size={18} className="spin" /> : (
+            {loading ? <Activity size={18} className="spin" /> : (
               <>
                 {isSignUp ? "Create Account" : "Sign In"}
-                <ArrowRight size={18} />
+                <ArrowUpRight size={18} />
               </>
             )}
           </button>

@@ -1025,7 +1025,23 @@ export default function FinanceDashboard() {
 
   const d = DENSITY[density] || DENSITY.normal;
 
+  const isSupabaseConfigured = supabase.supabaseUrl && !supabase.supabaseUrl.includes("placeholder-url");
+
   if (!session) {
+    if (!isSupabaseConfigured) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', background: '#0D1117', color: '#fff', minHeight: '100vh' }}>
+          <h2>Supabase Keys Missing</h2>
+          <p>Please update your <code>.env</code> file with <code>REACT_APP_SUPABASE_URL</code> and <code>REACT_APP_SUPABASE_ANON_KEY</code>.</p>
+          <button 
+            onClick={() => setSession({ user: { id: 'offline-user' } })} 
+            style={{ padding: '10px 20px', background: '#4F6BFF', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}
+          >
+            Continue Offline (Demo Mode)
+          </button>
+        </div>
+      );
+    }
     return <Auth onLogin={setSession} />;
   }
 
