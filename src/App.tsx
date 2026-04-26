@@ -52,6 +52,7 @@ import {
   Hash,
   FileUp,
   Percent,
+  List,
 } from "lucide-react";
 import {
   LineChart,
@@ -339,7 +340,23 @@ const DEFAULT_STATE = (() => {
       { id: "d2", broker: "Groww", dpId: "IN303719", clientId: "GW5678" },
     ],
     creditCards: [
-      { id: "c1", issuer: "Amazon Pay ICICI", network: "Visa", last4: "5678", limit: "300000", outstanding: "24000", dueDate: `${ym}-20` }
+      { 
+        id: "c1", 
+        issuer: "Amazon Pay ICICI", 
+        network: "Visa", 
+        last4: "5678", 
+        limit: "300000", 
+        outstanding: "24000", 
+        billDate: "20", 
+        dueDay: "10",
+        annualFee: "0",
+        waiverInfo: "Life Time Free",
+        helpline: "1800 102 3333",
+        transactions: [
+          { id: "ctx1", date: `${ym}-05`, merchant: "Amazon.in", amount: "1200", category: "Shopping" },
+          { id: "ctx2", date: `${ym}-12`, merchant: "Swiggy", amount: "450", category: "Food" }
+        ]
+      }
     ],
     prepaidCards: [],
     loansTaken: [
@@ -4686,7 +4703,34 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
       </div>
 
       {sub === "cc" && (
-        <CCList items={state.creditCards} onRemove={(id) => removeItem("creditCards", id)} onEdit={setEditId} />
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+            <div style={card}>
+              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Credit Limit</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>
+                {fmtINRFull(state.creditCards.reduce((acc, c) => acc + (Number(c.limit) || 0), 0))}
+              </div>
+            </div>
+            <div style={card}>
+              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Outstanding</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>
+                {fmtINRFull(state.creditCards.reduce((acc, c) => acc + (Number(c.outstanding) || 0), 0))}
+              </div>
+            </div>
+            <div style={card}>
+              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available Credit</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>
+                {fmtINRFull(state.creditCards.reduce((acc, c) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}
+              </div>
+            </div>
+          </div>
+          <CCList 
+            items={state.creditCards} 
+            onRemove={(id) => removeItem("creditCards", id)} 
+            onEdit={setEditId}
+            onUpdateCard={(id, updates) => updateItem("creditCards", id, updates)}
+          />
+        </>
       )}
       {sub === "prepaid" && (
         <PrepaidList items={state.prepaidCards} onRemove={(id) => removeItem("prepaidCards", id)} onEdit={setEditId} />
@@ -4802,128 +4846,219 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
   );
 }
 
-function CCList({ items, onRemove, onEdit }: any) {
+function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
+  const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
+
   if (!items.length) return <EmptyHint text="No credit cards yet" />;
+  
+  const selectedCard = items.find(c => c.id === selectedLedger);
+
   return (
-    <Grid>
-      {items.map((c) => {
-        const util = Number(c.limit)
-          ? (Number(c.outstanding) / Number(c.limit)) * 100
-          : 0;
-        return (
-          <div
-            key={c.id}
-            style={{
-              ...cardDark,
-              position: "relative",
-              background: `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`,
-            }}
-          >
-            <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-              <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
-                <Edit3 size={14} />
-              </button>
-              <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
-                <Trash2 size={14} />
-              </button>
-            </div>
+    <div>
+      <Grid>
+        {items.map((c) => {
+          const util = Number(c.limit)
+            ? (Number(c.outstanding) / Number(c.limit)) * 100
+            : 0;
+          return (
             <div
+              key={c.id}
               style={{
-                fontSize: 10,
-                letterSpacing: "0.3em",
-                textTransform: "uppercase",
-                color: THEME.gold,
+                ...cardDark,
+                position: "relative",
+                background: `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`,
+                paddingBottom: 60,
               }}
             >
-              {c.network || "Card"}
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 20,
-                fontWeight: 700,
-                marginTop: 8,
-              }}
-            >
-              {c.issuer}
-            </div>
-            <div
-              style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 20 }}
-            >
-              •••• •••• •••• {c.last4 || "****"}
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                marginTop: 16,
-                fontSize: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: "rgba(245,239,227,0.6)",
-                    fontSize: 9,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Outstanding
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+                <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
+                  <Edit3 size={14} />
+                </button>
+                <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div style={{ fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", color: THEME.gold }}>
+                {c.network || "Card"}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>
+                {c.issuer}
+              </div>
+              <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>
+                •••• •••• •••• {c.last4 || "****"}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20, fontSize: 12 }}>
+                <div>
+                  <div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Outstanding</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>
-                  {fmtINRFull(c.outstanding)}
+                <div>
+                  <div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Limit</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div>
                 </div>
               </div>
-              <div>
-                <div
-                  style={{
-                    color: "rgba(245,239,227,0.6)",
-                    fontSize: 9,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Limit
+
+              <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
+                <div>Bill Date: <strong>{c.billDate || "—"}th</strong></div>
+                <div>Due Day: <strong>{c.dueDay || "—"}th</strong></div>
+                <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
+                <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
+              </div>
+
+              {c.waiverInfo && (
+                <div style={{ marginTop: 12, fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "6px 10px", borderRadius: 6, color: THEME.gold }}>
+                  Waiver: {c.waiverInfo}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>
-                  {fmtINRFull(c.limit)}
+              )}
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
+                  <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : THEME.gold, borderRadius: 2 }} />
+                </div>
+                <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : "rgba(245,239,227,0.6)", marginTop: 6 }}>
+                  {util.toFixed(1)}% utilization
                 </div>
               </div>
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <div
+
+              <button 
+                onClick={() => setSelectedLedger(c.id)}
                 style={{
-                  height: 3,
-                  background: "rgba(245,239,227,0.15)",
-                  position: "relative",
+                  position: "absolute", bottom: 0, left: 0, right: 0, height: 44,
+                  background: "rgba(255,255,255,0.05)", border: "none", borderTop: `1px solid rgba(255,255,255,0.1)`,
+                  color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8
                 }}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: `${Math.min(util, 100)}%`,
-                    background: util > 70 ? THEME.accent : THEME.gold,
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: util > 70 ? "#E8A298" : "rgba(245,239,227,0.6)",
-                  marginTop: 4,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {util.toFixed(1)}% utilization · Due {c.dueDate || "—"}
-              </div>
+                <List size={14} /> View Transactions ({c.transactions?.length || 0})
+              </button>
             </div>
+          );
+        })}
+      </Grid>
+
+      {selectedLedger && selectedCard && (
+        <CCTransactionLedger 
+          card={selectedCard} 
+          onClose={() => setSelectedLedger(null)}
+          onUpdate={(newTransactions) => {
+            const newOutstanding = newTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
+            onUpdateCard(selectedLedger, { transactions: newTransactions, outstanding: String(newOutstanding) });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CCTransactionLedger({ card, onClose, onUpdate }: any) {
+  const [txs, setTxs] = useState(card.transactions || []);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTx, setNewTx] = useState({ date: today(), merchant: "", amount: "", category: "General" });
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const saveTx = () => {
+    if (!newTx.merchant || !newTx.amount) return;
+    let updated;
+    if (editId) {
+      updated = txs.map(t => t.id === editId ? { ...newTx, id: editId } : t);
+    } else {
+      updated = [...txs, { ...newTx, id: uid() }];
+    }
+    setTxs(updated);
+    onUpdate(updated);
+    setShowAdd(false);
+    setEditId(null);
+    setNewTx({ date: today(), merchant: "", amount: "", category: "General" });
+  };
+
+  const removeTx = (id) => {
+    const updated = txs.filter(t => t.id !== id);
+    setTxs(updated);
+    onUpdate(updated);
+  };
+
+  const startEdit = (t) => {
+    setNewTx({ date: t.date, merchant: t.merchant, amount: t.amount, category: t.category });
+    setEditId(t.id);
+    setShowAdd(true);
+  };
+
+  return (
+    <Modal title={`${card.issuer} - Transactions`} onClose={onClose}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Recent Ledger</div>
+        <button 
+          style={{ ...btnGhost, padding: "6px 12px", fontSize: 12 }} 
+          onClick={() => {
+            if (showAdd) {
+              setShowAdd(false);
+              setEditId(null);
+              setNewTx({ date: today(), merchant: "", amount: "", category: "General" });
+            } else {
+              setShowAdd(true);
+            }
+          }}
+        >
+          {showAdd ? "Cancel" : <><Plus size={14} /> Add Transaction</>}
+        </button>
+      </div>
+
+      {showAdd && (
+        <div style={{ ...card, background: THEME.darkInk, border: `1px solid ${THEME.line}`, marginBottom: 16, padding: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, color: THEME.accent }}>{editId ? "EDIT TRANSACTION" : "NEW TRANSACTION"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <Field label="Date"><input type="date" style={input} value={newTx.date} onChange={e => setNewTx({...newTx, date: e.target.value})} /></Field>
+            <Field label="Amount"><input type="number" style={input} value={newTx.amount} onChange={e => setNewTx({...newTx, amount: e.target.value})} placeholder="0.00" /></Field>
           </div>
-        );
-      })}
-    </Grid>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <Field label="Merchant"><input type="text" style={input} value={newTx.merchant} onChange={e => setNewTx({...newTx, merchant: e.target.value})} placeholder="e.g. Amazon" /></Field>
+            <Field label="Category"><input type="text" style={input} value={newTx.category} onChange={e => setNewTx({...newTx, category: e.target.value})} placeholder="e.g. Food" /></Field>
+          </div>
+          <button style={{ ...btnAccent, width: "100%" }} onClick={saveTx}>{editId ? "Update Transaction" : "Save Transaction"}</button>
+        </div>
+      )}
+
+      <div style={{ maxHeight: 400, overflowY: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", borderBottom: `1px solid ${THEME.line}`, color: THEME.muted }}>
+              <th style={{ padding: "10px 8px" }}>Date</th>
+              <th style={{ padding: "10px 8px" }}>Merchant</th>
+              <th style={{ padding: "10px 8px" }}>Category</th>
+              <th style={{ padding: "10px 8px", textAlign: "right" }}>Amount</th>
+              <th style={{ padding: "10px 8px", width: 70 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {txs.sort((a,b) => b.date.localeCompare(a.date)).map(t => (
+              <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                <td style={{ padding: "12px 8px" }}>{t.date}</td>
+                <td style={{ padding: "12px 8px", fontWeight: 600 }}>{t.merchant}</td>
+                <td style={{ padding: "12px 8px" }}><span style={{ background: THEME.paper, padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{t.category}</span></td>
+                <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 700 }}>{fmtINR(t.amount)}</td>
+                <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button onClick={() => startEdit(t)} style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer" }}><Edit3 size={14} /></button>
+                    <button onClick={() => removeTx(t.id)} style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer" }}><X size={14} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!txs.length && (
+              <tr><td colSpan={5} style={{ textAlign: "center", padding: 40, color: THEME.muted }}>No transactions found for this card</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: `2px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 14, color: THEME.muted }}>Total Ledger Outstanding</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: THEME.rust }}>
+          {fmtINRFull(txs.reduce((acc, t) => acc + Number(t.amount), 0))}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -5102,26 +5237,21 @@ function CCModal({ onClose, onSave, initial = null }: any) {
     last4: "",
     limit: "",
     outstanding: "0",
-    dueDate: "",
-    statementDate: "",
+    billDate: "",
+    dueDay: "",
+    annualFee: "0",
+    waiverInfo: "",
+    helpline: "",
+    transactions: [],
   });
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
         <Field label="Issuer">
-          <input
-            style={input}
-            value={f.issuer}
-            onChange={(e) => setF({ ...f, issuer: e.target.value })}
-            placeholder="e.g. HDFC Regalia"
-          />
+          <input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" />
         </Field>
         <Field label="Network">
-          <select
-            style={input}
-            value={f.network}
-            onChange={(e) => setF({ ...f, network: e.target.value })}
-          >
+          <select style={input} value={f.network} onChange={(e) => setF({ ...f, network: e.target.value })}>
             <option>Visa</option>
             <option>Mastercard</option>
             <option>Amex</option>
@@ -5130,52 +5260,36 @@ function CCModal({ onClose, onSave, initial = null }: any) {
           </select>
         </Field>
       </div>
-      <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
         <Field label="Last 4 digits">
-          <input
-            style={input}
-            maxLength={4}
-            value={f.last4}
-            onChange={(e) => setF({ ...f, last4: e.target.value })}
-          />
+          <input style={input} maxLength={4} value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value })} />
         </Field>
         <Field label="Credit Limit">
-          <input
-            style={input}
-            type="number"
-            value={f.limit}
-            onChange={(e) => setF({ ...f, limit: e.target.value })}
-          />
+          <input style={input} type="number" value={f.limit} onChange={(e) => setF({ ...f, limit: e.target.value })} />
         </Field>
         <Field label="Outstanding">
-          <input
-            style={input}
-            type="number"
-            value={f.outstanding}
-            onChange={(e) => setF({ ...f, outstanding: e.target.value })}
-          />
+          <input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} />
         </Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Statement Date">
-          <input
-            style={input}
-            type="date"
-            value={f.statementDate}
-            onChange={(e) => setF({ ...f, statementDate: e.target.value })}
-          />
+        <Field label="Statement Date (Day of Month)">
+          <input style={input} type="number" min="1" max="31" placeholder="e.g. 20" value={f.billDate} onChange={(e) => setF({ ...f, billDate: e.target.value })} />
         </Field>
-        <Field label="Payment Due Date">
-          <input
-            style={input}
-            type="date"
-            value={f.dueDate}
-            onChange={(e) => setF({ ...f, dueDate: e.target.value })}
-          />
+        <Field label="Due Day (Day of Month)">
+          <input style={input} type="number" min="1" max="31" placeholder="e.g. 10" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} />
         </Field>
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Annual Fee">
+          <input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} />
+        </Field>
+        <Field label="Helpline Number">
+          <input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" />
+        </Field>
+      </div>
+      <Field label="Waiver Details (How and When)">
+        <textarea style={{ ...input, height: 60, resize: "none" }} value={f.waiverInfo} onChange={(e) => setF({ ...f, waiverInfo: e.target.value })} placeholder="e.g. Spend 1L in a year to waive off annual fee" />
+      </Field>
       <ModalActions onSave={() => f.issuer && onSave(f)} onClose={onClose} />
     </Modal>
   );
