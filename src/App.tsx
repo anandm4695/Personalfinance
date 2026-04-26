@@ -1092,6 +1092,39 @@ export default function FinanceDashboard() {
             );
           })}
         </nav>
+        {/* ── H11. Quick Stats Sticky Bar ── */}
+        {(() => {
+          const saved = metrics.monthIncome - metrics.monthExpense;
+          const now2 = new Date();
+          const allDues = [
+            ...state.creditCards.map((c) => ({ name: c.bankName + " CC", date: c.dueDate })),
+            ...state.subscriptions.map((s) => ({ name: s.name, date: s.renewalDate })),
+          ].filter((d) => d.date);
+          const nextDue = allDues.reduce((best, d) => {
+            const diff = Math.ceil((new Date(d.date).getTime() - now2.getTime()) / 86400000);
+            if (diff < 0) return best;
+            if (!best || diff < best.diff) return { ...d, diff };
+            return best;
+          }, null as null | { name: string; date: string; diff: number });
+          const items = [
+            { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
+            { label: "Saved This Month", value: fmtINRFull(saved), color: saved >= 0 ? THEME.sage : THEME.rust },
+            { label: "Tax Due (Est.)", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+            { label: "Next Due", value: nextDue ? `${nextDue.name} · ${nextDue.diff}d` : "None scheduled", color: nextDue && nextDue.diff <= 3 ? THEME.rust : nextDue && nextDue.diff <= 7 ? THEME.gold : THEME.muted },
+          ];
+          return (
+            <div style={{ borderTop: `1px solid ${THEME.line}`, background: "rgba(0,0,0,0.08)" }}>
+              <div style={{ maxWidth: 1400, margin: "0 auto", padding: "6px 32px", display: "flex", gap: 40, alignItems: "center", flexWrap: "wrap" }}>
+                {items.map(({ label, value, color }) => (
+                  <div key={label} style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+                    <span style={{ fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: THEME.muted }}>{label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </header>
 
       <main
@@ -1502,6 +1535,31 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           </div>
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Unrealized returns</div>
         </div>
+
+        {/* E3 – Savings Streak */}
+        {(() => {
+          const now = new Date();
+          let streak = 0;
+          for (let i = 1; i <= 24; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const ym2 = d.toISOString().slice(0, 7);
+            const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym2));
+            const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+            const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+            if (inc > exp && inc > 0) streak++; else break;
+          }
+          const emoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
+          const msg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start your streak";
+          return (
+            <div style={{ ...card, padding: 20 }}>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Savings Streak</div>
+              <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{emoji}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: streak > 0 ? THEME.sage : THEME.muted, lineHeight: 1 }}>{streak}</div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>consecutive months saved</div>
+              <div style={{ fontSize: 11, color: THEME.sage, marginTop: 4, fontWeight: 600 }}>{msg}</div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* MONTHLY P&L BAR */}
@@ -2231,6 +2289,58 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
           <EmptyHint text="No transactions yet. Add some from the Banks tab." />
         )}
       </div>
+
+      {/* ── H10. FY Timeline Strip ── */}
+      {(() => {
+        const fy = state.profile.fy || "2024-25";
+        const startYear = parseInt(fy.split("-")[0], 10);
+        const months = Array.from({ length: 12 }, (_, i) => {
+          const d = new Date(startYear, 3 + i, 1);
+          const ym = d.toISOString().slice(0, 7);
+          const label = d.toLocaleString("en-IN", { month: "short" });
+          const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym));
+          const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+          const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+          const isNow = ym === new Date().toISOString().slice(0, 7);
+          return { ym, label, inc, exp, isNow };
+        });
+        const maxVal = Math.max(...months.map((m) => Math.max(m.inc, m.exp)), 1);
+        const barH = 48;
+        return (
+          <div style={{ ...card, marginTop: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>
+              FY {fy} — Monthly Snapshot
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 6 }}>
+              {months.map((m) => {
+                const incH = Math.max(3, (m.inc / maxVal) * barH);
+                const expH = Math.max(3, (m.exp / maxVal) * barH);
+                return (
+                  <div key={m.ym} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: barH, borderBottom: `1px solid ${THEME.line}` }}>
+                      <div title={`Income: ${fmtINRFull(m.inc)}`} style={{ width: 9, height: incH, background: THEME.sage, borderRadius: "2px 2px 0 0", opacity: m.isNow ? 1 : m.inc > 0 ? 0.75 : 0.2 }} />
+                      <div title={`Expense: ${fmtINRFull(m.exp)}`} style={{ width: 9, height: expH, background: THEME.rust, borderRadius: "2px 2px 0 0", opacity: m.isNow ? 1 : m.exp > 0 ? 0.75 : 0.2 }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: m.isNow ? THEME.accent : THEME.muted, fontWeight: m.isNow ? 700 : 400 }}>{m.label}</div>
+                    {m.isNow && <div style={{ width: 4, height: 4, borderRadius: "50%", background: THEME.accent, marginTop: 1 }} />}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 20, marginTop: 12, flexWrap: "wrap" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: THEME.muted }}>
+                <span style={{ width: 9, height: 9, background: THEME.sage, borderRadius: 2, display: "inline-block" }} /> Income
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: THEME.muted }}>
+                <span style={{ width: 9, height: 9, background: THEME.rust, borderRadius: 2, display: "inline-block" }} /> Expense
+              </span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.accent }}>
+                {months.filter((m) => m.inc > 0 || m.exp > 0).length} / 12 months active
+              </span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -2903,6 +3013,7 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
     { id: "mf", label: "Mutual Funds", key: "mutualFunds", icon: BarChart3 },
     { id: "lic", label: "LIC", key: "lic", icon: Shield },
     { id: "term", label: "Term Plans", key: "termPlans", icon: Shield },
+    { id: "income", label: "Interest Income", key: "", icon: Coins },
   ];
 
   return (
@@ -2968,7 +3079,48 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
       </div>
 
       {sub === "fd" && (
-        <FDList items={state.fixedDeposits} onRemove={(id) => removeItem("fixedDeposits", id)} onEdit={setEditId} />
+        <>
+          <FDList items={state.fixedDeposits} onRemove={(id) => removeItem("fixedDeposits", id)} onEdit={setEditId} />
+          {/* F5 – Maturity Timeline (FD + Bond) */}
+          {(state.fixedDeposits.length > 0 || state.bonds.length > 0) && (() => {
+            const now = new Date();
+            const items = [
+              ...state.fixedDeposits.map((f) => ({ label: `${f.bank} FD`, date: f.maturityDate, amount: Number(f.principal), color: THEME.accent })),
+              ...state.bonds.map((b) => ({ label: b.name, date: b.maturityDate, amount: Number(b.faceValue), color: THEME.gold })),
+            ].filter((x) => x.date).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            if (!items.length) return null;
+            const earliest = new Date(items[0].date).getFullYear();
+            const latest = new Date(items[items.length - 1].date).getFullYear();
+            const range = Math.max(latest - earliest + 1, 1);
+            return (
+              <div style={{ ...card, marginTop: 20 }}>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>FD & Bond Maturity Timeline</div>
+                <div style={{ position: "relative", paddingBottom: 8 }}>
+                  <div style={{ height: 2, background: THEME.line, marginBottom: 24, marginTop: 8 }} />
+                  {items.map((item, i) => {
+                    const yr = new Date(item.date).getFullYear();
+                    const leftPct = range > 1 ? ((yr - earliest) / (range - 1)) * 100 : 50;
+                    return (
+                      <div key={i} style={{ position: "absolute", top: -16, left: `${leftPct}%`, transform: "translateX(-50%)", textAlign: "center", minWidth: 80 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.color, margin: "0 auto 4px", border: `2px solid ${THEME.paper}`, boxShadow: `0 0 0 2px ${item.color}` }} />
+                        <div style={{ fontSize: 9, fontWeight: 700, color: item.color, whiteSpace: "nowrap" }}>{item.label}</div>
+                        <div style={{ fontSize: 9, color: THEME.muted }}>{item.date?.slice(0, 7)}</div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: THEME.ink }}>{fmtINR(item.amount)}</div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 56, fontSize: 10, color: THEME.muted }}>
+                    {Array.from({ length: range }, (_, i) => <span key={i}>{earliest + i}</span>)}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 8 }}>
+                  <span><span style={{ color: THEME.accent }}>●</span> Fixed Deposits</span>
+                  <span><span style={{ color: THEME.gold }}>●</span> Bonds</span>
+                </div>
+              </div>
+            );
+          })()}
+        </>
       )}
       {sub === "rd" && (
         <RDList items={state.recurringDeposits} onRemove={(id) => removeItem("recurringDeposits", id)} onEdit={setEditId} />
@@ -2983,7 +3135,45 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
         <NPSList items={state.nps} onRemove={(id) => removeItem("nps", id)} onEdit={setEditId} />
       )}
       {sub === "mf" && (
-        <MFList items={state.mutualFunds} onRemove={(id) => removeItem("mutualFunds", id)} onEdit={setEditId} />
+        <>
+          <MFList items={state.mutualFunds} onRemove={(id) => removeItem("mutualFunds", id)} onEdit={setEditId} />
+          {/* F4 – MF Overlap Detector */}
+          {state.mutualFunds.length > 1 && (() => {
+            const typeMap: Record<string, string[]> = {};
+            state.mutualFunds.forEach((m) => {
+              const t = (m.type || "Other").toLowerCase();
+              const bucket = t.includes("index") || t.includes("nifty") || t.includes("sensex") ? "Index/Large-cap"
+                : t.includes("equity") || t.includes("flexi") || t.includes("large") ? "Equity"
+                : t.includes("debt") || t.includes("liquid") || t.includes("bond") ? "Debt"
+                : t.includes("hybrid") || t.includes("balanced") ? "Hybrid" : "Other";
+              if (!typeMap[bucket]) typeMap[bucket] = [];
+              typeMap[bucket].push(m.scheme);
+            });
+            const overlaps = Object.entries(typeMap).filter(([, names]) => names.length > 1);
+            if (!overlaps.length) return (
+              <div style={{ ...card, marginTop: 20, borderLeft: `4px solid ${THEME.sage}` }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <Check size={16} style={{ color: THEME.sage }} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>No overlap detected — your MF portfolio is well-diversified across categories.</span>
+                </div>
+              </div>
+            );
+            return (
+              <div style={{ ...card, marginTop: 20, borderLeft: `4px solid ${THEME.gold}` }}>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>MF Overlap Detector</div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {overlaps.map(([bucket, names]) => (
+                    <div key={bucket} style={{ padding: 12, background: "rgba(249,171,0,0.08)", borderRadius: 8 }}>
+                      <div style={{ fontWeight: 700, color: THEME.gold, fontSize: 13, marginBottom: 4 }}>⚠ {bucket} overlap ({names.length} funds)</div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>{names.join(" · ")}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>These funds likely hold similar stocks — consider consolidating to one.</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </>
       )}
       {sub === "lic" && (
         <LICList items={state.lic} onRemove={(id) => removeItem("lic", id)} onEdit={setEditId} />
@@ -2991,6 +3181,78 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
       {sub === "term" && (
         <TermList items={state.termPlans} onRemove={(id) => removeItem("termPlans", id)} onEdit={setEditId} />
       )}
+
+      {/* F6 – Interest & Dividend Income Tracker */}
+      {sub === "income" && (() => {
+        const now = new Date();
+        const fdInterest = state.fixedDeposits.map((f) => {
+          const principal = Number(f.principal) || 0;
+          const rate = Number(f.rate) || 0;
+          const annual = (principal * rate) / 100;
+          return { label: `${f.bank} FD`, annual, monthly: annual / 12, type: "FD Interest" };
+        });
+        const bondInterest = state.bonds.map((b) => {
+          const face = Number(b.faceValue) || 0;
+          const coupon = Number(b.coupon) || 0;
+          const annual = (face * coupon) / 100;
+          return { label: b.name, annual, monthly: annual / 12, type: "Bond Coupon" };
+        });
+        const rdInterest = state.recurringDeposits.map((r) => {
+          const m = Number(r.monthly) || 0;
+          const rate = Number(r.rate) || 0;
+          const months = Number(r.tenureMonths) || 12;
+          const maturity = rdMaturity(m, rate, months);
+          const invested = m * months;
+          const annual = (maturity - invested) / (months / 12);
+          return { label: `${r.bank} RD`, annual, monthly: annual / 12, type: "RD Interest" };
+        });
+        const all = [...fdInterest, ...bondInterest, ...rdInterest];
+        const totalAnnual = all.reduce((s, x) => s + x.annual, 0);
+        const totalMonthly = all.reduce((s, x) => s + x.monthly, 0);
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+              <Tile icon={Coins} label="Annual Interest Income" value={fmtINRFull(totalAnnual)} />
+              <Tile icon={IndianRupee} label="Monthly Interest" value={fmtINRFull(totalMonthly)} />
+              <Tile icon={Receipt} label="Sources" value={all.length} />
+              <Tile icon={Percent} label="Avg Yield" value={
+                (state.fixedDeposits.reduce((s,f)=>s+Number(f.principal||0),0) + state.bonds.reduce((s,b)=>s+Number(b.faceValue||0),0)) > 0
+                  ? (totalAnnual / (state.fixedDeposits.reduce((s,f)=>s+Number(f.principal||0),0) + state.bonds.reduce((s,b)=>s+Number(b.faceValue||0),0)) * 100).toFixed(2) + "%" : "—"
+              } />
+            </div>
+            {all.length === 0 ? <div style={card}><EmptyHint text="Add FDs, Bonds, or RDs to see interest income" /></div> : (
+              <div style={card}>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Income Breakdown</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                      <th style={th}>Instrument</th>
+                      <th style={th}>Type</th>
+                      <th style={{ ...th, textAlign: "right" }}>Annual Income</th>
+                      <th style={{ ...th, textAlign: "right" }}>Monthly Income</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {all.map((x, i) => (
+                      <tr key={i} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                        <td style={{ ...td, fontWeight: 600 }}>{x.label}</td>
+                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{x.type}</td>
+                        <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.sage }}>{fmtINRFull(x.annual)}</td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtINRFull(x.monthly)}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                      <td style={{ ...td, fontWeight: 700 }} colSpan={2}>Total</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.sage }}>{fmtINRFull(totalAnnual)}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.sage }}>{fmtINRFull(totalMonthly)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {modal === "fd" && (
         <FDModal
@@ -5666,6 +5928,9 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   const [showIncome, setShowIncome] = useState(false);
   const [showTaxPmt, setShowTaxPmt] = useState(false);
   const [showSlabs, setShowSlabs] = useState(false);
+  const [cgPlan, setCgPlan] = useState<{id:string;sellDate:string}[]>([]);
+  const [rentPaid, setRentPaid] = useState("180000");
+  const [cityTier, setCityTier] = useState("metro");
 
   // ── Income inputs ──
   const [grossSalary, setGrossSalary] = useState(String(metrics.annualIncome || ""));
@@ -6100,6 +6365,133 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
         </div>
       </div>
 
+      {/* ── G7. Tax Saved vs Tax Paid ── */}
+      {(() => {
+        const regime = state.profile.regime || "new";
+        const taxLiability = regime === "new" ? newGrandTotal : oldGrandTotal;
+        const marginalRate = gSalary > 2400000 ? 30 : gSalary > 2000000 ? 25 : gSalary > 1600000 ? 20 : gSalary > 1200000 ? 15 : gSalary > 800000 ? 10 : gSalary > 400000 ? 5 : 0;
+        const deductionsOldTotal = regime === "old" ? totalOldDed : stdDedNew;
+        const taxSaved = (deductionsOldTotal * marginalRate) / 100;
+        return (
+          <div style={{ ...card, marginTop: 24 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>G7 · Tax Saved vs Tax Paid</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
+              <div style={{ padding: 16, borderRadius: 10, background: "rgba(30,142,62,0.07)", border: `1px solid ${THEME.sage}` }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Tax Saved via Deductions</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: THEME.sage }}>{fmtINRFull(taxSaved)}</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{fmtINRFull(deductionsOldTotal)} deductions × {marginalRate}% rate</div>
+              </div>
+              <div style={{ padding: 16, borderRadius: 10, background: "rgba(217,48,37,0.06)", border: `1px solid ${THEME.rust}` }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Tax Liability ({regime === "new" ? "New" : "Old"} Regime)</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(taxLiability)}</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Incl. 4% cess</div>
+              </div>
+              <div style={{ padding: 16, borderRadius: 10, background: "rgba(249,171,0,0.07)", border: `1px solid ${THEME.gold}` }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Effective Tax Rate</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: THEME.gold }}>{gSalary > 0 ? ((taxLiability / gSalary) * 100).toFixed(1) : 0}%</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of gross income</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── G8. Capital Gains Tax Planner ── */}
+      {(() => {
+        const updateCG = (id, date) => setCgPlan((prev) => { const next = prev.filter((x) => x.id !== id); return date ? [...next, { id, sellDate: date }] : next; });
+        const stocksWithPlan = state.stocks.map((s) => {
+          const plan = cgPlan.find((x) => x.id === s.id);
+          const invested = Number(s.qty) * Number(s.avgPrice);
+          const current = Number(s.qty) * Number(s.currentPrice);
+          const gain = current - invested;
+          const sellDate = plan?.sellDate;
+          const holdingMonths = sellDate ? monthsBetween(today(), sellDate) : null;
+          const isLTCG = holdingMonths !== null ? holdingMonths >= 12 : null;
+          const taxOnGain = gain <= 0 ? 0 : isLTCG === null ? 0 : isLTCG ? Math.max(0, gain - 125000) * 0.125 * 1.04 : gain * 0.20 * 1.04;
+          return { ...s, gain, invested, current, sellDate, isLTCG, taxOnGain };
+        });
+        return (
+          <div style={{ ...card, marginTop: 24 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>G8 · Capital Gains Tax Planner — Enter Planned Sell Dates</div>
+            {state.stocks.length === 0 ? <EmptyHint text="Add stocks in Demat & Stocks tab" /> : (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead><tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                  <th style={th}>Stock</th>
+                  <th style={{ ...th, textAlign: "right" }}>Gain</th>
+                  <th style={th}>Planned Sell Date</th>
+                  <th style={th}>STCG / LTCG</th>
+                  <th style={{ ...th, textAlign: "right" }}>Est. Tax</th>
+                </tr></thead>
+                <tbody>
+                  {stocksWithPlan.map((s) => (
+                    <tr key={s.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                      <td style={{ ...td, fontWeight: 700 }}>{s.symbol}</td>
+                      <td style={{ ...td, textAlign: "right", color: s.gain >= 0 ? THEME.sage : THEME.rust, fontWeight: 600 }}>{s.gain >= 0 ? "+" : ""}{fmtINR(s.gain)}</td>
+                      <td style={td}><input type="date" style={{ ...input, padding: "3px 8px", fontSize: 12 }} value={s.sellDate || ""} onChange={(e) => updateCG(s.id, e.target.value)} /></td>
+                      <td style={td}>{s.isLTCG === null ? "—" : <span style={{ color: s.isLTCG ? THEME.sage : THEME.gold, fontWeight: 700 }}>{s.isLTCG ? "LTCG ✓" : "STCG ⚡"}</span>}</td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.rust, fontWeight: 700 }}>{s.sellDate ? fmtINRFull(s.taxOnGain) : "—"}</td>
+                    </tr>
+                  ))}
+                  {stocksWithPlan.some((s) => s.sellDate) && (
+                    <tr style={{ background: "rgba(128,128,128,0.07)" }}>
+                      <td style={{ ...td, fontWeight: 700 }} colSpan={4}>Total Planned Tax</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.rust }}>{fmtINRFull(stocksWithPlan.reduce((s, x) => s + x.taxOnGain, 0))}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── G9. HRA Exemption Calculator ── */}
+      {(() => {
+        const hra = Number(hraReceived) || 0;
+        const basic = gSalary * 0.4;
+        const rentExcess = Math.max(0, Number(rentPaid) - 0.1 * basic);
+        const pctOfBasic = cityTier === "metro" ? basic * 0.5 : basic * 0.4;
+        const exemption = Math.min(hra, pctOfBasic, rentExcess);
+        const taxableHRA = hra - exemption;
+        return (
+          <div style={{ ...card, marginTop: 24, marginBottom: 24 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>G9 · HRA Exemption Calculator (u/s 10(13A))</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Actual Rent Paid (Annual)</div>
+                <input style={{ ...input, fontSize: 13 }} type="number" value={rentPaid} onChange={(e) => setRentPaid(e.target.value)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>HRA Received (auto)</div>
+                <input style={{ ...input, fontSize: 13, opacity: 0.7 }} type="number" readOnly value={hraReceived} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>City Tier</div>
+                <select style={{ ...input, fontSize: 13 }} value={cityTier} onChange={(e) => setCityTier(e.target.value)}>
+                  <option value="metro">Metro (Delhi/Mumbai/Chennai/Kolkata)</option>
+                  <option value="non-metro">Non-Metro</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+              {[
+                { label: "Actual HRA received", val: fmtINRFull(hra), color: THEME.ink },
+                { label: `${cityTier==="metro"?"50%":"40%"} of Basic (est.)`, val: fmtINRFull(pctOfBasic), color: THEME.muted },
+                { label: "Rent paid − 10% Basic", val: fmtINRFull(rentExcess), color: THEME.muted },
+                { label: "HRA Exempt (min of 3)", val: fmtINRFull(exemption), color: THEME.sage },
+                { label: "Taxable HRA", val: fmtINRFull(taxableHRA), color: taxableHRA > 0 ? THEME.rust : THEME.sage },
+              ].map(({ label, val, color }) => (
+                <div key={label} style={{ padding: 12, borderRadius: 8, background: "rgba(128,128,128,0.05)" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>{label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color, marginTop: 4 }}>{val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 12 }}>Exemption = min(Actual HRA · {cityTier==="metro"?"50%":"40%"} of Basic · Rent − 10% Basic). Enter your HRA in Income Details above.</div>
+          </div>
+        );
+      })()}
+
       {showIncome && (
         <IncomeModal onClose={() => setShowIncome(false)} onSave={(v) => { addItem("income", v); setShowIncome(false); }} />
       )}
@@ -6389,12 +6781,64 @@ function BudgetTab({ state, addItem, removeItem, metrics }) {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
         <Tile icon={Wallet} label="Total Budgeted" value={fmtINRFull(totalBudget)} />
         <Tile icon={Receipt} label="Spent This Month" value={fmtINRFull(totalSpent)} negative={totalSpent > totalBudget} />
         <Tile icon={TrendingUp} label="Remaining" value={fmtINRFull(Math.max(0, totalBudget - totalSpent))} />
         <Tile icon={Target} label="Categories" value={state.budgets.length} />
       </div>
+
+      {/* E1 – Budget Burn Rate */}
+      {totalBudget > 0 && (() => {
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const daysPassed = now.getDate();
+        const monthElapsedPct = (daysPassed / daysInMonth) * 100;
+        const spentPct = (totalSpent / totalBudget) * 100;
+        const onTrack = spentPct <= monthElapsedPct + 5;
+        const burnColor = spentPct > monthElapsedPct + 10 ? THEME.rust : spentPct > monthElapsedPct - 5 ? THEME.gold : THEME.sage;
+        const r = 44, sz = 104, circ = 2 * Math.PI * r;
+        return (
+          <div style={{ ...card, marginBottom: 24 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Budget Burn Rate — Day {daysPassed} of {daysInMonth}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <svg width={sz} height={sz}>
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.line} strokeWidth="8" />
+                  {/* Month elapsed arc (grey) */}
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.muted} strokeWidth="8" opacity="0.3"
+                    strokeDasharray={`${(monthElapsedPct/100)*circ} ${circ}`} strokeDashoffset={circ/4} strokeLinecap="round" />
+                  {/* Spend arc */}
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={burnColor} strokeWidth="8"
+                    strokeDasharray={`${Math.min(spentPct/100,1)*circ} ${circ}`} strokeDashoffset={circ/4} strokeLinecap="round"
+                    style={{ transition: "stroke-dasharray 0.6s ease" }} />
+                  <text x={sz/2} y={sz/2-4} textAnchor="middle" fontSize="15" fontWeight="800" fill={burnColor}>{spentPct.toFixed(0)}%</text>
+                  <text x={sz/2} y={sz/2+13} textAnchor="middle" fontSize="9" fill={THEME.muted}>spent</text>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {[
+                    { label: "Month elapsed", val: monthElapsedPct.toFixed(0) + "%", color: THEME.muted },
+                    { label: "Budget spent", val: spentPct.toFixed(0) + "%", color: burnColor },
+                    { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
+                    { label: "Daily average", val: fmtINR(daysPassed > 0 ? totalSpent / daysPassed : 0) + "/day", color: THEME.muted },
+                    { label: "Projected month-end", val: fmtINRFull(daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0), color: burnColor },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: THEME.muted }}>{label}</span>
+                      <span style={{ fontWeight: 700, color }}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 12, fontSize: 12, padding: "8px 12px", borderRadius: 6, background: onTrack ? "rgba(30,142,62,0.08)" : "rgba(217,48,37,0.08)", color: onTrack ? THEME.sage : THEME.rust, fontWeight: 600 }}>
+                  {onTrack ? "✓ On track — spending in line with the month" : `⚠ Overpacing — spending faster than month progress`}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {state.budgets.length === 0 ? (
         <div style={card}>
@@ -6793,6 +7237,38 @@ function AnalyticsTab({ metrics, state, trendData }) {
           </div>
         ) : <EmptyHint text="No expense data for this month" />}
       </div>
+
+      {/* E2 – Expense Forecast */}
+      {(() => {
+        const now = new Date();
+        const forecast = metrics.expenseBreakdown.slice(0, 6).map((cat) => {
+          const vals = Array.from({ length: 3 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (2 - i), 1);
+            const ym2 = d.toISOString().slice(0, 7);
+            return state.transactions.filter((t) => t.date && t.date.startsWith(ym2) && t.type === "debit" && t.category === cat.name)
+              .reduce((s, t) => s + Number(t.amount || 0), 0);
+          });
+          const avg = vals.reduce((a, b) => a + b, 0) / 3;
+          return { name: cat.name, actual: cat.value, predicted: Math.round(avg) };
+        }).filter((c) => c.predicted > 0 || c.actual > 0);
+        if (!forecast.length) return null;
+        return (
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Expense Forecast — This Month vs 3-Month Avg</div>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={forecast} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.paper, color: THEME.ink, border: `1px solid ${THEME.line}`, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="actual" fill={THEME.accent} radius={[4,4,0,0]} name="This Month" />
+                <Bar dataKey="predicted" fill={THEME.gold} radius={[4,4,0,0]} name="3-Month Avg (Forecast)" opacity={0.75} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
 
       {/* C7 – Expense Heatmap */}
       {(() => {
