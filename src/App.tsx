@@ -417,6 +417,12 @@ export default function FinanceDashboard() {
   const [bgStyle, setBgStyle] = useState<string>(() => {
     try { return localStorage.getItem("finance-bg") || "plain"; } catch { return "plain"; }
   });
+  const [animSpeed, setAnimSpeed] = useState<string>(() => {
+    try { return localStorage.getItem("finance-anim") || "smooth"; } catch { return "smooth"; }
+  });
+  const [chartStyle, setChartStyle] = useState<string>(() => {
+    try { return localStorage.getItem("finance-chart") || "monotone"; } catch { return "monotone"; }
+  });
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
@@ -435,6 +441,7 @@ export default function FinanceDashboard() {
       outfit: "'Outfit', sans-serif", 
       roboto: "'Roboto', sans-serif" 
     };
+    const anims = { snappy: "0.15s", smooth: "0.4s", relaxed: "0.8s" };
     
     const merged = { 
       ...vars, 
@@ -444,6 +451,7 @@ export default function FinanceDashboard() {
       "--section-gap": `${d.sectionGap}px`,
       "--t-radius": radiuses[radiusKey] || "12px",
       "--t-font": fonts[fontKey] || "'Inter', sans-serif",
+      "--t-transition": `${anims[animSpeed] || "0.4s"} cubic-bezier(0.4, 0, 0.2, 1)`,
       "--t-card-bg": vars["--t-darkInk"],
       "--t-card-shadow": darkMode ? "0 10px 40px rgba(0,0,0,0.3)" : "0 10px 30px rgba(0,0,0,0.04)",
       "--t-card-blur": "none",
@@ -461,8 +469,10 @@ export default function FinanceDashboard() {
       localStorage.setItem("finance-radius", radiusKey);
       localStorage.setItem("finance-font", fontKey);
       localStorage.setItem("finance-bg", bgStyle);
+      localStorage.setItem("finance-anim", animSpeed);
+      localStorage.setItem("finance-chart", chartStyle);
     } catch {}
-  }, [darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle]);
+  }, [darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle]);
 
   useEffect(() => {
     if (document.getElementById("finance-dash-fonts")) return;
@@ -489,7 +499,7 @@ export default function FinanceDashboard() {
         background-attachment: fixed !important;
       }
       button, input, select, textarea { font-family: var(--t-font) !important; }
-      .card-base { border-radius: var(--t-radius) !important; }
+      .card-base { border-radius: var(--t-radius) !important; transition: all var(--t-transition) !important; }
       button:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 2px; }
       button { transition: opacity 0.15s ease, background 0.15s ease; }
       button:hover { opacity: 0.82; }
@@ -1175,7 +1185,7 @@ export default function FinanceDashboard() {
             zIndex: 1,
           }}
         >
-          {tab === "overview" && <Overview metrics={metrics} state={state} assetBreakdown={assetBreakdown} trendData={trendData} />}
+          {tab === "overview" && <Overview metrics={metrics} state={state} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
           {tab === "banks" && <BanksTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
           {tab === "investments" && <InvestmentsTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
           {tab === "demat" && <DematTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
@@ -1187,7 +1197,7 @@ export default function FinanceDashboard() {
           {tab === "tax" && <TaxTab state={state} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
           {tab === "budget" && <BudgetTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
           {tab === "reminders" && <RemindersTab state={state} addItem={addItem} removeItem={removeItem} />}
-          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={state} trendData={trendData} />}
+          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={state} trendData={trendData} chartStyle={chartStyle} />}
           {tab === "calculators" && <CalculatorsTab />}
           {tab === "settings" && (
             <SettingsTab
@@ -1201,6 +1211,8 @@ export default function FinanceDashboard() {
               radiusKey={radiusKey} setRadiusKey={setRadiusKey}
               fontKey={fontKey} setFontKey={setFontKey}
               bgStyle={bgStyle} setBgStyle={setBgStyle}
+              animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
+              chartStyle={chartStyle} setChartStyle={setChartStyle}
             />
           )}
         </main>
@@ -1283,7 +1295,7 @@ const card = {
   borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
   boxShadow: "var(--t-card-shadow)",
-  transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+  transition: "all var(--t-transition)",
 };
 const cardDark = {
   background: "linear-gradient(135deg, var(--t-ink), #000)",
@@ -1304,7 +1316,7 @@ const input = {
   fontSize: "var(--app-font-size, 14px)",
   color: "var(--t-ink)",
   borderRadius: 14,
-  transition: "all 0.2s ease",
+  transition: "all calc(var(--t-transition, 0.4s) / 2) ease",
 };
 const label = {
   display: "block",
@@ -1344,7 +1356,7 @@ const SectionTitle = ({ children, sub }) => (
 );
 
 // ================== OVERVIEW ==================
-function Overview({ metrics, state, assetBreakdown, trendData }) {
+function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any) {
   const [drillCat, setDrillCat] = useState(null);
   const netWorthTrend = useMemo(() => {
     // simple monthly snapshot: cumulative net cash flow + current assets snapshot (approximation)
@@ -1891,7 +1903,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                 }}
               />
               <Area
-                type="monotone"
+                type={chartStyle}
                 dataKey="income"
                 stroke={THEME.sage}
                 strokeWidth={2}
@@ -1899,7 +1911,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
                 name="Income"
               />
               <Area
-                type="monotone"
+                type={chartStyle}
                 dataKey="expense"
                 stroke={THEME.accent}
                 strokeWidth={2}
@@ -1988,7 +2000,7 @@ function Overview({ metrics, state, assetBreakdown, trendData }) {
               <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
               <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-              <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNw)" name="Net Worth" />
+              <Area type={chartStyle} dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNw)" name="Net Worth" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -7123,7 +7135,7 @@ function ReminderModal({ onClose, onSave }) {
 }
 
 // ================== ANALYTICS TAB ==================
-function AnalyticsTab({ metrics, state, trendData }) {
+function AnalyticsTab({ metrics, state, trendData, chartStyle }: any) {
   const netWorthTrend = useMemo(() => {
     return trendData.map((t, i) => ({
       month: t.month,
@@ -7189,7 +7201,7 @@ function AnalyticsTab({ metrics, state, trendData }) {
             <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
             <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
             <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-            <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNwAnalytics)" name="Net Worth" />
+            <Area type={chartStyle} dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNwAnalytics)" name="Net Worth" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -7703,7 +7715,9 @@ function SettingsTab({
   sidebarNav, setSidebarNav,
   radiusKey, setRadiusKey,
   fontKey, setFontKey,
-  bgStyle, setBgStyle
+  bgStyle, setBgStyle,
+  animSpeed, setAnimSpeed,
+  chartStyle, setChartStyle
 }) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
@@ -7819,6 +7833,23 @@ function SettingsTab({
                   </button>
                 ))}
               </div>
+            </Field>
+          </div>
+
+          <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <Field label="Animation Speed">
+              <select style={input} value={animSpeed} onChange={(e) => setAnimSpeed(e.target.value)}>
+                <option value="snappy">Snappy (Fast)</option>
+                <option value="smooth">Smooth (Default)</option>
+                <option value="relaxed">Relaxed (Slow)</option>
+              </select>
+            </Field>
+            <Field label="Chart Line Style">
+              <select style={input} value={chartStyle} onChange={(e) => setChartStyle(e.target.value)}>
+                <option value="monotone">Curved Lines</option>
+                <option value="linear">Straight Lines</option>
+                <option value="step">Step Lines</option>
+              </select>
             </Field>
           </div>
         </div>
