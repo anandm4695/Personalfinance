@@ -55,6 +55,8 @@ import {
   Percent,
   List,
 } from "lucide-react";
+import { supabase } from "./supabaseClient";
+import Auth from "./Auth";
 import {
   LineChart,
   Line,
@@ -451,6 +453,16 @@ export default function FinanceDashboard() {
   const [chartStyle, setChartStyle] = useState<string>(() => {
     try { return localStorage.getItem("finance-chart") || "monotone"; } catch { return "monotone"; }
   });
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+  }, []);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
@@ -550,27 +562,41 @@ export default function FinanceDashboard() {
 
   // Load from persistent storage on mount
   useEffect(() => {
+    if (!session) return;
     (async () => {
       try {
-        if (window.storage) {
+        const { data, error } = await supabase
+          .from("user_state")
+          .select("data")
+          .eq("user_id", session.user.id)
+          .single();
+          
+        if (data && data.data) {
+          setState({ ...DEFAULT_STATE, ...data.data });
+        } else if (window.storage) {
           const result = await window.storage.get(STORAGE_KEY);
           if (result && result.value) {
-            const parsed = JSON.parse(result.value);
-            setState({ ...DEFAULT_STATE, ...parsed });
+            setState({ ...DEFAULT_STATE, ...JSON.parse(result.value) });
           }
         }
       } catch (e) {
-        /* no data yet */
+        console.error("Load failed", e);
       }
       setLoaded(true);
     })();
-  }, []);
+  }, [session]);
 
   // Save on change
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !session) return;
     (async () => {
       try {
+        await supabase.from("user_state").upsert({
+          user_id: session.user.id,
+          data: state,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
         if (window.storage) {
           await window.storage.set(STORAGE_KEY, JSON.stringify(state));
         }
@@ -578,7 +604,7 @@ export default function FinanceDashboard() {
         console.error("save failed", e);
       }
     })();
-  }, [state, loaded]);
+  }, [state, loaded, session]);
 
   const filteredState = useMemo(() => {
     if (activeProfile === "all") return state;
@@ -998,6 +1024,10 @@ export default function FinanceDashboard() {
   }, [search, state]);
 
   const d = DENSITY[density] || DENSITY.normal;
+
+  if (!session) {
+    return <Auth onLogin={setSession} />;
+  }
 
   return (
     <div
