@@ -310,7 +310,9 @@ const DEFAULT_STATE = (() => {
     profiles: PROFILES,
     bankAccounts: [
       { id: "1", owner: "self", bankName: "HDFC Bank", accountNo: "XXXX1234", balance: "150000" },
-      { id: "2", owner: "self", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" }
+      { id: "2", owner: "self", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" },
+      { id: "3", owner: "wife", bankName: "ICICI Bank", accountNo: "XXXX9988", balance: "80000" },
+      { id: "4", owner: "huf", bankName: "Axis Bank", accountNo: "XXXX1111", balance: "250000" }
     ],
     transactions: [
       { id: "t1", owner: "self", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
@@ -321,7 +323,8 @@ const DEFAULT_STATE = (() => {
       { id: "t6", owner: "self", date: `${lastM}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
     ],
     fixedDeposits: [
-      { id: "fd1", owner: "self", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" }
+      { id: "fd1", owner: "self", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" },
+      { id: "fd2", owner: "huf", bank: "Axis Bank", principal: "1000000", rate: "7.5", years: "5", startDate: "2022-06-01", maturityDate: "2027-06-01" }
     ],
     recurringDeposits: [
       { id: "rd1", owner: "self", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
@@ -332,7 +335,8 @@ const DEFAULT_STATE = (() => {
       { id: "b2", owner: "self", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
     ],
     ppf: [
-      { id: "p1", owner: "self", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" }
+      { id: "p1", owner: "self", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" },
+      { id: "p2", owner: "wife", bank: "SBI", balance: "200000", openDate: "2018-04-01", thisYearContribution: "50000" }
     ],
     nps: [
       { id: "n1", owner: "self", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
@@ -347,7 +351,8 @@ const DEFAULT_STATE = (() => {
     ],
     mutualFunds: [
       { id: "m1", owner: "self", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
-      { id: "m2", owner: "self", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" }
+      { id: "m2", owner: "self", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" },
+      { id: "m3", owner: "daughter", scheme: "HDFC Children's Gift Fund", type: "Hybrid", units: "1000", currentNav: "150", invested: "100000" }
     ],
     stocks: [
       { id: "s1", owner: "self", symbol: "RELIANCE", dematId: "d1", qty: "20", currentPrice: "2250", avgPrice: "2500" },
@@ -389,7 +394,8 @@ const DEFAULT_STATE = (() => {
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
     ],
     goals: [
-      { id: "g1", owner: "self", name: "Emergency Fund", target: "600000", current: "400000" }
+      { id: "g1", owner: "self", name: "Emergency Fund", target: "600000", current: "400000" },
+      { id: "g2", owner: "daughter", name: "College Fund", target: "2000000", current: "250000" }
     ],
     income: [
       { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
