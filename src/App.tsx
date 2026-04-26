@@ -42,6 +42,7 @@ import {
   ChevronUp,
   ChevronDown,
   User,
+  Users,
   Search,
   Activity,
   Pause,
@@ -282,66 +283,86 @@ const loadState = () => {
   }
 };
 
+const PROFILES = [
+  { id: "self", name: "Self" },
+  { id: "wife", name: "Wife" },
+  { id: "daughter", name: "Daughter" },
+  { id: "huf", name: "HUF" }
+];
+
+const OwnerBadge = ({ owner }: { owner?: string }) => {
+  if (!owner) return null;
+  const p = PROFILES.find(x => x.id === owner);
+  if (!p) return null;
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", background: "color-mix(in srgb, var(--t-accent) 12%, transparent)", color: "var(--t-accent)", padding: "2px 8px", borderRadius: 12, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      {p.name}
+    </div>
+  );
+};
+
 const DEFAULT_STATE = (() => {
   const d = new Date();
   const ym = d.toISOString().slice(0, 7);
   const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
   return {
     profile: { name: "Anand", fy: "2025-26", regime: "new" },
+    profiles: PROFILES,
     bankAccounts: [
-      { id: "1", bankName: "HDFC Bank", accountNo: "XXXX1234", balance: "150000" },
-      { id: "2", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" }
+      { id: "1", owner: "self", bankName: "HDFC Bank", accountNo: "XXXX1234", balance: "150000" },
+      { id: "2", owner: "self", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" }
     ],
     transactions: [
-      { id: "t1", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t2", date: `${ym}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
-      { id: "t3", date: `${ym}-10`, accountId: "2", amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
-      { id: "t4", date: `${ym}-15`, accountId: "2", amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
-      { id: "t5", date: `${lastM}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t6", date: `${lastM}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
+      { id: "t1", owner: "self", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t2", owner: "self", date: `${ym}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
+      { id: "t3", owner: "self", date: `${ym}-10`, accountId: "2", amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
+      { id: "t4", owner: "self", date: `${ym}-15`, accountId: "2", amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
+      { id: "t5", owner: "self", date: `${lastM}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
+      { id: "t6", owner: "self", date: `${lastM}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
     ],
     fixedDeposits: [
-      { id: "fd1", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" }
+      { id: "fd1", owner: "self", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" }
     ],
     recurringDeposits: [
-      { id: "rd1", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
-      { id: "rd2", bank: "Post Office", monthly: "3000", rate: "6.8", tenureMonths: "36", startDate: "2023-06-01" },
+      { id: "rd1", owner: "self", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
+      { id: "rd2", owner: "self", bank: "Post Office", monthly: "3000", rate: "6.8", tenureMonths: "36", startDate: "2023-06-01" },
     ],
     bonds: [
-      { id: "b1", name: "G-Sec 7.26% 2033", type: "Government", faceValue: "100000", coupon: "7.26", maturityDate: "2033-09-15" },
-      { id: "b2", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
+      { id: "b1", owner: "self", name: "G-Sec 7.26% 2033", type: "Government", faceValue: "100000", coupon: "7.26", maturityDate: "2033-09-15" },
+      { id: "b2", owner: "self", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
     ],
     ppf: [
-      { id: "p1", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" }
+      { id: "p1", owner: "self", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" }
     ],
     nps: [
-      { id: "n1", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
+      { id: "n1", owner: "self", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
     ],
     lic: [
-      { id: "lic1", policyNumber: "12345678", planName: "Jeevan Anand", sumAssured: "1000000", annualPremium: "45000", premiumPaid: "180000", maturityDate: "2035-06-15" },
-      { id: "lic2", policyNumber: "98765432", planName: "Money Back 20yr", sumAssured: "500000", annualPremium: "28000", premiumPaid: "84000", maturityDate: "2030-12-31" },
+      { id: "lic1", owner: "self", policyNumber: "12345678", planName: "Jeevan Anand", sumAssured: "1000000", annualPremium: "45000", premiumPaid: "180000", maturityDate: "2035-06-15" },
+      { id: "lic2", owner: "self", policyNumber: "98765432", planName: "Money Back 20yr", sumAssured: "500000", annualPremium: "28000", premiumPaid: "84000", maturityDate: "2030-12-31" },
     ],
     termPlans: [
-      { id: "tp1", insurer: "HDFC Life", planName: "Click 2 Protect", coverAmount: "10000000", annualPremium: "12000", expiryDate: "2055-08-01" },
-      { id: "tp2", insurer: "LIC", planName: "Tech Term", coverAmount: "5000000", annualPremium: "8500", expiryDate: "2050-04-15" },
+      { id: "tp1", owner: "self", insurer: "HDFC Life", planName: "Click 2 Protect", coverAmount: "10000000", annualPremium: "12000", expiryDate: "2055-08-01" },
+      { id: "tp2", owner: "self", insurer: "LIC", planName: "Tech Term", coverAmount: "5000000", annualPremium: "8500", expiryDate: "2050-04-15" },
     ],
     mutualFunds: [
-      { id: "m1", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
-      { id: "m2", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" }
+      { id: "m1", owner: "self", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
+      { id: "m2", owner: "self", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" }
     ],
     stocks: [
-      { id: "s1", symbol: "RELIANCE", dematId: "d1", qty: "20", currentPrice: "2250", avgPrice: "2500" },
-      { id: "s2", symbol: "TCS", dematId: "d1", qty: "15", currentPrice: "3600", avgPrice: "2800" },
-      { id: "s3", symbol: "INFY", dematId: "d2", qty: "25", currentPrice: "1580", avgPrice: "1400" },
-      { id: "s4", symbol: "HDFCBANK", dematId: "d2", qty: "10", currentPrice: "1720", avgPrice: "1650" },
+      { id: "s1", owner: "self", symbol: "RELIANCE", dematId: "d1", qty: "20", currentPrice: "2250", avgPrice: "2500" },
+      { id: "s2", owner: "self", symbol: "TCS", dematId: "d1", qty: "15", currentPrice: "3600", avgPrice: "2800" },
+      { id: "s3", owner: "self", symbol: "INFY", dematId: "d2", qty: "25", currentPrice: "1580", avgPrice: "1400" },
+      { id: "s4", owner: "self", symbol: "HDFCBANK", dematId: "d2", qty: "10", currentPrice: "1720", avgPrice: "1650" },
     ],
     demat: [
-      { id: "d1", broker: "Zerodha", dpId: "IN300095", clientId: "AB1234" },
-      { id: "d2", broker: "Groww", dpId: "IN303719", clientId: "GW5678" },
+      { id: "d1", owner: "self", broker: "Zerodha", dpId: "IN300095", clientId: "AB1234" },
+      { id: "d2", owner: "self", broker: "Groww", dpId: "IN303719", clientId: "GW5678" },
     ],
     creditCards: [
       { 
         id: "c1", 
+        owner: "self",
         issuer: "Amazon Pay ICICI", 
         network: "Visa", 
         last4: "5678", 
@@ -360,31 +381,31 @@ const DEFAULT_STATE = (() => {
     ],
     prepaidCards: [],
     loansTaken: [
-      { id: "l1", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
+      { id: "l1", owner: "self", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
     ],
     loansGiven: [],
     subscriptions: [
-      { id: "sub1", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
-      { id: "sub2", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
+      { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
+      { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
     ],
     goals: [
-      { id: "g1", name: "Emergency Fund", target: "600000", current: "400000" }
+      { id: "g1", owner: "self", name: "Emergency Fund", target: "600000", current: "400000" }
     ],
     income: [
-      { id: "i1", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
+      { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
     ],
     taxPayments: [],
     budgets: [
-      { id: "b1", category: "Food", monthly: "10000" },
-      { id: "b2", category: "Rent", monthly: "15000" },
-      { id: "b3", category: "Transport", monthly: "3000" },
-      { id: "b4", category: "Entertainment", monthly: "2000" },
+      { id: "b1", owner: "self", category: "Food", monthly: "10000" },
+      { id: "b2", owner: "self", category: "Rent", monthly: "15000" },
+      { id: "b3", owner: "self", category: "Transport", monthly: "3000" },
+      { id: "b4", owner: "self", category: "Entertainment", monthly: "2000" },
     ],
     reminders: [],
     sips: [
-      { id: "sip1", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
-      { id: "sip2", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
-      { id: "sip3", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
+      { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
+      { id: "sip2", owner: "self", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
+      { id: "sip3", owner: "self", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
     ],
   };
 })();
@@ -417,6 +438,7 @@ export default function FinanceDashboard() {
   const [bgStyle, setBgStyle] = useState<string>(() => {
     try { return localStorage.getItem("finance-bg") || "plain"; } catch { return "plain"; }
   });
+  const [activeProfile, setActiveProfile] = useState<string>("all");
   const [animSpeed, setAnimSpeed] = useState<string>(() => {
     try { return localStorage.getItem("finance-anim") || "smooth"; } catch { return "smooth"; }
   });
@@ -551,63 +573,94 @@ export default function FinanceDashboard() {
     })();
   }, [state, loaded]);
 
+  const filteredState = useMemo(() => {
+    if (activeProfile === "all") return state;
+    const filterByOwner = (arr: any[]) => arr.filter((item) => item.owner === activeProfile);
+    return {
+      ...state,
+      bankAccounts: filterByOwner(state.bankAccounts),
+      transactions: filterByOwner(state.transactions),
+      fixedDeposits: filterByOwner(state.fixedDeposits),
+      recurringDeposits: filterByOwner(state.recurringDeposits),
+      bonds: filterByOwner(state.bonds),
+      ppf: filterByOwner(state.ppf),
+      nps: filterByOwner(state.nps),
+      lic: filterByOwner(state.lic),
+      termPlans: filterByOwner(state.termPlans),
+      mutualFunds: filterByOwner(state.mutualFunds),
+      stocks: filterByOwner(state.stocks),
+      demat: filterByOwner(state.demat),
+      creditCards: filterByOwner(state.creditCards),
+      prepaidCards: filterByOwner(state.prepaidCards),
+      loansTaken: filterByOwner(state.loansTaken),
+      loansGiven: filterByOwner(state.loansGiven),
+      subscriptions: filterByOwner(state.subscriptions),
+      goals: filterByOwner(state.goals),
+      income: filterByOwner(state.income),
+      taxPayments: filterByOwner(state.taxPayments),
+      budgets: filterByOwner(state.budgets),
+      sips: filterByOwner(state.sips)
+    };
+  }, [state, activeProfile]);
+
   // ================== COMPUTED FINANCIAL METRICS ==================
   const metrics = useMemo(() => {
-    const cashInBanks = state.bankAccounts.reduce(
+    const sState = filteredState;
+    const cashInBanks = sState.bankAccounts.reduce(
       (s, a) => s + Number(a.balance || 0),
       0
     );
-    const fdValue = state.fixedDeposits.reduce(
+    const fdValue = sState.fixedDeposits.reduce(
       (s, f) => s + Number(f.principal || 0),
       0
     );
-    const rdValue = state.recurringDeposits.reduce((s, r) => {
+    const rdValue = sState.recurringDeposits.reduce((s, r) => {
       const m = monthsBetween(r.startDate, today());
       return (
         s + Math.min(m, Number(r.tenureMonths || 0)) * Number(r.monthly || 0)
       );
     }, 0);
-    const bondValue = state.bonds.reduce(
+    const bondValue = sState.bonds.reduce(
       (s, b) => s + Number(b.faceValue || 0),
       0
     );
-    const ppfValue = state.ppf.reduce((s, p) => s + Number(p.balance || 0), 0);
-    const npsValue = state.nps.reduce((s, n) => s + Number(n.balance || 0), 0);
-    const licValue = state.lic.reduce(
+    const ppfValue = sState.ppf.reduce((s, p) => s + Number(p.balance || 0), 0);
+    const npsValue = sState.nps.reduce((s, n) => s + Number(n.balance || 0), 0);
+    const licValue = sState.lic.reduce(
       (s, l) => s + Number(l.premiumPaid || 0),
       0
     );
-    const mfValue = state.mutualFunds.reduce(
+    const mfValue = sState.mutualFunds.reduce(
       (s, m) => s + Number(m.units || 0) * Number(m.currentNav || 0),
       0
     );
-    const mfInvested = state.mutualFunds.reduce(
+    const mfInvested = sState.mutualFunds.reduce(
       (s, m) => s + Number(m.invested || 0),
       0
     );
-    const stockValue = state.stocks.reduce(
+    const stockValue = sState.stocks.reduce(
       (s, st) => s + Number(st.qty || 0) * Number(st.currentPrice || 0),
       0
     );
-    const stockInvested = state.stocks.reduce(
+    const stockInvested = sState.stocks.reduce(
       (s, st) => s + Number(st.qty || 0) * Number(st.avgPrice || 0),
       0
     );
 
-    const loansGivenValue = state.loansGiven.reduce(
+    const loansGivenValue = sState.loansGiven.reduce(
       (s, l) => s + Number(l.outstanding || 0),
       0
     );
-    const prepaidValue = state.prepaidCards.reduce(
+    const prepaidValue = sState.prepaidCards.reduce(
       (s, p) => s + Number(p.balance || 0),
       0
     );
 
-    const ccOutstanding = state.creditCards.reduce(
+    const ccOutstanding = sState.creditCards.reduce(
       (s, c) => s + Number(c.outstanding || 0),
       0
     );
-    const loansTakenValue = state.loansTaken.reduce(
+    const loansTakenValue = sState.loansTaken.reduce(
       (s, l) => s + Number(l.outstanding || 0),
       0
     );
@@ -630,7 +683,7 @@ export default function FinanceDashboard() {
     // Income/Expense current month
     const now = new Date();
     const ym = now.toISOString().slice(0, 7);
-    const monthTxns = state.transactions.filter(
+    const monthTxns = sState.transactions.filter(
       (t) => t.date && t.date.startsWith(ym)
     );
     const monthIncome = monthTxns
@@ -641,12 +694,12 @@ export default function FinanceDashboard() {
       .reduce((s, t) => s + Number(t.amount || 0), 0);
 
     // Annual income from income ledger
-    const fyStart = new Date(`${state.profile.fy.split("-")[0]}-04-01`);
-    const annualIncome = state.income
+    const fyStart = new Date(`${sState.profile.fy.split("-")[0]}-04-01`);
+    const annualIncome = sState.income
       .filter((i) => new Date(i.date) >= fyStart)
       .reduce((s, i) => s + Number(i.amount || 0), 0);
 
-    const subTotal = state.subscriptions.filter(sub => !sub.paused).reduce((s, sub) => {
+    const subTotal = sState.subscriptions.filter(sub => !sub.paused).reduce((s, sub) => {
       const m =
         sub.cycle === "yearly"
           ? Number(sub.amount || 0) / 12
@@ -661,7 +714,7 @@ export default function FinanceDashboard() {
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
     
-    const taxDue = state.profile.regime === "old"
+    const taxDue = sState.profile.regime === "old"
       ? calcTaxOld(annualIncome).total
       : calcTaxNew(annualIncome).total;
 
@@ -715,7 +768,7 @@ export default function FinanceDashboard() {
       expenseBreakdown,
       portfolioPerformance,
     };
-  }, [state]);
+  }, [filteredState]);
 
   const assetBreakdown = useMemo(
     () =>
@@ -1093,6 +1146,21 @@ export default function FinanceDashboard() {
               )}
             </div>
 
+            {/* PROFILE SWITCHER */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Users size={16} color={THEME.muted} />
+              <select 
+                style={{ ...input, padding: "8px 12px", width: "auto", minWidth: 120, fontSize: 13, borderRadius: 10, background: "transparent", borderColor: THEME.line }}
+                value={activeProfile}
+                onChange={e => setActiveProfile(e.target.value)}
+              >
+                <option value="all">All Profiles</option>
+                {state.profiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button onClick={() => setShowAlerts((v) => !v)} style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}>
                 <Bell size={16} />
@@ -1185,19 +1253,19 @@ export default function FinanceDashboard() {
             zIndex: 1,
           }}
         >
-          {tab === "overview" && <Overview metrics={metrics} state={state} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
-          {tab === "banks" && <BanksTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "investments" && <InvestmentsTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "demat" && <DematTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "credit" && <CreditTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "subs" && <SubsTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
-          {tab === "sip" && <SIPTrackerTab state={state} addItem={addItem} removeItem={removeItem} />}
-          {tab === "insurance" && <InsuranceSummaryTab state={state} metrics={metrics} />}
-          {tab === "goals" && <GoalsTab state={state} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
-          {tab === "tax" && <TaxTab state={state} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
-          {tab === "budget" && <BudgetTab state={state} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
-          {tab === "reminders" && <RemindersTab state={state} addItem={addItem} removeItem={removeItem} />}
-          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={state} trendData={trendData} chartStyle={chartStyle} />}
+          {tab === "overview" && <Overview metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
+          {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+          {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+          {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+          {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
+          {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
+          {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
+          {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+          {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} chartStyle={chartStyle} />}
           {tab === "calculators" && <CalculatorsTab />}
           {tab === "settings" && (
             <SettingsTab
@@ -2490,16 +2558,18 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
                 <Trash2 size={14} />
               </button>
             </div>
-            <div
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                color: THEME.muted,
-                marginBottom: 4,
-              }}
-            >
-              {a.type || "Savings"}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  color: THEME.muted,
+                }}
+              >
+                {a.type || "Savings"}
+              </div>
+              <OwnerBadge owner={a.owner} />
             </div>
             <div
               style={{
@@ -2767,6 +2837,7 @@ const iconBtn = {
 
 function BankModal({ onClose, onSave }) {
   const [f, setF] = useState({
+    owner: "self",
     bankName: "",
     accountNumber: "",
     type: "Savings",
@@ -2774,6 +2845,11 @@ function BankModal({ onClose, onSave }) {
   });
   return (
     <Modal title="Add Bank Account" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bank Name">
         <input
           style={input}
@@ -2782,13 +2858,20 @@ function BankModal({ onClose, onSave }) {
           placeholder="e.g. HDFC Bank"
         />
       </Field>
-      <Field label="Account Number (last 4 ok)">
-        <input
-          style={input}
-          value={f.accountNumber}
-          onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
-        />
-      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Owner / Profile">
+          <select style={input} value={f.owner} onChange={e => setF({...f, owner: e.target.value})}>
+            {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Account Number (last 4 ok)">
+          <input
+            style={input}
+            value={f.accountNumber}
+            onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
+          />
+        </Field>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type">
           <select
@@ -2841,6 +2924,11 @@ function TxnModal({ accounts, onClose, onSave }) {
   ];
   return (
     <Modal title="Record Transaction" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Date">
           <input
@@ -2926,6 +3014,11 @@ function TxnEditModal({ txn, accounts, onClose, onSave }) {
   });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Date">
           <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
@@ -3785,6 +3878,11 @@ function FDModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Fixed Deposit" : "Add Fixed Deposit"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bank">
         <input
           style={input}
@@ -3845,6 +3943,11 @@ function RDModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Recurring Deposit" : "Add Recurring Deposit"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bank">
         <input
           style={input}
@@ -3904,6 +4007,11 @@ function BondModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Bond" : "Add Bond"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bond Name">
         <input
           style={input}
@@ -3970,6 +4078,11 @@ function PPFModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit PPF Account" : "Add PPF Account"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Bank/Post Office">
         <input
           style={input}
@@ -4018,6 +4131,11 @@ function NPSModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit NPS Account" : "Add NPS Account"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="PRAN (last 6 ok)">
         <input
           style={input}
@@ -4071,6 +4189,11 @@ function MFModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Mutual Fund Holding" : "Add Mutual Fund Holding"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Scheme Name">
         <input
           style={input}
@@ -4142,6 +4265,11 @@ function LICModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit LIC Policy" : "Add LIC Policy"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Policy Number">
         <input
           style={input}
@@ -4205,6 +4333,11 @@ function TermModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Term Plan" : "Add Term Plan"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Insurer">
         <input
           style={input}
@@ -4581,6 +4714,11 @@ function DematModal({ onClose, onSave }) {
   const [f, setF] = useState({ broker: "", dpId: "", clientId: "" });
   return (
     <Modal title="Add Demat Account" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Broker">
         <input
           style={input}
@@ -4620,6 +4758,11 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Stock" : "Add Stock"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Symbol">
         <input
           style={input}
@@ -4923,8 +5066,11 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
                   <Trash2 size={14} />
                 </button>
               </div>
-              <div style={{ fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", color: THEME.gold }}>
-                {c.network || "Card"}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", color: THEME.gold }}>
+                  {c.network || "Card"}
+                </div>
+                <OwnerBadge owner={c.owner} />
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>
                 {c.issuer}
@@ -5291,6 +5437,11 @@ function CCModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
         <Field label="Issuer">
           <input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" />
@@ -5344,6 +5495,11 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
   const [f, setF] = useState(initial || { provider: "", name: "", balance: "" });
   return (
     <Modal title={initial ? "Edit Prepaid Card / Wallet" : "Add Prepaid Card / Wallet"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Provider">
         <input
           style={input}
@@ -5384,6 +5540,11 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Loan Taken" : "Add Loan Taken"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Lender">
         <input
           style={input}
@@ -5466,6 +5627,11 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
   });
   return (
     <Modal title={initial ? "Edit Loan Given" : "Record Loan Given"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Borrower Name">
         <input
           style={input}
@@ -5684,6 +5850,11 @@ function SubModal({ onClose, onSave }) {
   });
   return (
     <Modal title="Add Subscription" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Service Name">
         <input
           style={input}
@@ -5926,6 +6097,11 @@ function GoalModal({ onClose, onSave }) {
   });
   return (
     <Modal title="Add Goal" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Goal Name">
         <input
           style={input}
@@ -6575,6 +6751,11 @@ function IncomeModal({ onClose, onSave }) {
   });
   return (
     <Modal title="Log Income" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Source">
         <input
           style={input}
@@ -6634,6 +6815,11 @@ function TaxPmtModal({ onClose, onSave }) {
   });
   return (
     <Modal title="Log Tax Payment" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Type">
         <select
           style={input}
@@ -6978,6 +7164,11 @@ function BudgetModal({ existing, onClose, onSave }) {
   const [f, setF] = useState({ category: allCats[0], monthly: "" });
   return (
     <Modal title="Add Budget" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Category">
         <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
           {allCats.map((c) => <option key={c}>{c}</option>)}
@@ -7497,6 +7688,11 @@ function SIPModal({ onClose, onSave }) {
   const [f, setF] = useState({ scheme: "", fundType: "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
   return (
     <Modal title="Add SIP" onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <Field label="Scheme Name">
         <input style={input} value={f.scheme} onChange={(e) => setF({ ...f, scheme: e.target.value })} placeholder="e.g. Parag Parikh Flexi Cap" />
       </Field>
