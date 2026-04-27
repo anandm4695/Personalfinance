@@ -501,6 +501,9 @@ export default function FinanceDashboard() {
     Object.entries(merged).forEach(([k, v]) =>
       document.documentElement.style.setProperty(k, v)
     );
+    // Drive the CSS class-based dark theme so styles.css vars activate
+    document.documentElement.classList.toggle("dark-theme", darkMode);
+    document.body.classList.toggle("dark-theme", darkMode);
     try {
       localStorage.setItem("finance-theme", darkMode ? "dark" : "light");
       localStorage.setItem("finance-accent", accentKey);
@@ -1030,14 +1033,43 @@ export default function FinanceDashboard() {
   if (!session) {
     if (!isSupabaseConfigured) {
       return (
-        <div style={{ padding: 40, textAlign: 'center', background: '#0D1117', color: '#fff', minHeight: '100vh' }}>
-          <h2>Supabase Keys Missing</h2>
-          <p>Please update your <code>.env</code> file with <code>REACT_APP_SUPABASE_URL</code> and <code>REACT_APP_SUPABASE_ANON_KEY</code>.</p>
-          <button 
-            onClick={() => setSession({ user: { id: 'offline-user' } })} 
-            style={{ padding: '10px 20px', background: '#4F6BFF', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}
+        <div style={{
+          padding: 40,
+          textAlign: "center",
+          background: "linear-gradient(145deg, #0D1020 0%, #090B14 100%)",
+          color: "#F1F3F9",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+          fontFamily: "'Inter', sans-serif",
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>⚙️</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Setup Required</h2>
+          <p style={{ color: "rgba(255,255,255,0.45)", maxWidth: 380, lineHeight: 1.6, fontSize: 14 }}>
+            Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#6B87FF" }}>REACT_APP_SUPABASE_URL</code> and{" "}
+            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#6B87FF" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4 }}>.env</code> file.
+          </p>
+          <button
+            onClick={() => setSession({ user: { id: "offline-user" } })}
+            style={{
+              padding: "14px 28px",
+              background: "linear-gradient(135deg, #4F6BFF, #6B87FF)",
+              border: "none",
+              borderRadius: 12,
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 15,
+              fontWeight: 700,
+              fontFamily: "'Inter', sans-serif",
+              boxShadow: "0 8px 24px rgba(79,107,255,0.3)",
+              transition: "all 0.2s ease",
+              marginTop: 8,
+            }}
           >
-            Continue Offline (Demo Mode)
+            Continue in Demo Mode
           </button>
         </div>
       );
@@ -1047,10 +1079,11 @@ export default function FinanceDashboard() {
 
   return (
     <div
+      className={darkMode ? "dark-theme" : ""}
       style={{
         minHeight: "100vh",
         background: "transparent",
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--t-font, 'Inter', sans-serif)",
         color: THEME.ink,
         position: "relative",
         display: sidebarNav ? "flex" : "block",
@@ -1136,7 +1169,11 @@ export default function FinanceDashboard() {
             position: "sticky",
             top: 0,
             zIndex: 40,
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            boxShadow: darkMode
+              ? "0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)"
+              : "0 1px 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
           }}
         >
           <div
@@ -1214,27 +1251,98 @@ export default function FinanceDashboard() {
               </select>
             </div>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => setShowAlerts((v) => !v)} style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}>
-                <Bell size={16} />
-                {alerts.length > 0 && (
-                  <span style={{ position: "absolute", top: -4, right: -4, background: THEME.rust, color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${THEME.darkInk}` }}>
-                    {alerts.length}
-                  </span>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
+              {/* Bell / Alerts */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowAlerts((v) => !v)}
+                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px", position: "relative" }}
+                  aria-label={`${alerts.length} alerts`}
+                >
+                  <Bell size={16} />
+                  {alerts.length > 0 && (
+                    <span className="notif-badge" style={{ position: "absolute", top: -5, right: -5 }}>
+                      {alerts.length > 9 ? "9+" : alerts.length}
+                    </span>
+                  )}
+                </button>
+                {showAlerts && (
+                  <div className="alerts-panel">
+                    <div style={{ padding: "14px 16px", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Alerts</div>
+                      <button onClick={() => setShowAlerts(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", padding: 4, borderRadius: 6 }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                    {alerts.length === 0 ? (
+                      <div style={{ padding: "24px 16px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                        All clear — no alerts right now
+                      </div>
+                    ) : (
+                      <div style={{ maxHeight: 340, overflowY: "auto" }}>
+                        {alerts.map((a, i) => (
+                          <div
+                            key={i}
+                            onClick={() => { setTab(a.tab); setShowAlerts(false); }}
+                            style={{
+                              padding: "12px 16px",
+                              cursor: "pointer",
+                              borderBottom: `1px solid ${THEME.line}`,
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "flex-start",
+                              transition: "background 0.15s",
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 4%, transparent)`}
+                            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                          >
+                            <div style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: a.level === "error" ? THEME.rust : a.level === "warn" ? THEME.gold : THEME.accent,
+                              flexShrink: 0,
+                              marginTop: 4,
+                            }} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, marginBottom: 2 }}>{a.title}</div>
+                              <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>{a.detail}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
-              </button>
-              
+              </div>
+
+              {/* Dark mode toggle */}
               {!sidebarNav && (
-                <button onClick={() => setDarkMode(!darkMode)} style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}>
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}
+                  aria-label="Toggle theme"
+                  title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                >
                   {darkMode ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
               )}
 
-              <button onClick={exportJSON} style={{ ...btnGhost, display: window.innerWidth < 1000 ? "none" : "flex" }}>
-                <Download size={14} /> Export
+              <button onClick={exportJSON} style={{ ...btnGhost, display: "flex" }} title="Export backup">
+                <Download size={14} />
+                <span style={{ display: "none", "@media(min-width:1024px)": { display: "inline" } }}>Export</span>
               </button>
-              
-              <button onClick={() => setTab("settings")} style={{ ...btnGhost, background: tab === "settings" ? THEME.accent : "transparent", color: tab === "settings" ? "#fff" : THEME.ink, borderColor: tab === "settings" ? THEME.accent : THEME.line }}>
+
+              <button
+                onClick={() => setTab("settings")}
+                style={{
+                  ...btnGhost,
+                  background: tab === "settings" ? THEME.accent : "transparent",
+                  color: tab === "settings" ? "#fff" : THEME.ink,
+                  borderColor: tab === "settings" ? THEME.accent : THEME.line,
+                }}
+                aria-label="Settings"
+              >
                 <Settings size={14} />
               </button>
             </div>
@@ -1242,7 +1350,7 @@ export default function FinanceDashboard() {
 
           {/* TOP TAB NAV (only if not sidebar) */}
           {!sidebarNav && (
-            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }} className="no-scrollbar">
+            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }} className="no-scrollbar desktop-tab-nav">
               {tabs.map((t) => {
                 const Icon = t.icon;
                 const active = tab === t.id;
@@ -1276,20 +1384,26 @@ export default function FinanceDashboard() {
 
           {/* Quick Stats Bar */}
           {(() => {
-            const saved = metrics.monthIncome - metrics.monthExpense;
             const items = [
-              { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
-              { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
-              { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+              { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust, positive: metrics.netWorth >= 0 },
+              { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold, positive: metrics.savingsRate >= 20 },
+              { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage, positive: metrics.taxDue === 0 },
+              { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome), color: THEME.sage, positive: true },
+              { label: "Monthly Spend", value: fmtINRFull(metrics.monthExpense), color: THEME.muted, positive: null },
             ];
             return (
-              <div style={{ borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }}>
-                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "8px 32px", display: "flex", gap: 32, alignItems: "center" }}>
-                  {items.map(({ label, value, color }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted }}>{label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-                    </div>
+              <div style={{ borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk, overflowX: "auto" }} className="no-scrollbar">
+                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "10px 32px", display: "flex", gap: 0, alignItems: "center", minWidth: "max-content" }}>
+                  {items.map(({ label, value, color }, idx) => (
+                    <React.Fragment key={label}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 20px" }}>
+                        <span style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: THEME.muted, fontWeight: 500 }}>{label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
+                      </div>
+                      {idx < items.length - 1 && (
+                        <div style={{ width: 1, height: 28, background: THEME.line, flexShrink: 0 }} />
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
               </div>
@@ -1338,28 +1452,82 @@ export default function FinanceDashboard() {
           )}
         </main>
 
-        <footer style={{ textAlign: "center", padding: "40px 20px", color: THEME.muted, fontSize: 13, borderTop: `1px solid ${THEME.line}`, marginTop: 40 }}>
-          Personal Finance Dashboard · Made with care
+        <footer style={{
+          textAlign: "center",
+          padding: "32px 20px 80px",
+          color: THEME.muted,
+          fontSize: 12,
+          borderTop: `1px solid ${THEME.line}`,
+          marginTop: 40,
+          letterSpacing: "0.05em",
+        }}>
+          Finance Dashboard · All data stored securely · FY {state.profile.fy}
         </footer>
       </div>
 
+      {/* ── MOBILE BOTTOM NAVIGATION ── */}
+      {!sidebarNav && (() => {
+        const mobileNavTabs = [
+          { id: "overview",     label: "Ledger",     icon: LineIcon },
+          { id: "banks",        label: "Banks",      icon: Landmark },
+          { id: "investments",  label: "Invest",     icon: TrendingUp },
+          { id: "analytics",    label: "Analytics",  icon: PieIcon },
+          { id: "settings",     label: "More",       icon: Settings },
+        ];
+        return (
+          <nav className="mobile-bottom-nav" style={{ justifyContent: "space-around" }}>
+            {mobileNavTabs.map((t) => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 12px",
+                    color: active ? THEME.accent : THEME.muted,
+                    fontFamily: "inherit",
+                    transition: "color 0.2s ease",
+                    minWidth: 0,
+                    flex: 1,
+                  }}
+                >
+                  <div style={{
+                    width: 36,
+                    height: 28,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 10,
+                    background: active ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent",
+                    transition: "background 0.2s ease",
+                  }}>
+                    <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: "0.03em", lineHeight: 1 }}>{t.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        );
+      })()}
+
       {/* QUICK-ADD FAB */}
       <button
+        className="fab"
         onClick={() => setFabModal(true)}
-        style={{
-          position: "fixed", bottom: 32, right: 32, zIndex: 999,
-          width: 60, height: 60, borderRadius: 20,
-          background: THEME.accent, border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: `0 8px 24px color-mix(in srgb, var(--t-accent) 30%, transparent)`,
-          color: "#fff", transition: "all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1) translateY(-4px)"}
-        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1) translateY(0)"}
+        style={{ border: "none" }}
+        aria-label="Quick add transaction"
       >
-        <Plus size={28} strokeWidth={3} />
+        <Plus size={24} strokeWidth={3} />
       </button>
-
 
       {fabModal && (
         <QuickAddModal
@@ -1377,37 +1545,39 @@ const btnGhost = {
   background: "transparent",
   border: `1px solid ${THEME.line}`,
   color: THEME.ink,
-  padding: "8px 16px",
-  fontFamily: "'Inter', sans-serif",
-  fontSize: 14,
+  padding: "8px 14px",
+  fontFamily: "var(--t-font, 'Inter', sans-serif)",
+  fontSize: 13,
   fontWeight: 500,
-  borderRadius: 6,
+  borderRadius: 10,
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  transition: "all 0.2s ease",
+  transition: "all 0.15s ease",
+  letterSpacing: "-0.01em",
 };
 const btnSolid = {
   background: THEME.ink,
   color: THEME.darkInk,
   border: `1px solid ${THEME.ink}`,
-  padding: "10px 20px",
-  fontFamily: "'Inter', sans-serif",
+  padding: "10px 18px",
+  fontFamily: "var(--t-font, 'Inter', sans-serif)",
   fontSize: 14,
-  fontWeight: 500,
-  borderRadius: 6,
+  fontWeight: 600,
+  borderRadius: 10,
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  transition: "all 0.2s ease",
+  transition: "all 0.15s ease",
 };
 const btnAccent = {
   ...btnSolid,
-  background: THEME.accent,
-  borderColor: THEME.accent,
+  background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 80%, #fff))",
+  borderColor: "var(--t-accent)",
   color: "#FFFFFF",
+  boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 25%, transparent)",
 };
 
 const card = {
@@ -1416,46 +1586,50 @@ const card = {
   borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
   boxShadow: "var(--t-card-shadow)",
-  transition: "all var(--t-transition)",
+  transition: "box-shadow var(--t-transition), border-color var(--t-transition)",
 };
 const cardDark = {
-  background: "linear-gradient(135deg, var(--t-ink), #000)",
+  background: "linear-gradient(135deg, #1a1d2e 0%, #0d0f18 100%)",
   color: "#fff",
   borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
-  boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.06)",
   position: "relative",
   overflow: "hidden",
 };
 
 const input = {
   width: "100%",
-  padding: "12px 16px",
+  padding: "11px 14px",
   border: "1.5px solid var(--t-line)",
   background: "var(--t-card-bg)",
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: "var(--t-font, 'Inter', sans-serif)",
   fontSize: "var(--app-font-size, 14px)",
   color: "var(--t-ink)",
-  borderRadius: 14,
-  transition: "all calc(var(--t-transition, 0.4s) / 2) ease",
+  borderRadius: 10,
+  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+  outline: "none",
 };
 const label = {
   display: "block",
   fontSize: 12,
-  color: THEME.ink,
+  color: THEME.muted,
   marginBottom: 6,
-  fontWeight: 500,
+  fontWeight: 600,
+  letterSpacing: "0.03em",
+  textTransform: "uppercase" as const,
 };
 
 const SectionTitle = ({ children, sub }) => (
-  <div style={{ marginBottom: 24 }}>
+  <div style={{ marginBottom: 28 }}>
     <h2
       style={{
-        fontFamily: "'Inter', sans-serif",
-        fontSize: 24,
-        fontWeight: 600,
+        fontFamily: "var(--t-font, 'Inter', sans-serif)",
+        fontSize: 22,
+        fontWeight: 800,
         margin: 0,
-        letterSpacing: "-0.02em",
+        letterSpacing: "-0.03em",
         color: THEME.ink,
       }}
     >
