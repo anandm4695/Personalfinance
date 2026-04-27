@@ -54,6 +54,7 @@ import {
   FileUp,
   Percent,
   List,
+  LogOut,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -517,51 +518,17 @@ export default function FinanceDashboard() {
     } catch {}
   }, [darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle]);
 
+  // Background style (dots / mesh) injected dynamically since it depends on user setting
   useEffect(() => {
-    if (document.getElementById("finance-dash-fonts")) return;
-    const link = document.createElement("link");
-    link.id = "finance-dash-fonts";
-    link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap";
-    document.head.appendChild(link);
-  }, []);
-
-  useEffect(() => {
-    const id = "finance-dash-styles-dynamic";
-    let style = document.getElementById(id);
-    if (!style) {
-      style = document.createElement("style");
-      style.id = id;
-      document.head.appendChild(style);
-    }
-    style.textContent = `
-      body { 
-        font-family: var(--t-font); 
-        background-color: var(--t-paper) !important;
-        background-image: ${bgStyle === "dots" ? "radial-gradient(circle, var(--t-line) 1.5px, transparent 1.5px)" : bgStyle === "mesh" ? "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 8%, transparent) 0%, transparent 100%)" : "none"} !important;
-        background-size: ${bgStyle === "dots" ? "24px 24px" : "auto"} !important;
-        background-attachment: fixed !important;
-      }
-      button, input, select, textarea { font-family: var(--t-font) !important; }
-      .card-base { border-radius: var(--t-radius) !important; transition: all var(--t-transition) !important; }
-      button:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 2px; }
-      button { transition: opacity 0.15s ease, background 0.15s ease; }
-      button:hover { opacity: 0.82; }
-      button:active { opacity: 0.65; transform: scale(0.97); }
-      select:focus, input:focus, textarea:focus {
-        outline: none;
-        border-color: var(--t-accent) !important;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 20%, transparent);
-      }
-      tr:hover td { background: color-mix(in srgb, var(--t-accent) 4%, transparent); }
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: var(--t-line); border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: var(--t-muted); }
-      * { box-sizing: border-box; }
-    `;
-    document.head.appendChild(style);
-  }, []);
+    const bgMap = {
+      dots: "radial-gradient(circle, var(--t-line) 1.5px, transparent 1.5px)",
+      mesh: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 7%, transparent) 0%, transparent 100%)",
+      plain: "none",
+    };
+    document.body.style.setProperty("background-image", bgMap[bgStyle] || "none", "important");
+    document.body.style.setProperty("background-size", bgStyle === "dots" ? "24px 24px" : "auto", "important");
+    document.body.style.setProperty("background-attachment", "fixed", "important");
+  }, [bgStyle]);
 
   // Load from persistent storage on mount
   useEffect(() => {
@@ -1106,13 +1073,20 @@ export default function FinanceDashboard() {
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <div style={{ padding: "32px 24px" }}>
-            <div style={{ fontSize: 10, letterSpacing: "0.3em", color: THEME.muted, textTransform: "uppercase", marginBottom: 8 }}>
-              Personal Finance
+          <div style={{ padding: "28px 24px 24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--t-accent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 40%, transparent)" }}>
+                <IndianRupee size={20} color="#fff" />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, letterSpacing: "0.2em", color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                  Personal Finance
+                </div>
+                <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+                  Dashboard
+                </h1>
+              </div>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-              Dashboard
-            </h1>
           </div>
 
           <nav style={{ flex: 1, overflowY: "auto", padding: "0 16px" }} className="no-scrollbar">
@@ -1420,36 +1394,39 @@ export default function FinanceDashboard() {
             zIndex: 1,
           }}
         >
-          {tab === "overview" && <Overview metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
-          {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-          {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
-          {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
-          {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
-          {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
-          {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
-          {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
-          {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
-          {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} chartStyle={chartStyle} />}
-          {tab === "calculators" && <CalculatorsTab />}
-          {tab === "settings" && (
-            <SettingsTab
-              state={state}
-              setState={setState}
-              exportJSON={exportJSON}
-              resetAll={resetAll}
-              accentKey={accentKey} setAccentKey={setAccentKey}
-              density={density} setDensity={setDensity}
-              sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
-              radiusKey={radiusKey} setRadiusKey={setRadiusKey}
-              fontKey={fontKey} setFontKey={setFontKey}
-              bgStyle={bgStyle} setBgStyle={setBgStyle}
-              animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
-              chartStyle={chartStyle} setChartStyle={setChartStyle}
-            />
-          )}
+          <div key={tab} className="tab-content-enter">
+            {tab === "overview" && <Overview metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
+            {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+            {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+            {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
+            {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
+            {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
+            {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+            {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} chartStyle={chartStyle} />}
+            {tab === "calculators" && <CalculatorsTab />}
+            {tab === "settings" && (
+              <SettingsTab
+                state={state}
+                setState={setState}
+                exportJSON={exportJSON}
+                resetAll={resetAll}
+                onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
+                accentKey={accentKey} setAccentKey={setAccentKey}
+                density={density} setDensity={setDensity}
+                sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
+                radiusKey={radiusKey} setRadiusKey={setRadiusKey}
+                fontKey={fontKey} setFontKey={setFontKey}
+                bgStyle={bgStyle} setBgStyle={setBgStyle}
+                animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
+                chartStyle={chartStyle} setChartStyle={setChartStyle}
+              />
+            )}
+          </div>
         </main>
 
         <footer style={{
@@ -1665,139 +1642,144 @@ function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any
     }));
   }, [trendData, metrics]);
 
+  const isPositive = metrics.netWorth >= 0;
+
   return (
-    <div>
-      {/* HERO STAT */}
-      <div
-        style={{
-          ...cardDark,
-          marginBottom: 32,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -40,
-            right: -40,
-            opacity: 0.06,
-            fontSize: 300,
-            fontFamily: "'Inter', sans-serif",
+    <div className="tab-content-enter">
+      {/* ── WORLD-CLASS HERO CARD ── */}
+      <div className="hero-card" style={{ marginBottom: 28 }}>
+        <div className="hero-card-mesh" />
+
+        {/* Top row: label + date + profile badge */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#F87171", boxShadow: `0 0 8px ${isPositive ? "#34D399" : "#F87171"}` }} />
+            <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 700 }}>
+              Net Worth Dashboard
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em" }}>
+            {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        </div>
+
+        {/* Giant net worth number */}
+        <div style={{ position: "relative", zIndex: 1, marginBottom: 32 }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+            Total Net Worth
+          </div>
+          <div style={{
+            fontSize: "clamp(44px, 6vw, 76px)",
             fontWeight: 900,
             lineHeight: 1,
-            color: THEME.gold,
-          }}
-        >
-          ₹
-        </div>
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: "0.3em",
-              textTransform: "uppercase",
-              color: THEME.gold,
-              marginBottom: 12,
-            }}
-          >
-            Net Worth · As of{" "}
-            {new Date().toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 72,
-              fontWeight: 900,
-              lineHeight: 1,
-              letterSpacing: "-0.03em",
-            }}
-          >
+            letterSpacing: "-0.04em",
+            fontVariantNumeric: "tabular-nums",
+            color: "#fff",
+            textShadow: "0 2px 20px rgba(0,0,0,0.3)",
+          }}>
             {fmtINRFull(metrics.netWorth)}
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: "24px 32px",
-              marginTop: 32,
-            }}
-          >
-            <HeroStat label="Cash Available" value={metrics.cashInBanks} />
-            <HeroStat label="Investments" value={metrics.mfValue + metrics.stockValue} />
-            <HeroStat label="Monthly Income" value={metrics.monthIncome} sage />
-            <HeroStat label="Monthly Expense" value={metrics.monthExpense} rust />
-            <HeroStat label="Total Debt" value={metrics.totalLiabilities} negative />
-            <HeroStat label="CC Outstanding" value={metrics.ccOutstanding} negative />
-            <HeroStat label="Tax Due (Est.)" value={metrics.taxDue} negative />
-          </div>
+          {metrics.totalAssets > 0 && (
+            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: isPositive ? "#34D399" : "#F87171", fontWeight: 700 }}>
+                {isPositive ? "▲" : "▼"} {((Math.abs(metrics.netWorth) / metrics.totalAssets) * 100).toFixed(1)}% equity ratio
+              </span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>·</span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>Total assets {fmtINRFull(metrics.totalAssets)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "16px 24px", position: "relative", zIndex: 1, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <HeroStat label="Cash in Banks" value={metrics.cashInBanks} />
+          <HeroStat label="Investments" value={metrics.mfValue + metrics.stockValue} sage />
+          <HeroStat label="Monthly Income" value={metrics.monthIncome} sage />
+          <HeroStat label="Monthly Spend" value={metrics.monthExpense} rust />
+          <HeroStat label="Total Liabilities" value={metrics.totalLiabilities} negative />
+          <HeroStat label="CC Outstanding" value={metrics.ccOutstanding} negative />
+          <HeroStat label="Estimated Tax" value={metrics.taxDue} negative />
         </div>
       </div>
 
       {/* QUICK INSIGHTS GRID */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 16,
-          marginBottom: 32,
-        }}
-      >
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Savings Rate</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+        {/* Savings Rate donut */}
+        <div className="insight-card">
+          <div className="section-label">Savings Rate</div>
           {(() => {
             const rate = Math.min(100, Math.max(0, metrics.savingsRate));
-            const r = 26, circ = 2 * Math.PI * r;
+            const r = 24, circ = 2 * Math.PI * r;
             const dash = (rate / 100) * circ;
             const col = rate >= 20 ? THEME.sage : rate >= 10 ? THEME.gold : THEME.rust;
             return (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <svg width="68" height="68" viewBox="0 0 68 68">
-                  <circle cx="34" cy="34" r={r} fill="none" stroke={THEME.line} strokeWidth="6" />
-                  <circle cx="34" cy="34" r={r} fill="none" stroke={col} strokeWidth="6"
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <svg width="60" height="60" viewBox="0 0 60 60" style={{ flexShrink: 0 }}>
+                  <circle cx="30" cy="30" r={r} fill="none" stroke="var(--t-line)" strokeWidth="5" />
+                  <circle cx="30" cy="30" r={r} fill="none" stroke={col} strokeWidth="5"
                     strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={circ / 4}
-                    strokeLinecap="round" style={{ transition: "stroke-dasharray 0.6s" }} />
-                  <text x="34" y="39" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: col, fontFamily: "inherit" }}>{rate.toFixed(0)}%</text>
+                    strokeLinecap="round" style={{ transition: "stroke-dasharray 0.7s ease" }} />
+                  <text x="30" y="35" textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: col, fontFamily: "inherit" }}>{rate.toFixed(0)}%</text>
                 </svg>
                 <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: col }}>{metrics.savingsRate.toFixed(1)}%</div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Of monthly income</div>
-                  <div style={{ fontSize: 11, color: rate >= 20 ? THEME.sage : THEME.gold, marginTop: 1 }}>{rate >= 20 ? "On track" : "Target: 20%+"}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: "-0.03em", lineHeight: 1 }}>{metrics.savingsRate.toFixed(1)}%</div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>of monthly income</div>
+                  <span className={`badge ${rate >= 20 ? "badge-sage" : rate >= 10 ? "badge-gold" : "badge-rust"}`} style={{ marginTop: 6, fontSize: 10 }}>
+                    {rate >= 20 ? "On track" : rate >= 10 ? "Improving" : "Below target"}
+                  </span>
                 </div>
               </div>
             );
           })()}
         </div>
 
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Debt-to-Asset</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.ink }}>
-            {metrics.debtToAssetRatio.toFixed(1)}%
+        {/* Debt ratio */}
+        <div className="insight-card">
+          <div className="section-label">Debt-to-Asset Ratio</div>
+          <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1, color: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.sage, marginBottom: 6 }}>
+            {metrics.debtToAssetRatio.toFixed(1)}<span style={{ fontSize: 16, fontWeight: 600 }}>%</span>
           </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Healthy if under 40%</div>
+          <div style={{ height: 6, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}>
+            <div style={{ height: "100%", width: Math.min(metrics.debtToAssetRatio, 100) + "%", background: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.sage, borderRadius: 99, transition: "width 0.7s ease" }} />
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted }}>Healthy if under 40% · Your liabilities {fmtINR(metrics.totalLiabilities)}</div>
         </div>
 
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Liquidity</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: THEME.ink }}>
-            {metrics.totalAssets > 0 ? ((metrics.liquidAssets / metrics.totalAssets) * 100).toFixed(1) : 0}%
+        {/* Liquidity */}
+        <div className="insight-card">
+          <div className="section-label">Liquidity Score</div>
+          <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1, color: THEME.accent, marginBottom: 6 }}>
+            {metrics.totalAssets > 0 ? ((metrics.liquidAssets / metrics.totalAssets) * 100).toFixed(1) : 0}<span style={{ fontSize: 16, fontWeight: 600 }}>%</span>
           </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Liquid vs Locked assets</div>
+          <div style={{ height: 6, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}>
+            <div style={{ height: "100%", width: (metrics.totalAssets > 0 ? Math.min((metrics.liquidAssets / metrics.totalAssets) * 100, 100) : 0) + "%", background: THEME.accent, borderRadius: 99, transition: "width 0.7s ease" }} />
+          </div>
+          <div style={{ fontSize: 11, color: THEME.muted }}>Liquid {fmtINR(metrics.liquidAssets)} · Locked {fmtINR(metrics.lockedAssets)}</div>
         </div>
 
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Investment PnL</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: (metrics.mfPnL + metrics.stockPnL) >= 0 ? THEME.sage : THEME.rust }}>
-            {(metrics.mfPnL + metrics.stockPnL) >= 0 ? "+" : ""}{fmtINRFull(metrics.mfPnL + metrics.stockPnL)}
-          </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Unrealized returns</div>
+        {/* Investment PnL */}
+        <div className="insight-card">
+          <div className="section-label">Investment P&amp;L</div>
+          {(() => {
+            const pnl = metrics.mfPnL + metrics.stockPnL;
+            const col = pnl >= 0 ? THEME.sage : THEME.rust;
+            const invested = metrics.mfInvested + metrics.stockInvested;
+            const pct = invested > 0 ? (pnl / invested) * 100 : 0;
+            return (
+              <>
+                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", color: col, lineHeight: 1, marginBottom: 4 }}>
+                  {pnl >= 0 ? "+" : ""}{fmtINR(pnl)}
+                </div>
+                <div style={{ fontSize: 12, color: col, fontWeight: 600, marginBottom: 6 }}>
+                  {pnl >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}% overall return
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted }}>Unrealised · Invested {fmtINR(invested)}</div>
+              </>
+            );
+          })()}
         </div>
 
-        {/* E3 – Savings Streak */}
+        {/* Savings Streak */}
         {(() => {
           const now = new Date();
           let streak = 0;
@@ -1810,14 +1792,14 @@ function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any
             if (inc > exp && inc > 0) streak++; else break;
           }
           const emoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
-          const msg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start your streak";
+          const msg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
           return (
-            <div style={{ ...card, padding: 20 }}>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>Savings Streak</div>
-              <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{emoji}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: streak > 0 ? THEME.sage : THEME.muted, lineHeight: 1 }}>{streak}</div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>consecutive months saved</div>
-              <div style={{ fontSize: 11, color: THEME.sage, marginTop: 4, fontWeight: 600 }}>{msg}</div>
+            <div className="insight-card">
+              <div className="section-label">Savings Streak</div>
+              <div style={{ fontSize: 32, lineHeight: 1, marginBottom: 6 }}>{emoji}</div>
+              <div style={{ fontSize: 36, fontWeight: 900, color: streak > 0 ? THEME.sage : THEME.muted, letterSpacing: "-0.04em", lineHeight: 1 }}>{streak}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>consecutive months</div>
+              <span className={`badge ${streak >= 6 ? "badge-sage" : streak >= 1 ? "badge-gold" : "badge-muted"}`} style={{ marginTop: 8, fontSize: 10 }}>{msg}</span>
             </div>
           );
         })()}
@@ -2607,89 +2589,51 @@ function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any
   );
 }
 
-const HeroStat = ({ label, value, negative, sage, rust }) => (
-  <div>
-    <div
-      style={{
-        fontSize: 10,
-        letterSpacing: "0.05em",
-        textTransform: "uppercase",
-        color: "rgba(245,239,227,0.6)",
-        marginBottom: 4,
-      }}
-    >
-      {label}
+const HeroStat = ({ label, value, negative, sage, rust }) => {
+  const color = negative ? "#F87171" : sage ? "#34D399" : rust ? "#F87171" : "rgba(255,255,255,0.9)";
+  return (
+    <div style={{ borderLeft: `2px solid ${color}22`, paddingLeft: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 5, fontWeight: 600 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
+        {fmtINRFull(value)}
+      </div>
     </div>
-    <div
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        fontSize: 24,
-        fontWeight: 700,
-        color: negative
-          ? "#E8A298"
-          : sage
-          ? "#A8C4A4"
-          : rust
-          ? "#E8A298"
-          : THEME.paper,
-      }}
-    >
-      {fmtINRFull(value)}
-    </div>
-  </div>
-);
+  );
+};
 
 const Tile = ({ icon: Icon, label, value, sub, subColor, negative }) => (
-  <div style={{ ...card, position: "relative", overflow: "hidden" }}>
-    <Icon size={20} style={{ color: THEME.muted, marginBottom: 12 }} />
-    <div
-      style={{
-        fontSize: 10,
-        letterSpacing: "0.18em",
-        textTransform: "uppercase",
-        color: THEME.muted,
-        marginBottom: 4,
-      }}
-    >
+  <div className="tile-card">
+    <div style={{
+      width: 36, height: 36, borderRadius: 10,
+      background: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      marginBottom: 14,
+    }}>
+      <Icon size={18} style={{ color: THEME.accent }} />
+    </div>
+    <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.muted, marginBottom: 6, fontWeight: 600 }}>
       {label}
     </div>
-    <div
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        fontSize: 22,
-        fontWeight: 700,
-        color: negative ? THEME.accent : THEME.ink,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
+    <div style={{ fontSize: 22, fontWeight: 800, color: negative ? THEME.rust : THEME.ink, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>
       {value}
     </div>
     {sub && (
-      <div
-        style={{
-          fontSize: 12,
-          color: subColor || THEME.muted,
-          marginTop: 2,
-          fontWeight: 600,
-        }}
-      >
+      <div style={{ fontSize: 12, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
         {sub}
       </div>
     )}
   </div>
 );
 
-const EmptyHint = ({ text }) => (
-  <div
-    style={{
-      padding: "40px 20px",
-      textAlign: "center",
-      color: THEME.muted,
-      fontStyle: "normal",
-      fontSize: 14,
-    }}
-  >
-    {text}
+const EmptyHint = ({ text, icon: HintIcon = null }) => (
+  <div className="empty-state">
+    <div className="empty-state-icon">
+      {HintIcon ? <HintIcon size={22} /> : <Layers size={22} />}
+    </div>
+    <div className="empty-state-title">{text}</div>
+    <div className="empty-state-sub">Add data using the button above to get started.</div>
   </div>
 );
 
@@ -3045,21 +2989,32 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
 }
 
 const th = {
-  textAlign: "left",
-  padding: "10px 8px",
+  textAlign: "left" as const,
+  padding: "11px 10px",
   fontSize: 10,
-  letterSpacing: "0.05em",
-  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase" as const,
   color: THEME.muted,
   fontWeight: 700,
+  borderBottom: `1px solid var(--t-line)`,
+  whiteSpace: "nowrap" as const,
 };
-const td = { padding: "10px 8px", verticalAlign: "top" };
+const td = {
+  padding: "12px 10px",
+  verticalAlign: "top" as const,
+  fontSize: 13,
+  borderBottom: `1px solid var(--t-line)`,
+};
 const iconBtn = {
   background: "transparent",
   border: "none",
   cursor: "pointer",
   color: THEME.muted,
-  padding: 4,
+  padding: "5px",
+  borderRadius: 6,
+  display: "inline-flex",
+  alignItems: "center",
+  transition: "color 0.15s ease, background 0.15s ease",
 };
 
 function BankModal({ onClose, onSave }) {
@@ -7091,65 +7046,25 @@ function TaxPmtModal({ onClose, onSave }) {
 
 // ================== MODAL SHELL ==================
 function Modal({ title, children, onClose }) {
+  // Close on Escape key
+  React.useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(10,22,40,0.6)",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        backdropFilter: "blur(4px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: THEME.darkInk,
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          border: "none",
-          borderRadius: 12,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-        }}
-      >
-        <div
-          style={{
-            padding: "20px 28px",
-            borderBottom: `1px solid ${THEME.line}`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 22,
-              fontWeight: 800,
-            }}
-          >
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.02em", color: THEME.ink }}>
             {title}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: THEME.ink,
-            }}
-          >
-            <X size={20} />
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
+            <X size={16} />
           </button>
         </div>
-        <div style={{ padding: 28 }}>{children}</div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   );
@@ -8131,8 +8046,8 @@ function QuickAddModal({ onClose, onSave, bankAccounts }) {
 }
 
 // ================== SETTINGS TAB ==================
-function SettingsTab({ 
-  state, setState, exportJSON, resetAll,
+function SettingsTab({
+  state, setState, exportJSON, resetAll, onSignOut,
   accentKey, setAccentKey,
   density, setDensity,
   sidebarNav, setSidebarNav,
@@ -8313,6 +8228,14 @@ function SettingsTab({
               <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
             </label>
             <button style={{ ...btnGhost, color: THEME.rust, borderColor: THEME.rust }} onClick={resetAll}><Trash2 size={14} /> Reset All</button>
+            <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>
+              <button
+                style={{ ...btnGhost, color: THEME.rust, borderColor: THEME.rust, width: "100%", justifyContent: "center" }}
+                onClick={onSignOut}
+              >
+                <LogOut size={14} /> Sign Out
+              </button>
+            </div>
           </div>
         </div>
 
