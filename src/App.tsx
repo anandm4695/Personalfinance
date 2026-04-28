@@ -1049,7 +1049,7 @@ export default function FinanceDashboard() {
       className={darkMode ? "dark-theme" : ""}
       style={{
         minHeight: "100vh",
-        background: "transparent",
+        background: "var(--t-paper)",
         fontFamily: "var(--t-font, 'Inter', sans-serif)",
         color: THEME.ink,
         position: "relative",
@@ -1392,6 +1392,7 @@ export default function FinanceDashboard() {
             padding: sidebarNav ? "40px" : "32px",
             position: "relative",
             zIndex: 1,
+            background: "var(--t-paper)",
           }}
         >
           <div key={tab} className="tab-content-enter">
