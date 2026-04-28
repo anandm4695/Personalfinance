@@ -241,23 +241,12 @@ tbody tr:hover td {
 .hero-card {
   position: relative;
   overflow: hidden;
-  /* Light mode: deep accent-based gradient */
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--t-accent) 80%, #050810) 0%,
-    color-mix(in srgb, var(--t-accent) 50%, #080c18) 60%,
-    color-mix(in srgb, var(--t-accent) 30%, #060a14) 100%
-  );
+  background: linear-gradient(145deg, #0f1525 0%, #0a0d1a 60%, #0d1428 100%);
   border-radius: var(--t-radius);
   padding: var(--card-pad, 32px);
   color: #fff;
   box-shadow: 0 24px 64px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.08);
-}
-/* Dark mode: deepen the gradient to near-black navy */
-.dark-theme .hero-card {
-  background: linear-gradient(145deg, #0f1525 0%, #0a0d1a 60%, #0d1428 100%);
-  box-shadow: 0 24px 64px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .hero-card::after {
   content: '';
