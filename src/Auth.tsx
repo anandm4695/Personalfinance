@@ -28,7 +28,7 @@ const FEATURES = [
   },
   {
     icon: PieChart,
-    color: "#6B87FF",
+    color: "#818CF8",
     title: "Investment Portfolio",
     desc: "Mutual funds, stocks, FDs, PPF, NPS in one place",
   },
@@ -115,9 +115,9 @@ export default function Auth({ onLogin }) {
   const inputStyle = (focused: boolean) => ({
     width: "100%",
     background: focused
-      ? "rgba(107, 135, 255, 0.06)"
+      ? "rgba(129, 140, 248, 0.06)"
       : "rgba(255,255,255,0.04)",
-    border: `1.5px solid ${focused ? "rgba(107,135,255,0.6)" : "rgba(255,255,255,0.1)"}`,
+    border: `1.5px solid ${focused ? "rgba(129,140,248,0.6)" : "rgba(255,255,255,0.1)"}`,
     borderRadius: 12,
     padding: "14px 16px",
     color: "#F1F3F9",
@@ -125,14 +125,14 @@ export default function Auth({ onLogin }) {
     outline: "none",
     fontFamily: "'Inter', sans-serif",
     transition: "all 0.2s ease",
-    boxShadow: focused ? "0 0 0 3px rgba(107,135,255,0.12)" : "none",
+    boxShadow: focused ? "0 0 0 3px rgba(129,140,248,0.12)" : "none",
   });
 
   return (
     <div style={{
       minHeight: "100vh",
       display: "flex",
-      background: "#090B14",
+      background: "#0B0F1A",
       fontFamily: "'Inter', -apple-system, sans-serif",
       color: "#F1F3F9",
     }}>
@@ -143,7 +143,7 @@ export default function Auth({ onLogin }) {
         flexDirection: "column",
         justifyContent: "center",
         padding: "60px 56px",
-        background: "linear-gradient(145deg, #0D1020 0%, #0A0C18 100%)",
+        background: "linear-gradient(145deg, #0F172A 0%, #1E1B4B 50%, #0B0F1A 100%)",
         borderRight: "1px solid rgba(255,255,255,0.05)",
         position: "relative",
         overflow: "hidden",
@@ -159,7 +159,7 @@ export default function Auth({ onLogin }) {
           width: 600,
           height: 600,
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(107,135,255,0.08) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(129,140,248,0.08) 0%, transparent 70%)",
           pointerEvents: "none",
         }} />
         <div style={{
@@ -179,11 +179,11 @@ export default function Auth({ onLogin }) {
             width: 44,
             height: 44,
             borderRadius: 14,
-            background: "linear-gradient(135deg, #4F6BFF, #818CF8)",
+            background: "linear-gradient(135deg, #4F46E5, #818CF8)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 24px rgba(79,107,255,0.35)",
+            boxShadow: "0 8px 24px rgba(79,70,229,0.35)",
           }}>
             <IndianRupee size={22} color="#fff" strokeWidth={2.5} />
           </div>
@@ -199,14 +199,14 @@ export default function Auth({ onLogin }) {
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            background: "rgba(107,135,255,0.1)",
-            border: "1px solid rgba(107,135,255,0.2)",
+            background: "rgba(129,140,248,0.1)",
+            border: "1px solid rgba(129,140,248,0.2)",
             borderRadius: 99,
             padding: "5px 12px",
             marginBottom: 20,
           }}>
-            <Sparkles size={12} color="#6B87FF" />
-            <span style={{ fontSize: 11, color: "#6B87FF", fontWeight: 600, letterSpacing: "0.06em" }}>
+            <Sparkles size={12} color="#818CF8" />
+            <span style={{ fontSize: 11, color: "#818CF8", fontWeight: 600, letterSpacing: "0.06em" }}>
               YOUR COMPLETE FINANCIAL COMMAND CENTRE
             </span>
           </div>
@@ -220,7 +220,7 @@ export default function Auth({ onLogin }) {
           }}>
             Take control of{" "}
             <span style={{
-              background: "linear-gradient(135deg, #6B87FF, #34D399)",
+              background: "linear-gradient(135deg, #818CF8, #34D399)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -300,7 +300,7 @@ export default function Auth({ onLogin }) {
         alignItems: "center",
         justifyContent: "center",
         padding: "40px 48px",
-        background: "#0D0F1A",
+        background: "#0F172A",
         position: "relative",
       }}>
         <div style={{ width: "100%", maxWidth: 380 }}>
@@ -442,8 +442,8 @@ export default function Auth({ onLogin }) {
                 width: "100%",
                 padding: "15px 20px",
                 background: loading
-                  ? "rgba(107,135,255,0.6)"
-                  : "linear-gradient(135deg, #4F6BFF, #6B87FF)",
+                  ? "rgba(129,140,248,0.6)"
+                  : "linear-gradient(135deg, #4F46E5, #818CF8)",
                 border: "none",
                 borderRadius: 12,
                 color: "#fff",
@@ -455,19 +455,19 @@ export default function Auth({ onLogin }) {
                 justifyContent: "center",
                 gap: 8,
                 marginTop: 4,
-                boxShadow: loading ? "none" : "0 8px 24px rgba(79,107,255,0.3)",
+                boxShadow: loading ? "none" : "0 8px 24px rgba(79,70,229,0.3)",
                 transition: "all 0.2s ease",
                 letterSpacing: "-0.01em",
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 12px 32px rgba(79,107,255,0.4)";
+                  e.currentTarget.style.boxShadow = "0 12px 32px rgba(79,70,229,0.4)";
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = loading ? "none" : "0 8px 24px rgba(79,107,255,0.3)";
+                e.currentTarget.style.boxShadow = loading ? "none" : "0 8px 24px rgba(79,70,229,0.3)";
               }}
             >
               {loading ? (
@@ -492,7 +492,7 @@ export default function Auth({ onLogin }) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#6B87FF",
+                color: "#818CF8",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -502,7 +502,7 @@ export default function Auth({ onLogin }) {
                 transition: "color 0.15s",
               }}
               onMouseEnter={(e) => e.currentTarget.style.color = "#818CF8"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "#6B87FF"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#818CF8"}
             >
               {isSignUp ? "Sign in" : "Create account"}
             </button>

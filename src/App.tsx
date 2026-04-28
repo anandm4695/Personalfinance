@@ -93,12 +93,12 @@ const THEME = {
 
 // ── ACCENT COLOUR PALETTES ──────────────────────────────────────────────────
 const ACCENT_PALETTES = {
-  blue:    { light: "#1A73E8", dark: "#6BA8FF", label: "Ocean Blue",    dot: "#1A73E8" },
-  purple:  { light: "#7B2FF7", dark: "#B07CFF", label: "Violet",        dot: "#7B2FF7" },
+  blue:    { light: "#4F46E5", dark: "#818CF8", label: "Indigo",         dot: "#4F46E5" },
+  purple:  { light: "#7C3AED", dark: "#A78BFA", label: "Violet",        dot: "#7C3AED" },
   emerald: { light: "#059669", dark: "#34D399", label: "Emerald",       dot: "#059669" },
   amber:   { light: "#D97706", dark: "#FBBF24", label: "Amber",         dot: "#D97706" },
   rose:    { light: "#E11D48", dark: "#FB7185", label: "Rose",          dot: "#E11D48" },
-  indigo:  { light: "#4F46E5", dark: "#818CF8", label: "Indigo",        dot: "#4F46E5" },
+  indigo:  { light: "#2563EB", dark: "#60A5FA", label: "Ocean Blue",    dot: "#2563EB" },
 };
 type AccentKey = keyof typeof ACCENT_PALETTES;
 
@@ -111,38 +111,38 @@ const DENSITY = {
 type DensityKey = keyof typeof DENSITY;
 
 const LIGHT_VARS: Record<string, string> = {
-  "--t-ink":     "#202124",
-  "--t-paper":   "#F8F9FA",
-  "--t-accent":  "#1A73E8",
-  "--t-gold":    "#F9AB00",
-  "--t-sage":    "#1E8E3E",
-  "--t-rust":    "#D93025",
-  "--t-muted":   "#5F6368",
-  "--t-line":    "#DADCE0",
+  "--t-ink":     "#0F172A",
+  "--t-paper":   "#F8FAFC",
+  "--t-accent":  "#4F46E5",
+  "--t-gold":    "#D97706",
+  "--t-sage":    "#059669",
+  "--t-rust":    "#DC2626",
+  "--t-muted":   "#64748B",
+  "--t-line":    "#E2E8F0",
   "--t-darkInk": "#FFFFFF",
 };
 
 const DARK_VARS: Record<string, string> = {
-  "--t-ink":     "#E8EAED",
-  "--t-paper":   "#0F0F1A",
-  "--t-accent":  "#6BA8FF",
-  "--t-gold":    "#FBBC04",
-  "--t-sage":    "#46C56A",
-  "--t-rust":    "#FF6B6B",
-  "--t-muted":   "#9AA0A6",
-  "--t-line":    "#3C4043",
-  "--t-darkInk": "#1E1E2E",
+  "--t-ink":     "#E2E8F0",
+  "--t-paper":   "#0B0F1A",
+  "--t-accent":  "#818CF8",
+  "--t-gold":    "#FBBF24",
+  "--t-sage":    "#34D399",
+  "--t-rust":    "#FB7185",
+  "--t-muted":   "#94A3B8",
+  "--t-line":    "#1E293B",
+  "--t-darkInk": "#0F172A",
 };
 
 const PIE_COLORS = [
-  "#1A73E8",
-  "#34A853",
-  "#FBBC04",
-  "#EA4335",
-  "#4285F4",
-  "#0F9D58",
-  "#F4B400",
-  "#DB4437",
+  "#4F46E5",
+  "#059669",
+  "#D97706",
+  "#DC2626",
+  "#7C3AED",
+  "#0891B2",
+  "#EA580C",
+  "#2563EB",
 ];
 
 // ================== HELPERS ==================
@@ -495,7 +495,9 @@ export default function FinanceDashboard() {
       "--t-font": fonts[fontKey] || "'Inter', sans-serif",
       "--t-transition": `${anims[animSpeed] || "0.4s"} cubic-bezier(0.4, 0, 0.2, 1)`,
       "--t-card-bg": vars["--t-darkInk"],
-      "--t-card-shadow": darkMode ? "0 10px 40px rgba(0,0,0,0.3)" : "0 10px 30px rgba(0,0,0,0.04)",
+      "--t-card-shadow": darkMode 
+        ? "0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.03)" 
+        : "0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02), inset 0 1px 0 rgba(255,255,255,0.8)",
       "--t-card-blur": "none",
       "--t-card-border": `1px solid ${vars["--t-line"]}`,
     };
@@ -1004,7 +1006,7 @@ export default function FinanceDashboard() {
         <div style={{
           padding: 40,
           textAlign: "center",
-          background: "linear-gradient(145deg, #0D1020 0%, #090B14 100%)",
+          background: "linear-gradient(145deg, #0F172A 0%, #1E1B4B 60%, #0B0F1A 100%)",
           color: "#F1F3F9",
           minHeight: "100vh",
           display: "flex",
@@ -1015,16 +1017,16 @@ export default function FinanceDashboard() {
           fontFamily: "'Inter', sans-serif",
         }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>⚙️</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Setup Required</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Setup Required</h2>
           <p style={{ color: "rgba(255,255,255,0.45)", maxWidth: 380, lineHeight: 1.6, fontSize: 14 }}>
-            Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#6B87FF" }}>REACT_APP_SUPABASE_URL</code> and{" "}
-            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#6B87FF" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4 }}>.env</code> file.
+            Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_URL</code> and{" "}
+            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4 }}>.env</code> file.
           </p>
           <button
             onClick={() => setSession({ user: { id: "offline-user" } })}
             style={{
               padding: "14px 28px",
-              background: "linear-gradient(135deg, #4F6BFF, #6B87FF)",
+              background: "linear-gradient(135deg, #4F46E5, #818CF8)",
               border: "none",
               borderRadius: 12,
               color: "#fff",
@@ -1032,7 +1034,7 @@ export default function FinanceDashboard() {
               fontSize: 15,
               fontWeight: 700,
               fontFamily: "'Inter', sans-serif",
-              boxShadow: "0 8px 24px rgba(79,107,255,0.3)",
+              boxShadow: "0 8px 24px rgba(79,70,229,0.35)",
               transition: "all 0.2s ease",
               marginTop: 8,
             }}
@@ -1076,7 +1078,7 @@ export default function FinanceDashboard() {
         >
           <div style={{ padding: "28px 24px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--t-accent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 40%, transparent)" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 75%, #C4B5FD))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 35%, transparent)" }}>
                 <IndianRupee size={20} color="#fff" />
               </div>
               <div>
@@ -1145,10 +1147,10 @@ export default function FinanceDashboard() {
             top: 0,
             zIndex: 40,
             boxShadow: darkMode
-              ? "0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)"
-              : "0 1px 0 rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
+              ? "0 1px 0 rgba(255,255,255,0.03), 0 4px 20px rgba(0,0,0,0.4)"
+              : "0 1px 0 rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.03)",
+            backdropFilter: "blur(16px) saturate(180%)",
+            WebkitBackdropFilter: "blur(16px) saturate(180%)",
           }}
         >
           <div
@@ -1165,10 +1167,10 @@ export default function FinanceDashboard() {
           >
             {!sidebarNav && (
               <div>
-                <div style={{ fontSize: 11, letterSpacing: "0.3em", color: THEME.muted, textTransform: "uppercase", marginBottom: 4 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.25em", color: THEME.muted, textTransform: "uppercase", marginBottom: 4, fontWeight: 500 }}>
                   Personal Finance · FY {state.profile.fy}
                 </div>
-                <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: THEME.ink, lineHeight: 1 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: "-0.03em", color: THEME.ink, lineHeight: 1 }}>
                   Finance Dashboard
                 </h1>
               </div>
@@ -1438,9 +1440,10 @@ export default function FinanceDashboard() {
           fontSize: 12,
           borderTop: `1px solid ${THEME.line}`,
           marginTop: 40,
-          letterSpacing: "0.05em",
+          letterSpacing: "0.04em",
+          lineHeight: 1.8,
         }}>
-          Finance Dashboard · All data stored securely · FY {state.profile.fy}
+          <span style={{ fontWeight: 600 }}>Finance Dashboard</span> · Enterprise Grade · All data stored securely · FY {state.profile.fy}
         </footer>
       </div>
 
@@ -1522,7 +1525,7 @@ export default function FinanceDashboard() {
 // ================== SHARED STYLES ==================
 const btnGhost = {
   background: "transparent",
-  border: `1px solid ${THEME.line}`,
+  border: `1.5px solid ${THEME.line}`,
   color: THEME.ink,
   padding: "8px 14px",
   fontFamily: "var(--t-font, 'Inter', sans-serif)",
@@ -1533,14 +1536,14 @@ const btnGhost = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  transition: "all 0.15s ease",
+  transition: "all 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
   letterSpacing: "-0.01em",
 };
 const btnSolid = {
   background: THEME.ink,
   color: THEME.darkInk,
-  border: `1px solid ${THEME.ink}`,
-  padding: "10px 18px",
+  border: `1.5px solid ${THEME.ink}`,
+  padding: "10px 20px",
   fontFamily: "var(--t-font, 'Inter', sans-serif)",
   fontSize: 14,
   fontWeight: 600,
@@ -1549,14 +1552,14 @@ const btnSolid = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  transition: "all 0.15s ease",
+  transition: "all 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
 };
 const btnAccent = {
   ...btnSolid,
-  background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 80%, #fff))",
+  background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 75%, #C4B5FD))",
   borderColor: "var(--t-accent)",
   color: "#FFFFFF",
-  boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 25%, transparent)",
+  boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)",
 };
 
 const card = {
@@ -1565,14 +1568,14 @@ const card = {
   borderRadius: "var(--t-radius)",
   padding: "var(--card-pad, 24px)",
   boxShadow: "var(--t-card-shadow)",
-  transition: "box-shadow var(--t-transition), border-color var(--t-transition)",
+  transition: "box-shadow 0.25s cubic-bezier(0.22,1,0.36,1), border-color 0.25s cubic-bezier(0.22,1,0.36,1)",
 };
 const cardDark = {
-  background: "linear-gradient(135deg, #1a1d2e 0%, #0d0f18 100%)",
+  background: "linear-gradient(145deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%)",
   color: "#fff",
-  borderRadius: "var(--t-radius)",
+  borderRadius: "var(--radius-xl)",
   padding: "var(--card-pad, 24px)",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
+  boxShadow: "0 20px 60px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
   border: "1px solid rgba(255,255,255,0.06)",
   position: "relative",
   overflow: "hidden",
@@ -1608,7 +1611,7 @@ const SectionTitle = ({ children, sub }) => (
         fontSize: 22,
         fontWeight: 800,
         margin: 0,
-        letterSpacing: "-0.03em",
+        letterSpacing: "-0.035em",
         color: THEME.ink,
       }}
     >
@@ -1619,8 +1622,9 @@ const SectionTitle = ({ children, sub }) => (
         style={{
           fontSize: 13,
           color: THEME.muted,
-          marginTop: 4,
+          marginTop: 5,
           fontStyle: "normal",
+          lineHeight: 1.5,
         }}
       >
         {sub}
@@ -1655,7 +1659,7 @@ function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any
         {/* Top row: label + date + profile badge */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#F87171", boxShadow: `0 0 8px ${isPositive ? "#34D399" : "#F87171"}` }} />
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
             <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 700 }}>
               Net Worth Dashboard
             </span>
@@ -1671,13 +1675,14 @@ function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any
             Total Net Worth
           </div>
           <div style={{
-            fontSize: "clamp(44px, 6vw, 76px)",
+            fontSize: "clamp(42px, 5.5vw, 72px)",
             fontWeight: 900,
             lineHeight: 1,
-            letterSpacing: "-0.04em",
+            letterSpacing: "-0.045em",
             fontVariantNumeric: "tabular-nums",
             color: "#fff",
-            textShadow: "0 2px 20px rgba(0,0,0,0.3)",
+            textShadow: "0 2px 30px rgba(0,0,0,0.3)",
+            fontFeatureSettings: "'ss01', 'tnum'",
           }}>
             {fmtINRFull(metrics.netWorth)}
           </div>
