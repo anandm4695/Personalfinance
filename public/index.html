@@ -36,6 +36,17 @@
   <!-- Load fonts with display=swap for performance -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
+  <script>
+    // Detect saved theme early to prevent flash of wrong theme
+    (function() {
+      var theme = 'dark';
+      try { theme = localStorage.getItem('finance-theme') || 'dark'; } catch(e) {}
+      var isDark = theme === 'dark';
+      document.documentElement.style.setProperty('--init-bg', isDark ? '#0F0F1A' : '#F8F9FA');
+      document.documentElement.style.setProperty('--init-color', isDark ? '#E8EAED' : '#202124');
+      if (isDark) document.documentElement.classList.add('dark-theme');
+    })();
+  </script>
   <style>
     /* Critical inline CSS — eliminates FOUC */
     *, *::before, *::after { box-sizing: border-box; }
@@ -43,8 +54,8 @@
     body {
       margin: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0F0F1A;
-      color: #E8EAED;
+      background: var(--init-bg, #0F0F1A);
+      color: var(--init-color, #E8EAED);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -58,7 +69,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #0F0F1A;
+      background: var(--init-bg, #0F0F1A);
       z-index: 9999;
       gap: 20px;
       transition: opacity 0.4s ease;
@@ -68,31 +79,31 @@
       width: 56px;
       height: 56px;
       border-radius: 18px;
-      background: linear-gradient(135deg, #4F6BFF, #818CF8);
+      background: linear-gradient(135deg, #1A73E8, #6BA8FF);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 28px;
-      box-shadow: 0 0 40px rgba(79,107,255,0.35);
+      box-shadow: 0 0 40px rgba(26,115,232,0.35);
       animation: pulse 2s ease-in-out infinite;
     }
     .loading-bar {
       width: 200px;
       height: 3px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(128,128,128,0.15);
       border-radius: 2px;
       overflow: hidden;
     }
     .loading-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #4F6BFF, #818CF8, #4F6BFF);
+      background: linear-gradient(90deg, #1A73E8, #6BA8FF, #1A73E8);
       background-size: 200%;
       border-radius: 2px;
       animation: shimmer 1.5s linear infinite;
     }
     @keyframes pulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(79,107,255,0.35); }
-      50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(79,107,255,0.5); }
+      0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(26,115,232,0.35); }
+      50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(26,115,232,0.5); }
     }
     @keyframes shimmer {
       0% { background-position: 200% center; }

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import "./styles.css";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Wallet,
