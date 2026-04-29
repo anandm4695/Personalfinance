@@ -56,6 +56,8 @@ import {
   Percent,
   List,
   LogOut,
+  LayoutTemplate,
+  AlignJustify,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -424,7 +426,8 @@ const DEFAULT_STATE = (() => {
 export default function FinanceDashboard() {
   const [state, setState] = useState(DEFAULT_STATE);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("analytics");
+  const [subTab, setSubTab] = useState(null);
   const [modal, setModal] = useState(null);
   const [copied, setCopied] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -946,9 +949,19 @@ export default function FinanceDashboard() {
 
   // ================== TABS ==================
   const tabs = [
-    { id: "overview", label: "Ledger", icon: LineIcon },
+    { id: "analytics", label: "Dashboard", icon: PieIcon },
     { id: "banks", label: "Banks", icon: Landmark },
-    { id: "investments", label: "Investments", icon: TrendingUp },
+    { id: "investments", label: "Investments", icon: TrendingUp, children: [
+      { id: "fd", label: "Fixed Deposits" },
+      { id: "rd", label: "Recurring Deposits" },
+      { id: "bond", label: "Bonds" },
+      { id: "ppf", label: "PPF" },
+      { id: "nps", label: "NPS" },
+      { id: "mf", label: "Mutual Funds" },
+      { id: "lic", label: "LIC" },
+      { id: "term", label: "Term Plans" },
+      { id: "income", label: "Interest Income" },
+    ]},
     { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
     { id: "credit", label: "Credit & Loans", icon: CreditCard },
     { id: "subs", label: "Subscriptions", icon: Repeat },
@@ -957,7 +970,6 @@ export default function FinanceDashboard() {
     { id: "goals", label: "Goals", icon: Target },
     { id: "budget", label: "Budget", icon: Wallet },
     { id: "reminders", label: "Reminders", icon: Bell },
-    { id: "analytics", label: "Analytics", icon: PieIcon },
     { id: "calculators", label: "Calculators", icon: Hash },
     { id: "tax", label: "Tax Vault", icon: Calculator },
     { id: "settings", label: "Settings", icon: Settings },
@@ -1097,30 +1109,57 @@ export default function FinanceDashboard() {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "12px 16px",
-                    borderRadius: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginBottom: 4,
-                    color: active ? THEME.accent : THEME.muted,
-                    fontWeight: active ? 700 : 500,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <Icon size={18} />
-                  <span style={{ fontSize: 14 }}>{t.label}</span>
-                  {active && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: THEME.accent }} />}
-                </button>
+                <div key={t.id}>
+                  <button
+                    onClick={() => { setTab(t.id); if (t.children) setSubTab(t.children[0].id); else setSubTab(null); }}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 4,
+                      color: active ? THEME.accent : THEME.muted,
+                      fontWeight: active ? 700 : 500,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <Icon size={18} />
+                    <span style={{ fontSize: 14 }}>{t.label}</span>
+                    {active && !t.children && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: THEME.accent }} />}
+                  </button>
+                  {active && t.children && (
+                    <div style={{ marginLeft: 20, paddingLeft: 12, borderLeft: `1px solid ${THEME.line}`, marginBottom: 8 }}>
+                      {t.children.map((child) => (
+                        <button
+                          key={child.id}
+                          onClick={() => setSubTab(child.id)}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "8px 12px",
+                            borderRadius: 6,
+                            display: "block",
+                            fontSize: 13,
+                            color: subTab === child.id ? THEME.accent : THEME.muted,
+                            fontWeight: subTab === child.id ? 600 : 500,
+                            transition: "all 0.2s",
+                          }}
+                        >
+                          {child.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
@@ -1334,7 +1373,7 @@ export default function FinanceDashboard() {
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setTab(t.id)}
+                    onClick={() => { setTab(t.id); if (t.children) setSubTab(t.children[0].id); else setSubTab(null); }}
                     style={{
                       background: "transparent",
                       border: "none",
@@ -1399,9 +1438,9 @@ export default function FinanceDashboard() {
           }}
         >
           <div key={tab} className="tab-content-enter">
-            {tab === "overview" && <Overview metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} />}
+            
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-            {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
@@ -1411,7 +1450,7 @@ export default function FinanceDashboard() {
             {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
-            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} chartStyle={chartStyle} />}
+            {tab === "analytics" && <AnalyticsDashboard metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} isVertical={sidebarNav} />}
             {tab === "calculators" && <CalculatorsTab />}
             {tab === "settings" && (
               <SettingsTab
@@ -1450,7 +1489,7 @@ export default function FinanceDashboard() {
       {/* ── MOBILE BOTTOM NAVIGATION ── */}
       {!sidebarNav && (() => {
         const mobileNavTabs = [
-          { id: "overview",     label: "Ledger",     icon: LineIcon },
+          { id: "analytics", label: "Analytics", icon: PieIcon },
           { id: "banks",        label: "Banks",      icon: Landmark },
           { id: "investments",  label: "Invest",     icon: TrendingUp },
           { id: "analytics",    label: "Analytics",  icon: PieIcon },
@@ -1464,7 +1503,7 @@ export default function FinanceDashboard() {
               return (
                 <button
                   key={t.id}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => { setTab(t.id); if (t.children) setSubTab(t.children[0].id); else setSubTab(null); }}
                   style={{
                     background: "none",
                     border: "none",
@@ -1634,7 +1673,707 @@ const SectionTitle = ({ children, sub }) => (
 );
 
 // ================== OVERVIEW ==================
-function Overview({ metrics, state, assetBreakdown, trendData, chartStyle }: any) {
+
+// ================== SUB-NAV COMPONENT ==================
+function SubNav({ items, active, onChange, isVertical }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, fontWeight: 600 }}>Categories</div>
+        
+      </div>
+      <div style={{ 
+        display: "flex", 
+        flexDirection: isVertical ? "column" : "row",
+        gap: 8, 
+        overflowX: isVertical ? "visible" : "auto",
+        paddingBottom: isVertical ? 0 : 8,
+        scrollbarWidth: "none"
+      }}>
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = active === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onChange(item.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: isVertical ? "12px 16px" : "8px 16px",
+                background: isActive ? THEME.accent + "1A" : "rgba(255,255,255,0.03)",
+                border: `1.5px solid ${isActive ? THEME.accent : "rgba(255,255,255,0.05)"}`,
+                borderRadius: 99,
+                color: isActive ? THEME.accent : THEME.ink,
+                fontSize: 13, fontWeight: isActive ? 700 : 500,
+                cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s ease",
+                width: isVertical ? "100%" : "auto"
+              }}
+            >
+              {Icon && <Icon size={14} />} {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ================== ANALYTICS DASHBOARD ==================
+function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartStyle, isVertical }) {
+  const [sub, setSub] = useState("dashboard");
+  const [drillCat, setDrillCat] = useState(null);
+  
+  const subs = [
+    { id: "dashboard", label: "Dashboard", icon: PieChart },
+    { id: "trends", label: "Trends", icon: TrendingUp },
+    { id: "spending", label: "Spending", icon: CreditCard },
+    { id: "allocation", label: "Allocation", icon: Target },
+    { id: "calendar", label: "Calendar", icon: Calendar },
+  ];
+
+  const netWorthTrend = useMemo(() => {
+    return trendData.map((t, i) => ({
+      month: t.month,
+      value: metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.9,
+    }));
+  }, [trendData, metrics]);
+
+  const savingsData = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const ym = d.toISOString().slice(0, 7);
+      const label = d.toLocaleString("en-IN", { month: "short" });
+      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym));
+      const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      return { month: label, rate: parseFloat((inc > 0 ? ((inc - exp) / inc) * 100 : 0).toFixed(1)), income: inc, expense: exp };
+    });
+  }, [state.transactions]);
+
+  const catTrend = useMemo(() => {
+    const topCatNames = metrics.expenseBreakdown.slice(0, 4).map((c) => c.name);
+    const now = new Date();
+    const data = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const ym = d.toISOString().slice(0, 7);
+      const label = d.toLocaleString("en-IN", { month: "short" });
+      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit");
+      const entry = { month: label };
+      topCatNames.forEach((cat) => { entry[cat] = txns.filter((t) => t.category === cat).reduce((s, t) => s + Number(t.amount || 0), 0); });
+      return entry;
+    });
+    return { data, cats: topCatNames };
+  }, [state.transactions, metrics.expenseBreakdown]);
+
+  const incomeBySrc = useMemo(() => {
+    const map = {};
+    state.income.forEach((i) => { map[i.source] = (map[i.source] || 0) + Number(i.amount || 0); });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [state.income]);
+
+  const isPositive = metrics.netWorth >= 0;
+
+  // Render variables for Dashboard
+  let totalScore = 0;
+  let savingsScore = 0;
+  let debtScore = 0;
+  let emergencyScore = 0;
+  let divScore = 0;
+  let dues = [];
+  let scoreColor = THEME.sage;
+  let subScores = [];
+  let saved = 0;
+  let expensePct = 0;
+  let savedPct = 0;
+  let streak = 0;
+  let streakMsg = "";
+  let streakEmoji = "";
+
+  if (sub === "dashboard") {
+    // Health score
+    if (metrics.savingsRate >= 30) savingsScore = 25;
+    else if (metrics.savingsRate >= 20) savingsScore = 18;
+    else if (metrics.savingsRate >= 10) savingsScore = 10;
+    else savingsScore = 4;
+
+    if (metrics.debtToAssetRatio < 10) debtScore = 25;
+    else if (metrics.debtToAssetRatio < 25) debtScore = 18;
+    else if (metrics.debtToAssetRatio < 50) debtScore = 10;
+    else debtScore = 4;
+
+    const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+    if (emergencyMonths > 6) emergencyScore = 25;
+    else if (emergencyMonths >= 3) emergencyScore = 18;
+    else if (emergencyMonths >= 1) emergencyScore = 10;
+    else emergencyScore = 4;
+
+    if (state.mutualFunds.length > 0) divScore += 6;
+    if (state.stocks.length > 0) divScore += 6;
+    if (state.fixedDeposits.length > 0) divScore += 6;
+    if (state.ppf.length > 0 || state.nps.length > 0) divScore += 7;
+
+    totalScore = savingsScore + debtScore + emergencyScore + divScore;
+    scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
+
+    subScores = [
+      { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100 },
+      { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100 },
+      { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100 },
+      { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100 },
+    ];
+
+    // Dues
+    const todayMs = new Date().getTime();
+    const plus30Ms = todayMs + 30 * 86400000;
+    state.creditCards.forEach((c) => {
+      if (c.dueDate) {
+        const ms = new Date(c.dueDate).getTime();
+        const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+        if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: c.dueDate });
+      }
+    });
+    state.subscriptions.forEach((s) => {
+      if (s.renewalDate) {
+        const ms = new Date(s.renewalDate).getTime();
+        const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+        if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: s.name + " Renewal", amount: Number(s.amount || 0), daysLeft, date: s.renewalDate });
+      }
+    });
+    dues.sort((a, b) => a.daysLeft - b.daysLeft);
+
+    saved = metrics.monthIncome - metrics.monthExpense;
+    expensePct = metrics.monthIncome > 0 ? (metrics.monthExpense / metrics.monthIncome) * 100 : 0;
+    savedPct = metrics.monthIncome > 0 ? Math.max(0, (saved / metrics.monthIncome) * 100) : 0;
+
+    // Streak
+    const now = new Date();
+    for (let i = 1; i <= 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym2 = d.toISOString().slice(0, 7);
+      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym2));
+      const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      if (inc > exp && inc > 0) streak++; else break;
+    }
+    streakEmoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
+    streakMsg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
+  }
+
+  return (
+    <div className="tab-content-enter">
+      <div style={{ marginBottom: 24 }}><SubNav items={subs} active={sub} onChange={setSub} isVertical={false} /></div>
+      <SectionTitle sub="Unified view of your net worth, cash flow, and spending analytics">Analytics Dashboard</SectionTitle>
+      
+      
+
+      {sub === "dashboard" && (
+        <>
+          <div className="hero-card" style={{ marginBottom: 28 }}>
+            <div className="hero-card-mesh" />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
+                <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 700 }}>Net Worth Dashboard</span>
+              </div>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em" }}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+            </div>
+            <div style={{ position: "relative", zIndex: 1, marginBottom: 32 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Total Net Worth</div>
+              <div style={{ fontSize: "clamp(42px, 5.5vw, 72px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", fontVariantNumeric: "tabular-nums", color: "#fff", textShadow: "0 2px 30px rgba(0,0,0,0.3)", fontFeatureSettings: "'ss01', 'tnum'" }}>
+                {fmtINRFull(metrics.netWorth)}
+              </div>
+              {metrics.totalAssets > 0 && (
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: isPositive ? "#34D399" : "#F87171", fontWeight: 700 }}>{isPositive ? "▲" : "▼"} {((Math.abs(metrics.netWorth) / metrics.totalAssets) * 100).toFixed(1)}% equity ratio</span>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>·</span>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>Total assets {fmtINRFull(metrics.totalAssets)}</span>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "16px 24px", position: "relative", zIndex: 1, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              <HeroStat label="Bank Cash" value={metrics.cashInBanks} />
+              <HeroStat label="Fixed Deposits" value={state.fixedDeposits.reduce((acc, curr) => acc + Number(curr.principal), 0)} />
+              <HeroStat label="Mutual Funds" value={metrics.mfValue} />
+              <HeroStat label="Stocks" value={metrics.stockValue} />
+              <HeroStat label="PPF + NPS" value={metrics.ppfValue + metrics.npsValue} />
+              <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
+              <HeroStat label="Loans Taken" value={metrics.totalLiabilities - metrics.ccOutstanding} negative />
+              <HeroStat label="Subs / Mo" value={state.subscriptions.filter(s => !s.paused && s.amount).reduce((acc, curr) => acc + (curr.cycle === "yearly" ? Number(curr.amount)/12 : Number(curr.amount)), 0)} />
+            </div>
+          </div>
+
+          {/* RECENT MOVEMENT */}
+          <div style={{ ...card, marginBottom: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted }}>Recent Movement</div>
+              <div style={{ fontSize: 12, color: THEME.muted }}>{state.transactions.length} total entries</div>
+            </div>
+            {state.transactions.length ? (
+              <div style={{ overflowX: "auto" }}>
+                <div style={{ display: "grid", gap: 2, minWidth: 480 }}>
+                  {state.transactions.slice(-6).reverse().map((t) => {
+                    const bank = state.bankAccounts.find((b) => b.id === t.accountId);
+                    return (
+                      <div key={t.id} style={{ display: "grid", gridTemplateColumns: "110px 1fr 100px 140px", padding: "10px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14, alignItems: "center" }}>
+                        <span style={{ color: THEME.muted, fontSize: 12 }}>{t.date}</span>
+                        <span style={{ overflow: "hidden" }}>
+                          <div style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note || "—"}</div>
+                          <div style={{ fontSize: 11, color: THEME.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.category} · {bank ? bank.bank : "Cash"}</div>
+                        </span>
+                        <span style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.type}</span>
+                        <span style={{ fontWeight: 700, textAlign: "right", color: t.type === "credit" ? THEME.sage : THEME.ink }}>{t.type === "credit" ? "+" : "−"} {fmtINR(t.amount)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : <EmptyHint text="No recent transactions" />}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+            <div className="insight-card" onClick={() => setSub("trends")} style={{ cursor: "pointer" }}>
+              <div className="section-label">Savings Rate</div>
+              {(() => {
+                const rate = Math.min(100, Math.max(0, metrics.savingsRate));
+                const r = 24, circ = 2 * Math.PI * r;
+                const dash = (rate / 100) * circ;
+                const col = rate >= 20 ? THEME.sage : rate >= 10 ? THEME.gold : THEME.rust;
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <svg width="60" height="60" viewBox="0 0 60 60" style={{ flexShrink: 0 }}>
+                      <circle cx="30" cy="30" r={r} fill="none" stroke="var(--t-line)" strokeWidth="5" />
+                      <circle cx="30" cy="30" r={r} fill="none" stroke={col} strokeWidth="5" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={circ / 4} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.7s ease" }} />
+                      <text x="30" y="35" textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: col, fontFamily: "inherit" }}>{rate.toFixed(0)}%</text>
+                    </svg>
+                    <div>
+                      <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: "-0.03em", lineHeight: 1 }}>{metrics.savingsRate.toFixed(1)}%</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>of monthly income</div>
+                      <span className={`badge ${rate >= 20 ? "badge-sage" : rate >= 10 ? "badge-gold" : "badge-rust"}`} style={{ marginTop: 6, fontSize: 10 }}>{rate >= 20 ? "On track" : rate >= 10 ? "Improving" : "Below target"}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="insight-card" onClick={() => setSub("trends")} style={{ cursor: "pointer" }}>
+              <div className="section-label">Debt-to-Asset Ratio</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1, color: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.sage, marginBottom: 6 }}>{metrics.debtToAssetRatio.toFixed(1)}<span style={{ fontSize: 16, fontWeight: 600 }}>%</span></div>
+              <div style={{ height: 6, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}><div style={{ height: "100%", width: Math.min(metrics.debtToAssetRatio, 100) + "%", background: metrics.debtToAssetRatio > 40 ? THEME.rust : THEME.sage, borderRadius: 99, transition: "width 0.7s ease" }} /></div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Healthy if under 40% · Your liabilities {fmtINR(metrics.totalLiabilities)}</div>
+            </div>
+            <div className="insight-card" onClick={() => setSub("allocation")} style={{ cursor: "pointer" }}>
+              <div className="section-label">Liquidity Score</div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1, color: THEME.accent, marginBottom: 6 }}>{metrics.totalAssets > 0 ? ((metrics.liquidAssets / metrics.totalAssets) * 100).toFixed(1) : 0}<span style={{ fontSize: 16, fontWeight: 600 }}>%</span></div>
+              <div style={{ height: 6, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}><div style={{ height: "100%", width: (metrics.totalAssets > 0 ? Math.min((metrics.liquidAssets / metrics.totalAssets) * 100, 100) : 0) + "%", background: THEME.accent, borderRadius: 99, transition: "width 0.7s ease" }} /></div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Liquid {fmtINR(metrics.liquidAssets)} · Locked {fmtINR(metrics.lockedAssets)}</div>
+            </div>
+            <div className="insight-card" onClick={() => setSub("trends")} style={{ cursor: "pointer" }}>
+              <div className="section-label">Investment P&amp;L</div>
+              {(() => {
+                const pnl = metrics.mfPnL + metrics.stockPnL;
+                const col = pnl >= 0 ? THEME.sage : THEME.rust;
+                const invested = metrics.mfInvested + metrics.stockInvested;
+                const pct = invested > 0 ? (pnl / invested) * 100 : 0;
+                return (
+                  <>
+                    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", color: col, lineHeight: 1, marginBottom: 4 }}>{pnl >= 0 ? "+" : ""}{fmtINR(pnl)}</div>
+                    <div style={{ fontSize: 12, color: col, fontWeight: 600, marginBottom: 6 }}>{pnl >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}% overall return</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>Unrealised · Invested {fmtINR(invested)}</div>
+                  </>
+                );
+              })()}
+            </div>
+            <div className="insight-card" onClick={() => setSub("trends")} style={{ cursor: "pointer" }}>
+              <div className="section-label">Savings Streak</div>
+              <div style={{ fontSize: 32, lineHeight: 1, marginBottom: 6 }}>{streakEmoji}</div>
+              <div style={{ fontSize: 36, fontWeight: 900, color: streak > 0 ? THEME.sage : THEME.muted, letterSpacing: "-0.04em", lineHeight: 1 }}>{streak}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>consecutive months</div>
+              <span className={`badge ${streak >= 6 ? "badge-sage" : streak >= 1 ? "badge-gold" : "badge-muted"}`} style={{ marginTop: 8, fontSize: 10 }}>{streakMsg}</span>
+            </div>
+          </div>
+
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Monthly P&L · Last 6 Months</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={trendData.slice(-6)} barGap={4}>
+                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                <Bar dataKey="income" name="Income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" name="Expense" fill={THEME.rust} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="net" name="Saved" fill={THEME.accent} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 32 }}>
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Financial Health Score</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, color: scoreColor, fontFamily: "'Inter', sans-serif" }}>{totalScore}</div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: scoreColor }}>{totalScore >= 75 ? "Excellent" : totalScore >= 50 ? "Good" : "Needs Work"}</div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>out of 100</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {subScores.map((s) => (
+                  <div key={s.label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: THEME.muted }}>{s.label}</span>
+                      <span style={{ fontWeight: 600 }}>{s.score}/{s.max}</span>
+                    </div>
+                    <div style={{ height: 5, background: THEME.line, borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: s.pct + "%", background: scoreColor, borderRadius: 3, transition: "width 0.5s" }} /></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>This Month's Cash Flow</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Income</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: THEME.sage }}>{fmtINR(metrics.monthIncome)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Expenses</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: THEME.rust }}>{fmtINR(metrics.monthExpense)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>Saved</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: saved >= 0 ? THEME.accent : THEME.rust }}>{fmtINR(Math.abs(saved))}</div>
+                </div>
+              </div>
+              {metrics.monthIncome > 0 ? (
+                <div>
+                  <div style={{ height: 20, background: THEME.line, borderRadius: 10, overflow: "hidden", display: "flex" }}>
+                    <div style={{ height: "100%", width: Math.min(expensePct, 100) + "%", background: THEME.rust, transition: "width 0.5s" }} />
+                    <div style={{ height: "100%", width: Math.min(savedPct, 100 - Math.min(expensePct, 100)) + "%", background: THEME.sage, transition: "width 0.5s" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                    <span style={{ color: THEME.rust }}>{expensePct.toFixed(1)}% spent</span>
+                    <span style={{ color: THEME.sage }}>{savedPct.toFixed(1)}% saved</span>
+                  </div>
+                </div>
+              ) : <div style={{ fontSize: 13, color: THEME.muted, textAlign: "center", padding: "20px 0" }}>No income recorded this month</div>}
+            </div>
+
+            <div style={{ ...card, padding: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Upcoming Dues (30 days)</div>
+              {dues.length === 0 ? (
+                <div style={{ fontSize: 13, color: THEME.muted, textAlign: "center", padding: "24px 0" }}>No dues in the next 30 days</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {dues.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: d.daysLeft <= 5 ? "rgba(217,48,37,0.06)" : "rgba(128,128,128,0.04)", borderLeft: `3px solid ${d.daysLeft <= 5 ? THEME.rust : d.daysLeft <= 10 ? THEME.gold : THEME.line}` }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{fmtINR(d.amount)}</div>
+                        <div style={{ fontSize: 11, color: d.daysLeft <= 5 ? THEME.rust : THEME.muted }}>{d.daysLeft === 0 ? "Today" : d.daysLeft + "d"}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {sub === "trends" && (
+        <>
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Net Worth Timeline — Trailing 12 Months</div>
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={netWorthTrend}>
+                <defs>
+                  <linearGradient id="gNwAnalytics" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                <Area type={chartStyle} dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNwAnalytics)" name="Net Worth" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 24, marginBottom: 32 }}>
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Savings Rate — 6 Months</div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={savingsData}>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={(v) => v + "%"} />
+                  <Tooltip formatter={(v) => v + "%"} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                  <Bar dataKey="rate" fill={THEME.accent} radius={[4, 4, 0, 0]} name="Savings Rate %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Cashflow · Trailing 12 Months</div>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="gInc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.sage} stopOpacity={0.5} /><stop offset="100%" stopColor={THEME.sage} stopOpacity={0} /></linearGradient>
+                    <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.5} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                  <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                  <Area type={chartStyle} dataKey="income" stroke={THEME.sage} strokeWidth={2} fill="url(#gInc)" name="Income" />
+                  <Area type={chartStyle} dataKey="expense" stroke={THEME.accent} strokeWidth={2} fill="url(#gExp)" name="Expense" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Portfolio Performance</div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={[
+                { name: "Mutual Funds", current: metrics.mfValue, invested: metrics.mfInvested },
+                { name: "Stocks", current: metrics.stockValue, invested: metrics.stockInvested }
+              ]} barGap={4}>
+                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINRFull} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                <Bar dataKey="current" name="Current" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="invested" name="Invested" fill={THEME.muted} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+        </>
+      )}
+
+      {sub === "spending" && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 24, marginBottom: 32 }}>
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Expense Breakup</div>
+              {metrics.expenseBreakdown && metrics.expenseBreakdown.length ? (
+                <>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
+                        {metrics.expenseBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px", marginTop: 12 }}>
+                    {metrics.expenseBreakdown.slice(0, 8).map((cat, i) => {
+                      const total = metrics.expenseBreakdown.reduce((s, c) => s + c.value, 0);
+                      const pct = total > 0 ? ((cat.value / total) * 100).toFixed(1) : "0";
+                      const active = drillCat === cat.name;
+                      return (
+                        <div key={cat.name} onClick={() => setDrillCat(active ? null : cat.name)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, background: active ? PIE_COLORS[i % PIE_COLORS.length] + "22" : "rgba(128,128,128,0.06)", border: active ? `1.5px solid ${PIE_COLORS[i % PIE_COLORS.length]}` : "1.5px solid transparent", cursor: "pointer" }}>
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.name}</div>
+                            <div style={{ fontSize: 11, color: THEME.muted }}>{fmtINR(cat.value)} · {pct}%</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : <EmptyHint text="No expense data" />}
+            </div>
+
+            <div style={card}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Category Spending — 6 Months</div>
+              {catTrend.cats.length ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={catTrend.data}>
+                    <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                    <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                    <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                    <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    {catTrend.cats.map((cat, i) => (
+                      <Bar key={cat} dataKey={cat} fill={PIE_COLORS[i % PIE_COLORS.length]} radius={[2, 2, 0, 0]} stackId="a" />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <EmptyHint text="Add categorized transactions to see trends" />}
+            </div>
+          </div>
+
+          <div style={{ ...card, marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Expenses — 6-Month Sparklines</div>
+            {metrics.expenseBreakdown.length ? (
+              <div style={{ display: "grid", gap: 16 }}>
+                {metrics.expenseBreakdown.slice(0, 6).map((cat, i) => {
+                  const maxVal = metrics.expenseBreakdown[0].value;
+                  const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
+                  const sparkVals = catTrend.data.map((d) => d[cat.name] || 0);
+                  const sparkMax = Math.max(...sparkVals, 1);
+                  const W = 80, H = 28, pts = sparkVals.map((v, idx) => {
+                    const x = (idx / (sparkVals.length - 1)) * W;
+                    const y = H - (v / sparkMax) * H;
+                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+                  }).join(" ");
+                  return (
+                    <div key={cat.name}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5, fontSize: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                          <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
+                            <polyline points={pts} fill="none" stroke={PIE_COLORS[i % PIE_COLORS.length]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            {sparkVals.map((v, idx) => {
+                              const x = (idx / (sparkVals.length - 1)) * W;
+                              const y = H - (v / sparkMax) * H;
+                              return <circle key={idx} cx={x.toFixed(1)} cy={y.toFixed(1)} r="2.5" fill={PIE_COLORS[i % PIE_COLORS.length]} />;
+                            })}
+                          </svg>
+                        </div>
+                        <span style={{ fontWeight: 700 }}>{fmtINRFull(cat.value)}</span>
+                      </div>
+                      <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3, transition: "width 0.5s" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <EmptyHint text="No expense data for this month" />}
+          </div>
+        </>
+      )}
+
+      
+      {/* RESTORED CHARTS */}
+      {sub === "allocation" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+          <div style={card}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Investment Allocation</div>
+            {assetBreakdown.length ? (
+              <>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={assetBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={55} paddingAngle={2}>
+                      {assetBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+                  {assetBreakdown.map((a, i) => (
+                    <div key={a.name} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 10, height: 10, background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span style={{ color: THEME.ink }}>{a.name}</span>
+                      <span style={{ color: THEME.muted, marginLeft: "auto" }}>{((a.value / metrics.totalAssets) * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : <EmptyHint text="Add bank accounts and investments to see allocation" />}
+          </div>
+
+          <div style={card}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Net Worth Breakdown</div>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie data={[
+                  { name: "Total Assets", value: metrics.totalAssets },
+                  { name: "Total Liabilities", value: metrics.totalLiabilities }
+                ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={55} paddingAngle={2}>
+                  <Cell fill={THEME.sage} />
+                  <Cell fill={THEME.rust} />
+                </Pie>
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none" }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 12 }}>
+              <div style={{ background: THEME.sage + "1A", padding: 12, borderRadius: 8, textAlign: "center" }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Assets</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: THEME.sage }}>{fmtINRFull(metrics.totalAssets)}</div>
+              </div>
+              <div style={{ background: THEME.rust + "1A", padding: 12, borderRadius: 8, textAlign: "center" }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Liabilities</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: THEME.rust }}>{fmtINRFull(metrics.totalLiabilities)}</div>
+              </div>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 16, fontSize: 14, fontWeight: 600 }}>
+              Net Worth: <span style={{ color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust }}>{fmtINRFull(metrics.netWorth)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sub === "calendar" && (
+        (() => {
+          const now = new Date();
+          const year = now.getFullYear(), month = now.getMonth();
+          const firstDay = new Date(year, month, 1).getDay();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const today2 = now.getDate();
+          const dueDays = {};
+          state.creditCards.forEach((c) => {
+            if (c.dueDate) {
+              const d = new Date(c.dueDate);
+              if (d.getFullYear() === year && d.getMonth() === month) dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: c.issuer || "Card", color: THEME.rust });
+            }
+          });
+          state.subscriptions.filter(s => !s.paused).forEach((s) => {
+            if (s.renewalDate) {
+              const d = new Date(s.renewalDate);
+              if (d.getFullYear() === year && d.getMonth() === month) dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: s.name, color: THEME.gold });
+            }
+          });
+          [15].forEach((day) => { if (month === 5) dueDays[day] = (dueDays[day] || []).concat({ label: "Adv. Tax", color: THEME.accent }); });
+          if (month === 8 || month === 11 || month === 2) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+          const cells = [];
+          for (let i = 0; i < firstDay; i++) cells.push(null);
+          for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+          const monthName = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
+          return (
+            <div style={{ ...card, marginBottom: 32 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>Bill Calendar · {monthName}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
+                {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+                  <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
+                ))}
+                {cells.map((d, i) => (
+                  <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: d === today2 ? THEME.accent + "22" : dueDays[d] ? "rgba(249,171,0,0.1)" : "transparent", border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
+                    {d && <>
+                      <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
+                      {(dueDays[d] || []).slice(0, 3).map((due, j) => (
+                        <div key={j} style={{ fontSize: 9, color: due.color, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{due.label}</div>
+                      ))}
+                    </>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
+                <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscription renewals</span>
+                <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
+              </div>
+            </div>
+          );
+        })()
+      )}
+    </div>
+  );
+}
+
+
+function OldOverview({ metrics, state, assetBreakdown, trendData, chartStyle }: any) {
   const [drillCat, setDrillCat] = useState(null);
   const netWorthTrend = useMemo(() => {
     // simple monthly snapshot: cumulative net cash flow + current assets snapshot (approximation)
@@ -3243,8 +3982,8 @@ function TxnEditModal({ txn, accounts, onClose, onSave }) {
 }
 
 // ================== INVESTMENTS TAB ==================
-function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
-  const [sub, setSub] = useState("fd");
+function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
+  const sub = subTab || "fd";
   const [modal, setModal] = useState(null);
   const [editId, setEditId] = useState(null);
 
@@ -3271,48 +4010,11 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
         Investments
       </SectionTitle>
 
-      {/* sub-nav */}
-      <div
-        style={{
-          display: "flex",
-          gap: 0,
-          marginBottom: 24,
-          borderBottom: `1px solid ${THEME.line}`,
-          overflowX: "auto",
-        }}
-      >
-        {subs.map((s) => {
-          const Icon = s.icon;
-          const active = sub === s.id;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSub(s.id)}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: "10px 16px",
-                fontFamily: "inherit",
-                fontSize: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: active ? THEME.accent : THEME.muted,
-                borderBottom: `2px solid ${
-                  active ? THEME.accent : "transparent"
-                }`,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                whiteSpace: "nowrap",
-                fontWeight: active ? 700 : 500,
-              }}
-            >
-              <Icon size={12} /> {s.label}
-            </button>
-          );
-        })}
-      </div>
+      
+      <div>
+        
+        <div style={{ minWidth: 0 }}>
+
 
       <div
         style={{
@@ -3608,6 +4310,8 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem }) {
         <TermModal initial={state.termPlans.find(x => x.id === editId)} onClose={() => setEditId(null)}
           onSave={(v) => { updateItem("termPlans", editId, v); setEditId(null); }} />
       )}
+            </div>
+      </div>
     </div>
   );
 }
@@ -7475,7 +8179,7 @@ function ReminderModal({ onClose, onSave }) {
 }
 
 // ================== ANALYTICS TAB ==================
-function AnalyticsTab({ metrics, state, trendData, chartStyle }: any) {
+function OldAnalyticsTab({ metrics, state, trendData, chartStyle }: any) {
   const netWorthTrend = useMemo(() => {
     return trendData.map((t, i) => ({
       month: t.month,
