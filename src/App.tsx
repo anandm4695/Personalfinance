@@ -300,7 +300,7 @@ const loadState = () => {
   }
 };
 const saveStateLocal = (s: any) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, _ts: Date.now() })); } catch {}
 };
 
 const PROFILES = [
@@ -580,7 +580,15 @@ export default function FinanceDashboard() {
           .eq("user_id", userId)
           .single();
         if (data && data.data) {
-          setState({ ...DEFAULT_STATE, ...data.data });
+          const cloudData = data.data;
+          const localData = loadState();
+          const cloudTs = cloudData._ts || 0;
+          const localTs = localData?._ts || 0;
+          // Only apply cloud data if it is strictly newer than what is already in localStorage.
+          // This prevents an old Supabase snapshot from overwriting data the user added locally.
+          if (cloudTs > localTs) {
+            setState({ ...DEFAULT_STATE, ...cloudData });
+          }
         }
       } catch (e) {
         console.error("Supabase load failed", e);
@@ -596,10 +604,11 @@ export default function FinanceDashboard() {
     if (!userId || userId === "offline-user") return;
     (async () => {
       try {
+        const now = Date.now();
         await supabase.from("user_state").upsert({
           user_id: userId,
-          data: state,
-          updated_at: new Date().toISOString()
+          data: { ...state, _ts: now },
+          updated_at: new Date(now).toISOString()
         }, { onConflict: 'user_id' });
       } catch (e) {
         console.error("Supabase save failed", e);
