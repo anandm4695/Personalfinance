@@ -293,11 +293,14 @@ const calcOldSlabs = (taxable) => {
 const STORAGE_KEY = "finance_dashboard_v1";
 const loadState = () => {
   try {
-    const raw = window.storage ? null : null; // window.storage is async; handled in effect
-    return null;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
+};
+const saveStateLocal = (s: any) => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
 };
 
 const PROFILES = [
@@ -435,7 +438,10 @@ const DEFAULT_STATE = (() => {
 
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
-  const [state, setState] = useState(DEFAULT_STATE);
+  const [state, setState] = useState(() => {
+    const saved = loadState();
+    return saved ? { ...DEFAULT_STATE, ...saved } : DEFAULT_STATE;
+  });
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
@@ -547,48 +553,56 @@ export default function FinanceDashboard() {
     document.body.style.setProperty("background-attachment", "fixed", "important");
   }, [bgStyle]);
 
-  // Load from persistent storage on mount
+  // Always save to localStorage on every state change (works offline + demo mode)
   useEffect(() => {
-    if (!session) return;
+    if (!loaded) return;
+    saveStateLocal(state);
+  }, [state, loaded]);
+
+  // Load from Supabase on mount (real logged-in users get cloud sync)
+  useEffect(() => {
+    if (!session) {
+      // No session: mark loaded so saves start immediately
+      setLoaded(true);
+      return;
+    }
+    const userId = session.user?.id;
+    // Demo / offline mode — skip Supabase, just use localStorage
+    if (!userId || userId === "offline-user") {
+      setLoaded(true);
+      return;
+    }
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("user_state")
           .select("data")
-          .eq("user_id", session.user.id)
+          .eq("user_id", userId)
           .single();
-          
         if (data && data.data) {
           setState({ ...DEFAULT_STATE, ...data.data });
-        } else if (window.storage) {
-          const result = await window.storage.get(STORAGE_KEY);
-          if (result && result.value) {
-            setState({ ...DEFAULT_STATE, ...JSON.parse(result.value) });
-          }
         }
       } catch (e) {
-        console.error("Load failed", e);
+        console.error("Supabase load failed", e);
       }
       setLoaded(true);
     })();
   }, [session]);
 
-  // Save on change
+  // Sync to Supabase on change (only for real logged-in users)
   useEffect(() => {
     if (!loaded || !session) return;
+    const userId = session.user?.id;
+    if (!userId || userId === "offline-user") return;
     (async () => {
       try {
         await supabase.from("user_state").upsert({
-          user_id: session.user.id,
+          user_id: userId,
           data: state,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
-
-        if (window.storage) {
-          await window.storage.set(STORAGE_KEY, JSON.stringify(state));
-        }
       } catch (e) {
-        console.error("save failed", e);
+        console.error("Supabase save failed", e);
       }
     })();
   }, [state, loaded, session]);
