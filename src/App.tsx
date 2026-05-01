@@ -414,8 +414,8 @@ const DEFAULT_STATE = (() => {
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
     ],
     goals: [
-      { id: "g1", owner: "self", name: "Emergency Fund", category: "Emergency Fund", targetAmount: "600000", currentAmount: "400000" },
-      { id: "g2", owner: "daughter", name: "College Fund", category: "Education", targetAmount: "2000000", currentAmount: "250000" }
+      { id: "g1", owner: "self", name: "Emergency Fund", category: "Emergency Fund", targetAmount: "600000", currentAmount: "400000", priority: "High" },
+      { id: "g2", owner: "daughter", name: "College Fund", category: "Education", targetAmount: "2000000", currentAmount: "250000", priority: "Medium" }
     ],
     income: [
       { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
@@ -1627,6 +1627,12 @@ const btnAccent = {
   boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)",
 };
 
+const btnOutline = {
+  ...btnSolid,
+  background: "transparent",
+  color: "var(--t-ink)",
+  border: "1.5px solid var(--t-line)",
+};
 const card = {
   background: "var(--t-card-bg)",
   border: "var(--t-card-border)",
@@ -6855,9 +6861,19 @@ function SubModal({ onClose, onSave, initialValues = null }) {
 }
 
 // ================== GOALS TAB ==================
+const PRIORITY_ORDER = { High: 3, Medium: 2, Low: 1 };
+const PRIORITY_COLOR = { High: "#ef4444", Medium: "#f59e0b", Low: "#22c55e" };
+
 function GoalsTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
   const [editGoal, setEditGoal] = useState(null);
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+
+  const sortedGoals = [...state.goals].sort((a, b) => {
+    const pa = PRIORITY_ORDER[a.priority] ?? 2;
+    const pb = PRIORITY_ORDER[b.priority] ?? 2;
+    return sortDir === "desc" ? pb - pa : pa - pb;
+  });
 
   return (
     <div>
@@ -6868,10 +6884,17 @@ function GoalsTab({ state, addItem, removeItem, updateItem, metrics }) {
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: 16,
         }}
       >
+        <button
+          onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+          style={{ ...btnOutline, display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+        >
+          Priority: {sortDir === "desc" ? "High → Low" : "Low → High"}
+        </button>
         <button style={btnSolid} onClick={() => setShow(true)}>
           <Plus size={14} /> Add Goal
         </button>
@@ -6883,7 +6906,7 @@ function GoalsTab({ state, addItem, removeItem, updateItem, metrics }) {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
-          {state.goals.map((g) => {
+          {sortedGoals.map((g) => {
             const progress = Number(g.targetAmount)
               ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
               : 0;
@@ -6921,15 +6944,31 @@ function GoalsTab({ state, addItem, removeItem, updateItem, metrics }) {
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 240 }}>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        letterSpacing: "0.25em",
-                        textTransform: "uppercase",
-                        color: THEME.muted,
-                      }}
-                    >
-                      {g.category}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          letterSpacing: "0.25em",
+                          textTransform: "uppercase",
+                          color: THEME.muted,
+                        }}
+                      >
+                        {g.category}
+                      </div>
+                      {g.priority && (
+                        <span style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: PRIORITY_COLOR[g.priority] || THEME.muted,
+                          border: `1px solid ${PRIORITY_COLOR[g.priority] || THEME.muted}`,
+                          borderRadius: 4,
+                          padding: "1px 6px",
+                        }}>
+                          {g.priority}
+                        </span>
+                      )}
                     </div>
                     <div
                       style={{
@@ -7044,6 +7083,7 @@ function GoalModal({ onClose, onSave, initialValues = null }) {
     targetAmount: initialValues.targetAmount || "",
     currentAmount: initialValues.currentAmount || "0",
     targetDate: initialValues.targetDate || "",
+    priority: initialValues.priority || "Medium",
   } : {
     name: "",
     category: "Wealth",
@@ -7051,6 +7091,7 @@ function GoalModal({ onClose, onSave, initialValues = null }) {
     targetAmount: "",
     currentAmount: "0",
     targetDate: "",
+    priority: "Medium",
   });
   return (
     <Modal title={initialValues ? "Edit Goal" : "Add Goal"} onClose={onClose}>
@@ -7067,23 +7108,36 @@ function GoalModal({ onClose, onSave, initialValues = null }) {
           placeholder="e.g. Buy a home, Retirement corpus"
         />
       </Field>
-      <Field label="Category">
-        <select
-          style={input}
-          value={f.category}
-          onChange={(e) => setF({ ...f, category: e.target.value })}
-        >
-          <option>Wealth</option>
-          <option>Retirement</option>
-          <option>Home</option>
-          <option>Vehicle</option>
-          <option>Education</option>
-          <option>Travel</option>
-          <option>Emergency Fund</option>
-          <option>Wedding</option>
-          <option>Other</option>
-        </select>
-      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Category">
+          <select
+            style={input}
+            value={f.category}
+            onChange={(e) => setF({ ...f, category: e.target.value })}
+          >
+            <option>Wealth</option>
+            <option>Retirement</option>
+            <option>Home</option>
+            <option>Vehicle</option>
+            <option>Education</option>
+            <option>Travel</option>
+            <option>Emergency Fund</option>
+            <option>Wedding</option>
+            <option>Other</option>
+          </select>
+        </Field>
+        <Field label="Priority">
+          <select
+            style={input}
+            value={f.priority}
+            onChange={(e) => setF({ ...f, priority: e.target.value })}
+          >
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </Field>
+      </div>
       <div
         style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
       >
