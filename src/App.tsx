@@ -1,6 +1,7 @@
 // @ts-nocheck
 import "./styles.css";
 import React, { useState, useEffect, useMemo } from "react";
+import ReactDOM from "react-dom";
 import {
   Wallet,
   TrendingUp,
@@ -7957,14 +7958,22 @@ function TaxPmtModal({ onClose, onSave }) {
 
 // ================== MODAL SHELL ==================
 function Modal({ title, children, onClose }) {
-  // Close on Escape key
   React.useEffect(() => {
+    // Escape key closes modal
     const handler = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    // Lock body scroll while modal is open
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
-  return (
+  // Portal to document.body so position:fixed is always relative to the viewport,
+  // not to any ancestor with a CSS transform (e.g. the tab-content-enter animation).
+  return ReactDOM.createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -7977,7 +7986,8 @@ function Modal({ title, children, onClose }) {
         </div>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
