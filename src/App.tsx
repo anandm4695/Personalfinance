@@ -58,6 +58,7 @@ import {
   LogOut,
   LayoutTemplate,
   AlignJustify,
+  Pencil,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -170,6 +171,16 @@ const monthsBetween = (d1, d2) => {
   return (
     (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth())
   );
+};
+// Computes the next upcoming due date for a CC from its dueDay (day of month)
+const getCCDueDate = (c) => {
+  if (c.dueDate) return c.dueDate;
+  if (!c.dueDay) return null;
+  const now = new Date();
+  const day = parseInt(c.dueDay, 10);
+  let d = new Date(now.getFullYear(), now.getMonth(), day);
+  if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
+  return d.toISOString().slice(0, 10);
 };
 
 // Compound interest for FD/RD/Bond maturity estimates
@@ -315,10 +326,10 @@ const DEFAULT_STATE = (() => {
     profile: { name: "Anand", fy: "2025-26", regime: "new" },
     profiles: PROFILES,
     bankAccounts: [
-      { id: "1", owner: "self", bankName: "HDFC Bank", accountNo: "XXXX1234", balance: "150000" },
-      { id: "2", owner: "self", bankName: "SBI", accountNo: "XXXX5678", balance: "45000" },
-      { id: "3", owner: "wife", bankName: "ICICI Bank", accountNo: "XXXX9988", balance: "80000" },
-      { id: "4", owner: "huf", bankName: "Axis Bank", accountNo: "XXXX1111", balance: "250000" }
+      { id: "1", owner: "self", bankName: "HDFC Bank", accountNumber: "XXXX1234", balance: "150000" },
+      { id: "2", owner: "self", bankName: "SBI", accountNumber: "XXXX5678", balance: "45000" },
+      { id: "3", owner: "wife", bankName: "ICICI Bank", accountNumber: "XXXX9988", balance: "80000" },
+      { id: "4", owner: "huf", bankName: "Axis Bank", accountNumber: "XXXX1111", balance: "250000" }
     ],
     transactions: [
       { id: "t1", owner: "self", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
@@ -400,8 +411,8 @@ const DEFAULT_STATE = (() => {
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
     ],
     goals: [
-      { id: "g1", owner: "self", name: "Emergency Fund", target: "600000", current: "400000" },
-      { id: "g2", owner: "daughter", name: "College Fund", target: "2000000", current: "250000" }
+      { id: "g1", owner: "self", name: "Emergency Fund", category: "Emergency Fund", targetAmount: "600000", currentAmount: "400000" },
+      { id: "g2", owner: "daughter", name: "College Fund", category: "Education", targetAmount: "2000000", currentAmount: "250000" }
     ],
     income: [
       { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
@@ -836,10 +847,11 @@ export default function FinanceDashboard() {
         list.push({ level: "error", title: `${b.category} over budget`, detail: `Spent ${fmtINRFull(spent)} vs budget ${fmtINRFull(b.monthly)}`, tab: "budget" });
       }
     });
-    // CC due in ≤5 days
+    // CC due in ≤10 days
     state.creditCards.forEach((c) => {
-      if (c.dueDate) {
-        const days = Math.ceil((new Date(c.dueDate).getTime() - now.getTime()) / 86400000);
+      const dueDate = getCCDueDate(c);
+      if (dueDate) {
+        const days = Math.ceil((new Date(dueDate).getTime() - now.getTime()) / 86400000);
         if (days >= 0 && days <= 5) list.push({ level: "error", title: `${c.issuer} CC due in ${days}d`, detail: `Outstanding: ${fmtINRFull(c.outstanding)}`, tab: "credit" });
         else if (days > 5 && days <= 10) list.push({ level: "warn", title: `${c.issuer} CC due in ${days}d`, detail: `Outstanding: ${fmtINRFull(c.outstanding)}`, tab: "credit" });
       }
@@ -1446,7 +1458,7 @@ export default function FinanceDashboard() {
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
             {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
-            {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
+            {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
@@ -1489,11 +1501,11 @@ export default function FinanceDashboard() {
       {/* ── MOBILE BOTTOM NAVIGATION ── */}
       {!sidebarNav && (() => {
         const mobileNavTabs = [
-          { id: "analytics", label: "Analytics", icon: PieIcon },
-          { id: "banks",        label: "Banks",      icon: Landmark },
-          { id: "investments",  label: "Invest",     icon: TrendingUp },
-          { id: "analytics",    label: "Analytics",  icon: PieIcon },
-          { id: "settings",     label: "More",       icon: Settings },
+          { id: "analytics",   label: "Analytics", icon: PieIcon },
+          { id: "banks",       label: "Banks",     icon: Landmark },
+          { id: "investments", label: "Invest",    icon: TrendingUp },
+          { id: "goals",       label: "Goals",     icon: Target },
+          { id: "settings",    label: "More",      icon: Settings },
         ];
         return (
           <nav className="mobile-bottom-nav" style={{ justifyContent: "space-around" }}>
@@ -1827,10 +1839,11 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
     const todayMs = new Date().getTime();
     const plus30Ms = todayMs + 30 * 86400000;
     state.creditCards.forEach((c) => {
-      if (c.dueDate) {
-        const ms = new Date(c.dueDate).getTime();
+      const dueDate = getCCDueDate(c);
+      if (dueDate) {
+        const ms = new Date(dueDate).getTime();
         const daysLeft = Math.ceil((ms - todayMs) / 86400000);
-        if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: c.dueDate });
+        if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: dueDate });
       }
     });
     state.subscriptions.forEach((s) => {
@@ -2324,8 +2337,9 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
           const today2 = now.getDate();
           const dueDays = {};
           state.creditCards.forEach((c) => {
-            if (c.dueDate) {
-              const d = new Date(c.dueDate);
+            const dueDate = getCCDueDate(c);
+            if (dueDate) {
+              const d = new Date(dueDate);
               if (d.getFullYear() === year && d.getMonth() === month) dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: c.issuer || "Card", color: THEME.rust });
             }
           });
@@ -2604,11 +2618,12 @@ function OldOverview({ metrics, state, assetBreakdown, trendData, chartStyle }: 
         const plus30Ms = todayMs + 30 * 86400000;
         const dues = [];
         state.creditCards.forEach((c) => {
-          if (c.dueDate) {
-            const ms = new Date(c.dueDate).getTime();
+          const dueDate = getCCDueDate(c);
+          if (dueDate) {
+            const ms = new Date(dueDate).getTime();
             const daysLeft = Math.ceil((ms - todayMs) / 86400000);
             if (daysLeft >= 0 && ms <= plus30Ms) {
-              dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: c.dueDate });
+              dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: dueDate });
             }
           }
         });
@@ -3786,20 +3801,13 @@ function BankModal({ onClose, onSave }) {
           placeholder="e.g. HDFC Bank"
         />
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Owner / Profile">
-          <select style={input} value={f.owner} onChange={e => setF({...f, owner: e.target.value})}>
-            {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Account Number (last 4 ok)">
-          <input
-            style={input}
-            value={f.accountNumber}
-            onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
-          />
-        </Field>
-      </div>
+      <Field label="Account Number (last 4 ok)">
+        <input
+          style={input}
+          value={f.accountNumber}
+          onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
+        />
+      </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type">
           <select
@@ -3829,6 +3837,7 @@ function BankModal({ onClose, onSave }) {
 
 function TxnModal({ accounts, onClose, onSave }) {
   const [f, setF] = useState({
+    owner: "self",
     date: today(),
     accountId: accounts[0]?.id || "",
     type: "debit",
@@ -6593,6 +6602,7 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
 // ================== SUBSCRIPTIONS TAB ==================
 function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
+  const [editSub, setEditSub] = useState(null);
   const annual = metrics.subTotal * 12;
   const activeSubs = state.subscriptions.filter(s => !s.paused).length;
 
@@ -6705,6 +6715,9 @@ function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
                       >
                         {s.paused ? <Play size={13} /> : <Pause size={13} />}
                       </button>
+                      <button onClick={() => setEditSub(s)} style={iconBtn} title="Edit">
+                        <Pencil size={13} />
+                      </button>
                       <button
                         onClick={() => removeItem("subscriptions", s.id)}
                         style={iconBtn}
@@ -6729,12 +6742,30 @@ function SubsTab({ state, addItem, removeItem, updateItem, metrics }) {
           }}
         />
       )}
+      {editSub && (
+        <SubModal
+          initialValues={editSub}
+          onClose={() => setEditSub(null)}
+          onSave={(v) => {
+            updateItem("subscriptions", editSub.id, v);
+            setEditSub(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function SubModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function SubModal({ onClose, onSave, initialValues = null }) {
+  const [f, setF] = useState(initialValues ? {
+    owner: initialValues.owner || "self",
+    name: initialValues.name || "",
+    category: initialValues.category || "Entertainment",
+    amount: initialValues.amount || "",
+    cycle: initialValues.cycle || "monthly",
+    renewalDate: initialValues.renewalDate || "",
+  } : {
+    owner: "self",
     name: "",
     category: "Entertainment",
     amount: "",
@@ -6742,7 +6773,7 @@ function SubModal({ onClose, onSave }) {
     renewalDate: "",
   });
   return (
-    <Modal title="Add Subscription" onClose={onClose}>
+    <Modal title={initialValues ? "Edit Subscription" : "Add Subscription"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -6810,8 +6841,9 @@ function SubModal({ onClose, onSave }) {
 }
 
 // ================== GOALS TAB ==================
-function GoalsTab({ state, addItem, removeItem, metrics }) {
+function GoalsTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
+  const [editGoal, setEditGoal] = useState(null);
 
   return (
     <div>
@@ -6851,20 +6883,20 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
             const monthlyNeeded = monthsLeft > 0 ? remaining / monthsLeft : 0;
             return (
               <div key={g.id} style={{ ...card, position: "relative" }}>
-                <button
-                  onClick={() => removeItem("goals", g.id)}
-                  style={{
-                    position: "absolute",
-                    top: 16,
-                    right: 16,
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    color: THEME.muted,
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setEditGoal(g)}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => removeItem("goals", g.id)}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
                 <div
                   style={{
                     display: "flex",
@@ -6976,20 +7008,38 @@ function GoalsTab({ state, addItem, removeItem, metrics }) {
           }}
         />
       )}
+      {editGoal && (
+        <GoalModal
+          initialValues={editGoal}
+          onClose={() => setEditGoal(null)}
+          onSave={(v) => {
+            updateItem("goals", editGoal.id, v);
+            setEditGoal(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function GoalModal({ onClose, onSave }) {
-  const [f, setF] = useState({
+function GoalModal({ onClose, onSave, initialValues = null }) {
+  const [f, setF] = useState(initialValues ? {
+    name: initialValues.name || "",
+    category: initialValues.category || "Wealth",
+    owner: initialValues.owner || "self",
+    targetAmount: initialValues.targetAmount || "",
+    currentAmount: initialValues.currentAmount || "0",
+    targetDate: initialValues.targetDate || "",
+  } : {
     name: "",
     category: "Wealth",
+    owner: "self",
     targetAmount: "",
     currentAmount: "0",
     targetDate: "",
   });
   return (
-    <Modal title="Add Goal" onClose={onClose}>
+    <Modal title={initialValues ? "Edit Goal" : "Add Goal"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -7845,8 +7895,9 @@ function BankEditModal({ account, onClose, onSave }) {
 }
 
 // ================== BUDGET TAB ==================
-function BudgetTab({ state, addItem, removeItem, metrics }) {
+function BudgetTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
+  const [editBudget, setEditBudget] = useState(null);
   const ym = new Date().toISOString().slice(0, 7);
 
   const monthSpending = useMemo(() => {
@@ -7956,9 +8007,14 @@ function BudgetTab({ state, addItem, removeItem, metrics }) {
             const over = pct > 100;
             return (
               <div key={b.id} style={{ ...card, position: "relative" }}>
-                <button onClick={() => removeItem("budgets", b.id)} style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
+                  <button onClick={() => setEditBudget(b)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => removeItem("budgets", b.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, paddingRight: 28 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 18 }}>{b.category}</div>
@@ -8008,15 +8064,23 @@ function BudgetTab({ state, addItem, removeItem, metrics }) {
           onSave={(v) => { addItem("budgets", v); setShow(false); }}
         />
       )}
+      {editBudget && (
+        <BudgetModal
+          existing={state.budgets.filter(b => b.id !== editBudget.id).map(b => b.category)}
+          initialValues={editBudget}
+          onClose={() => setEditBudget(null)}
+          onSave={(v) => { updateItem("budgets", editBudget.id, v); setEditBudget(null); }}
+        />
+      )}
     </div>
   );
 }
 
-function BudgetModal({ existing, onClose, onSave }) {
+function BudgetModal({ existing, onClose, onSave, initialValues = null }) {
   const allCats = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
-  const [f, setF] = useState({ category: allCats[0], monthly: "" });
+  const [f, setF] = useState(initialValues ? { owner: initialValues.owner || "self", category: initialValues.category || allCats[0], monthly: initialValues.monthly || "" } : { owner: "self", category: allCats[0], monthly: "" });
   return (
-    <Modal title="Add Budget" onClose={onClose}>
+    <Modal title={initialValues ? "Edit Budget" : "Add Budget"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -8043,7 +8107,8 @@ function RemindersTab({ state, addItem, removeItem }) {
   const allReminders = useMemo(() => {
     const list = [];
     state.creditCards.forEach((c) => {
-      if (c.dueDate) list.push({ id: "cc-" + c.id, title: (c.issuer || "Card") + " — Bill Due", subtitle: "Outstanding: " + fmtINRFull(c.outstanding), date: c.dueDate, type: "Credit Card", icon: CreditCard });
+      const dueDate = getCCDueDate(c);
+      if (dueDate) list.push({ id: "cc-" + c.id, title: (c.issuer || "Card") + " — Bill Due", subtitle: "Outstanding: " + fmtINRFull(c.outstanding), date: dueDate, type: "Credit Card", icon: CreditCard });
     });
     state.subscriptions.forEach((s) => {
       if (s.renewalDate) list.push({ id: "sub-" + s.id, title: s.name + " Renewal", subtitle: s.cycle + " · " + fmtINRFull(s.amount), date: s.renewalDate, type: "Subscription", icon: Repeat });
