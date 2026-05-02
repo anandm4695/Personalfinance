@@ -1,6 +1,6 @@
 // @ts-nocheck
 import "./styles.css";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
 import {
   Wallet,
@@ -446,8 +446,6 @@ export default function FinanceDashboard() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
-  const [modal, setModal] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
   });
@@ -484,6 +482,7 @@ export default function FinanceDashboard() {
     setToasts((prev) => [...prev, { id, msg, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -496,7 +495,6 @@ export default function FinanceDashboard() {
   }, []);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [showFAB, setShowFAB] = useState(false);
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
 
@@ -606,12 +604,13 @@ export default function FinanceDashboard() {
     })();
   }, [session]);
 
-  // Sync to Supabase on change (only for real logged-in users)
+  // Sync to Supabase on change — debounced 1 s so rapid edits don't hammer the API
   useEffect(() => {
     if (!loaded || !session) return;
     const userId = session.user?.id;
     if (!userId || userId === "offline-user") return;
-    (async () => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
       try {
         const now = Date.now();
         await supabase.from("user_state").upsert({
@@ -622,7 +621,8 @@ export default function FinanceDashboard() {
       } catch (e) {
         console.error("Supabase save failed", e);
       }
-    })();
+    }, 1000);
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [state, loaded, session]);
 
   const filteredState = useMemo(() => {
@@ -953,15 +953,22 @@ export default function FinanceDashboard() {
   const importJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const input = e.target;
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.bankAccounts)) {
+          showToast("Invalid backup — not a valid finance export", "error");
+          input.value = "";
+          return;
+        }
         setState({ ...DEFAULT_STATE, ...parsed });
         showToast("Backup restored successfully");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
       }
+      input.value = "";
     };
     reader.readAsText(file);
   };
@@ -986,21 +993,6 @@ export default function FinanceDashboard() {
     setConfirmDialog({
       message: "Delete ALL data? This action cannot be undone and will clear every account, transaction, goal and setting.",
       onConfirm: () => setState(DEFAULT_STATE),
-    });
-  };
-
-  const copySummary = () => {
-    const text = [
-      "Personal Finance Dashboard · FY " + state.profile.fy,
-      "Net Worth: " + fmtINRFull(metrics.netWorth),
-      "Assets: " + fmtINRFull(metrics.totalAssets) + " | Liabilities: " + fmtINRFull(metrics.totalLiabilities),
-      "Monthly Income: " + fmtINRFull(metrics.monthIncome) + " | Expenses: " + fmtINRFull(metrics.monthExpense),
-      "MF: " + fmtINRFull(metrics.mfValue) + " | Stocks: " + fmtINRFull(metrics.stockValue),
-      "Savings Rate: " + metrics.savingsRate.toFixed(1) + "%",
-    ].join("\n");
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     });
   };
 
@@ -7533,268 +7525,6 @@ function ReminderModal({ onClose, onSave }) {
     </Modal>
   );
 }
-
-// ================== ANALYTICS TAB ==================
-function OldAnalyticsTab({ metrics, state, trendData, chartStyle }: any) {
-  const netWorthTrend = useMemo(() => {
-    return trendData.map((t, i) => ({
-      month: t.month,
-      value: metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.85,
-    }));
-  }, [trendData, metrics]);
-
-  const savingsData = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const ym = d.toISOString().slice(0, 7);
-      const label = d.toLocaleString("en-IN", { month: "short" });
-      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym));
-      const inc = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
-      const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
-      return { month: label, rate: parseFloat((inc > 0 ? ((inc - exp) / inc) * 100 : 0).toFixed(1)), income: inc, expense: exp };
-    });
-  }, [state.transactions]);
-
-  const catTrend = useMemo(() => {
-    const topCatNames = metrics.expenseBreakdown.slice(0, 4).map((c) => c.name);
-    const now = new Date();
-    const data = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const ym = d.toISOString().slice(0, 7);
-      const label = d.toLocaleString("en-IN", { month: "short" });
-      const txns = state.transactions.filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit");
-      const entry: any = { month: label };
-      topCatNames.forEach((cat) => { entry[cat] = txns.filter((t) => t.category === cat).reduce((s, t) => s + Number(t.amount || 0), 0); });
-      return entry;
-    });
-    return { data, cats: topCatNames };
-  }, [state.transactions, metrics.expenseBreakdown]);
-
-  const incomeBySrc = useMemo(() => {
-    const map = {};
-    state.income.forEach((i) => { map[i.source] = (map[i.source] || 0) + Number(i.amount || 0); });
-    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a: any, b: any) => b.value - a.value);
-  }, [state.income]);
-
-  const avgIncome = trendData.filter((t) => t.income > 0).reduce((s, t) => s + t.income, 0) / Math.max(1, trendData.filter((t) => t.income > 0).length);
-  const avgExpense = trendData.filter((t) => t.expense > 0).reduce((s, t) => s + t.expense, 0) / Math.max(1, trendData.filter((t) => t.expense > 0).length);
-
-  return (
-    <div>
-      <SectionTitle sub="Deeper insights into your spending patterns and financial health">
-        Analytics
-      </SectionTitle>
-
-      {/* Net Worth Timeline */}
-      <div style={{ ...card, marginBottom: 32 }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Net Worth Timeline — Trailing 12 Months</div>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={netWorthTrend}>
-            <defs>
-              <linearGradient id="gNwAnalytics" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} />
-                <stop offset="100%" stopColor={THEME.accent} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-            <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-            <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-            <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-            <Area type={chartStyle} dataKey="value" stroke={THEME.accent} strokeWidth={2} fill="url(#gNwAnalytics)" name="Net Worth" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-        <Tile icon={TrendingUp} label="Avg Monthly Income" value={fmtINRFull(avgIncome)} />
-        <Tile icon={Receipt} label="Avg Monthly Expense" value={fmtINRFull(avgExpense)} />
-        <Tile icon={Target} label="Savings Rate (This Month)" value={metrics.savingsRate.toFixed(1) + "%"} />
-        <Tile icon={Wallet} label="Net Worth" value={fmtINRFull(metrics.netWorth)} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginBottom: 32 }}>
-        <div style={card}>
-          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Savings Rate — 6 Months</div>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={savingsData}>
-              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-              <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={(v) => v + "%"} />
-              <Tooltip formatter={(v) => v + "%"} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-              <Bar dataKey="rate" fill={THEME.accent} radius={[4, 4, 0, 0]} name="Savings Rate %" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div style={card}>
-          <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Income by Source (This FY)</div>
-          {incomeBySrc.length ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={incomeBySrc} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={45} paddingAngle={2}>
-                  {incomeBySrc.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <EmptyHint text="Log income in Tax Vault to see breakdown" />}
-        </div>
-      </div>
-
-      <div style={{ ...card, marginBottom: 32 }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Category Spending — 6 Months (Stacked)</div>
-        {catTrend.cats.length ? (
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={catTrend.data}>
-              <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-              <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-              <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.ink, color: THEME.paper, border: "none", borderRadius: 8 }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              {catTrend.cats.map((cat, i) => (
-                <Bar key={cat} dataKey={cat} fill={PIE_COLORS[i % PIE_COLORS.length]} radius={[2, 2, 0, 0]} stackId="a" />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <EmptyHint text="Add categorized transactions to see trends" />}
-      </div>
-
-      {/* C8 – Category Sparklines */}
-      <div style={{ ...card, marginBottom: 32 }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Top Expenses — 6-Month Sparklines</div>
-        {metrics.expenseBreakdown.length ? (
-          <div style={{ display: "grid", gap: 16 }}>
-            {metrics.expenseBreakdown.slice(0, 6).map((cat, i) => {
-              const maxVal = metrics.expenseBreakdown[0].value;
-              const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
-              const sparkVals = catTrend.data.map((d) => d[cat.name] || 0);
-              const sparkMax = Math.max(...sparkVals, 1);
-              const W = 80, H = 28, pts = sparkVals.map((v, idx) => {
-                const x = (idx / (sparkVals.length - 1)) * W;
-                const y = H - (v / sparkMax) * H;
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-              }).join(" ");
-              return (
-                <div key={cat.name}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5, fontSize: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontWeight: 600 }}>{cat.name}</span>
-                      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block" }}>
-                        <polyline points={pts} fill="none" stroke={PIE_COLORS[i % PIE_COLORS.length]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        {sparkVals.map((v, idx) => {
-                          const x = (idx / (sparkVals.length - 1)) * W;
-                          const y = H - (v / sparkMax) * H;
-                          return <circle key={idx} cx={x.toFixed(1)} cy={y.toFixed(1)} r="2.5" fill={PIE_COLORS[i % PIE_COLORS.length]} />;
-                        })}
-                      </svg>
-                    </div>
-                    <span style={{ fontWeight: 700 }}>{fmtINRFull(cat.value)}</span>
-                  </div>
-                  <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3, transition: "width 0.5s" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : <EmptyHint text="No expense data for this month" />}
-      </div>
-
-      {/* E2 – Expense Forecast */}
-      {(() => {
-        const now = new Date();
-        const forecast = metrics.expenseBreakdown.slice(0, 6).map((cat) => {
-          const vals = Array.from({ length: 3 }, (_, i) => {
-            const d = new Date(now.getFullYear(), now.getMonth() - (2 - i), 1);
-            const ym2 = d.toISOString().slice(0, 7);
-            return state.transactions.filter((t) => t.date && t.date.startsWith(ym2) && t.type === "debit" && t.category === cat.name)
-              .reduce((s, t) => s + Number(t.amount || 0), 0);
-          });
-          const avg = vals.reduce((a, b) => a + b, 0) / 3;
-          return { name: cat.name, actual: cat.value, predicted: Math.round(avg) };
-        }).filter((c) => c.predicted > 0 || c.actual > 0);
-        if (!forecast.length) return null;
-        return (
-          <div style={{ ...card, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Expense Forecast — This Month vs 3-Month Avg</div>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={forecast} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} />
-                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.paper, color: THEME.ink, border: `1px solid ${THEME.line}`, borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="actual" fill={THEME.accent} radius={[4,4,0,0]} name="This Month" />
-                <Bar dataKey="predicted" fill={THEME.gold} radius={[4,4,0,0]} name="3-Month Avg (Forecast)" opacity={0.75} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        );
-      })()}
-
-      {/* C7 – Expense Heatmap */}
-      {(() => {
-        const now = new Date();
-        const year = now.getFullYear(), month = now.getMonth();
-        const ym = now.toISOString().slice(0, 7);
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay();
-        const dailySpend: Record<number, number> = {};
-        state.transactions.filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit").forEach((t) => {
-          const d = parseInt(t.date.slice(8, 10));
-          dailySpend[d] = (dailySpend[d] || 0) + Number(t.amount || 0);
-        });
-        const maxSpend = Math.max(...Object.values(dailySpend), 1);
-        const cells: (number | null)[] = [];
-        for (let i = 0; i < firstDay; i++) cells.push(null);
-        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-        const monthName = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
-        const heatColor = (v: number) => {
-          const intensity = v / maxSpend;
-          if (intensity === 0) return "transparent";
-          if (intensity < 0.25) return "rgba(217,48,37,0.15)";
-          if (intensity < 0.5)  return "rgba(217,48,37,0.35)";
-          if (intensity < 0.75) return "rgba(217,48,37,0.6)";
-          return "rgba(217,48,37,0.85)";
-        };
-        return (
-          <div style={{ ...card, marginBottom: 32 }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>Expense Heatmap · {monthName}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
-              {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) => (
-                <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
-              ))}
-              {cells.map((d, i) => {
-                const spend = d ? (dailySpend[d] || 0) : 0;
-                return (
-                  <div key={i} title={d && spend ? `${d}: ${fmtINRFull(spend)}` : ""} style={{
-                    minHeight: 40, borderRadius: 6, background: d ? (heatColor(spend) || "rgba(128,128,128,0.06)") : "transparent",
-                    border: d === now.getDate() ? `1.5px solid ${THEME.rust}` : "1px solid transparent",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 2,
-                  }}>
-                    {d && <div style={{ fontSize: 11, fontWeight: d === now.getDate() ? 800 : 500, color: spend > 0 ? THEME.rust : THEME.muted }}>{d}</div>}
-                    {d && spend > 0 && <div style={{ fontSize: 9, color: THEME.rust, fontWeight: 600 }}>{fmtINR(spend)}</div>}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-              <span>Low</span>
-              {[0.15, 0.35, 0.6, 0.85].map((op) => (
-                <div key={op} style={{ width: 16, height: 16, borderRadius: 3, background: `rgba(217,48,37,${op})` }} />
-              ))}
-              <span>High</span>
-              <span style={{ marginLeft: 12 }}>Total: <b>{fmtINRFull(Object.values(dailySpend).reduce((a, b) => a + b, 0))}</b></span>
-            </div>
-          </div>
-        );
-      })()}
-    </div>
-  );
-}
-
 // ================== SIP TRACKER TAB ==================
 function SIPTrackerTab({ state, addItem, removeItem }) {
   const [show, setShow] = useState(false);
@@ -8136,15 +7866,22 @@ function SettingsTab({
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const input = e.target;
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result as string);
-        setState((s) => ({ ...s, ...parsed }));
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.bankAccounts)) {
+          showToast("Invalid backup — not a valid finance export", "error");
+          input.value = "";
+          return;
+        }
+        setState({ ...DEFAULT_STATE, ...parsed });
         showToast("Backup restored successfully");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
       }
+      input.value = "";
     };
     reader.readAsText(file);
   };
