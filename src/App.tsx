@@ -360,7 +360,10 @@ const DEFAULT_STATE = (() => {
       { id: "p2", owner: "wife", bank: "SBI", balance: "200000", openDate: "2018-04-01", thisYearContribution: "50000" }
     ],
     nps: [
-      { id: "n1", owner: "self", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000" },
+      { id: "n1", owner: "self", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000", contributions: [
+        { id: "nc1", date: "2024-04-05", selfAmount: "50000", employerAmount: "18000" },
+        { id: "nc2", date: "2025-04-10", selfAmount: "50000", employerAmount: "20000" },
+      ] },
     ],
     lic: [
       { id: "lic1", owner: "self", policyNumber: "12345678", planName: "Jeevan Anand", sumAssured: "1000000", annualPremium: "45000", premiumPaid: "180000", maturityDate: "2035-06-15" },
@@ -3239,6 +3242,19 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
   const [modal, setModal] = useState(null);
   const [editId, setEditId] = useState(null);
 
+  const addNPSContribution = (npsId: string, contribution: any) => {
+    const account = state.nps.find((n) => n.id === npsId);
+    if (!account) return;
+    const existing = account.contributions || [];
+    updateItem("nps", npsId, { contributions: [...existing, { id: uid(), ...contribution }] });
+  };
+
+  const removeNPSContribution = (npsId: string, contributionId: string) => {
+    const account = state.nps.find((n) => n.id === npsId);
+    if (!account) return;
+    updateItem("nps", npsId, { contributions: (account.contributions || []).filter((c) => c.id !== contributionId) });
+  };
+
   const subs = [
     { id: "fd", label: "Fixed Deposits", key: "fixedDeposits", icon: Coins },
     {
@@ -3335,7 +3351,13 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
         <PPFList items={state.ppf} onRemove={(id) => removeItem("ppf", id)} onEdit={setEditId} />
       )}
       {sub === "nps" && (
-        <NPSList items={state.nps} onRemove={(id) => removeItem("nps", id)} onEdit={setEditId} />
+        <NPSList
+          items={state.nps}
+          onRemove={(id) => removeItem("nps", id)}
+          onEdit={setEditId}
+          onAddContribution={addNPSContribution}
+          onRemoveContribution={removeNPSContribution}
+        />
       )}
       {sub === "mf" && (
         <>
@@ -3813,47 +3835,137 @@ function PPFList({ items, onRemove, onEdit }: any) {
   );
 }
 
-function NPSList({ items, onRemove, onEdit }: any) {
+function NPSList({ items, onRemove, onEdit, onAddContribution, onRemoveContribution }: any) {
+  const [addingFor, setAddingFor] = useState<string | null>(null);
+
   if (!items.length) return <EmptyHint text="No NPS account yet" />;
+
+  const getFY = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const y = d.getFullYear(), m = d.getMonth();
+    const fyStart = m >= 3 ? y : y - 1;
+    return `${fyStart}-${String(fyStart + 1).slice(-2)}`;
+  };
+
+  const now = new Date();
+  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const currentFY = `${currentFYStart}-${String(currentFYStart + 1).slice(-2)}`;
+
   return (
-    <Grid>
-      {items.map((n) => (
-        <InvestCard key={n.id} onRemove={() => onRemove(n.id)} onEdit={() => onEdit(n.id)}>
-          <div
-            style={{
-              fontSize: 10,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              color: THEME.muted,
-            }}
-          >
-            NPS · Tier {n.tier || "I"}
-          </div>
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 28,
-              fontWeight: 800,
-              marginTop: 4,
-            }}
-          >
-            {fmtINRFull(n.balance)}
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 8,
-              marginTop: 16,
-              fontSize: 12,
-            }}
-          >
-            <Stat k="PRAN" v={(n.pran || "").slice(-6) || "—"} />
-            <Stat k="This FY" v={fmtINR(n.thisYearContribution || 0)} />
-          </div>
-        </InvestCard>
-      ))}
-    </Grid>
+    <>
+      <Grid>
+        {items.map((n) => {
+          const contributions: any[] = n.contributions || [];
+          const byFY: Record<string, any[]> = {};
+          contributions.forEach((c) => {
+            const fy = getFY(c.date);
+            if (!byFY[fy]) byFY[fy] = [];
+            byFY[fy].push(c);
+          });
+          const fyList = Object.keys(byFY).sort().reverse();
+          const thisFY = byFY[currentFY] || [];
+          const thisFYSelf = thisFY.reduce((s, c) => s + Number(c.selfAmount || 0), 0);
+          const thisFYEmp = thisFY.reduce((s, c) => s + Number(c.employerAmount || 0), 0);
+          const totalSelf = contributions.reduce((s, c) => s + Number(c.selfAmount || 0), 0);
+          const totalEmp = contributions.reduce((s, c) => s + Number(c.employerAmount || 0), 0);
+
+          return (
+            <InvestCard key={n.id} onRemove={() => onRemove(n.id)} onEdit={() => onEdit(n.id)}>
+              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>
+                NPS · Tier {n.tier || "I"} · {(n.owner || "self").toUpperCase()}
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 28, fontWeight: 800, marginTop: 4 }}>
+                {fmtINRFull(n.balance)}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 16, fontSize: 12 }}>
+                <Stat k="PRAN" v={(n.pran || "").slice(-6) || "—"} />
+                <Stat k={"FY " + currentFY + " Self"} v={fmtINR(thisFYSelf)} />
+                <Stat k={"FY " + currentFY + " Employer"} v={fmtINR(thisFYEmp)} />
+                <Stat k="All-time Self" v={fmtINR(totalSelf)} />
+              </div>
+
+              {/* Contribution history grouped by FY */}
+              {fyList.length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: THEME.muted, marginBottom: 10 }}>
+                    Contribution History
+                  </div>
+                  {fyList.map((fy) => {
+                    const rows = byFY[fy].slice().sort((a, b) => a.date.localeCompare(b.date));
+                    const fySelf = rows.reduce((s, c) => s + Number(c.selfAmount || 0), 0);
+                    const fyEmp = rows.reduce((s, c) => s + Number(c.employerAmount || 0), 0);
+                    return (
+                      <div key={fy} style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.gold, marginBottom: 6 }}>
+                          FY {fy}
+                        </div>
+                        <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr>
+                              <th style={{ color: THEME.muted, textAlign: "left", paddingBottom: 4, fontWeight: 500, fontSize: 10 }}>Date</th>
+                              <th style={{ color: THEME.muted, textAlign: "right", paddingBottom: 4, fontWeight: 500, fontSize: 10 }}>Self</th>
+                              <th style={{ color: THEME.muted, textAlign: "right", paddingBottom: 4, fontWeight: 500, fontSize: 10 }}>Employer</th>
+                              <th style={{ width: 18 }} />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((c) => (
+                              <tr key={c.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                                <td style={{ color: THEME.ink, padding: "4px 0" }}>{c.date}</td>
+                                <td style={{ color: THEME.sage, textAlign: "right", padding: "4px 0" }}>{fmtINR(c.selfAmount || 0)}</td>
+                                <td style={{ color: THEME.accent, textAlign: "right", padding: "4px 0" }}>{fmtINR(c.employerAmount || 0)}</td>
+                                <td style={{ textAlign: "right", padding: "4px 0" }}>
+                                  {onRemoveContribution && (
+                                    <button
+                                      onClick={() => onRemoveContribution(n.id, c.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 0, lineHeight: 1 }}
+                                      title="Remove"
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                            <tr style={{ borderTop: `1px solid ${THEME.line}` }}>
+                              <td style={{ color: THEME.muted, padding: "5px 0", fontWeight: 700, fontSize: 10 }}>FY Total</td>
+                              <td style={{ color: THEME.sage, textAlign: "right", padding: "5px 0", fontWeight: 700 }}>{fmtINR(fySelf)}</td>
+                              <td style={{ color: THEME.accent, textAlign: "right", padding: "5px 0", fontWeight: 700 }}>{fmtINR(fyEmp)}</td>
+                              <td />
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                    <span style={{ color: THEME.muted, fontWeight: 700 }}>All-time Total</span>
+                    <span>
+                      <span style={{ color: THEME.sage, fontWeight: 700, marginRight: 12 }}>{fmtINR(totalSelf)}</span>
+                      <span style={{ color: THEME.accent, fontWeight: 700 }}>{fmtINR(totalEmp)}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => setAddingFor(n.id)}
+                style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14, width: "100%", justifyContent: "center", fontSize: 12, background: THEME.line, border: "none", borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: THEME.ink, fontWeight: 600 }}
+              >
+                <Plus size={13} /> Add Contribution
+              </button>
+            </InvestCard>
+          );
+        })}
+      </Grid>
+
+      {addingFor && (
+        <NPSContributionModal
+          onClose={() => setAddingFor(null)}
+          onSave={(c) => { onAddContribution(addingFor, c); setAddingFor(null); }}
+        />
+      )}
+    </>
   );
 }
 
@@ -4268,12 +4380,7 @@ function PPFModal({ onClose, onSave, initial = null }: any) {
   );
 }
 function NPSModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || {
-    pran: "",
-    tier: "I",
-    balance: "",
-    thisYearContribution: "",
-  });
+  const [f, setF] = useState(initial || { pran: "", tier: "I", balance: "", contributions: [] });
   return (
     <Modal title={initial ? "Edit NPS Account" : "Add NPS Account"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -4282,42 +4389,36 @@ function NPSModal({ onClose, onSave, initial = null }: any) {
         </select>
       </Field>
       <Field label="PRAN (last 6 ok)">
-        <input
-          style={input}
-          value={f.pran}
-          onChange={(e) => setF({ ...f, pran: e.target.value })}
-        />
+        <input style={input} value={f.pran} onChange={(e) => setF({ ...f, pran: e.target.value })} />
       </Field>
-      <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Tier">
-          <select
-            style={input}
-            value={f.tier}
-            onChange={(e) => setF({ ...f, tier: e.target.value })}
-          >
+          <select style={input} value={f.tier} onChange={(e) => setF({ ...f, tier: e.target.value })}>
             <option>I</option>
             <option>II</option>
           </select>
         </Field>
-        <Field label="Balance">
-          <input
-            style={input}
-            type="number"
-            value={f.balance}
-            onChange={(e) => setF({ ...f, balance: e.target.value })}
-          />
+        <Field label="Current Balance (₹)">
+          <input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} />
         </Field>
-        <Field label="Contribution FY">
-          <input
-            style={input}
-            type="number"
-            value={f.thisYearContribution}
-            onChange={(e) =>
-              setF({ ...f, thisYearContribution: e.target.value })
-            }
-          />
+      </div>
+      <ModalActions onSave={() => onSave(f)} onClose={onClose} />
+    </Modal>
+  );
+}
+function NPSContributionModal({ onClose, onSave }: any) {
+  const [f, setF] = useState({ date: today(), selfAmount: "", employerAmount: "" });
+  return (
+    <Modal title="Add NPS Contribution" onClose={onClose}>
+      <Field label="Date of Investment">
+        <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Self Contribution (₹)">
+          <input style={input} type="number" placeholder="0" value={f.selfAmount} onChange={(e) => setF({ ...f, selfAmount: e.target.value })} />
+        </Field>
+        <Field label="Employer Contribution (₹)">
+          <input style={input} type="number" placeholder="0" value={f.employerAmount} onChange={(e) => setF({ ...f, employerAmount: e.target.value })} />
         </Field>
       </div>
       <ModalActions onSave={() => onSave(f)} onClose={onClose} />
@@ -6485,7 +6586,21 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   const [hlPrincipal80C, setHlPrincipal80C] = useState("0");
   const [tuition80C, setTuition80C] = useState("0");
   const [other80C,   setOther80C]   = useState("0");
-  const [nps80CCD,  setNps80CCD]  = useState(() => String(state.nps.reduce((s,n) => s + Number(n.thisYearContribution || 0), 0)));
+  const [nps80CCD,  setNps80CCD]  = useState(() => {
+    const now = new Date();
+    const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyStart = new Date(fyStartYear, 3, 1);
+    const fyEnd = new Date(fyStartYear + 1, 2, 31);
+    return String(state.nps.reduce((total, n) => {
+      const contributions = n.contributions || [];
+      if (contributions.length > 0) {
+        return total + contributions
+          .filter((c) => { const d = new Date(c.date); return d >= fyStart && d <= fyEnd; })
+          .reduce((s, c) => s + Number(c.selfAmount || 0), 0);
+      }
+      return total + Number(n.thisYearContribution || 0);
+    }, 0));
+  });
   const [medSelf80D,    setMedSelf80D]    = useState("0");
   const [medParents80D, setMedParents80D] = useState("0");
   const [parentsIsSenior, setParentsIsSenior] = useState(false);
