@@ -1,6 +1,6 @@
 // @ts-nocheck
 import "./styles.css";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
 import {
   Wallet,
@@ -429,6 +429,7 @@ const DEFAULT_STATE = (() => {
       { id: "b4", owner: "self", category: "Entertainment", monthly: "2000" },
     ],
     reminders: [],
+    netWorthHistory: [],
     sips: [
       { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
       { id: "sip2", owner: "self", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
@@ -477,7 +478,7 @@ export default function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
   const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{message:string;onConfirm:()=>void}|null>(null);
-  const showToast = React.useCallback((msg: string, type = "success") => {
+  const showToast = useCallback((msg: string, type = "success") => {
     const id = uid();
     setToasts((prev) => [...prev, { id, msg, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
@@ -624,6 +625,55 @@ export default function FinanceDashboard() {
     }, 1000);
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [state, loaded, session]);
+
+  // Fire browser push notifications for reminders due within 3 days (runs once per session)
+  useEffect(() => {
+    if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    const todayStr = today();
+    const soon: { title: string; body: string }[] = [];
+    const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - new Date(todayStr).getTime()) / 86400000);
+    state.reminders.forEach((r) => {
+      if (!r.date) return;
+      const d = daysLeft(r.date);
+      if (d >= 0 && d <= 3) soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}` });
+    });
+    state.creditCards.forEach((c) => {
+      const dueDate = getCCDueDate(c);
+      if (!dueDate) return;
+      const d = daysLeft(dueDate);
+      if (d >= 0 && d <= 3) soon.push({ title: `${c.issuer} bill due`, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}` });
+    });
+    state.subscriptions.filter((s) => s.renewalDate && !s.paused).forEach((s) => {
+      const d = daysLeft(s.renewalDate);
+      if (d >= 0 && d <= 3) soon.push({ title: `${s.name} renewal`, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}` });
+    });
+    soon.forEach(({ title, body }) => {
+      try { new Notification(title, { body, icon: "/favicon.ico" }); } catch {}
+    });
+  }, [loaded]); // intentionally omit other deps — runs once after initial load
+
+  // Record a net-worth snapshot for the current month once per session after data loads
+  useEffect(() => {
+    if (!loaded) return;
+    const ym = new Date().toISOString().slice(0, 7);
+    setState((s) => {
+      const nw = (() => {
+        const cash = (s.bankAccounts || []).reduce((a, x) => a + Number(x.balance || 0), 0);
+        const mf = (s.mutualFunds || []).reduce((a, x) => a + Number(x.units || 0) * Number(x.currentNav || 0), 0);
+        const stocks = (s.stocks || []).reduce((a, x) => a + Number(x.qty || 0) * Number(x.currentPrice || 0), 0);
+        const fd = (s.fixedDeposits || []).reduce((a, x) => a + Number(x.principal || 0), 0);
+        const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
+        const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
+        const lic = (s.lic || []).reduce((a, x) => a + Number(x.premiumPaid || 0), 0);
+        const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
+        const cc = (s.creditCards || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
+        const loans = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
+        return cash + mf + stocks + fd + ppf + nps + lic + bonds - cc - loans;
+      })();
+      const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
+      return { ...s, netWorthHistory: [...history, { month: ym, netWorth: nw }].slice(-36) };
+    });
+  }, [loaded]); // intentionally omit other deps — runs once after initial load
 
   const filteredState = useMemo(() => {
     if (activeProfile === "all") return state;
@@ -1871,11 +1921,18 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
   ];
 
   const netWorthTrend = useMemo(() => {
-    return trendData.map((t, i) => ({
-      month: t.month,
-      value: metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.9,
-    }));
-  }, [trendData, metrics]);
+    const histMap: Record<string, number> = {};
+    (state.netWorthHistory || []).forEach((h) => { histMap[h.month] = h.netWorth; });
+    const now = new Date();
+    return trendData.map((t, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (trendData.length - 1 - i), 1);
+      const ym = d.toISOString().slice(0, 7);
+      const value = histMap[ym] !== undefined
+        ? histMap[ym]
+        : metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.9;
+      return { month: t.month, value, real: histMap[ym] !== undefined };
+    });
+  }, [trendData, metrics, state.netWorthHistory]);
 
   const savingsData = useMemo(() => {
     const now = new Date();
@@ -2571,9 +2628,32 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const setQuickRange = (preset: string) => {
+    const now = new Date();
+    if (preset === "thisMonth") {
+      setDateFrom(now.toISOString().slice(0, 7) + "-01");
+      setDateTo(now.toISOString().slice(0, 10));
+    } else if (preset === "lastMonth") {
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(prev.toISOString().slice(0, 10));
+      setDateTo(last.toISOString().slice(0, 10));
+    } else if (preset === "3months") {
+      const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      setDateFrom(from.toISOString().slice(0, 10));
+      setDateTo(now.toISOString().slice(0, 10));
+    } else if (preset === "thisFY") {
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      setDateFrom(`${fyYear}-04-01`);
+      setDateTo(now.toISOString().slice(0, 10));
+    }
+  };
   const [editBankId, setEditBankId] = useState(null);
   const [editTxnId, setEditTxnId] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEdit, setInlineEdit] = useState<any>(null);
 
   // D12: Recurring detection — transactions with same note+amount appearing ≥2 times
   const recurringKeys = useMemo(() => {
@@ -2756,12 +2836,20 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
             />
+            {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => {
+              const labels = { thisMonth: "This Month", lastMonth: "Last Month", "3months": "Last 3M", thisFY: "This FY" };
+              return (
+                <button key={p} style={{ ...btnGhost, padding: "6px 10px", fontSize: 11, whiteSpace: "nowrap" }} onClick={() => setQuickRange(p)}>
+                  {labels[p]}
+                </button>
+              );
+            })}
             {(dateFrom || dateTo) && (
               <button
                 style={{ ...btnGhost, padding: "4px 8px", fontSize: 12 }}
                 onClick={() => { setDateFrom(""); setDateTo(""); }}
               >
-                Clear dates
+                Clear
               </button>
             )}
           </div>
@@ -2791,13 +2879,32 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
               </thead>
               <tbody>
                 {[...filteredTxns].reverse().map((t) => {
-                  const bank = state.bankAccounts.find(
-                    (b) => b.id === t.accountId
-                  );
+                  const bank = state.bankAccounts.find((b) => b.id === t.accountId);
+                  const isEditing = inlineEditId === t.id;
+                  const txnCats = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
+                  if (isEditing && inlineEdit) {
+                    return (
+                      <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>
+                        <td style={td}><input type="date" value={inlineEdit.date} onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 130 }} /></td>
+                        <td style={td}><input value={inlineEdit.note || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") { updateItem("transactions", t.id, inlineEdit); setInlineEditId(null); } if (e.key === "Escape") setInlineEditId(null); }} style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }} autoFocus /></td>
+                        <td style={td}><select value={inlineEdit.category || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, category: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12 }}>{txnCats.map((c) => <option key={c}>{c}</option>)}</select></td>
+                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank?.bankName || "—"}</td>
+                        <td style={{ ...td, textAlign: "right" }} colSpan={2}><input type="number" value={inlineEdit.amount} onChange={(e) => setInlineEdit({ ...inlineEdit, amount: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 100, textAlign: "right" }} /></td>
+                        <td style={td}>
+                          <div style={{ display: "flex", gap: 2 }}>
+                            <button onClick={() => { updateItem("transactions", t.id, inlineEdit); setInlineEditId(null); }} style={{ ...iconBtn, color: THEME.sage }} title="Save"><Check size={14} /></button>
+                            <button onClick={() => setInlineEditId(null)} style={{ ...iconBtn, color: THEME.rust }} title="Cancel"><X size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr
                       key={t.id}
-                      style={{ borderBottom: `1px dashed ${THEME.line}` }}
+                      onDoubleClick={() => { setInlineEditId(t.id); setInlineEdit({ ...t }); }}
+                      style={{ borderBottom: `1px dashed ${THEME.line}`, cursor: "default" }}
+                      title="Double-click to edit inline"
                     >
                       <td style={td}>{t.date}</td>
                       <td style={td}>
@@ -2808,46 +2915,18 @@ function BanksTab({ state, addItem, removeItem, updateItem }) {
                           )}
                         </div>
                       </td>
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
-                        {t.category}
-                      </td>
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
-                        {bank?.bankName || "—"}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          textAlign: "right",
-                          color: THEME.accent,
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
+                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{t.category}</td>
+                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank?.bankName || "—"}</td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.accent, fontVariantNumeric: "tabular-nums" }}>
                         {t.type === "debit" ? fmtINRFull(t.amount) : ""}
                       </td>
-                      <td
-                        style={{
-                          ...td,
-                          textAlign: "right",
-                          color: THEME.sage,
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
+                      <td style={{ ...td, textAlign: "right", color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
                         {t.type === "credit" ? fmtINRFull(t.amount) : ""}
                       </td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 2 }}>
-                          <button
-                            onClick={() => setEditTxnId(t.id)}
-                            style={iconBtn}
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            onClick={() => removeItem("transactions", t.id)}
-                            style={iconBtn}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          <button onClick={() => setEditTxnId(t.id)} style={iconBtn}><Edit3 size={13} /></button>
+                          <button onClick={() => removeItem("transactions", t.id)} style={iconBtn}><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -7288,6 +7367,15 @@ function BudgetTab({ state, addItem, removeItem, updateItem, metrics }) {
             const budget = Number(b.monthly || 0);
             const pct = budget > 0 ? (spent / budget) * 100 : 0;
             const over = pct > 100;
+            const barColor = over ? THEME.rust : pct > 80 ? THEME.gold : THEME.sage;
+
+            const nowDate = new Date();
+            const daysPassed = nowDate.getDate();
+            const daysInMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
+            const projected = daysPassed > 0 ? (spent / daysPassed) * daysInMonth : 0;
+            const projectedPct = budget > 0 ? (projected / budget) * 100 : 0;
+            const dailyAvg = daysPassed > 0 ? spent / daysPassed : 0;
+
             return (
               <div key={b.id} style={{ ...card, position: "relative" }}>
                 <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
@@ -7312,9 +7400,19 @@ function BudgetTab({ state, addItem, removeItem, updateItem, metrics }) {
                     </div>
                   </div>
                 </div>
-                <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: over ? THEME.rust : pct > 80 ? THEME.gold : THEME.sage, borderRadius: 4, transition: "width 0.5s" }} />
+                {/* Progress bar */}
+                <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: barColor, borderRadius: 4, transition: "width 0.5s" }} />
                 </div>
+                {/* Pace projection row */}
+                {spent > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, flexWrap: "wrap", gap: 4 }}>
+                    <span>{fmtINR(dailyAvg)}/day avg · day {daysPassed}/{daysInMonth}</span>
+                    <span style={{ fontWeight: 600, color: projectedPct > 110 ? THEME.rust : projectedPct > 90 ? THEME.gold : THEME.sage }}>
+                      Projected: {fmtINR(projected)} ({projectedPct.toFixed(0)}%)
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -7386,6 +7484,19 @@ function BudgetModal({ existing, onClose, onSave, initialValues = null }) {
 function RemindersTab({ state, addItem, removeItem }) {
   const [show, setShow] = useState(false);
   const todayStr = today();
+  const [notifPerm, setNotifPerm] = useState<string>(() => {
+    if (typeof Notification === "undefined") return "unsupported";
+    return Notification.permission;
+  });
+
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    setNotifPerm(perm);
+    if (perm === "granted") {
+      try { localStorage.setItem("finance-notif", "granted"); } catch {}
+    }
+  };
 
   const allReminders = useMemo(() => {
     const list = [];
@@ -7429,9 +7540,25 @@ function RemindersTab({ state, addItem, removeItem }) {
         <SectionTitle sub="Upcoming dues, maturities, renewals and custom alerts">
           Reminders & Alerts
         </SectionTitle>
-        <button style={btnSolid} onClick={() => setShow(true)}>
-          <Plus size={14} /> Add Reminder
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {notifPerm !== "unsupported" && notifPerm !== "granted" && (
+            <button
+              style={{ ...btnGhost, fontSize: 12 }}
+              onClick={requestNotifications}
+              title="Get browser notifications for due reminders"
+            >
+              <Bell size={13} /> Enable Notifications
+            </button>
+          )}
+          {notifPerm === "granted" && (
+            <span style={{ fontSize: 12, color: THEME.sage, display: "flex", alignItems: "center", gap: 4 }}>
+              <Check size={13} /> Notifications on
+            </span>
+          )}
+          <button style={btnSolid} onClick={() => setShow(true)}>
+            <Plus size={14} /> Add Reminder
+          </button>
+        </div>
       </div>
 
       {upcoming.length === 0 && past.length === 0 ? (
