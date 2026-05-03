@@ -467,6 +467,7 @@ const DEFAULT_STATE = (() => {
     ],
     reminders: [],
     stockSells: [],
+    mfSells: [],
     netWorthHistory: [],
     sips: [
       { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
@@ -741,6 +742,7 @@ export default function FinanceDashboard() {
       budgets: filterByOwner(state.budgets),
       sips: filterByOwner(state.sips),
       stockSells: filterByOwner(state.stockSells || []),
+      mfSells: filterByOwner(state.mfSells || []),
     };
   }, [state, activeProfile]);
 
@@ -776,7 +778,7 @@ export default function FinanceDashboard() {
       0
     );
     const mfInvested = sState.mutualFunds.reduce(
-      (s, m) => s + Number(m.invested || 0),
+      (s, m) => s + (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : Number(m.invested || 0)),
       0
     );
     const stockValue = sState.stocks.reduce(
@@ -3399,6 +3401,8 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
   const sub = subTab || "fd";
   const [modal, setModal] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [mfDefaults, setMfDefaults] = useState(null as any);
+  const [mfSellLot, setMfSellLot] = useState(null as any);
 
   const addNPSContribution = (npsId: string, contribution: any) => {
     const account = state.nps.find((n) => n.id === npsId);
@@ -3518,45 +3522,15 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
         />
       )}
       {sub === "mf" && (
-        <>
-          <MFList items={state.mutualFunds} onRemove={(id) => removeItem("mutualFunds", id)} onEdit={setEditId} />
-          {/* F4 – MF Overlap Detector */}
-          {state.mutualFunds.length > 1 && (() => {
-            const typeMap: Record<string, string[]> = {};
-            state.mutualFunds.forEach((m) => {
-              const t = (m.type || "Other").toLowerCase();
-              const bucket = t.includes("index") || t.includes("nifty") || t.includes("sensex") ? "Index/Large-cap"
-                : t.includes("equity") || t.includes("flexi") || t.includes("large") ? "Equity"
-                : t.includes("debt") || t.includes("liquid") || t.includes("bond") ? "Debt"
-                : t.includes("hybrid") || t.includes("balanced") ? "Hybrid" : "Other";
-              if (!typeMap[bucket]) typeMap[bucket] = [];
-              typeMap[bucket].push(m.scheme);
-            });
-            const overlaps = Object.entries(typeMap).filter(([, names]) => names.length > 1);
-            if (!overlaps.length) return (
-              <div style={{ ...card, marginTop: 20, borderLeft: `4px solid ${THEME.sage}` }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <Check size={16} style={{ color: THEME.sage }} />
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>No overlap detected — your MF portfolio is well-diversified across categories.</span>
-                </div>
-              </div>
-            );
-            return (
-              <div style={{ ...card, marginTop: 20, borderLeft: `4px solid ${THEME.gold}` }}>
-                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 12 }}>MF Overlap Detector</div>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {overlaps.map(([bucket, names]) => (
-                    <div key={bucket} style={{ padding: 12, background: "rgba(249,171,0,0.08)", borderRadius: 8 }}>
-                      <div style={{ fontWeight: 700, color: THEME.gold, fontSize: 13, marginBottom: 4 }}>⚠ {bucket} overlap ({names.length} funds)</div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>{names.join(" · ")}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>These funds likely hold similar stocks — consider consolidating to one.</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-        </>
+        <MFGroupView
+          items={state.mutualFunds}
+          mfSells={state.mfSells || []}
+          onRemoveLot={(id) => removeItem("mutualFunds", id)}
+          onEditLot={setEditId}
+          onAddLot={(defaults) => { setMfDefaults(defaults); setModal("mf"); }}
+          onSellLot={(lot) => setMfSellLot(lot)}
+          onUpdateLot={(id, patch) => updateItem("mutualFunds", id, patch)}
+        />
       )}
       {sub === "lic" && (
         <LICList items={state.lic} onRemove={(id) => removeItem("lic", id)} onEdit={setEditId} />
@@ -3684,10 +3658,23 @@ function InvestmentsTab({ state, addItem, removeItem, updateItem, subTab }) {
       )}
       {modal === "mf" && (
         <MFModal
-          onClose={() => setModal(null)}
-          onSave={(v) => {
-            addItem("mutualFunds", v);
-            setModal(null);
+          defaults={mfDefaults}
+          onClose={() => { setModal(null); setMfDefaults(null); }}
+          onSave={(v) => { addItem("mutualFunds", v); setModal(null); setMfDefaults(null); }}
+        />
+      )}
+      {mfSellLot && (
+        <MFSellModal
+          lot={mfSellLot}
+          onClose={() => setMfSellLot(null)}
+          onSave={(sellRecord: any, remainingUnits: number) => {
+            addItem("mfSells", sellRecord);
+            if (remainingUnits <= 0) {
+              removeItem("mutualFunds", mfSellLot.id);
+            } else {
+              updateItem("mutualFunds", mfSellLot.id, { units: String(remainingUnits.toFixed(3)) });
+            }
+            setMfSellLot(null);
           }}
         />
       )}
@@ -4127,74 +4114,330 @@ function NPSList({ items, onRemove, onEdit, onAddContribution, onRemoveContribut
   );
 }
 
-function MFList({ items, onRemove, onEdit }: any) {
-  if (!items.length) return <EmptyHint text="No mutual fund holdings yet" />;
+function MFGroupView({ items, mfSells, onRemoveLot, onEditLot, onAddLot, onSellLot, onUpdateLot }: any) {
+  const [navData, setNavData] = useState({} as any);
+  const [chartData, setChartData] = useState({} as any);
+  const [expandedSchemes, setExpandedSchemes] = useState(new Set() as Set<string>);
+  const [fetchingNav, setFetchingNav] = useState(false);
+  const [fetchingChart, setFetchingChart] = useState(null as string | null);
+  const [lastRefreshed, setLastRefreshed] = useState(null as Date | null);
+  const [fetchError, setFetchError] = useState(null as string | null);
+
+  // Group lots by scheme name
+  const groups: any[] = Object.values(
+    (items || []).reduce((acc: any, m: any) => {
+      const key = (m.scheme || "").trim();
+      if (!acc[key]) acc[key] = { scheme: key, type: m.type || "Equity", schemeCode: m.schemeCode || "", lots: [] };
+      if (m.schemeCode && !acc[key].schemeCode) acc[key].schemeCode = m.schemeCode;
+      acc[key].lots.push(m);
+      return acc;
+    }, {})
+  );
+
+  const fetchLiveNavs = async () => {
+    const codesGroups = groups.filter((g) => g.schemeCode);
+    if (!codesGroups.length) { setFetchError("Add AMFI scheme codes to fetch live NAV"); return; }
+    setFetchingNav(true); setFetchError(null);
+    let found = 0;
+    await Promise.allSettled(
+      codesGroups.map(async (g) => {
+        try {
+          const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(g.schemeCode)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.nav != null) {
+              setNavData((prev: any) => ({ ...prev, [g.scheme]: data }));
+              for (const lot of g.lots) {
+                onUpdateLot(lot.id, { currentNav: String(Number(data.nav).toFixed(4)) });
+              }
+              found++;
+            }
+          }
+        } catch (_) {}
+      })
+    );
+    setLastRefreshed(new Date());
+    const missed = codesGroups.length - found;
+    setFetchError(missed > 0 ? `${missed} NAV fetch(es) failed — check scheme codes` : null);
+    setFetchingNav(false);
+  };
+
+  const fetchChart = async (scheme: string, schemeCode: string) => {
+    if (chartData[scheme] || fetchingChart === scheme || !schemeCode) return;
+    setFetchingChart(scheme);
+    try {
+      const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(schemeCode)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setChartData((prev: any) => ({ ...prev, [scheme]: data?.chart || [] }));
+        if (!navData[scheme] && data?.nav != null) {
+          setNavData((prev: any) => ({ ...prev, [scheme]: data }));
+        }
+      } else {
+        setChartData((prev: any) => ({ ...prev, [scheme]: [] }));
+      }
+    } catch (_) {
+      setChartData((prev: any) => ({ ...prev, [scheme]: [] }));
+    }
+    setFetchingChart(null);
+  };
+
+  const toggleExpand = (scheme: string, schemeCode: string) => {
+    setExpandedSchemes((prev) => {
+      const next = new Set(prev);
+      if (next.has(scheme)) { next.delete(scheme); }
+      else { next.add(scheme); fetchChart(scheme, schemeCode); }
+      return next;
+    });
+  };
+
+  const totalValue = (items || []).reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || 0), 0);
+  const totalInvested = (items || []).reduce((s: number, m: any) => s + (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : Number(m.invested || 0)), 0);
+  const totalPnl = totalValue - totalInvested;
+
+  const fmtVol = (v: number) => {
+    if (!v) return "—";
+    if (v >= 1e7) return (v / 1e7).toFixed(2) + "Cr";
+    if (v >= 1e5) return (v / 1e5).toFixed(2) + "L";
+    return v.toFixed(0);
+  };
+
   return (
-    <Grid>
-      {items.map((m) => {
-        const current = Number(m.units) * Number(m.currentNav);
-        const pnl = current - Number(m.invested);
-        const pct = Number(m.invested) ? (pnl / Number(m.invested)) * 100 : 0;
-        return (
-          <InvestCard key={m.id} onRemove={() => onRemove(m.id)} onEdit={() => onEdit(m.id)}>
-            <div
-              style={{
-                fontSize: 10,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                color: THEME.muted,
-              }}
-            >
-              {m.type || "Equity"}
-            </div>
-            <div
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 18,
-                fontWeight: 700,
-                marginTop: 4,
-                lineHeight: 1.1,
-              }}
-            >
-              {m.scheme}
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 800, marginTop: 12 }}>
-              {fmtINRFull(current)}
-            </div>
-            <div
-              style={{
-                color: pnl >= 0 ? THEME.sage : THEME.accent,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              {pnl >= 0 ? "+" : ""}
-              {fmtINR(pnl)} ({pct.toFixed(2)}%)
-            </div>
-            {(() => {
-              const cagr = m.buyDate ? calcCAGR(Number(m.invested), current, m.buyDate) : null;
-              return cagr !== null ? (
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                  CAGR <span style={{ fontWeight: 700, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust }}>{cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}%/yr</span>
+    <div>
+      {/* Summary tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 16, marginBottom: 24 }}>
+        <Tile icon={Layers} label="MF Portfolio Value" value={fmtINRFull(totalValue)} />
+        <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(totalPnl)}
+          sub={totalInvested ? `${((totalPnl / totalInvested) * 100).toFixed(2)}%` : ""}
+          subColor={totalPnl >= 0 ? THEME.sage : THEME.rust} />
+        <Tile icon={ArrowLeftRight} label="Realized P&L"
+          value={fmtINRFull((mfSells || []).reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0))}
+          sub={`${(mfSells || []).length} redemption${(mfSells || []).length !== 1 ? "s" : ""}`}
+          subColor={(mfSells || []).reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0) >= 0 ? THEME.sage : THEME.rust} />
+      </div>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>MF Holdings</div>
+          {lastRefreshed && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>NAV as of {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
+          {fetchError && <div style={{ fontSize: 11, color: THEME.rust, marginTop: 2 }}>{fetchError}</div>}
+        </div>
+        <button style={{ ...btnGhost, display: "flex", alignItems: "center", gap: 6, opacity: fetchingNav ? 0.6 : 1 }}
+          onClick={fetchLiveNavs} disabled={fetchingNav}>
+          <RefreshCw size={13} style={fetchingNav ? { animation: "spin 1s linear infinite" } : {}} />
+          {fetchingNav ? "Fetching…" : "Refresh NAV"}
+        </button>
+      </div>
+
+      {groups.length === 0 ? (
+        <div style={card}><EmptyHint text="No mutual fund holdings yet" /></div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {groups.map(({ scheme, type, schemeCode, lots }) => {
+            const nd = navData[scheme];
+            const isLive = !!nd;
+            const currentNav = nd?.nav ?? Number(lots[0]?.currentNav ?? 0);
+            const totalUnits = lots.reduce((s: number, l: any) => s + Number(l.units || 0), 0);
+            const invested = lots.reduce((s: number, l: any) => s + (l.buyNav ? Number(l.units || 0) * Number(l.buyNav || 0) : Number(l.invested || 0)), 0);
+            const currValue = totalUnits * currentNav;
+            const pnl = currValue - invested;
+            const pnlPct = invested ? (pnl / invested) * 100 : 0;
+            const navChange = nd?.navChange ?? 0;
+            const navChangePct = nd?.navChangePct ?? 0;
+            const isExpanded = expandedSchemes.has(scheme);
+            const charts: any[] | null = chartData[scheme] ?? null;
+
+            return (
+              <div key={scheme} style={{ ...card, padding: 0, overflow: "hidden" }}>
+                {/* Group header */}
+                <div
+                  style={{ display: "flex", alignItems: "flex-start", flexWrap: "wrap", gap: 12, padding: "14px 18px", cursor: "pointer", borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" }}
+                  onClick={() => toggleExpand(scheme, schemeCode)}
+                >
+                  <div style={{ paddingTop: 3, color: THEME.muted, flexShrink: 0 }}>
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
+                  <div style={{ flexShrink: 0, minWidth: 200 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: "0.01em" }}>{scheme}</span>
+                      <span style={{ fontSize: 10, background: THEME.line, color: THEME.muted, padding: "1px 5px", borderRadius: 3, fontWeight: 600 }}>{type}</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>{lots.length} lot{lots.length > 1 ? "s" : ""}</span>
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                      NAV ₹{currentNav.toFixed(4)}
+                      {isLive && <span style={{ marginLeft: 5, fontSize: 9, color: THEME.sage, fontWeight: 700, verticalAlign: "middle" }}>●LIVE</span>}
+                    </div>
+                    {isLive && (
+                      <div style={{ fontSize: 12, fontWeight: 600, color: navChange >= 0 ? THEME.sage : THEME.rust }}>
+                        {navChange >= 0 ? "+" : ""}{navChange.toFixed(4)} ({navChangePct >= 0 ? "+" : ""}{navChangePct.toFixed(2)}%)
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: 20, justifyContent: "flex-end", alignItems: "flex-start" }}>
+                    {[
+                      { label: "Units", val: totalUnits.toFixed(3) },
+                      { label: "Invested", val: fmtINR(invested) },
+                      { label: "Current", val: fmtINR(currValue) },
+                    ].map(({ label, val }) => (
+                      <div key={label} style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+                        <div style={{ fontWeight: 600, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{val}</div>
+                      </div>
+                    ))}
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>P&L</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: pnl >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                        {pnl >= 0 ? "+" : ""}{fmtINR(pnl)}
+                      </div>
+                      <div style={{ fontSize: 11, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                        {pnl >= 0 ? "▲" : "▼"}{Math.abs(pnlPct).toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : null;
-            })()}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-                marginTop: 12,
-                fontSize: 12,
-              }}
-            >
-              <Stat k="Units" v={Number(m.units).toFixed(3)} />
-              <Stat k="Invested" v={fmtINR(m.invested)} />
-            </div>
-          </InvestCard>
-        );
-      })}
-    </Grid>
+
+                {isExpanded && (
+                  <div>
+                    {/* NAV data bar */}
+                    {isLive && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 20, padding: "10px 18px", background: "rgba(128,128,128,0.06)", borderBottom: `1px solid ${THEME.line}`, fontSize: 12 }}>
+                        {nd.prevNav != null && <span><span style={{ color: THEME.muted }}>Prev NAV </span><b>₹{nd.prevNav.toFixed(4)}</b></span>}
+                        {nd.high52 != null && nd.low52 != null && (
+                          <span>
+                            <span style={{ color: THEME.muted }}>52W H/L </span>
+                            <b style={{ color: THEME.sage }}>₹{nd.high52.toFixed(2)}</b>
+                            <span style={{ color: THEME.muted }}> / </span>
+                            <b style={{ color: THEME.rust }}>₹{nd.low52.toFixed(2)}</b>
+                          </span>
+                        )}
+                        {nd.date && <span><span style={{ color: THEME.muted }}>Updated </span><b>{nd.date}</b></span>}
+                        {schemeCode && <span><span style={{ color: THEME.muted }}>AMFI </span><b>{schemeCode}</b></span>}
+                      </div>
+                    )}
+
+                    {/* 30-day NAV chart */}
+                    {charts && charts.length > 2 ? (
+                      <div style={{ padding: "14px 18px", borderBottom: `1px solid ${THEME.line}` }}>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          30-Day NAV History
+                        </div>
+                        <ResponsiveContainer width="100%" height={130}>
+                          <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                            <defs>
+                              <linearGradient id={`mfg-${scheme.slice(0, 8).replace(/\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={navChange >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                <stop offset="95%" stopColor={navChange >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                            <YAxis hide domain={["auto", "auto"]} />
+                            <Tooltip
+                              contentStyle={{ fontSize: 12, background: "var(--t-paper)", border: `1px solid ${THEME.line}`, borderRadius: 6 }}
+                              formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]}
+                              labelStyle={{ color: "var(--t-muted)" }}
+                            />
+                            <Area type="monotone" dataKey="p"
+                              stroke={navChange >= 0 ? THEME.sage : THEME.rust}
+                              strokeWidth={1.5}
+                              fill={`url(#mfg-${scheme.slice(0, 8).replace(/\s/g, "")})`}
+                              dot={false}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : fetchingChart === scheme ? (
+                      <div style={{ padding: "12px 18px", fontSize: 12, color: THEME.muted, borderBottom: `1px solid ${THEME.line}` }}>Loading NAV history…</div>
+                    ) : charts != null && !schemeCode ? (
+                      <div style={{ padding: "10px 18px", fontSize: 11, color: THEME.muted, borderBottom: `1px solid ${THEME.line}` }}>
+                        Add AMFI scheme code to this fund to load NAV history chart
+                      </div>
+                    ) : charts != null ? (
+                      <div style={{ padding: "10px 18px", fontSize: 11, color: THEME.muted, borderBottom: `1px solid ${THEME.line}` }}>No NAV history available</div>
+                    ) : null}
+
+                    {/* Per-lot table */}
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+                            <th style={{ ...th, paddingLeft: 18 }}>Units</th>
+                            <th style={{ ...th, textAlign: "right" }}>Buy NAV</th>
+                            <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+                            <th style={{ ...th, textAlign: "right" }}>Invested</th>
+                            {isLive && <th style={{ ...th, textAlign: "right" }}>Day Gain</th>}
+                            <th style={{ ...th, textAlign: "right" }}>Overall Gain</th>
+                            <th style={{ ...th, textAlign: "right" }}>Curr Value</th>
+                            <th style={th}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lots.map((lot: any) => {
+                            const buyNav = lot.buyNav ? Number(lot.buyNav) : (lot.invested && lot.units ? Number(lot.invested) / Number(lot.units) : 0);
+                            const lInv = Number(lot.units) * buyNav;
+                            const lCurr = Number(lot.units) * currentNav;
+                            const lPnl = lCurr - lInv;
+                            const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
+                            const lDayGain = isLive ? Number(lot.units) * navChange : null;
+                            return (
+                              <tr key={lot.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                                <td style={{ ...td, paddingLeft: 18, fontVariantNumeric: "tabular-nums" }}>{Number(lot.units).toFixed(3)}</td>
+                                <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                  {buyNav ? `₹${buyNav.toFixed(4)}` : "—"}
+                                </td>
+                                <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
+                                  {lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}
+                                </td>
+                                <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(lInv)}</td>
+                                {isLive && (
+                                  <td style={{ ...td, textAlign: "right", color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                                    {(lDayGain ?? 0) >= 0 ? "+" : ""}{fmtINR(lDayGain ?? 0)}
+                                    <br /><span style={{ fontSize: 11 }}>({navChangePct >= 0 ? "+" : ""}{navChangePct.toFixed(2)}%)</span>
+                                  </td>
+                                )}
+                                <td style={{ ...td, textAlign: "right", color: lPnl >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                                  {lPnl >= 0 ? "+" : ""}{fmtINR(lPnl)}
+                                  <br /><span style={{ fontSize: 11 }}>{lPnl >= 0 ? "▲" : "▼"}{Math.abs(lPnlPct).toFixed(2)}%</span>
+                                  {lot.buyDate && (() => {
+                                    const cagr = calcCAGR(lInv, lCurr, lot.buyDate);
+                                    return cagr !== null ? (
+                                      <span style={{ fontSize: 10, display: "block", color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 700 }}>
+                                        CAGR {cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}%/yr
+                                      </span>
+                                    ) : null;
+                                  })()}
+                                </td>
+                                <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(lCurr)}</td>
+                                <td style={td}>
+                                  <div style={{ display: "flex", gap: 2 }}>
+                                    <button onClick={(e) => { e.stopPropagation(); onSellLot({ ...lot, scheme, type, schemeCode, currentNav }); }} style={{ ...iconBtn, color: THEME.rust }} title="Redeem"><ArrowLeftRight size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onEditLot(lot.id); }} style={iconBtn}><Edit3 size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onRemoveLot(lot.id); }} style={iconBtn}><Trash2 size={13} /></button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Add lot footer */}
+                    <div style={{ padding: "10px 18px", borderTop: `1px solid ${THEME.line}` }}>
+                      <button style={{ ...btnGhost, fontSize: 12 }}
+                        onClick={(e) => { e.stopPropagation(); onAddLot({ scheme, type, schemeCode }); }}>
+                        <Plus size={12} /> Add Lot to {scheme}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -4591,82 +4834,65 @@ function NPSContributionModal({ onClose, onSave }: any) {
     </Modal>
   );
 }
-function MFModal({ onClose, onSave, initial = null }: any) {
+function MFModal({ onClose, onSave, initial = null, defaults = null }: any) {
   const [f, setF] = useState(initial || {
-    scheme: "",
-    type: "Equity",
+    scheme: defaults?.scheme || "",
+    type: defaults?.type || "Equity",
+    schemeCode: defaults?.schemeCode || "",
     units: "",
-    invested: "",
+    buyNav: "",
     currentNav: "",
     buyDate: "",
   });
   return (
-    <Modal title={initial ? "Edit Mutual Fund Holding" : "Add Mutual Fund Holding"} onClose={onClose}>
+    <Modal title={initial ? "Edit MF Holding" : "Add MF Lot"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <Field label="Scheme Name">
-        <input
-          style={input}
-          value={f.scheme}
+        <input style={input} value={f.scheme}
           onChange={(e) => setF({ ...f, scheme: e.target.value })}
-          placeholder="e.g. Parag Parikh Flexi Cap"
-        />
+          placeholder="e.g. Parag Parikh Flexi Cap" />
       </Field>
-      <Field label="Type">
-        <select
-          style={input}
-          value={f.type}
-          onChange={(e) => setF({ ...f, type: e.target.value })}
-        >
-          <option>Equity</option>
-          <option>Debt</option>
-          <option>Hybrid</option>
-          <option>ELSS</option>
-          <option>Index</option>
-          <option>International</option>
-          <option>Liquid</option>
-        </select>
-      </Field>
-      <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
-      >
-        <Field label="Units">
-          <input
-            style={input}
-            type="number"
-            step="0.001"
-            value={f.units}
-            onChange={(e) => setF({ ...f, units: e.target.value })}
-          />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Type">
+          <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+            <option>Equity</option>
+            <option>Debt</option>
+            <option>Hybrid</option>
+            <option>ELSS</option>
+            <option>Index</option>
+            <option>International</option>
+            <option>Liquid</option>
+          </select>
         </Field>
-        <Field label="Total Invested">
-          <input
-            style={input}
-            type="number"
-            value={f.invested}
-            onChange={(e) => setF({ ...f, invested: e.target.value })}
-          />
-        </Field>
-        <Field label="Current NAV">
-          <input
-            style={input}
-            type="number"
-            step="0.01"
-            value={f.currentNav}
-            onChange={(e) => setF({ ...f, currentNav: e.target.value })}
-          />
+        <Field label="AMFI Scheme Code (optional)">
+          <input style={input} value={f.schemeCode || ""} type="number"
+            onChange={(e) => setF({ ...f, schemeCode: e.target.value })}
+            placeholder="e.g. 122639" />
         </Field>
       </div>
-      <Field label="Purchase Date (optional — enables CAGR calculation)">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+        <Field label="Units">
+          <input style={input} type="number" step="0.001" value={f.units}
+            onChange={(e) => setF({ ...f, units: e.target.value })} />
+        </Field>
+        <Field label="Buy NAV (₹)">
+          <input style={input} type="number" step="0.0001" value={f.buyNav || ""}
+            onChange={(e) => setF({ ...f, buyNav: e.target.value })}
+            placeholder="NAV at purchase" />
+        </Field>
+        <Field label="Current NAV (₹)">
+          <input style={input} type="number" step="0.0001" value={f.currentNav || ""}
+            onChange={(e) => setF({ ...f, currentNav: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Purchase Date (optional — enables CAGR)">
         <input style={input} type="date" value={f.buyDate || ""} onChange={(e) => setF({ ...f, buyDate: e.target.value })} />
       </Field>
-      <ModalActions
-        onSave={() => f.scheme && f.units && onSave(f)}
-        onClose={onClose}
-      />
+      <ModalActions onSave={() => f.scheme && f.units && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
@@ -5431,67 +5657,219 @@ function SellStockModal({ lot, onClose, onSave }: any) {
   );
 }
 
+// ================== MF SELL MODAL ==================
+function MFSellModal({ lot, onClose, onSave }: any) {
+  const today = new Date().toISOString().split("T")[0];
+  const [f, setF] = useState({
+    sellUnits: String(lot.units),
+    sellNav: String(lot.currentNav || ""),
+    sellDate: today,
+    broker: "",
+  });
+  const buyNav = lot.buyNav ? Number(lot.buyNav) : (lot.invested && lot.units ? Number(lot.invested) / Number(lot.units) : 0);
+  const sellUnitsNum = Number(f.sellUnits) || 0;
+  const sellNavNum = Number(f.sellNav) || 0;
+  const profit = (sellNavNum - buyNav) * sellUnitsNum;
+  const remainingUnits = Number(lot.units) - sellUnitsNum;
+
+  const handleSave = () => {
+    if (!sellUnitsNum || !sellNavNum || sellUnitsNum > Number(lot.units)) return;
+    const record = {
+      id: `mfs-${Date.now()}`,
+      owner: lot.owner || "self",
+      scheme: lot.scheme || lot.scheme,
+      type: lot.type || "Equity",
+      units: sellUnitsNum,
+      buyNav: Number(buyNav.toFixed(4)),
+      buyDate: lot.buyDate || "",
+      sellNav: sellNavNum,
+      sellDate: f.sellDate,
+      broker: f.broker,
+      profit: Number(profit.toFixed(2)),
+    };
+    onSave(record, remainingUnits);
+  };
+
+  return (
+    <Modal title={`Redeem — ${lot.scheme}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
+        Holding: <b>{Number(lot.units).toFixed(3)}</b> units @ buy NAV ₹{buyNav ? buyNav.toFixed(4) : "—"} · Bought {lot.buyDate || "—"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Units to Redeem">
+          <input style={input} type="number" step="0.001" min="0.001" max={lot.units} value={f.sellUnits}
+            onChange={(e) => setF({ ...f, sellUnits: e.target.value })} />
+        </Field>
+        <Field label="Redemption NAV (₹)">
+          <input style={input} type="number" step="0.0001" value={f.sellNav}
+            onChange={(e) => setF({ ...f, sellNav: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Redemption Date">
+        <input style={input} type="date" value={f.sellDate}
+          onChange={(e) => setF({ ...f, sellDate: e.target.value })} />
+      </Field>
+      <Field label="Broker/Platform (optional)">
+        <input style={input} value={f.broker} placeholder="e.g. Zerodha Coin, Groww"
+          onChange={(e) => setF({ ...f, broker: e.target.value })} />
+      </Field>
+      {sellUnitsNum > 0 && sellNavNum > 0 && (
+        <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? "rgba(72,199,142,0.1)" : "rgba(255,99,99,0.1)", marginTop: 4 }}>
+          <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Gain/Loss: </span>
+          <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
+            {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </b>
+          {remainingUnits > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingUnits.toFixed(3)} units remain</span>}
+          {remainingUnits <= 0 && <span style={{ fontSize: 12, color: THEME.rust, marginLeft: 12 }}>Full lot redeemed</span>}
+        </div>
+      )}
+      {sellUnitsNum > Number(lot.units) && (
+        <div style={{ color: THEME.rust, fontSize: 12, marginTop: 4 }}>Cannot redeem more than {Number(lot.units).toFixed(3)} units</div>
+      )}
+      <ModalActions onSave={handleSave} onClose={onClose} />
+    </Modal>
+  );
+}
+
 // ================== TRANSACTION HISTORY TAB ==================
 function TxnHistoryTab({ state, removeItem }: any) {
   const currentFY = (() => {
     const now = new Date();
     const y = now.getFullYear();
-    return now.getMonth() >= 3 ? y : y - 1; // April onwards = new FY
+    return now.getMonth() >= 3 ? y : y - 1;
   })();
   const [selectedFY, setSelectedFY] = useState(currentFY);
-  const [activeSection, setActiveSection] = useState<"all" | "bought" | "sold">("all");
+  const [activeSection, setActiveSection] = useState<"all" | "stocks_bought" | "stocks_sold" | "mf_bought" | "mf_sold">("all");
 
   const fyStart = (fy: number) => new Date(`${fy}-04-01`);
   const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
+  const inFY = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
+  };
 
-  // Get all FYs from buy dates and sell dates
   const allFYs = useMemo(() => {
     const fySet = new Set<number>();
     fySet.add(currentFY);
-    (state.stocks || []).forEach((s: any) => {
-      if (s.buyDate) {
-        const d = new Date(s.buyDate);
-        const fy = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
-        fySet.add(fy);
-      }
-    });
-    (state.stockSells || []).forEach((s: any) => {
-      if (s.sellDate) {
-        const d = new Date(s.sellDate);
-        const fy = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
-        fySet.add(fy);
-      }
-    });
+    const addFY = (dateStr: string) => {
+      if (!dateStr) return;
+      const d = new Date(dateStr);
+      fySet.add(d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1);
+    };
+    (state.stocks || []).forEach((s: any) => addFY(s.buyDate));
+    (state.stockSells || []).forEach((s: any) => addFY(s.sellDate));
+    (state.mutualFunds || []).forEach((m: any) => addFY(m.buyDate));
+    (state.mfSells || []).forEach((m: any) => addFY(m.sellDate));
     return Array.from(fySet).sort((a, b) => b - a);
-  }, [state.stocks, state.stockSells, currentFY]);
+  }, [state.stocks, state.stockSells, state.mutualFunds, state.mfSells, currentFY]);
 
-  const boughtInFY = useMemo(() =>
-    (state.stocks || []).filter((s: any) => {
-      if (!s.buyDate) return false;
-      const d = new Date(s.buyDate);
-      return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
-    }).sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
+  const stocksBoughtInFY = useMemo(() =>
+    (state.stocks || []).filter((s: any) => inFY(s.buyDate))
+      .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
     [state.stocks, selectedFY]
   );
-
-  const soldInFY = useMemo(() =>
-    (state.stockSells || []).filter((s: any) => {
-      if (!s.sellDate) return false;
-      const d = new Date(s.sellDate);
-      return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
-    }).sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
+  const stocksSoldInFY = useMemo(() =>
+    (state.stockSells || []).filter((s: any) => inFY(s.sellDate))
+      .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
     [state.stockSells, selectedFY]
   );
+  const mfBoughtInFY = useMemo(() =>
+    (state.mutualFunds || []).filter((m: any) => inFY(m.buyDate))
+      .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
+    [state.mutualFunds, selectedFY]
+  );
+  const mfSoldInFY = useMemo(() =>
+    (state.mfSells || []).filter((m: any) => inFY(m.sellDate))
+      .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
+    [state.mfSells, selectedFY]
+  );
 
-  const totalProfit = soldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
+  const stocksRealizedPnl = stocksSoldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
+  const mfRealizedPnl = mfSoldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
+  const totalRealizedPnl = stocksRealizedPnl + mfRealizedPnl;
 
   const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-  const showBought = activeSection === "all" || activeSection === "bought";
-  const showSold = activeSection === "all" || activeSection === "sold";
+  const fyLabel = `FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`;
+
+  const sections = [
+    { id: "all", label: "All" },
+    { id: "stocks_bought", label: "Stocks Bought" },
+    { id: "stocks_sold", label: "Stocks Sold" },
+    { id: "mf_bought", label: "MF Bought" },
+    { id: "mf_sold", label: "MF Sold" },
+  ] as const;
+
+  const show = (id: typeof sections[number]["id"]) => activeSection === "all" || activeSection === id;
+
+  const SoldTable = ({ rows, type }: { rows: any[], type: "stock" | "mf" }) => {
+    const total = rows.reduce((s, r) => s + Number(r.profit || 0), 0);
+    if (rows.length === 0) return <div style={card}><EmptyHint text={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}`} /></div>;
+    return (
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+              <th style={{ ...th, paddingLeft: 4 }}>{type === "stock" ? "Company" : "Scheme"}</th>
+              <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+              <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Buy Price" : "Buy NAV"}</th>
+              <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Qty" : "Units"}</th>
+              <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
+              <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Sell Price" : "Sell NAV"}</th>
+              <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
+              <th style={{ ...th, textAlign: "right" }}>Broker</th>
+              <th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s: any) => {
+              const profit = Number(s.profit || 0);
+              const buyP = type === "stock" ? Number(s.buyPrice) : Number(s.buyNav);
+              const sellP = type === "stock" ? Number(s.sellPrice) : Number(s.sellNav);
+              return (
+                <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                  <td style={{ ...td, paddingLeft: 4 }}>
+                    <b>{type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}</b>
+                    {type === "stock" && <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{s.exchange || "NSE"}</span>}
+                    {type === "mf" && s.type && <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{s.type}</span>}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.buyDate)}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{buyP.toFixed(type === "mf" ? 4 : 2)}</td>
+                  <td style={{ ...td, textAlign: "right" }}>{type === "stock" ? s.qty : Number(s.units).toFixed(3)}</td>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.sellDate)}</td>
+                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
+                      ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
+                    </span>
+                  </td>
+                  <td style={{ ...td, textAlign: "right", color: profit >= 0 ? THEME.sage : THEME.rust, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                    {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{s.broker || "—"}</td>
+                  <td style={td}>
+                    <button onClick={() => removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)} style={iconBtn}><Trash2 size={13} /></button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{ borderTop: `2px solid ${THEME.line}` }}>
+              <td colSpan={6} style={{ ...td, paddingLeft: 4, fontWeight: 700, fontSize: 13 }}>Total</td>
+              <td style={{ ...td, textAlign: "right", fontWeight: 700, color: total >= 0 ? THEME.sage : THEME.rust }}>
+                {total >= 0 ? "+" : ""}₹{Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </td>
+              <td colSpan={2} style={td}></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div>
-      <SectionTitle sub="Complete record of every stock you bought and sold">
+      <SectionTitle sub="Complete record of every stock and MF you bought and sold">
         Transaction History
       </SectionTitle>
 
@@ -5506,30 +5884,32 @@ function TxnHistoryTab({ state, removeItem }: any) {
             ))}
           </select>
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          {(["all", "bought", "sold"] as const).map((s) => (
-            <button key={s} style={{ ...btnGhost, fontSize: 12, padding: "5px 12px", ...(activeSection === s ? { background: THEME.accent, color: "#fff", borderColor: THEME.accent } : {}) }}
-              onClick={() => setActiveSection(s)}>
-              {s === "all" ? "All" : s === "bought" ? "Stocks Bought" : "Stocks Sold"}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {sections.map((s) => (
+            <button key={s.id} style={{ ...btnGhost, fontSize: 12, padding: "5px 12px", ...(activeSection === s.id ? { background: THEME.accent, color: "#fff", borderColor: THEME.accent } : {}) }}
+              onClick={() => setActiveSection(s.id)}>
+              {s.label}
             </button>
           ))}
         </div>
       </div>
 
       {/* Summary tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 28 }}>
-        <Tile icon={TrendingUp} label="Stocks Bought" value={String(boughtInFY.length)} sub={`FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)} lots`} />
-        <Tile icon={ArrowLeftRight} label="Stocks Sold" value={String(soldInFY.length)} sub={`${soldInFY.length} transactions`} />
-        <Tile icon={Coins} label="Realized P&L" value={`${totalProfit >= 0 ? "+" : ""}₹${Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-          subColor={totalProfit >= 0 ? THEME.sage : THEME.rust} sub={totalProfit >= 0 ? "Profit" : "Loss"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 14, marginBottom: 28 }}>
+        <Tile icon={BarChart3} label="Stocks Bought" value={String(stocksBoughtInFY.length)} sub={`${fyLabel} lots`} />
+        <Tile icon={ArrowLeftRight} label="Stocks Sold" value={String(stocksSoldInFY.length)} sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust} />
+        <Tile icon={Layers} label="MF Bought" value={String(mfBoughtInFY.length)} sub={`${fyLabel} lots`} />
+        <Tile icon={ArrowLeftRight} label="MF Redeemed" value={String(mfSoldInFY.length)} sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust} />
+        <Tile icon={Coins} label="Total Realized P&L" value={`${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          subColor={totalRealizedPnl >= 0 ? THEME.sage : THEME.rust} sub={fyLabel} />
       </div>
 
       {/* Stocks Bought */}
-      {showBought && (
+      {show("stocks_bought") && (
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Stocks Bought</div>
-          {boughtInFY.length === 0 ? (
-            <div style={card}><EmptyHint text={`No stock purchases recorded in FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`} /></div>
+          {stocksBoughtInFY.length === 0 ? (
+            <div style={card}><EmptyHint text={`No stock purchases recorded in ${fyLabel}`} /></div>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -5541,13 +5921,11 @@ function TxnHistoryTab({ state, removeItem }: any) {
                     <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
                     <th style={{ ...th, textAlign: "right" }}>Amount</th>
                     <th style={{ ...th, textAlign: "right" }}>Curr Price</th>
-                    <th style={{ ...th, textAlign: "right" }}>Curr Value</th>
                     <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
-                    <th style={th}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {boughtInFY.map((s: any) => {
+                  {stocksBoughtInFY.map((s: any) => {
                     const curr = Number(s.currentPrice || 0);
                     const inv = Number(s.qty) * Number(s.avgPrice);
                     const val = Number(s.qty) * curr;
@@ -5563,11 +5941,9 @@ function TxnHistoryTab({ state, removeItem }: any) {
                         <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{Number(s.avgPrice).toFixed(2)}</td>
                         <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                         <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{curr ? `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td>
                         <td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
                           {curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
                         </td>
-                        <td style={td}></td>
                       </tr>
                     );
                   })}
@@ -5579,77 +5955,79 @@ function TxnHistoryTab({ state, removeItem }: any) {
       )}
 
       {/* Stocks Sold */}
-      {showSold && (
+      {show("stocks_sold") && (
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>Stocks Sold</div>
-            {soldInFY.length > 0 && (
-              <div style={{ fontSize: 13 }}>
-                Net P&L: <b style={{ color: totalProfit >= 0 ? THEME.sage : THEME.rust }}>
-                  {totalProfit >= 0 ? "+" : ""}₹{Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </b>
-              </div>
+            {stocksSoldInFY.length > 0 && (
+              <div style={{ fontSize: 13 }}>Net P&L: <b style={{ color: stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust }}>{stocksRealizedPnl >= 0 ? "+" : ""}₹{Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</b></div>
             )}
           </div>
-          {soldInFY.length === 0 ? (
-            <div style={card}><EmptyHint text={`No stock sales recorded in FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`} /></div>
+          <SoldTable rows={stocksSoldInFY} type="stock" />
+        </div>
+      )}
+
+      {/* MF Bought */}
+      {show("mf_bought") && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Mutual Funds Bought</div>
+          {mfBoughtInFY.length === 0 ? (
+            <div style={card}><EmptyHint text={`No MF purchases recorded in ${fyLabel}`} /></div>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
-                    <th style={{ ...th, paddingLeft: 4 }}>Company</th>
+                    <th style={{ ...th, paddingLeft: 4 }}>Scheme</th>
+                    <th style={{ ...th, textAlign: "right" }}>Units</th>
                     <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
-                    <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
-                    <th style={{ ...th, textAlign: "right" }}>Qty</th>
-                    <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
-                    <th style={{ ...th, textAlign: "right" }}>Sell Price</th>
-                    <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
-                    <th style={{ ...th, textAlign: "right" }}>Broker</th>
-                    <th style={th}></th>
+                    <th style={{ ...th, textAlign: "right" }}>Buy NAV</th>
+                    <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                    <th style={{ ...th, textAlign: "right" }}>Curr NAV</th>
+                    <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {soldInFY.map((s: any) => {
-                    const profit = Number(s.profit || 0);
+                  {mfBoughtInFY.map((m: any) => {
+                    const buyNav = m.buyNav ? Number(m.buyNav) : (m.invested && m.units ? Number(m.invested) / Number(m.units) : 0);
+                    const currNav = Number(m.currentNav || 0);
+                    const inv = Number(m.units) * buyNav;
+                    const val = Number(m.units) * currNav;
+                    const pnl = val - inv;
                     return (
-                      <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <tr key={m.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                         <td style={{ ...td, paddingLeft: 4 }}>
-                          <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
-                          <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{s.exchange || "NSE"}</span>
+                          <b>{m.scheme}</b>
+                          {m.type && <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{m.type}</span>}
                         </td>
-                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.buyDate)}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{Number(s.buyPrice).toFixed(2)}</td>
-                        <td style={{ ...td, textAlign: "right" }}>{s.qty}</td>
-                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.sellDate)}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                          <span style={{ color: Number(s.sellPrice) >= Number(s.buyPrice) ? THEME.sage : THEME.rust }}>
-                            ₹{Number(s.sellPrice).toFixed(2)} {Number(s.sellPrice) >= Number(s.buyPrice) ? "↑" : "↓"}
-                          </span>
-                        </td>
-                        <td style={{ ...td, textAlign: "right", color: profit >= 0 ? THEME.sage : THEME.rust, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                          {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                        </td>
-                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{s.broker || "—"}</td>
-                        <td style={td}>
-                          <button onClick={() => removeItem("stockSells", s.id)} style={iconBtn}><Trash2 size={13} /></button>
+                        <td style={{ ...td, textAlign: "right" }}>{Number(m.units).toFixed(3)}</td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(m.buyDate)}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{buyNav ? `₹${buyNav.toFixed(4)}` : "—"}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{currNav ? `₹${currNav.toFixed(4)}` : "—"}</td>
+                        <td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                          {currNav ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
-                <tfoot>
-                  <tr style={{ borderTop: `2px solid ${THEME.line}` }}>
-                    <td colSpan={6} style={{ ...td, paddingLeft: 4, fontWeight: 700, fontSize: 13 }}>Total</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700, color: totalProfit >= 0 ? THEME.sage : THEME.rust }}>
-                      {totalProfit >= 0 ? "+" : ""}₹{Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </td>
-                    <td colSpan={2} style={td}></td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* MF Redeemed */}
+      {show("mf_sold") && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>Mutual Funds Redeemed</div>
+            {mfSoldInFY.length > 0 && (
+              <div style={{ fontSize: 13 }}>Net P&L: <b style={{ color: mfRealizedPnl >= 0 ? THEME.sage : THEME.rust }}>{mfRealizedPnl >= 0 ? "+" : ""}₹{Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</b></div>
+            )}
+          </div>
+          <SoldTable rows={mfSoldInFY} type="mf" />
         </div>
       )}
     </div>
