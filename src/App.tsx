@@ -5044,8 +5044,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   const [fetchingChart, setFetchingChart] = useState(null as string | null);
   const [sellLot, setSellLot] = useState(null as any);
   const [splitBonusGroup, setSplitBonusGroup] = useState(null as any);
+  const [selectedDematId, setSelectedDematId] = useState<string | null>(null);
 
-  // Group stocks by (base symbol, exchange)
+  // Group ALL stocks by (base symbol, exchange) — used for price fetching
   const groups: any[] = Object.values(
     state.stocks.reduce((acc: any, s: any) => {
       const base = s.symbol.replace(/\.(NS|BO)$/i, "");
@@ -5056,6 +5057,18 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
       return acc;
     }, {})
   );
+
+  // Filtered view for selected demat account
+  const visibleGroups = selectedDematId
+    ? groups.map((g) => ({ ...g, lots: g.lots.filter((l: any) => l.dematId === selectedDematId) })).filter((g) => g.lots.length > 0)
+    : groups;
+
+  const filteredStocks = selectedDematId
+    ? state.stocks.filter((s: any) => s.dematId === selectedDematId)
+    : state.stocks;
+  const filteredSells = selectedDematId
+    ? (state.stockSells || []).filter((s: any) => s.dematId === selectedDematId)
+    : (state.stockSells || []);
 
   const fetchLivePrices = async () => {
     if (!groups.length || fetchingPrices) return;
@@ -5122,10 +5135,10 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
     });
   };
 
-  const totalValue = state.stocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.currentPrice), 0);
-  const totalInvested = state.stocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
+  const totalValue = filteredStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.currentPrice), 0);
+  const totalInvested = filteredStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
   const pnl = totalValue - totalInvested;
-  const realizedPnl = (state.stockSells || []).reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
+  const realizedPnl = filteredSells.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
 
   const fmtVol = (v: number) => {
     if (!v) return "—";
@@ -5155,7 +5168,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
         />
         <Tile icon={ArrowLeftRight} label="Realized P&L"
           value={fmtINRFull(realizedPnl)}
-          sub={`${(state.stockSells || []).length} sell txn${(state.stockSells || []).length !== 1 ? "s" : ""}`}
+          sub={`${filteredSells.length} sell txn${filteredSells.length !== 1 ? "s" : ""}`}
           subColor={realizedPnl >= 0 ? THEME.sage : THEME.rust}
         />
       </div>
@@ -5177,7 +5190,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
       </Grid>
 
       {/* Stock Holdings */}
-      <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+      <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
         <div>
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Stock Holdings</div>
           {lastRefreshed && (
@@ -5199,11 +5212,35 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
         </div>
       </div>
 
+      {/* Demat account filter chips */}
+      {state.demat.length > 1 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <button
+            onClick={() => setSelectedDematId(null)}
+            style={{ ...btnGhost, fontSize: 12, background: selectedDematId === null ? THEME.accent : undefined, color: selectedDematId === null ? "#fff" : undefined, border: selectedDematId === null ? `1px solid ${THEME.accent}` : undefined }}
+          >
+            All Accounts
+          </button>
+          {state.demat.map((d: any) => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDematId(d.id)}
+              style={{ ...btnGhost, fontSize: 12, background: selectedDematId === d.id ? THEME.accent : undefined, color: selectedDematId === d.id ? "#fff" : undefined, border: selectedDematId === d.id ? `1px solid ${THEME.accent}` : undefined }}
+            >
+              {d.broker || d.dpId || "Account"}
+              {d.dpId && d.broker ? <span style={{ opacity: 0.7, marginLeft: 4 }}>· {d.dpId}</span> : null}
+            </button>
+          ))}
+        </div>
+      )}
+
       {state.stocks.length === 0 ? (
         <div style={card}><EmptyHint text="No stock holdings yet" /></div>
+      ) : visibleGroups.length === 0 ? (
+        <div style={card}><EmptyHint text={`No holdings in ${state.demat.find((d: any) => d.id === selectedDematId)?.broker || "this account"}`} /></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {groups.map(({ base, exchange, yfSym, lots }) => {
+          {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
             const md = marketData[yfSym];
             const currentPrice = md?.price ?? Number(lots[0]?.currentPrice ?? 0);
             const totalQty = lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
@@ -5887,6 +5924,7 @@ function TxnHistoryTab({ state, removeItem }: any) {
   })();
   const [selectedFY, setSelectedFY] = useState(currentFY);
   const [activeSection, setActiveSection] = useState<"all" | "stocks_bought" | "stocks_sold" | "mf_bought" | "mf_sold">("all");
+  const [txnDematId, setTxnDematId] = useState<string | null>(null);
 
   const fyStart = (fy: number) => new Date(`${fy}-04-01`);
   const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
@@ -5912,14 +5950,16 @@ function TxnHistoryTab({ state, removeItem }: any) {
   }, [state.stocks, state.stockSells, state.mutualFunds, state.mfSells, currentFY]);
 
   const stocksBoughtInFY = useMemo(() =>
-    (state.stocks || []).filter((s: any) => inFY(s.buyDate))
+    (state.stocks || [])
+      .filter((s: any) => inFY(s.buyDate) && (!txnDematId || s.dematId === txnDematId))
       .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
-    [state.stocks, selectedFY]
+    [state.stocks, selectedFY, txnDematId]
   );
   const stocksSoldInFY = useMemo(() =>
-    (state.stockSells || []).filter((s: any) => inFY(s.sellDate))
+    (state.stockSells || [])
+      .filter((s: any) => inFY(s.sellDate) && (!txnDematId || s.dematId === txnDematId))
       .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
-    [state.stockSells, selectedFY]
+    [state.stockSells, selectedFY, txnDematId]
   );
   const mfBoughtInFY = useMemo(() =>
     (state.mutualFunds || []).filter((m: any) => inFY(m.buyDate))
@@ -6021,7 +6061,7 @@ function TxnHistoryTab({ state, removeItem }: any) {
       </SectionTitle>
 
       {/* Controls */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24, alignItems: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12, alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Period:</span>
           <select style={{ ...input, width: "auto", padding: "6px 10px" }} value={selectedFY}
@@ -6040,6 +6080,28 @@ function TxnHistoryTab({ state, removeItem }: any) {
           ))}
         </div>
       </div>
+
+      {/* Demat account filter — applies to stock buy/sell sections */}
+      {(state.demat || []).length > 1 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "var(--t-muted)" }}>Account:</span>
+          <button
+            onClick={() => setTxnDematId(null)}
+            style={{ ...btnGhost, fontSize: 12, padding: "4px 12px", ...(txnDematId === null ? { background: THEME.accent, color: "#fff", borderColor: THEME.accent } : {}) }}
+          >
+            All
+          </button>
+          {(state.demat || []).map((d: any) => (
+            <button
+              key={d.id}
+              onClick={() => setTxnDematId(d.id)}
+              style={{ ...btnGhost, fontSize: 12, padding: "4px 12px", ...(txnDematId === d.id ? { background: THEME.accent, color: "#fff", borderColor: THEME.accent } : {}) }}
+            >
+              {d.broker || d.dpId || "Account"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Summary tiles */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 14, marginBottom: 28 }}>
