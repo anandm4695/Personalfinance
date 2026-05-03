@@ -1,5 +1,9 @@
-// Vercel serverless function — server-side proxy to Yahoo Finance
-// Avoids CORS entirely (no browser origin restrictions on server requests)
+// Vercel serverless function — uses yahoo-finance2 which handles
+// Yahoo Finance cookie/crumb auth automatically (no CORS issues server-side)
+const { default: YahooFinance } = require("yahoo-finance2");
+
+const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -20,20 +24,11 @@ module.exports = async function handler(req, res) {
   await Promise.allSettled(
     symList.map(async (sym) => {
       try {
-        const r = await fetch(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
-          {
-            headers: {
-              "User-Agent":
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              Accept: "application/json",
-              "Accept-Language": "en-US,en;q=0.9",
-            },
-          }
-        );
-        if (!r.ok) return;
-        const data = await r.json();
-        const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        const data = await yf.quote(sym, {}, { validateResult: false });
+        const price =
+          data?.regularMarketPrice ??
+          data?.postMarketPrice ??
+          data?.preMarketPrice;
         if (price != null) results[sym] = price;
       } catch (_) {}
     })
