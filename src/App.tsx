@@ -5081,6 +5081,10 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                       <div style={{ padding: "12px 18px", fontSize: 12, color: THEME.muted, borderBottom: `1px solid ${THEME.line}` }}>
                         Loading chart…
                       </div>
+                    ) : charts != null ? (
+                      <div style={{ padding: "10px 18px", fontSize: 11, color: THEME.muted, borderBottom: `1px solid ${THEME.line}` }}>
+                        Chart unavailable — market may be closed or no data for this session
+                      </div>
                     ) : null}
 
                     {/* Per-lot table */}

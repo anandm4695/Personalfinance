@@ -13,13 +13,11 @@ module.exports = async function handler(req, res) {
   if (!symbol) return res.status(400).json({ error: "symbol required" });
 
   try {
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-
+    // Use range:"1d" so Yahoo always returns the last trading session
+    // regardless of weekends/holidays (period1-based approach returns nothing on non-trading days)
     const result = await yf.chart(
       String(symbol),
-      { period1: startOfDay, interval: "5m" },
+      { range: "1d", interval: "5m" },
       { validateResult: false }
     );
 
