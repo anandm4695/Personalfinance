@@ -1134,7 +1134,7 @@ export default function FinanceDashboard() {
     { id: "goals", label: "Goals", icon: Target },
     { id: "budget", label: "Budget", icon: Wallet },
     { id: "reminders", label: "Reminders", icon: Bell },
-    { id: "rental", label: "Rental Income", icon: Building2 },
+    { id: "rental", label: "Rental Details", icon: Building2 },
     { id: "calculators", label: "Calculators", icon: Hash },
     { id: "tax", label: "Tax Vault", icon: Calculator },
     { id: "settings", label: "Settings", icon: Settings },
@@ -8292,7 +8292,7 @@ function RentalTab({ state, addItem, removeItem, updateItem }: any) {
       {/* Header row — title left, button right */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <SectionTitle sub={`Track rent agreements, receipts & security deposit · ${fyLabel}`}>
-          Rental Income
+          Rental Details
         </SectionTitle>
         <button style={btnAccent} onClick={() => sub === "out" ? setShowAddOut(true) : setShowAddIn(true)}>
           <Plus size={14} /> Add Property
@@ -8818,7 +8818,7 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
           {inpRow("Gross Salary / Business Income", grossSalary, setGrossSalary, "(annual, pre-tax)")}
           {inpRow("HRA Received", hraReceived, setHraReceived)}
           {inpRow("House Property Income / Loss", housePropertyIncome, setHousePropertyIncome,
-            (state.rentalProperties || []).length > 0 ? "(auto-filled from Rental Income tab · editable)" : "(negative = loss)")}
+            (state.rentalProperties || []).length > 0 ? "(auto-filled from Rental Details tab · editable)" : "(negative = loss)")}
           {inpRow("Short-Term Capital Gains (STCG)", capitalGainsST, setCapitalGainsST, "(taxed @20%)")}
           {inpRow("Long-Term Capital Gains (LTCG)", capitalGainsLT, setCapitalGainsLT, "(taxed @12.5% above ₹1.25L)")}
           {inpRow("Other Income (interest, freelance…)", otherIncome, setOtherIncome)}
