@@ -5430,7 +5430,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                                 <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(lCurr)}</td>
                                 <td style={td}>
                                   <div style={{ display: "flex", gap: 2 }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice }); }} style={{ ...iconBtn, color: THEME.rust }} title="Sell"><ArrowLeftRight size={13} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, color: THEME.rust }} title="Sell"><ArrowLeftRight size={13} /></button>
                                     <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={iconBtn}><Edit3 size={13} /></button>
                                     <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={iconBtn}><Trash2 size={13} /></button>
                                   </div>
@@ -5653,7 +5653,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
     sellQty: String(lot.qty),
     sellPrice: String(lot.currentPrice || ""),
     sellDate: today,
-    broker: "",
+    broker: lot.broker || "",
   });
   const sellQtyNum = Number(f.sellQty) || 0;
   const sellPriceNum = Number(f.sellPrice) || 0;
@@ -5698,9 +5698,15 @@ function SellStockModal({ lot, onClose, onSave }: any) {
         <input style={input} type="date" value={f.sellDate}
           onChange={(e) => setF({ ...f, sellDate: e.target.value })} />
       </Field>
-      <Field label="Broker (optional)">
-        <input style={input} value={f.broker} placeholder="e.g. Zerodha"
-          onChange={(e) => setF({ ...f, broker: e.target.value })} />
+      <Field label="Broker">
+        {lot.broker ? (
+          <input style={{ ...input, background: "rgba(128,128,128,0.08)", cursor: "default", color: "var(--t-text)" }}
+            value={f.broker} readOnly />
+        ) : (
+          <input style={input} value={f.broker} placeholder="e.g. Zerodha"
+            onChange={(e) => setF({ ...f, broker: e.target.value })} />
+        )}
+        {lot.broker && <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: 3 }}>From your demat account</div>}
       </Field>
       {sellQtyNum > 0 && sellPriceNum > 0 && (
         <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? "rgba(72,199,142,0.1)" : "rgba(255,99,99,0.1)", marginTop: 4 }}>
