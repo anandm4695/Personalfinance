@@ -4813,8 +4813,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
     setFetchError(null);
     try {
       const symbols = state.stocks.map((s) => {
+        const base = s.symbol.replace(/\.(NS|BO)$/i, "");
         const suffix = (s.exchange || "NSE") === "BSE" ? "BO" : "NS";
-        return `${s.symbol}.${suffix}`;
+        return `${base}.${suffix}`;
       });
       const res = await fetch(`/api/stock-price?symbols=${symbols.join(",")}`);
       if (!res.ok) throw new Error(`API error ${res.status}`);
@@ -4822,8 +4823,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
       const refreshed = new Set();
       let found = 0;
       for (const s of state.stocks) {
+        const base = s.symbol.replace(/\.(NS|BO)$/i, "");
         const suffix = (s.exchange || "NSE") === "BSE" ? "BO" : "NS";
-        const yfSym = `${s.symbol}.${suffix}`;
+        const yfSym = `${base}.${suffix}`;
         const price = prices[yfSym];
         if (price != null) {
           updateItem("stocks", s.id, { currentPrice: String(Number(price).toFixed(2)) });
@@ -5248,7 +5250,7 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
           <input
             style={input}
             value={f.symbol}
-            onChange={(e) => setF({ ...f, symbol: e.target.value.toUpperCase() })}
+            onChange={(e) => setF({ ...f, symbol: e.target.value.toUpperCase().replace(/\.(NS|BO)$/i, "") })}
             placeholder="e.g. RELIANCE"
           />
         </Field>
