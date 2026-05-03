@@ -8292,7 +8292,7 @@ function RentalTab({ state, addItem, removeItem, updateItem }: any) {
       {/* Header row — title left, button right */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <SectionTitle sub={`Track rent agreements, receipts & security deposit · ${fyLabel}`}>
-          Rent Tracker
+          Rental Income
         </SectionTitle>
         <button style={btnAccent} onClick={() => sub === "out" ? setShowAddOut(true) : setShowAddIn(true)}>
           <Plus size={14} /> Add Property
