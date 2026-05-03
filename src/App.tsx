@@ -4860,10 +4860,16 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
     try {
       const res = await fetch(`/api/stock-chart?symbol=${encodeURIComponent(yfSym)}`);
       if (res.ok) {
-        const pts = await res.json();
-        setChartData((prev: any) => ({ ...prev, [yfSym]: pts }));
+        const data = await res.json();
+        // API returns { date, points } — store as-is; fallback for old flat-array format
+        const entry = Array.isArray(data) ? { date: null, points: data } : data;
+        setChartData((prev: any) => ({ ...prev, [yfSym]: entry }));
+      } else {
+        setChartData((prev: any) => ({ ...prev, [yfSym]: { date: null, points: [] } }));
       }
-    } catch (_) {}
+    } catch (_) {
+      setChartData((prev: any) => ({ ...prev, [yfSym]: { date: null, points: [] } }));
+    }
     setFetchingChart(null);
   };
 
@@ -4965,7 +4971,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
             const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
             const isExpanded = expandedSymbols.has(yfSym);
             const isLive = !!md;
-            const charts = chartData[yfSym];
+            const chartEntry = chartData[yfSym];
+            const charts: any[] | null = chartEntry ? (chartEntry.points ?? chartEntry) : null;
+            const chartDate: string | null = chartEntry?.date ?? null;
             const changeAmt = md?.change ?? 0;
             const changePct = md?.changePercent ?? 0;
 
@@ -5052,7 +5060,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                     {/* Intraday chart */}
                     {charts && charts.length > 2 ? (
                       <div style={{ padding: "14px 18px", borderBottom: `1px solid ${THEME.line}` }}>
-                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Intraday Chart</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          {chartDate ? `Session Chart — ${chartDate}` : "Intraday Chart"}
+                        </div>
                         <ResponsiveContainer width="100%" height={130}>
                           <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                             <defs>
