@@ -29,7 +29,19 @@ module.exports = async function handler(req, res) {
           data?.regularMarketPrice ??
           data?.postMarketPrice ??
           data?.preMarketPrice;
-        if (price != null) results[sym] = price;
+        if (price != null) {
+          results[sym] = {
+            price,
+            change: data?.regularMarketChange ?? 0,
+            changePercent: data?.regularMarketChangePercent ?? 0,
+            dayHigh: data?.regularMarketDayHigh ?? null,
+            dayLow: data?.regularMarketDayLow ?? null,
+            weekHigh52: data?.fiftyTwoWeekHigh ?? null,
+            weekLow52: data?.fiftyTwoWeekLow ?? null,
+            prevClose: data?.regularMarketPreviousClose ?? null,
+            volume: data?.regularMarketVolume ?? null,
+          };
+        }
       } catch (_) {}
     })
   );
