@@ -63,6 +63,7 @@ import {
   RefreshCw,
   History,
   ArrowLeftRight,
+  Scissors,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -5041,6 +5042,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   const [expandedSymbols, setExpandedSymbols] = useState(new Set() as Set<string>);
   const [fetchingChart, setFetchingChart] = useState(null as string | null);
   const [sellLot, setSellLot] = useState(null as any);
+  const [splitBonusGroup, setSplitBonusGroup] = useState(null as any);
 
   // Group stocks by (base symbol, exchange)
   const groups: any[] = Object.values(
@@ -5403,12 +5405,18 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                     </div>
 
                     {/* Add lot footer */}
-                    <div style={{ padding: "10px 18px", borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ padding: "10px 18px", borderTop: `1px solid ${THEME.line}`, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         style={{ ...btnGhost, fontSize: 12 }}
                         onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}
                       >
                         <Plus size={12} /> Add Lot to {base}
+                      </button>
+                      <button
+                        style={{ ...btnGhost, fontSize: 12, color: THEME.gold }}
+                        onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}
+                      >
+                        <Scissors size={12} /> Split / Bonus
                       </button>
                     </div>
                   </div>
@@ -5450,6 +5458,16 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
               updateItem("stocks", sellLot.id, { qty: String(remainingQty) });
             }
             setSellLot(null);
+          }}
+        />
+      )}
+      {splitBonusGroup && (
+        <SplitBonusModal
+          group={splitBonusGroup}
+          onClose={() => setSplitBonusGroup(null)}
+          onApply={(updates: any[]) => {
+            updates.forEach((u: any) => updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice }));
+            setSplitBonusGroup(null);
           }}
         />
       )}
@@ -5653,6 +5671,127 @@ function SellStockModal({ lot, onClose, onSave }: any) {
         <div style={{ color: THEME.rust, fontSize: 12, marginTop: 4 }}>Cannot sell more than {lot.qty} shares</div>
       )}
       <ModalActions onSave={handleSave} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== SPLIT / BONUS MODAL ==================
+function SplitBonusModal({ group, onClose, onApply }: any) {
+  const [type, setType] = useState<"split" | "bonus">("split");
+  const [ratioN, setRatioN] = useState("2");
+  const [ratioM, setRatioM] = useState("1");
+
+  const n = Number(ratioN) || 0;
+  const m = Number(ratioM) || 0;
+
+  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
+  const totalInv = group.lots.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice), 0);
+
+  let newTotalQty = 0;
+  if (n > 0 && m > 0) {
+    if (type === "split") {
+      newTotalQty = totalQty * n / m;
+    } else {
+      newTotalQty = totalQty * (m + n) / m;
+    }
+  }
+  const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
+  const isValid = n > 0 && m > 0 && (type === "split" ? n > m : true);
+
+  const handleApply = () => {
+    if (!isValid) return;
+    const updates = group.lots.map((lot: any) => {
+      const oldQty = Number(lot.qty);
+      const oldAvg = Number(lot.avgPrice);
+      const newQty = type === "split"
+        ? Math.round(oldQty * n / m)
+        : Math.round(oldQty * (m + n) / m);
+      const newAvg = newQty > 0 ? (oldQty * oldAvg) / newQty : oldAvg;
+      return { id: lot.id, qty: String(newQty), avgPrice: String(Number(newAvg.toFixed(4)) ) };
+    });
+    onApply(updates);
+  };
+
+  const ratioLabel = type === "split"
+    ? `${n}:${m} split — for every ${m} share${m !== 1 ? "s" : ""} you hold, you get ${n} share${n !== 1 ? "s" : ""} total`
+    : `${n}:${m} bonus — for every ${m} share${m !== 1 ? "s" : ""} held, you get ${n} bonus share${n !== 1 ? "s" : ""}`;
+
+  return (
+    <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
+      <Field label="Action Type">
+        <div style={{ display: "flex", gap: 10 }}>
+          {(["split", "bonus"] as const).map((t) => (
+            <button
+              key={t}
+              style={{
+                ...btnGhost,
+                flex: 1,
+                justifyContent: "center",
+                background: type === t ? THEME.accent : undefined,
+                color: type === t ? "#fff" : undefined,
+                border: type === t ? `1px solid ${THEME.accent}` : undefined,
+              }}
+              onClick={() => setType(t)}
+            >
+              {t === "split" ? "Stock Split" : "Bonus Shares"}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>
+        {type === "split"
+          ? "Enter the split ratio (e.g. 2:1 means each share becomes 2 shares, price halves)"
+          : "Enter the bonus ratio (e.g. 1:1 means 1 bonus share for every 1 share held)"}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}>
+        <Field label={type === "split" ? "New Shares" : "Bonus Shares"}>
+          <input style={input} type="number" min="1" value={ratioN}
+            onChange={(e) => setRatioN(e.target.value)} />
+        </Field>
+        <div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div>
+        <Field label="Existing Shares">
+          <input style={input} type="number" min="1" value={ratioM}
+            onChange={(e) => setRatioM(e.target.value)} />
+        </Field>
+      </div>
+
+      {type === "split" && n > 0 && m > 0 && n <= m && (
+        <div style={{ color: THEME.rust, fontSize: 12, marginBottom: 8 }}>
+          Split ratio must be greater than 1:1 (new shares must exceed existing)
+        </div>
+      )}
+
+      {isValid && newTotalQty > 0 && (
+        <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}>
+          <div style={{ marginBottom: 6, color: THEME.muted, fontSize: 11 }}>{ratioLabel}</div>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <span>
+              <span style={{ color: THEME.muted }}>Total Qty: </span>
+              <b style={{ color: THEME.muted }}>{totalQty}</b>
+              <span style={{ color: THEME.muted }}> → </span>
+              <b style={{ color: THEME.gold }}>{Math.round(newTotalQty)}</b>
+            </span>
+            <span>
+              <span style={{ color: THEME.muted }}>Avg Price: </span>
+              <b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b>
+              <span style={{ color: THEME.muted }}> → </span>
+              <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
+            </span>
+            <span>
+              <span style={{ color: THEME.muted }}>Total Invested: </span>
+              <b>{fmtINR(totalInv)}</b>
+              <span style={{ color: THEME.sage, fontSize: 11, marginLeft: 4 }}>unchanged</span>
+            </span>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: THEME.muted }}>
+            Applies to all {group.lots.length} lot{group.lots.length !== 1 ? "s" : ""} of {group.base}
+          </div>
+        </div>
+      )}
+
+      <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply" />
     </Modal>
   );
 }
@@ -8280,7 +8419,7 @@ const Field = ({ label: lbl, children }) => (
   </div>
 );
 
-function ModalActions({ onSave, onClose }) {
+function ModalActions({ onSave, onClose, saveLabel = "Save" }: any) {
   return (
     <div
       style={{
@@ -8296,7 +8435,7 @@ function ModalActions({ onSave, onClose }) {
         Cancel
       </button>
       <button style={btnAccent} onClick={onSave}>
-        Save
+        {saveLabel}
       </button>
     </div>
   );
