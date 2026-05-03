@@ -448,6 +448,8 @@ const DEFAULT_STATE = (() => {
       { id: "l1", owner: "self", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
     ],
     loansGiven: [],
+    informalBorrowed: [],
+    informalLent: [],
     subscriptions: [
       { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
@@ -736,6 +738,8 @@ export default function FinanceDashboard() {
       prepaidCards: filterByOwner(state.prepaidCards),
       loansTaken: filterByOwner(state.loansTaken),
       loansGiven: filterByOwner(state.loansGiven),
+      informalBorrowed: filterByOwner(state.informalBorrowed || []),
+      informalLent: filterByOwner(state.informalLent || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -6260,6 +6264,8 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
     { id: "prepaid", label: "Prepaid Cards", key: "prepaidCards" },
     { id: "taken", label: "Loans Taken", key: "loansTaken" },
     { id: "given", label: "Loans Given", key: "loansGiven" },
+    { id: "borrowed", label: "From People", key: "informalBorrowed" },
+    { id: "lent", label: "To People", key: "informalLent" },
   ];
 
   return (
@@ -6304,17 +6310,13 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
         })}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 16,
-        }}
-      >
-        <button style={btnSolid} onClick={() => setModal(sub)}>
-          <Plus size={14} /> Add
-        </button>
-      </div>
+      {sub !== "borrowed" && sub !== "lent" && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+          <button style={btnSolid} onClick={() => setModal(sub)}>
+            <Plus size={14} /> Add
+          </button>
+        </div>
+      )}
 
       {sub === "cc" && (
         <>
@@ -6401,6 +6403,24 @@ function CreditTab({ state, addItem, removeItem, updateItem }) {
       )}
       {sub === "given" && (
         <LoanGivenList items={state.loansGiven} onRemove={(id) => removeItem("loansGiven", id)} onEdit={setEditId} />
+      )}
+      {sub === "borrowed" && (
+        <InformalLoanView
+          direction="borrowed"
+          items={state.informalBorrowed || []}
+          onAddPerson={(v) => addItem("informalBorrowed", v)}
+          onUpdate={(id, patch) => updateItem("informalBorrowed", id, patch)}
+          onRemove={(id) => removeItem("informalBorrowed", id)}
+        />
+      )}
+      {sub === "lent" && (
+        <InformalLoanView
+          direction="lent"
+          items={state.informalLent || []}
+          onAddPerson={(v) => addItem("informalLent", v)}
+          onUpdate={(id, patch) => updateItem("informalLent", id, patch)}
+          onRemove={(id) => removeItem("informalLent", id)}
+        />
       )}
 
       {modal === "cc" && (
@@ -6951,6 +6971,289 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
       </Field>
       <ModalActions onSave={() => f.provider && onSave(f)} onClose={onClose} />
     </Modal>
+  );
+}
+
+// ================== INFORMAL LOAN SECTION ==================
+function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }: any) {
+  const isBorrowed = direction === "borrowed";
+  const personLabel = isBorrowed ? "Lender" : "Borrower";
+  const accentColor = isBorrowed ? THEME.rust : THEME.sage;
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [addPersonOpen, setAddPersonOpen] = useState(false);
+  const [trancheTarget, setTrancheTarget] = useState<any>(null);
+  const [paymentTarget, setPaymentTarget] = useState<any>(null);
+
+  const totalBorrowed = items.reduce((s: number, p: any) =>
+    s + (p.tranches || []).reduce((a: number, t: any) => a + Number(t.amount || 0), 0), 0);
+  const totalPaid = items.reduce((s: number, p: any) =>
+    s + (p.payments || []).reduce((a: number, t: any) => a + Number(t.amount || 0), 0), 0);
+  const totalOutstanding = totalBorrowed - totalPaid;
+
+  const fmtD = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
+
+  return (
+    <div>
+      {/* Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <Tile icon={isBorrowed ? TrendingDown : TrendingUp} label={isBorrowed ? "Total Borrowed" : "Total Lent"} value={fmtINRFull(totalBorrowed)} />
+        <Tile icon={isBorrowed ? ArrowLeftRight : ArrowLeftRight} label={isBorrowed ? "Total Repaid" : "Received Back"} value={fmtINRFull(totalPaid)} subColor={THEME.sage} />
+        <Tile icon={isBorrowed ? IndianRupee : IndianRupee} label="Outstanding" value={fmtINRFull(totalOutstanding)} subColor={totalOutstanding > 0 ? accentColor : THEME.sage} />
+      </div>
+
+      {/* Add person button */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <button style={btnSolid} onClick={() => setAddPersonOpen(true)}>
+          <Plus size={14} /> Add {personLabel}
+        </button>
+      </div>
+
+      {items.length === 0 && <EmptyHint text={`No ${isBorrowed ? "informal borrowings" : "personal loans given"} yet`} />}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.map((person: any) => {
+          const tranches: any[] = person.tranches || [];
+          const payments: any[] = person.payments || [];
+          const totalT = tranches.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+          const totalP = payments.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+          const outstanding = totalT - totalP;
+          const isExpanded = expandedId === person.id;
+          const settled = outstanding <= 0;
+
+          return (
+            <div key={person.id} style={{ ...card as any, padding: 0, overflow: "hidden" }}>
+              {/* Header */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: "pointer", borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" }}
+                onClick={() => setExpandedId(isExpanded ? null : person.id)}
+              >
+                <div style={{ color: THEME.muted, flexShrink: 0 }}>
+                  {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>{person.person}</span>
+                    {settled && <span style={{ fontSize: 10, background: THEME.sage + "22", color: THEME.sage, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>SETTLED</span>}
+                    {person.note && <span style={{ fontSize: 12, color: THEME.muted }}>· {person.note}</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                    {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Outstanding</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: settled ? THEME.sage : accentColor, fontVariantNumeric: "tabular-nums" }}>
+                    {settled ? "₹0" : fmtINRFull(outstanding)}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <button onClick={(e) => { e.stopPropagation(); onRemove(person.id); }} style={{ ...iconBtn, color: THEME.rust }} title="Delete person"><Trash2 size={13} /></button>
+                </div>
+              </div>
+
+              {/* Expanded detail */}
+              {isExpanded && (
+                <div>
+                  {/* Loans / Tranches */}
+                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: accentColor }}>
+                        {isBorrowed ? "Loans Received" : "Loans Given"}
+                      </div>
+                      <button style={{ ...btnGhost, fontSize: 11, padding: "3px 10px" }} onClick={() => setTrancheTarget(person)}>
+                        <Plus size={11} /> Add Loan
+                      </button>
+                    </div>
+                    {tranches.length === 0 ? (
+                      <div style={{ fontSize: 12, color: THEME.muted }}>No loans recorded yet</div>
+                    ) : (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                            <th style={{ ...th, paddingLeft: 0, textAlign: "left" }}>Date</th>
+                            <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                            <th style={{ ...th, textAlign: "left" }}>Note</th>
+                            <th style={th}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tranches.map((t: any) => (
+                            <tr key={t.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                              <td style={{ ...td, paddingLeft: 0, color: THEME.muted }}>{fmtD(t.date)}</td>
+                              <td style={{ ...td, textAlign: "right", fontWeight: 600, color: accentColor, fontVariantNumeric: "tabular-nums" }}>{fmtINR(t.amount)}</td>
+                              <td style={{ ...td, color: THEME.muted }}>{t.note || "—"}</td>
+                              <td style={td}>
+                                <button style={iconBtn} onClick={() => {
+                                  const updated = tranches.filter((x: any) => x.id !== t.id);
+                                  onUpdate(person.id, { tranches: updated });
+                                }}><Trash2 size={11} /></button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td style={{ ...td, paddingLeft: 0, fontWeight: 700, fontSize: 12 }}>Total</td>
+                            <td style={{ ...td, textAlign: "right", fontWeight: 700, color: accentColor, fontVariantNumeric: "tabular-nums" }}>{fmtINR(totalT)}</td>
+                            <td colSpan={2} style={td}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
+                  </div>
+
+                  {/* Payments */}
+                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.sage }}>
+                        {isBorrowed ? "Repayments Made" : "Repayments Received"}
+                      </div>
+                      <button style={{ ...btnGhost, fontSize: 11, padding: "3px 10px" }} onClick={() => setPaymentTarget(person)}>
+                        <Plus size={11} /> Record Payment
+                      </button>
+                    </div>
+                    {payments.length === 0 ? (
+                      <div style={{ fontSize: 12, color: THEME.muted }}>No payments recorded yet</div>
+                    ) : (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                            <th style={{ ...th, paddingLeft: 0, textAlign: "left" }}>Date</th>
+                            <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                            <th style={{ ...th, textAlign: "left" }}>Note</th>
+                            <th style={th}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {payments.map((p: any) => (
+                            <tr key={p.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                              <td style={{ ...td, paddingLeft: 0, color: THEME.muted }}>{fmtD(p.date)}</td>
+                              <td style={{ ...td, textAlign: "right", fontWeight: 600, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{fmtINR(p.amount)}</td>
+                              <td style={{ ...td, color: THEME.muted }}>{p.note || "—"}</td>
+                              <td style={td}>
+                                <button style={iconBtn} onClick={() => {
+                                  const updated = payments.filter((x: any) => x.id !== p.id);
+                                  onUpdate(person.id, { payments: updated });
+                                }}><Trash2 size={11} /></button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td style={{ ...td, paddingLeft: 0, fontWeight: 700, fontSize: 12 }}>Total Paid</td>
+                            <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{fmtINR(totalP)}</td>
+                            <td colSpan={2} style={td}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
+                  </div>
+
+                  {/* Balance bar */}
+                  <div style={{ padding: "10px 18px", display: "flex", alignItems: "center", gap: 16, fontSize: 13 }}>
+                    <span style={{ color: THEME.muted }}>Balance: </span>
+                    <b style={{ color: settled ? THEME.sage : accentColor, fontSize: 15, fontVariantNumeric: "tabular-nums" }}>
+                      {settled ? "Fully Settled ✓" : `${fmtINRFull(outstanding)} pending`}
+                    </b>
+                    {!settled && totalT > 0 && (
+                      <div style={{ flex: 1, height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: Math.min((totalP / totalT) * 100, 100) + "%", background: accentColor, borderRadius: 3, transition: "width 0.4s" }} />
+                      </div>
+                    )}
+                    {!settled && totalT > 0 && (
+                      <span style={{ fontSize: 11, color: THEME.muted, flexShrink: 0 }}>{((totalP / totalT) * 100).toFixed(0)}% paid</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add person modal */}
+      {addPersonOpen && (
+        <Modal title={`Add ${personLabel}`} onClose={() => setAddPersonOpen(false)}>
+          <InformalPersonForm
+            personLabel={personLabel}
+            onSave={(v: any) => { onAddPerson(v); setAddPersonOpen(false); }}
+            onClose={() => setAddPersonOpen(false)}
+          />
+        </Modal>
+      )}
+
+      {/* Add tranche modal */}
+      {trancheTarget && (
+        <Modal title={`Add Loan — ${trancheTarget.person}`} onClose={() => setTrancheTarget(null)}>
+          <InformalAmountForm
+            label={isBorrowed ? "Amount Borrowed" : "Amount Lent"}
+            onSave={(entry: any) => {
+              const updated = [...(trancheTarget.tranches || []), { id: `tr-${Date.now()}`, ...entry }];
+              onUpdate(trancheTarget.id, { tranches: updated });
+              setTrancheTarget(null);
+            }}
+            onClose={() => setTrancheTarget(null)}
+          />
+        </Modal>
+      )}
+
+      {/* Record payment modal */}
+      {paymentTarget && (
+        <Modal title={`Record Payment — ${paymentTarget.person}`} onClose={() => setPaymentTarget(null)}>
+          <InformalAmountForm
+            label={isBorrowed ? "Amount Repaid" : "Amount Received"}
+            onSave={(entry: any) => {
+              const updated = [...(paymentTarget.payments || []), { id: `pm-${Date.now()}`, ...entry }];
+              onUpdate(paymentTarget.id, { payments: updated });
+              setPaymentTarget(null);
+            }}
+            onClose={() => setPaymentTarget(null)}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function InformalPersonForm({ personLabel, onSave, onClose }: any) {
+  const [f, setF] = useState({ owner: "self", person: "", note: "", tranches: [], payments: [] });
+  return (
+    <>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })}>
+          {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      <Field label={`${personLabel} Name`}>
+        <input style={input} value={f.person} placeholder="e.g. Raj, Mom, Uncle" onChange={(e) => setF({ ...f, person: e.target.value })} />
+      </Field>
+      <Field label="Note (optional)">
+        <input style={input} value={f.note} placeholder="e.g. for house repairs" onChange={(e) => setF({ ...f, note: e.target.value })} />
+      </Field>
+      <ModalActions onSave={() => f.person && onSave({ id: `il-${Date.now()}`, ...f })} onClose={onClose} saveLabel="Add" />
+    </>
+  );
+}
+
+function InformalAmountForm({ label, onSave, onClose }: any) {
+  const [f, setF] = useState({ amount: "", date: today(), note: "" });
+  return (
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label={label + " (₹)"}>
+          <input style={input} type="number" min="1" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+        </Field>
+        <Field label="Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Note (optional)">
+        <input style={input} value={f.note} placeholder="e.g. cash, UPI" onChange={(e) => setF({ ...f, note: e.target.value })} />
+      </Field>
+      <ModalActions onSave={() => Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel="Save" />
+    </>
   );
 }
 
