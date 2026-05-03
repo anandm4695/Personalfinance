@@ -450,6 +450,7 @@ const DEFAULT_STATE = (() => {
     loansGiven: [],
     informalBorrowed: [],
     informalLent: [],
+    rentalProperties: [],
     subscriptions: [
       { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
@@ -740,6 +741,7 @@ export default function FinanceDashboard() {
       loansGiven: filterByOwner(state.loansGiven),
       informalBorrowed: filterByOwner(state.informalBorrowed || []),
       informalLent: filterByOwner(state.informalLent || []),
+      rentalProperties: filterByOwner(state.rentalProperties || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -812,6 +814,11 @@ export default function FinanceDashboard() {
       (s, l) => s + Number(l.outstanding || 0),
       0
     );
+    const rentalDepositLiability = (sState.rentalProperties || []).reduce((s, p) => {
+      const deducted = (p.depositDeductions || []).reduce((a, d) => a + Number(d.amount || 0), 0);
+      const returned = Number(p.depositReturned || 0);
+      return s + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+    }, 0);
 
     const totalAssets =
       cashInBanks +
@@ -825,7 +832,7 @@ export default function FinanceDashboard() {
       stockValue +
       loansGivenValue +
       prepaidValue;
-    const totalLiabilities = ccOutstanding + loansTakenValue;
+    const totalLiabilities = ccOutstanding + loansTakenValue + rentalDepositLiability;
     const netWorth = totalAssets - totalLiabilities;
 
     // Income/Expense current month
@@ -905,6 +912,7 @@ export default function FinanceDashboard() {
       loansTakenValue,
       loansGivenValue,
       prepaidValue,
+      rentalDepositLiability,
       totalAssets,
       totalLiabilities,
       netWorth,
@@ -1118,6 +1126,7 @@ export default function FinanceDashboard() {
     { id: "goals", label: "Goals", icon: Target },
     { id: "budget", label: "Budget", icon: Wallet },
     { id: "reminders", label: "Reminders", icon: Bell },
+    { id: "rental", label: "Rental Income", icon: Building2 },
     { id: "calculators", label: "Calculators", icon: Hash },
     { id: "tax", label: "Tax Vault", icon: Calculator },
     { id: "settings", label: "Settings", icon: Settings },
@@ -1599,6 +1608,7 @@ export default function FinanceDashboard() {
             {tab === "tax" && <TaxTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} setState={setState} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+            {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "analytics" && <AnalyticsDashboard metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} isVertical={sidebarNav} />}
             {tab === "calculators" && <CalculatorsTab metrics={metrics} />}
             {tab === "settings" && (
@@ -8043,6 +8053,425 @@ function GoalModal({ onClose, onSave, initialValues = null }) {
   );
 }
 
+// ================== RENTAL TAB ==================
+function RentalPropertyModal({ initial, onClose, onSave }: any) {
+  const [f, setF] = useState(initial ? {
+    owner: initial.owner || "self",
+    propertyName: initial.propertyName || "",
+    propertyType: initial.propertyType || "shop",
+    tenantName: initial.tenantName || "",
+    tenantPhone: initial.tenantPhone || "",
+    monthlyRent: initial.monthlyRent || "",
+    securityDeposit: initial.securityDeposit || "",
+    agreementStart: initial.agreementStart || "",
+    agreementEnd: initial.agreementEnd || "",
+    isActive: initial.isActive !== false,
+    municipalTax: initial.municipalTax || "",
+  } : {
+    owner: "self", propertyName: "", propertyType: "shop",
+    tenantName: "", tenantPhone: "", monthlyRent: "",
+    securityDeposit: "", agreementStart: "", agreementEnd: "",
+    isActive: true, municipalTax: "",
+  });
+  return (
+    <Modal title={initial ? "Edit Property" : "Add Rental Property"} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Owner / Profile" style={{ gridColumn: "1 / -1" }}>
+          <select style={input} value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })}>
+            {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Property Name (e.g. Shop at MG Road)" style={{ gridColumn: "1 / -1" }}>
+          <input style={input} value={f.propertyName} onChange={(e) => setF({ ...f, propertyName: e.target.value })} placeholder="Shop at ABC Market" />
+        </Field>
+        <Field label="Property Type">
+          <select style={input} value={f.propertyType} onChange={(e) => setF({ ...f, propertyType: e.target.value })}>
+            <option value="shop">Shop / Commercial</option>
+            <option value="flat">Flat / Residential</option>
+            <option value="other">Other</option>
+          </select>
+        </Field>
+        <Field label="Status">
+          <select style={input} value={f.isActive ? "active" : "ended"} onChange={(e) => setF({ ...f, isActive: e.target.value === "active" })}>
+            <option value="active">Active</option>
+            <option value="ended">Ended</option>
+          </select>
+        </Field>
+        <Field label="Tenant Name">
+          <input style={input} value={f.tenantName} onChange={(e) => setF({ ...f, tenantName: e.target.value })} placeholder="e.g. Ramesh Traders" />
+        </Field>
+        <Field label="Tenant Phone">
+          <input style={input} value={f.tenantPhone} onChange={(e) => setF({ ...f, tenantPhone: e.target.value })} placeholder="9876543210" />
+        </Field>
+        <Field label="Monthly Rent (₹)">
+          <input style={input} type="number" value={f.monthlyRent} onChange={(e) => setF({ ...f, monthlyRent: e.target.value })} placeholder="25000" />
+        </Field>
+        <Field label="Security Deposit Received (₹)">
+          <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
+        </Field>
+        <Field label="Agreement Start">
+          <input style={input} type="date" value={f.agreementStart} onChange={(e) => setF({ ...f, agreementStart: e.target.value })} />
+        </Field>
+        <Field label="Agreement End">
+          <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
+        </Field>
+        <Field label="Annual Municipal Tax paid by you (₹)" style={{ gridColumn: "1 / -1" }}>
+          <input style={input} type="number" value={f.municipalTax} onChange={(e) => setF({ ...f, municipalTax: e.target.value })} placeholder="0 (deducted before 30% std deduction)" />
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.propertyName && onSave(f)} onClose={onClose} saveLabel={initial ? "Update" : "Add Property"} />
+    </Modal>
+  );
+}
+
+function RentalReceiptModal({ onClose, onSave }: any) {
+  const now = new Date();
+  const defaultMonth = now.toISOString().slice(0, 7);
+  const [f, setF] = useState({ month: defaultMonth, amount: "", date: today(), note: "" });
+  return (
+    <Modal title="Log Rent Receipt" onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Month (YYYY-MM)">
+          <input style={input} type="month" value={f.month} onChange={(e) => setF({ ...f, month: e.target.value })} />
+        </Field>
+        <Field label="Amount Received (₹)">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="25000" />
+        </Field>
+        <Field label="Date Received">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+        <Field label="Note (optional)">
+          <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. cash / UPI" />
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.month && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel="Log Receipt" />
+    </Modal>
+  );
+}
+
+function RentalDeductionModal({ onClose, onSave }: any) {
+  const [f, setF] = useState({ reason: "", amount: "", date: today() });
+  return (
+    <Modal title="Add Deposit Deduction" onClose={onClose}>
+      <Field label="Reason">
+        <input style={input} value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="e.g. Painting, Repair, Cleaning" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Amount (₹)">
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="5000" />
+        </Field>
+        <Field label="Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.reason && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel="Add Deduction" />
+    </Modal>
+  );
+}
+
+function RentalTab({ state, addItem, removeItem, updateItem }: any) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [editProp, setEditProp] = useState(null as any);
+  const [expanded, setExpanded] = useState({} as Record<string, boolean>);
+  const [addReceiptFor, setAddReceiptFor] = useState(null as string | null);
+  const [addDeductionFor, setAddDeductionFor] = useState(null as string | null);
+  const [returnDepositFor, setReturnDepositFor] = useState(null as string | null);
+  const [returnAmt, setReturnAmt] = useState("");
+
+  const properties: any[] = state.rentalProperties || [];
+
+  const now = new Date();
+  const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const fyStart = `${fyStartYear}-04-01`;
+  const fyEnd = `${fyStartYear + 1}-03-31`;
+  const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
+
+  const totalMonthlyRent = properties.filter((p) => p.isActive !== false).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
+  const totalThisFY = properties.reduce((total, p) =>
+    total + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
+  const totalDepositHeld = properties.reduce((total, p) => {
+    const deducted = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    const returned = Number(p.depositReturned || 0);
+    return total + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+  }, 0);
+
+  // Overall IHP for the FY
+  const gavTotal = properties.reduce((total, p) =>
+    total + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
+  const munTaxTotal = properties.reduce((s, p) => s + Number(p.municipalTax || 0), 0);
+  const navTotal = Math.max(0, gavTotal - munTaxTotal);
+  const stdDed = Math.round(navTotal * 0.30);
+  const ihpTotal = navTotal - stdDed;
+
+  const handleSave = (data: any) => {
+    if (editProp) {
+      updateItem("rentalProperties", editProp.id, data);
+      setEditProp(null);
+    } else {
+      addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0 });
+      setShowAdd(false);
+    }
+  };
+
+  return (
+    <div>
+      <SectionTitle sub={`Track rent agreements, monthly receipts & security deposit · ${fyLabel}`}>
+        Rental Income
+      </SectionTitle>
+
+      {/* Summary tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div style={{ ...card, padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(totalMonthlyRent)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
+        </div>
+        <div style={{ ...card, padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Received {fyLabel}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(totalThisFY)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(totalMonthlyRent * 12)} expected</div>
+        </div>
+        <div style={{ ...card, padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(totalDepositHeld)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>liability — to return</div>
+        </div>
+        <div style={{ ...card, padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Taxable IHP</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: ihpTotal > 0 ? THEME.rust : THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(Math.max(0, ihpTotal))}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>after 30% std deduction</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <button style={btnAccent} onClick={() => setShowAdd(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
+      </div>
+
+      {properties.length === 0 && (
+        <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
+          <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No rental properties yet</div>
+          <div style={{ fontSize: 13 }}>Add your shop or flat to start tracking rent receipts and security deposit</div>
+        </div>
+      )}
+
+      {properties.map((p: any) => {
+        const isOpen = !!expanded[p.id];
+        const deducted = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+        const returned = Number(p.depositReturned || 0);
+        const depositOutstanding = Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+        const totalReceived = (p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        const fyReceived = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        const isActive = p.isActive !== false;
+
+        const pGav = fyReceived;
+        const pMunTax = Number(p.municipalTax || 0);
+        const pNav = Math.max(0, pGav - pMunTax);
+        const pStdDed = Math.round(pNav * 0.30);
+        const pIhp = pNav - pStdDed;
+
+        return (
+          <div key={p.id} style={{ ...card, marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+              onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}>
+              <Building2 size={20} color={isActive ? THEME.accent : THEME.muted} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{p.propertyName || "Unnamed Property"}</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                  {p.tenantName && <span>{p.tenantName} · </span>}
+                  {fmtINRFull(Number(p.monthlyRent))} /mo
+                  {p.agreementStart && <span> · {p.agreementStart} → {p.agreementEnd || "—"}</span>}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", marginRight: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.sage }}>{fmtINRFull(totalReceived)}</div>
+                <div style={{ fontSize: 11, color: THEME.muted }}>total received</div>
+              </div>
+              <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 99, flexShrink: 0,
+                background: isActive ? "rgba(90,130,80,0.15)" : "rgba(128,128,128,0.12)",
+                color: isActive ? THEME.sage : THEME.muted, fontWeight: 700 }}>
+                {isActive ? "ACTIVE" : "ENDED"}
+              </span>
+              <button style={{ ...btnGhost, padding: "5px 8px", flexShrink: 0 }}
+                onClick={(e) => { e.stopPropagation(); setEditProp(p); }}>
+                <Pencil size={13} />
+              </button>
+              <button style={{ ...btnGhost, padding: "5px 8px", color: THEME.rust, flexShrink: 0 }}
+                onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${p.propertyName}"?`)) removeItem("rentalProperties", p.id); }}>
+                <Trash2 size={13} />
+              </button>
+              {isOpen ? <ChevronUp size={16} color={THEME.muted} /> : <ChevronDown size={16} color={THEME.muted} />}
+            </div>
+
+            {isOpen && (
+              <div style={{ marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                  {/* Rent Receipts */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>Rent Receipts</div>
+                      <button style={{ ...btnGhost, fontSize: 11, padding: "4px 10px" }}
+                        onClick={() => setAddReceiptFor(p.id)}>
+                        <Plus size={11} style={{ marginRight: 3 }} /> Add
+                      </button>
+                    </div>
+                    {(p.receipts || []).length === 0 && (
+                      <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>No receipts logged yet</div>
+                    )}
+                    <div style={{ maxHeight: 240, overflowY: "auto" }}>
+                      {[...(p.receipts || [])].sort((a: any, b: any) => b.date.localeCompare(a.date)).map((r: any) => (
+                        <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                          padding: "7px 0", borderBottom: `1px solid ${THEME.line}`, fontSize: 13 }}>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{r.month}</div>
+                            <div style={{ fontSize: 11, color: THEME.muted }}>{r.date}{r.note ? ` · ${r.note}` : ""}</div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ color: THEME.sage, fontWeight: 600 }}>{fmtINRFull(Number(r.amount))}</span>
+                            <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
+                              onClick={() => updateItem("rentalProperties", p.id, { receipts: (p.receipts || []).filter((x: any) => x.id !== r.id) })}>
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Security Deposit */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Security Deposit</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                      <span style={{ color: THEME.muted }}>Received from tenant</span>
+                      <span style={{ fontWeight: 600 }}>{fmtINRFull(Number(p.securityDeposit))}</span>
+                    </div>
+                    {(p.depositDeductions || []).map((d: any) => (
+                      <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                        fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                        <span style={{ color: THEME.muted }}>
+                          − {d.reason}
+                          <span style={{ fontSize: 11, marginLeft: 4 }}>({d.date})</span>
+                        </span>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(Number(d.amount))}</span>
+                          <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
+                            onClick={() => updateItem("rentalProperties", p.id, { depositDeductions: (p.depositDeductions || []).filter((x: any) => x.id !== d.id) })}>
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {returned > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                        <span style={{ color: THEME.muted }}>Returned to tenant</span>
+                        <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(returned)}</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, padding: "8px 0" }}>
+                      <span>Outstanding (liability)</span>
+                      <span style={{ color: depositOutstanding > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(depositOutstanding)}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                      <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => setAddDeductionFor(p.id)}>
+                        <Plus size={11} style={{ marginRight: 3 }} /> Add Deduction
+                      </button>
+                      {depositOutstanding > 0 && (
+                        <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => { setReturnDepositFor(p.id); setReturnAmt(String(depositOutstanding)); }}>
+                          Return Deposit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* IHP Breakdown for this property */}
+                {pGav > 0 && (
+                  <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(128,128,128,0.06)", borderRadius: 8, fontSize: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 10, color: THEME.muted, fontSize: 12 }}>
+                      Income from House Property — Sec 22 · {fyLabel}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                      <span style={{ color: THEME.muted }}>Gross Annual Value (rent received)</span>
+                      <span style={{ fontWeight: 600 }}>{fmtINRFull(pGav)}</span>
+                    </div>
+                    {pMunTax > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                        <span style={{ color: THEME.muted }}>Less: Municipal Tax paid by owner</span>
+                        <span style={{ color: THEME.rust }}>− {fmtINRFull(pMunTax)}</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                      <span style={{ color: THEME.muted }}>Net Annual Value (NAV)</span>
+                      <span>{fmtINRFull(pNav)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                      <span style={{ color: THEME.muted }}>Less: Standard Deduction 30% (Sec 24a)</span>
+                      <span style={{ color: THEME.rust }}>− {fmtINRFull(pStdDed)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontWeight: 700 }}>
+                      <span>Taxable IHP — add this in Tax Vault</span>
+                      <span style={{ color: pIhp > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(pIhp)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Return deposit inline form */}
+      {returnDepositFor && (
+        <Modal title="Return Security Deposit" onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }}>
+          <Field label="Amount Returned to Tenant (₹)">
+            <input style={input} type="number" value={returnAmt} onChange={(e) => setReturnAmt(e.target.value)} />
+          </Field>
+          <ModalActions
+            onSave={() => {
+              const p = properties.find((x: any) => x.id === returnDepositFor);
+              if (p && Number(returnAmt) > 0) {
+                updateItem("rentalProperties", returnDepositFor, { depositReturned: Number(p.depositReturned || 0) + Number(returnAmt) });
+              }
+              setReturnDepositFor(null);
+              setReturnAmt("");
+            }}
+            onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }}
+            saveLabel="Confirm Return"
+          />
+        </Modal>
+      )}
+
+      {(showAdd || editProp) && (
+        <RentalPropertyModal
+          initial={editProp}
+          onClose={() => { setShowAdd(false); setEditProp(null); }}
+          onSave={handleSave}
+        />
+      )}
+      {addReceiptFor && (
+        <RentalReceiptModal
+          onClose={() => setAddReceiptFor(null)}
+          onSave={(data: any) => {
+            const p = properties.find((x: any) => x.id === addReceiptFor);
+            if (p) updateItem("rentalProperties", addReceiptFor, { receipts: [...(p.receipts || []), { id: `rcpt-${Date.now()}`, ...data }] });
+            setAddReceiptFor(null);
+          }}
+        />
+      )}
+      {addDeductionFor && (
+        <RentalDeductionModal
+          onClose={() => setAddDeductionFor(null)}
+          onSave={(data: any) => {
+            const p = properties.find((x: any) => x.id === addDeductionFor);
+            if (p) updateItem("rentalProperties", addDeductionFor, { depositDeductions: [...(p.depositDeductions || []), { id: `ded-${Date.now()}`, ...data }] });
+            setAddDeductionFor(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ================== TAX TAB ==================
 function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   const [showIncome, setShowIncome] = useState(false);
@@ -8055,7 +8484,19 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   // ── Income inputs ──
   const [grossSalary, setGrossSalary] = useState(String(metrics.annualIncome || ""));
   const [hraReceived, setHraReceived] = useState("0");
-  const [housePropertyIncome, setHousePropertyIncome] = useState("0");
+  const [housePropertyIncome, setHousePropertyIncome] = useState(() => {
+    const now = new Date();
+    const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyStart = `${fyStartYear}-04-01`;
+    const fyEnd = `${fyStartYear + 1}-03-31`;
+    const gav = (state.rentalProperties || []).reduce((total: number, p: any) =>
+      total + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+        .reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
+    const munTax = (state.rentalProperties || []).reduce((s: number, p: any) => s + Number(p.municipalTax || 0), 0);
+    const nav = Math.max(0, gav - munTax);
+    const ihp = nav - Math.round(nav * 0.30);
+    return ihp > 0 ? String(ihp) : "0";
+  });
   const [capitalGainsST, setCapitalGainsST] = useState("0");
   const [capitalGainsLT, setCapitalGainsLT] = useState("0");
   const [otherIncome, setOtherIncome] = useState("0");
@@ -8176,7 +8617,8 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
           {inpRow("Gross Salary / Business Income", grossSalary, setGrossSalary, "(annual, pre-tax)")}
           {inpRow("HRA Received", hraReceived, setHraReceived)}
-          {inpRow("House Property Income / Loss", housePropertyIncome, setHousePropertyIncome, "(negative = loss)")}
+          {inpRow("House Property Income / Loss", housePropertyIncome, setHousePropertyIncome,
+            (state.rentalProperties || []).length > 0 ? "(auto-filled from Rental Income tab · editable)" : "(negative = loss)")}
           {inpRow("Short-Term Capital Gains (STCG)", capitalGainsST, setCapitalGainsST, "(taxed @20%)")}
           {inpRow("Long-Term Capital Gains (LTCG)", capitalGainsLT, setCapitalGainsLT, "(taxed @12.5% above ₹1.25L)")}
           {inpRow("Other Income (interest, freelance…)", otherIncome, setOtherIncome)}
