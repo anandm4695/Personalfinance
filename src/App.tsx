@@ -5031,6 +5031,7 @@ function TermModal({ onClose, onSave, initial = null }: any) {
 // ================== DEMAT TAB ==================
 function DematTab({ state, addItem, removeItem, updateItem }) {
   const [showDemat, setShowDemat] = useState(false);
+  const [editDematId, setEditDematId] = useState(null as any);
   const [showStock, setShowStock] = useState(false);
   const [stockDefaults, setStockDefaults] = useState(null);
   const [editStockId, setEditStockId] = useState(null);
@@ -5167,7 +5168,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
       <Grid>
         {state.demat.length === 0 && <EmptyHint text="Add your brokerage/demat account" />}
         {state.demat.map((d: any) => (
-          <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)}>
+          <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
             <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{d.broker}</div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginTop: 4 }}>DP ID: {d.dpId || "—"}</div>
             <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Client ID: {d.clientId || "—"}</div>
@@ -5430,6 +5431,13 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
       {showDemat && (
         <DematModal onClose={() => setShowDemat(false)} onSave={(v: any) => { addItem("demat", v); setShowDemat(false); }} />
       )}
+      {editDematId && (
+        <DematModal
+          initial={state.demat.find((d: any) => d.id === editDematId)}
+          onClose={() => setEditDematId(null)}
+          onSave={(v: any) => { updateItem("demat", editDematId, v); setEditDematId(null); }}
+        />
+      )}
       {showStock && (
         <StockModal
           demats={state.demat}
@@ -5475,10 +5483,10 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   );
 }
 
-function DematModal({ onClose, onSave }) {
-  const [f, setF] = useState({ broker: "", dpId: "", clientId: "" });
+function DematModal({ onClose, onSave, initial = null }: any) {
+  const [f, setF] = useState(initial || { broker: "", dpId: "", clientId: "", owner: "self" });
   return (
-    <Modal title="Add Demat Account" onClose={onClose}>
+    <Modal title={initial ? "Edit Demat Account" : "Add Demat Account"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
