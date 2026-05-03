@@ -60,6 +60,7 @@ import {
   LayoutTemplate,
   AlignJustify,
   Pencil,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -4801,6 +4802,45 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   const [editStockId, setEditStockId] = useState(null);
   const [sortCol, setSortCol] = useState("pnl");
   const [sortDir, setSortDir] = useState(-1);
+  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [liveSymbols, setLiveSymbols] = useState(new Set());
+  const [fetchError, setFetchError] = useState(null);
+
+  const fetchLivePrices = async () => {
+    if (!state.stocks.length || fetchingPrices) return;
+    setFetchingPrices(true);
+    setFetchError(null);
+    const results = await Promise.allSettled(
+      state.stocks.map(async (s) => {
+        const suffix = (s.exchange || "NSE") === "BSE" ? "BO" : "NS";
+        const yfSym = `${s.symbol}.${suffix}`;
+        const res = await fetch(
+          `https://query2.finance.yahoo.com/v8/finance/chart/${yfSym}?interval=1d&range=1d`,
+          { headers: { Accept: "application/json" } }
+        );
+        if (!res.ok) throw new Error(`${s.symbol}: HTTP ${res.status}`);
+        const data = await res.json();
+        const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (!price) throw new Error(`${s.symbol}: price not found`);
+        return { id: s.id, symbol: s.symbol, price };
+      })
+    );
+    const refreshed = new Set();
+    const errors = [];
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        updateItem("stocks", r.value.id, { currentPrice: String(r.value.price.toFixed(2)) });
+        refreshed.add(r.value.symbol);
+      } else {
+        errors.push(r.reason?.message || "Unknown error");
+      }
+    }
+    setLiveSymbols(refreshed);
+    setLastRefreshed(new Date());
+    if (errors.length) setFetchError(`${errors.length} symbol(s) not found — verify NSE/BSE ticker names`);
+    setFetchingPrices(false);
+  };
 
   const handleSort = (col) => {
     if (sortCol === col) setSortDir((d) => d * -1);
@@ -4933,21 +4973,38 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 10,
           marginBottom: 16,
         }}
       >
-        <div
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 22,
-            fontWeight: 700,
-          }}
-        >
-          Stock Holdings
+        <div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>
+            Stock Holdings
+          </div>
+          {lastRefreshed && (
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+              Live prices as of {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
+          {fetchError && (
+            <div style={{ fontSize: 11, color: THEME.rust, marginTop: 2 }}>{fetchError}</div>
+          )}
         </div>
-        <button style={btnSolid} onClick={() => setShowStock(true)}>
-          <Plus size={14} /> Add Stock
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            style={{ ...btnGhost, display: "flex", alignItems: "center", gap: 6, opacity: fetchingPrices ? 0.6 : 1 }}
+            onClick={fetchLivePrices}
+            disabled={fetchingPrices}
+            title="Fetch live prices from Yahoo Finance (NSE/BSE)"
+          >
+            <RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />
+            {fetchingPrices ? "Fetching…" : "Refresh Prices"}
+          </button>
+          <button style={btnSolid} onClick={() => setShowStock(true)}>
+            <Plus size={14} /> Add Stock
+          </button>
+        </div>
       </div>
 
       <div style={card}>
@@ -5034,6 +5091,9 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                         }}
                       >
                         ₹{Number(s.currentPrice).toFixed(2)}
+                        {liveSymbols.has(s.symbol) && (
+                          <span style={{ marginLeft: 4, fontSize: 9, color: THEME.sage, fontWeight: 700, verticalAlign: "middle" }}>●LIVE</span>
+                        )}
                       </td>
                       <td
                         style={{
@@ -5168,6 +5228,7 @@ function DematModal({ onClose, onSave }) {
 function StockModal({ demats, onClose, onSave, initial = null }: any) {
   const [f, setF] = useState(initial || {
     symbol: "",
+    exchange: "NSE",
     dematId: demats[0]?.id || "",
     qty: "",
     avgPrice: "",
@@ -5181,14 +5242,22 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
-      <Field label="Symbol">
-        <input
-          style={input}
-          value={f.symbol}
-          onChange={(e) => setF({ ...f, symbol: e.target.value.toUpperCase() })}
-          placeholder="e.g. RELIANCE"
-        />
-      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
+        <Field label="Symbol">
+          <input
+            style={input}
+            value={f.symbol}
+            onChange={(e) => setF({ ...f, symbol: e.target.value.toUpperCase() })}
+            placeholder="e.g. RELIANCE"
+          />
+        </Field>
+        <Field label="Exchange">
+          <select style={{ ...input, width: 90 }} value={f.exchange || "NSE"} onChange={e => setF({ ...f, exchange: e.target.value })}>
+            <option value="NSE">NSE</option>
+            <option value="BSE">BSE</option>
+          </select>
+        </Field>
+      </div>
       <Field label="Demat Account">
         <select
           style={input}
