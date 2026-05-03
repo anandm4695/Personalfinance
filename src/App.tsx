@@ -4811,35 +4811,36 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
     if (!state.stocks.length || fetchingPrices) return;
     setFetchingPrices(true);
     setFetchError(null);
-    const results = await Promise.allSettled(
-      state.stocks.map(async (s) => {
+    try {
+      const symbols = state.stocks.map((s) => {
+        const suffix = (s.exchange || "NSE") === "BSE" ? "BO" : "NS";
+        return `${s.symbol}.${suffix}`;
+      });
+      const res = await fetch(`/api/stock-price?symbols=${symbols.join(",")}`);
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const prices = await res.json();
+      const refreshed = new Set();
+      let found = 0;
+      for (const s of state.stocks) {
         const suffix = (s.exchange || "NSE") === "BSE" ? "BO" : "NS";
         const yfSym = `${s.symbol}.${suffix}`;
-        const res = await fetch(
-          `https://query2.finance.yahoo.com/v8/finance/chart/${yfSym}?interval=1d&range=1d`,
-          { headers: { Accept: "application/json" } }
-        );
-        if (!res.ok) throw new Error(`${s.symbol}: HTTP ${res.status}`);
-        const data = await res.json();
-        const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        if (!price) throw new Error(`${s.symbol}: price not found`);
-        return { id: s.id, symbol: s.symbol, price };
-      })
-    );
-    const refreshed = new Set();
-    const errors = [];
-    for (const r of results) {
-      if (r.status === "fulfilled") {
-        updateItem("stocks", r.value.id, { currentPrice: String(r.value.price.toFixed(2)) });
-        refreshed.add(r.value.symbol);
-      } else {
-        errors.push(r.reason?.message || "Unknown error");
+        const price = prices[yfSym];
+        if (price != null) {
+          updateItem("stocks", s.id, { currentPrice: String(Number(price).toFixed(2)) });
+          refreshed.add(s.symbol);
+          found++;
+        }
       }
+      setLiveSymbols(refreshed);
+      setLastRefreshed(new Date());
+      const missed = state.stocks.length - found;
+      if (missed > 0) setFetchError(`${missed} symbol(s) not found — verify NSE/BSE ticker names (e.g. RELIANCE, TCS, INFY)`);
+      else setFetchError(null);
+    } catch (e) {
+      setFetchError(`Failed to fetch prices: ${e.message}`);
+    } finally {
+      setFetchingPrices(false);
     }
-    setLiveSymbols(refreshed);
-    setLastRefreshed(new Date());
-    if (errors.length) setFetchError(`${errors.length} symbol(s) not found — verify NSE/BSE ticker names`);
-    setFetchingPrices(false);
   };
 
   const handleSort = (col) => {
