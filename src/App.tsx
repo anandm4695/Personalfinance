@@ -328,7 +328,6 @@ const DEFAULT_STATE = (() => {
   const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
   return {
     profile: { name: "Anand", fy: "2025-26", regime: "new" },
-    profiles: PROFILES,
     bankAccounts: [
       { id: "1", owner: "self", bankName: "HDFC Bank", accountNumber: "XXXX1234", balance: "150000" },
       { id: "2", owner: "self", bankName: "SBI", accountNumber: "XXXX5678", balance: "45000" },
@@ -489,9 +488,9 @@ export default function FinanceDashboard() {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!error) setSession(session);
+    }).catch(() => {});
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -903,7 +902,7 @@ export default function FinanceDashboard() {
     [metrics]
   );
 
-  // Monthly trend for last 12 months
+  // Monthly trend for last 12 months — uses filtered transactions to respect profile filter
   const trendData = useMemo(() => {
     const arr = [];
     const now = new Date();
@@ -911,7 +910,7 @@ export default function FinanceDashboard() {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const ym = d.toISOString().slice(0, 7);
       const label = d.toLocaleString("en-IN", { month: "short" });
-      const txns = state.transactions.filter(
+      const txns = filteredState.transactions.filter(
         (t) => t.date && t.date.startsWith(ym)
       );
       const inc = txns
@@ -923,7 +922,7 @@ export default function FinanceDashboard() {
       arr.push({ month: label, income: inc, expense: exp, net: inc - exp });
     }
     return arr;
-  }, [state.transactions]);
+  }, [filteredState.transactions]);
 
   // ================== CRUD ==================
   // ================== ALERTS CENTRE ==================
@@ -979,7 +978,7 @@ export default function FinanceDashboard() {
       if (days >= 0 && days <= 7) list.push({ level: "info", title: `${s.name} renews in ${days}d`, detail: fmtINRFull(s.amount), tab: "subs" });
     });
     return list;
-  }, [state, metrics]);
+  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, metrics.monthExpense, metrics.cashInBanks]);
 
   const addItem = (key, item) =>
     setState((s) => ({ ...s, [key]: [...s[key], { id: uid(), ...item }] }));
@@ -993,14 +992,14 @@ export default function FinanceDashboard() {
 
   // ================== EXPORT / IMPORT ==================
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `finance-backup-${today()}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
   const importJSON = (e) => {
@@ -1038,7 +1037,9 @@ export default function FinanceDashboard() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `transactions-${today()}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -1112,7 +1113,7 @@ export default function FinanceDashboard() {
 
   const d = DENSITY[density] || DENSITY.normal;
 
-  const isSupabaseConfigured = supabase.supabaseUrl && !supabase.supabaseUrl.includes("placeholder-url");
+  const isSupabaseConfigured = !!(process.env.REACT_APP_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL.includes("placeholder"));
 
   if (!session) {
     if (!isSupabaseConfigured) {
@@ -1363,7 +1364,7 @@ export default function FinanceDashboard() {
                 onChange={e => setActiveProfile(e.target.value)}
               >
                 <option value="all">All Profiles</option>
-                {state.profiles.map(p => (
+                {PROFILES.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
@@ -1973,58 +1974,37 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
 
   const isPositive = metrics.netWorth >= 0;
 
-  // Render variables for Dashboard
-  let totalScore = 0;
-  let savingsScore = 0;
-  let debtScore = 0;
-  let emergencyScore = 0;
-  let divScore = 0;
-  let dues = [];
-  let scoreColor = THEME.sage;
-  let subScores = [];
-  let saved = 0;
-  let expensePct = 0;
-  let savedPct = 0;
-  let streak = 0;
-  let streakMsg = "";
-  let streakEmoji = "";
-
-  if (sub === "dashboard") {
-    // Health score
+  // Memoized dashboard computations (health score, dues, streak) — avoids re-running on sub-tab switches
+  const dashboardData = useMemo(() => {
+    let savingsScore = 0, debtScore = 0, emergencyScore = 0, divScore = 0;
     if (metrics.savingsRate >= 30) savingsScore = 25;
     else if (metrics.savingsRate >= 20) savingsScore = 18;
     else if (metrics.savingsRate >= 10) savingsScore = 10;
     else savingsScore = 4;
-
     if (metrics.debtToAssetRatio < 10) debtScore = 25;
     else if (metrics.debtToAssetRatio < 25) debtScore = 18;
     else if (metrics.debtToAssetRatio < 50) debtScore = 10;
     else debtScore = 4;
-
     const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
     if (emergencyMonths > 6) emergencyScore = 25;
     else if (emergencyMonths >= 3) emergencyScore = 18;
     else if (emergencyMonths >= 1) emergencyScore = 10;
     else emergencyScore = 4;
-
     if (state.mutualFunds.length > 0) divScore += 6;
     if (state.stocks.length > 0) divScore += 6;
     if (state.fixedDeposits.length > 0) divScore += 6;
     if (state.ppf.length > 0 || state.nps.length > 0) divScore += 7;
-
-    totalScore = savingsScore + debtScore + emergencyScore + divScore;
-    scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
-
-    subScores = [
+    const totalScore = savingsScore + debtScore + emergencyScore + divScore;
+    const scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
+    const subScores = [
       { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100 },
       { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100 },
       { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100 },
       { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100 },
     ];
-
-    // Dues
     const todayMs = new Date().getTime();
     const plus30Ms = todayMs + 30 * 86400000;
+    const dues: any[] = [];
     state.creditCards.forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) {
@@ -2041,12 +2021,10 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
       }
     });
     dues.sort((a, b) => a.daysLeft - b.daysLeft);
-
-    saved = metrics.monthIncome - metrics.monthExpense;
-    expensePct = metrics.monthIncome > 0 ? (metrics.monthExpense / metrics.monthIncome) * 100 : 0;
-    savedPct = metrics.monthIncome > 0 ? Math.max(0, (saved / metrics.monthIncome) * 100) : 0;
-
-    // Streak
+    const saved = metrics.monthIncome - metrics.monthExpense;
+    const expensePct = metrics.monthIncome > 0 ? (metrics.monthExpense / metrics.monthIncome) * 100 : 0;
+    const savedPct = metrics.monthIncome > 0 ? Math.max(0, (saved / metrics.monthIncome) * 100) : 0;
+    let streak = 0;
     const now = new Date();
     for (let i = 1; i <= 24; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -2056,9 +2034,12 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
       const exp = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
       if (inc > exp && inc > 0) streak++; else break;
     }
-    streakEmoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
-    streakMsg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
-  }
+    const streakEmoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
+    const streakMsg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
+    return { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg };
+  }, [metrics, state.mutualFunds.length, state.stocks.length, state.fixedDeposits.length, state.ppf.length, state.nps.length, state.creditCards, state.subscriptions, state.transactions]);
+
+  const { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg } = dashboardData;
 
   return (
     <div className="tab-content-enter">
@@ -7375,7 +7356,7 @@ function BankEditModal({ account, onClose, onSave }) {
 function BudgetTab({ state, addItem, removeItem, updateItem, metrics }) {
   const [show, setShow] = useState(false);
   const [editBudget, setEditBudget] = useState(null);
-  const ym = new Date().toISOString().slice(0, 7);
+  const ym = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
   const monthSpending = useMemo(() => {
     return state.transactions
@@ -8098,12 +8079,16 @@ function SettingsTab({
 }) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveProfile = () => {
     setState((s) => ({ ...s, profile: { ...s.profile, ...prof } }));
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   };
+
+  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -8396,8 +8381,8 @@ function CalculatorsTab() {
     };
     return {
       newSal,
-      oldTaxCurrent: calcNewTax(base), oldTaxNew: calcNewTax(newSal),
-      newTaxCurrent: calcOldTax(base), newTaxNew: calcOldTax(newSal),
+      newRegimeTaxCurrent: calcNewTax(base),
+      newRegimeTaxAfter: calcNewTax(newSal),
       takehomeCurrent: base - calcNewTax(base),
       takehomeNew: newSal - calcNewTax(newSal),
       gain: newSal - calcNewTax(newSal) - (base - calcNewTax(base)),
@@ -8406,22 +8391,23 @@ function CalculatorsTab() {
 
   // A3 – Loan vs Invest Analyzer
   const [lviOutstanding, setLviOutstanding] = useState("550000");
-  const [lviEmi, setLviEmi] = useState("18000");
   const [lviRate, setLviRate] = useState("8.5");
   const [lviMonths, setLviMonths] = useState("36");
   const [lviInvReturn, setLviInvReturn] = useState("12");
   const lviResult = useMemo(() => {
     const outstanding = Number(lviOutstanding) || 0;
-    const emi = Number(lviEmi) || 0;
+    const annualRate = Number(lviRate) || 0;
     const months = Number(lviMonths) || 1;
     const invR = (Number(lviInvReturn) || 0) / 12 / 100;
+    const r = annualRate / 12 / 100;
+    const emi = r === 0 ? outstanding / months : outstanding * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
     const totalPayments = emi * months;
     const interestSaved = totalPayments - outstanding;
     const sipCorpus = invR === 0 ? emi * months : emi * (Math.pow(1 + invR, months) - 1) / invR * (1 + invR);
     const investGain = sipCorpus - totalPayments;
     const betterChoice = interestSaved >= investGain ? "prepay" : "invest";
-    return { interestSaved, sipCorpus, investGain, totalPayments, betterChoice };
-  }, [lviOutstanding, lviEmi, lviMonths, lviInvReturn]);
+    return { emi, interestSaved, sipCorpus, investGain, totalPayments, betterChoice };
+  }, [lviOutstanding, lviRate, lviMonths, lviInvReturn]);
 
   const calcCard = { ...card as any, marginBottom: 0 };
   const inpRow = (lbl, val, set) => (
@@ -8528,7 +8514,7 @@ function CalculatorsTab() {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
               <span style={{ color: THEME.muted }}>Tax (before → after)</span>
-              <span style={{ fontWeight: 600 }}>{fmtINR(hikeResult.oldTaxCurrent)} → <span style={{ color: THEME.rust }}>{fmtINR(hikeResult.oldTaxNew)}</span></span>
+              <span style={{ fontWeight: 600 }}>{fmtINR(hikeResult.newRegimeTaxCurrent)} → <span style={{ color: THEME.rust }}>{fmtINR(hikeResult.newRegimeTaxAfter)}</span></span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
               <span style={{ color: THEME.muted }}>Take-home (before → after)</span>
@@ -8546,10 +8532,12 @@ function CalculatorsTab() {
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Loan vs Invest Analyzer</div>
           <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>Prepay your loan or invest the money?</div>
           {inpRow("Outstanding Loan Balance (₹)", lviOutstanding, setLviOutstanding)}
-          {inpRow("Monthly EMI (₹)", lviEmi, setLviEmi)}
-          {inpRow("Loan Rate (%)", lviRate, setLviRate)}
+          {inpRow("Loan Interest Rate (% p.a.)", lviRate, setLviRate)}
           {inpRow("Months Remaining", lviMonths, setLviMonths)}
           {inpRow("Expected Investment Return (% p.a.)", lviInvReturn, setLviInvReturn)}
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12 }}>
+            Computed EMI: <b style={{ color: THEME.ink }}>{fmtINRFull(lviResult.emi)}/mo</b>
+          </div>
           <div style={{ background: "rgba(128,128,128,0.05)", borderRadius: 10, padding: 16, marginTop: 4 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 }}>
               <div style={{ padding: 12, borderRadius: 8, border: `2px solid ${lviResult.betterChoice === "prepay" ? THEME.sage : THEME.line}`, background: lviResult.betterChoice === "prepay" ? "rgba(30,142,62,0.07)" : "transparent" }}>

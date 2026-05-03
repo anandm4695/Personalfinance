@@ -92,6 +92,10 @@ export default function Auth({ onLogin }) {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    if (isSignUp && password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setMsg(null);
@@ -501,8 +505,8 @@ export default function Auth({ onLogin }) {
                 fontFamily: "'Inter', sans-serif",
                 transition: "color 0.15s",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#818CF8"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "#818CF8"}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#A5B4FC")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#818CF8")}
             >
               {isSignUp ? "Sign in" : "Create account"}
             </button>
