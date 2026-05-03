@@ -184,6 +184,38 @@ const getCCDueDate = (c) => {
   return d.toISOString().slice(0, 10);
 };
 
+// Auto-categorise transactions from note text
+const autoCateg = (note: string): string | null => {
+  if (!note) return null;
+  const n = note.toLowerCase();
+  const rules: [RegExp, string][] = [
+    [/zomato|swiggy|dunzo|eatsure|domino|pizza|restaurant|cafe|dining|meal|biryani|mcdonalds|kfc|burger|blinkit.*food/i, "Food"],
+    [/grocery|bigbasket|jiomart|zepto|grofers|supermarket|vegetables?|fruits?|departmental/i, "Groceries"],
+    [/\buber\b|ola cab|rapido|auto.*rikshaw|cab ride|taxi|metro|train ticket|bus ticket|flight|airline|petrol|diesel|fuel pump/i, "Transport"],
+    [/rent|landlord|\bpg\b|hostel|accommodation/i, "Rent"],
+    [/electricity|water bill|gas bill|internet|broadband|wifi|\bjio\b|\bairtel\b|\bbsnl\b|\bvi\b|vodafone|recharge|postpaid|prepaid/i, "Bills"],
+    [/salary|payroll|\bctc\b|bonus|incentive|appraisal|stipend/i, "Salary"],
+    [/\bsip\b|mutual fund|stock purchase|zerodha|groww|nifty|sensex|invest|ppf deposit|nps.*contrib|demat/i, "Investment"],
+    [/\bemi\b|loan repay|hdfc.*loan|sbi.*loan|equitas/i, "EMI"],
+    [/amazon|flipkart|myntra|ajio|meesho|nykaa|snapdeal|shopping|purchase order/i, "Shopping"],
+    [/doctor|hospital|pharmacy|medicine|chemist|health|apollo|max.*hosp|fortis|clinic/i, "Medical"],
+    [/netflix|prime video|hotstar|disney|spotify|youtube.*premium|movie|cinema|pvr/i, "Entertainment"],
+    [/income tax|tds deposit|\bgst\b|\btax\b/i, "Tax"],
+    [/neft|rtgs|imps|upi.*transfer|transfer to/i, "Transfer"],
+    [/maintenance|utilities|sewage|society charge/i, "Utilities"],
+  ];
+  for (const [re, cat] of rules) if (re.test(n)) return cat;
+  return null;
+};
+
+// Annualised CAGR from invested cost to current value over time since buyDate
+const calcCAGR = (invested: number, current: number, buyDate: string): number | null => {
+  if (!buyDate || invested <= 0 || current <= 0) return null;
+  const years = (Date.now() - new Date(buyDate).getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (years < 0.08) return null;
+  return (Math.pow(current / invested, 1 / years) - 1) * 100;
+};
+
 // Compound interest for FD/RD/Bond maturity estimates
 const fdMaturity = (principal, rate, years, freq = 4) => {
   return principal * Math.pow(1 + rate / 100 / freq, freq * years);
@@ -1554,7 +1586,7 @@ export default function FinanceDashboard() {
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
             {tab === "analytics" && <AnalyticsDashboard metrics={metrics} state={filteredState} assetBreakdown={assetBreakdown} trendData={trendData} chartStyle={chartStyle} isVertical={sidebarNav} />}
-            {tab === "calculators" && <CalculatorsTab />}
+            {tab === "calculators" && <CalculatorsTab metrics={metrics} />}
             {tab === "settings" && (
               <SettingsTab
                 state={state}
@@ -1911,10 +1943,134 @@ function SubNav({ items, active, onChange, isVertical }) {
   );
 }
 
+// ================== MONTHLY REPORT MODAL ==================
+function MonthlyReportModal({ metrics, state, onClose }: any) {
+  const now = new Date();
+  const monthLabel = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
+  const ym = now.toISOString().slice(0, 7);
+  const txns = state.transactions.filter((t) => t.date?.startsWith(ym));
+  const income = txns.filter((t) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const expense = txns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+  const saving = income - expense;
+  const savingRate = income > 0 ? ((saving / income) * 100).toFixed(1) : "0";
+  const catMap: Record<string, number> = {};
+  txns.filter((t) => t.type === "debit").forEach((t) => {
+    const c = t.category || "Other";
+    catMap[c] = (catMap[c] || 0) + Number(t.amount || 0);
+  });
+  const topCats = Object.entries(catMap).sort(([, a], [, b]) => b - a).slice(0, 6);
+  const upcoming: { label: string; amount: number; date: string }[] = [];
+  state.creditCards.forEach((c) => {
+    const due = getCCDueDate(c);
+    if (due) upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
+  });
+  state.loansTaken.forEach((l) => {
+    upcoming.push({ label: `${l.lender} ${l.type} Loan`, amount: Number(l.emi || 0), date: "Monthly EMI" });
+  });
+  const rpt: { [key: string]: string } = {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: "13px",
+    color: "var(--t-ink)",
+  };
+  return (
+    <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
+      <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } .print-scroll { max-height: none !important; overflow: visible !important; } }`}</style>
+      <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
+        {/* Net Worth Banner */}
+        <div style={{ background: "#0f172a", borderRadius: 10, padding: "16px 20px", marginBottom: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Net Worth Snapshot</div>
+          <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{fmtINRFull(metrics.netWorth)}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+            Assets {fmtINRFull(metrics.totalAssets)} · Liabilities {fmtINRFull(metrics.totalLiabilities)}
+          </div>
+        </div>
+
+        {/* Cash Flow */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+          {[
+            { label: "Income", value: income, color: THEME.sage },
+            { label: "Expense", value: expense, color: THEME.rust },
+            { label: `Saved (${savingRate}%)`, value: saving, color: saving >= 0 ? THEME.sage : THEME.rust },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ padding: 12, borderRadius: 8, background: "rgba(128,128,128,0.06)", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Top Expenses */}
+        {topCats.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Top Expenses</div>
+            {topCats.map(([cat, amt], i) => (
+              <div key={cat} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], display: "inline-block" }} />
+                  {cat}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 50, height: 4, background: THEME.line, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${expense > 0 ? Math.min(100, (amt / expense) * 100) : 0}%`, background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  </div>
+                  <span style={{ fontWeight: 700, minWidth: 80, textAlign: "right" }}>{fmtINRFull(amt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Portfolio Snapshot */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Portfolio Snapshot</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {([
+              ["Bank Cash", metrics.cashInBanks],
+              ["Fixed Deposits", state.fixedDeposits.reduce((s, f) => s + Number(f.principal || 0), 0)],
+              ["Mutual Funds", metrics.mfValue],
+              ["Stocks", metrics.stockValue],
+              ["PPF", metrics.ppfValue],
+              ["NPS", metrics.npsValue],
+            ] as [string, number][]).filter(([, v]) => v > 0).map(([label, val]) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "rgba(128,128,128,0.05)", borderRadius: 6, fontSize: 13 }}>
+                <span style={{ color: THEME.muted }}>{label}</span>
+                <span style={{ fontWeight: 700 }}>{fmtINRFull(val)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Upcoming Dues */}
+        {upcoming.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Upcoming Dues</div>
+            {upcoming.map((d, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                <span>{d.label}</span>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(d.amount)}</div>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }} className="no-print">
+        <button style={btnGhost} onClick={onClose}>Close</button>
+        <button style={btnSolid} onClick={() => window.print()}>
+          <Printer size={14} /> Print / Save PDF
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ================== ANALYTICS DASHBOARD ==================
 function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartStyle, isVertical }) {
   const [sub, setSub] = useState("dashboard");
   const [drillCat, setDrillCat] = useState(null);
+  const [showReport, setShowReport] = useState(false);
   
   const subs = [
     { id: "dashboard", label: "Dashboard", icon: PieChart },
@@ -2043,8 +2199,14 @@ function AnalyticsDashboard({ metrics, state, assetBreakdown, trendData, chartSt
 
   return (
     <div className="tab-content-enter">
-      <div style={{ marginBottom: 24 }}><SubNav items={subs} active={sub} onChange={setSub} isVertical={false} /></div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <SubNav items={subs} active={sub} onChange={setSub} isVertical={false} />
+        <button style={{ ...btnGhost, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }} onClick={() => setShowReport(true)}>
+          <Printer size={14} /> Monthly Report
+        </button>
+      </div>
       <SectionTitle sub="Unified view of your net worth, cash flow, and spending analytics">Analytics Dashboard</SectionTitle>
+      {showReport && <MonthlyReportModal metrics={metrics} state={state} onClose={() => setShowReport(false)} />}
       
       
 
@@ -3154,8 +3316,12 @@ function TxnModal({ accounts, onClose, onSave }) {
         <input
           style={input}
           value={f.note}
-          onChange={(e) => setF({ ...f, note: e.target.value })}
-          placeholder="e.g. Swiggy order"
+          onChange={(e) => {
+            const note = e.target.value;
+            const cat = autoCateg(note);
+            setF({ ...f, note, ...(cat ? { category: cat } : {}) });
+          }}
+          placeholder="e.g. Swiggy order — category auto-detected"
         />
       </Field>
       <ModalActions
@@ -3210,7 +3376,11 @@ function TxnEditModal({ txn, accounts, onClose, onSave }) {
         </select>
       </Field>
       <Field label="Note">
-        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Swiggy order" />
+        <input style={input} value={f.note} onChange={(e) => {
+          const note = e.target.value;
+          const cat = autoCateg(note);
+          setF({ ...f, note, ...(cat ? { category: cat } : {}) });
+        }} placeholder="e.g. Swiggy order — category auto-detected" />
       </Field>
       <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
     </Modal>
@@ -3994,6 +4164,14 @@ function MFList({ items, onRemove, onEdit }: any) {
               {pnl >= 0 ? "+" : ""}
               {fmtINR(pnl)} ({pct.toFixed(2)}%)
             </div>
+            {(() => {
+              const cagr = m.buyDate ? calcCAGR(Number(m.invested), current, m.buyDate) : null;
+              return cagr !== null ? (
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  CAGR <span style={{ fontWeight: 700, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust }}>{cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}%/yr</span>
+                </div>
+              ) : null;
+            })()}
             <div
               style={{
                 display: "grid",
@@ -4413,6 +4591,7 @@ function MFModal({ onClose, onSave, initial = null }: any) {
     units: "",
     invested: "",
     currentNav: "",
+    buyDate: "",
   });
   return (
     <Modal title={initial ? "Edit Mutual Fund Holding" : "Add Mutual Fund Holding"} onClose={onClose}>
@@ -4474,6 +4653,9 @@ function MFModal({ onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
+      <Field label="Purchase Date (optional — enables CAGR calculation)">
+        <input style={input} type="date" value={f.buyDate || ""} onChange={(e) => setF({ ...f, buyDate: e.target.value })} />
+      </Field>
       <ModalActions
         onSave={() => f.scheme && f.units && onSave(f)}
         onClose={onClose}
@@ -4883,6 +5065,14 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                         {p >= 0 ? "+" : ""}{fmtINR(p)}
                         <br />
                         <span style={{ fontSize: 11, opacity: 0.8 }}>{p >= 0 ? "▲" : "▼"}{Math.abs(pct).toFixed(2)}%</span>
+                        {s.buyDate && (() => {
+                          const cagr = calcCAGR(invested, current, s.buyDate);
+                          return cagr !== null ? (
+                            <span style={{ fontSize: 10, display: "block", color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 700 }}>
+                              CAGR {cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}%/yr
+                            </span>
+                          ) : null;
+                        })()}
                       </td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 2 }}>
@@ -4982,6 +5172,7 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
     qty: "",
     avgPrice: "",
     currentPrice: "",
+    buyDate: "",
   });
   return (
     <Modal title={initial ? "Edit Stock" : "Add Stock"} onClose={onClose}>
@@ -5042,6 +5233,9 @@ function StockModal({ demats, onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
+      <Field label="Buy Date (optional — enables CAGR calculation)">
+        <input style={input} type="date" value={f.buyDate || ""} onChange={(e) => setF({ ...f, buyDate: e.target.value })} />
+      </Field>
       <ModalActions
         onSave={() => f.symbol && f.qty && onSave(f)}
         onClose={onClose}
@@ -8058,7 +8252,11 @@ function QuickAddModal({ onClose, onSave, bankAccounts }) {
         </select>
       </Field>
       <Field label="Note">
-        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Optional note" />
+        <input style={input} value={f.note} onChange={(e) => {
+          const note = e.target.value;
+          const cat = autoCateg(note);
+          setF({ ...f, note, ...(cat ? { category: cat } : {}) });
+        }} placeholder="Optional note — category auto-detected" />
       </Field>
       <ModalActions onSave={() => f.amount && onSave(f)} onClose={onClose} />
     </Modal>
@@ -8287,7 +8485,7 @@ function SettingsTab({
 }
 
 // ================== CALCULATORS TAB ==================
-function CalculatorsTab() {
+function CalculatorsTab({ metrics = null }: any) {
   // EMI Calculator
   const [emiP, setEmiP] = useState("1000000");
   const [emiR, setEmiR] = useState("8.5");
@@ -8408,6 +8606,49 @@ function CalculatorsTab() {
     const betterChoice = interestSaved >= investGain ? "prepay" : "invest";
     return { emi, interestSaved, sipCorpus, investGain, totalPayments, betterChoice };
   }, [lviOutstanding, lviRate, lviMonths, lviInvReturn]);
+
+  // B – Loan Amortization Schedule
+  const [amoP, setAmoP] = useState("1000000");
+  const [amoR, setAmoR] = useState("8.5");
+  const [amoN, setAmoN] = useState("240");
+  const [amoPage, setAmoPage] = useState(0);
+  const AMO_PAGE_SIZE = 12;
+  const amoResult = useMemo(() => {
+    const p = Number(amoP) || 0, r = (Number(amoR) || 0) / 12 / 100, n = Number(amoN) || 1;
+    if (p <= 0 || n <= 0) return { emi: 0, schedule: [], totalInterest: 0, totalPayment: 0 };
+    const emi = r === 0 ? p / n : p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+    const schedule: { month: number; emi: number; principal: number; interest: number; balance: number }[] = [];
+    let balance = p;
+    for (let i = 1; i <= n; i++) {
+      const interest = balance * r;
+      const principal = Math.min(emi - interest, balance);
+      balance = Math.max(0, balance - principal);
+      schedule.push({ month: i, emi, principal, interest, balance });
+    }
+    return { emi, schedule, totalInterest: emi * n - p, totalPayment: emi * n };
+  }, [amoP, amoR, amoN]);
+
+  // C – Net Worth Projection
+  const [nwpSavings, setNwpSavings] = useState("30000");
+  const [nwpReturn, setNwpReturn] = useState("10");
+  const [nwpYears, setNwpYears] = useState("15");
+  const nwpData = useMemo(() => {
+    const current = metrics?.netWorth || 0;
+    const monthly = Number(nwpSavings) || 0;
+    const annualR = (Number(nwpReturn) || 0) / 100;
+    const years = Math.max(1, Math.min(Number(nwpYears) || 15, 40));
+    const startYear = new Date().getFullYear();
+    const points: { year: number; value: number }[] = [];
+    let corpus = current;
+    for (let y = 0; y <= years; y++) {
+      points.push({ year: startYear + y, value: Math.round(corpus) });
+      const r = annualR / 12;
+      corpus = r === 0
+        ? corpus + monthly * 12
+        : corpus * (1 + annualR) + monthly * (Math.pow(1 + r, 12) - 1) / r * (1 + r);
+    }
+    return points;
+  }, [metrics?.netWorth, nwpSavings, nwpReturn, nwpYears]);
 
   const calcCard = { ...card as any, marginBottom: 0 };
   const inpRow = (lbl, val, set) => (
@@ -8576,6 +8817,114 @@ function CalculatorsTab() {
             {resultRow("Interest Earned", fdResult.interest)}
             {resultRow("Maturity Value", fdResult.maturity, true)}
           </div>
+        </div>
+
+        {/* B – Loan Amortization Schedule */}
+        <div style={{ ...calcCard, gridColumn: "1 / -1" }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Loan Amortization Schedule</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>Month-by-month principal/interest breakdown</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
+            {inpRow("Loan Amount (₹)", amoP, (v) => { setAmoP(v); setAmoPage(0); })}
+            {inpRow("Annual Interest Rate (%)", amoR, (v) => { setAmoR(v); setAmoPage(0); })}
+            {inpRow("Tenure (months)", amoN, (v) => { setAmoN(v); setAmoPage(0); })}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+            <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Monthly EMI</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(amoResult.emi)}</div>
+            </div>
+            <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Interest</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(amoResult.totalInterest)}</div>
+            </div>
+            <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Payment</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent }}>{fmtINRFull(amoResult.totalPayment)}</div>
+            </div>
+          </div>
+          {amoResult.schedule.length > 0 && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                    <th style={th}>Month</th>
+                    <th style={{ ...th, textAlign: "right" }}>EMI</th>
+                    <th style={{ ...th, textAlign: "right" }}>Principal</th>
+                    <th style={{ ...th, textAlign: "right" }}>Interest</th>
+                    <th style={{ ...th, textAlign: "right" }}>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {amoResult.schedule.slice(amoPage * AMO_PAGE_SIZE, (amoPage + 1) * AMO_PAGE_SIZE).map((row) => (
+                    <tr key={row.month} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                      <td style={td}>{row.month}</td>
+                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(row.emi)}</td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(row.principal)}</td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(row.interest)}</td>
+                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(row.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, fontSize: 13 }}>
+                <span style={{ color: THEME.muted }}>Rows {amoPage * AMO_PAGE_SIZE + 1}–{Math.min((amoPage + 1) * AMO_PAGE_SIZE, amoResult.schedule.length)} of {amoResult.schedule.length}</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={btnGhost} onClick={() => setAmoPage(p => Math.max(0, p - 1))} disabled={amoPage === 0}>← Prev</button>
+                  <button style={btnGhost} onClick={() => setAmoPage(p => Math.min(Math.ceil(amoResult.schedule.length / AMO_PAGE_SIZE) - 1, p + 1))} disabled={(amoPage + 1) * AMO_PAGE_SIZE >= amoResult.schedule.length}>Next →</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* C – Net Worth Projection */}
+        <div style={{ ...calcCard, gridColumn: "1 / -1" }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Net Worth Projection</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>
+            Starting from current net worth {metrics?.netWorth !== undefined ? `(${fmtINRFull(metrics.netWorth)})` : ""} — project growth with monthly savings + market returns
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+            {inpRow("Monthly Savings / SIP (₹)", nwpSavings, setNwpSavings)}
+            {inpRow("Expected Annual Return (%)", nwpReturn, setNwpReturn)}
+            {inpRow("Projection Years", nwpYears, setNwpYears)}
+          </div>
+          {nwpData.length > 1 && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 16 }}>
+                <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Today</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{fmtINRFull(nwpData[0]?.value)}</div>
+                </div>
+                <div style={{ padding: 12, background: `rgba(${THEME.sage === "var(--t-sage)" ? "52,211,153" : "5,150,105"},0.1)`, borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>In {nwpYears} years ({nwpData[nwpData.length - 1]?.year})</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: THEME.sage }}>{fmtINRFull(nwpData[nwpData.length - 1]?.value)}</div>
+                </div>
+                <div style={{ padding: 12, background: "rgba(128,128,128,0.05)", borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Growth</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: THEME.gold }}>
+                    {nwpData[0]?.value ? `${(((nwpData[nwpData.length - 1]?.value || 0) / nwpData[0].value - 1) * 100).toFixed(0)}%` : "—"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={nwpData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                    <defs>
+                      <linearGradient id="nwpGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={THEME.sage} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                    <XAxis dataKey="year" tick={{ fontSize: 11, fill: THEME.muted }} />
+                    <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 10, fill: THEME.muted }} width={60} />
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} labelFormatter={(l) => `Year ${l}`} />
+                    <Area type="monotone" dataKey="value" stroke={THEME.sage} strokeWidth={2} fill="url(#nwpGrad)" dot={false} name="Net Worth" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
         </div>
 
       </div>
