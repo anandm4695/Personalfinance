@@ -1263,7 +1263,7 @@ export default function FinanceDashboard() {
                   Personal Finance
                 </div>
                 <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-                  Dashboard
+                  by Anand Mohta
                 </h1>
               </div>
             </div>
@@ -1375,7 +1375,7 @@ export default function FinanceDashboard() {
                   Personal Finance · FY {state.profile.fy}
                 </div>
                 <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: "-0.03em", color: THEME.ink, lineHeight: 1 }}>
-                  Finance Dashboard
+                  Personal Finance by Anand Mohta
                 </h1>
               </div>
             )}
@@ -1650,7 +1650,7 @@ export default function FinanceDashboard() {
           letterSpacing: "0.04em",
           lineHeight: 1.8,
         }}>
-          <span style={{ fontWeight: 600 }}>Finance Dashboard</span> · Enterprise Grade · All data stored securely · FY {state.profile.fy}
+          <span style={{ fontWeight: 600 }}>Personal Finance by Anand Mohta</span> · Enterprise Grade · All data stored securely · FY {state.profile.fy}
         </footer>
       </div>
 
