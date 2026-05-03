@@ -61,6 +61,8 @@ import {
   AlignJustify,
   Pencil,
   RefreshCw,
+  History,
+  ArrowLeftRight,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -464,6 +466,7 @@ const DEFAULT_STATE = (() => {
       { id: "b4", owner: "self", category: "Entertainment", monthly: "2000" },
     ],
     reminders: [],
+    stockSells: [],
     netWorthHistory: [],
     sips: [
       { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
@@ -736,7 +739,8 @@ export default function FinanceDashboard() {
       income: filterByOwner(state.income),
       taxPayments: filterByOwner(state.taxPayments),
       budgets: filterByOwner(state.budgets),
-      sips: filterByOwner(state.sips)
+      sips: filterByOwner(state.sips),
+      stockSells: filterByOwner(state.stockSells || []),
     };
   }, [state, activeProfile]);
 
@@ -1099,6 +1103,7 @@ export default function FinanceDashboard() {
       { id: "income", label: "Interest Income" },
     ]},
     { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
+    { id: "txnhistory", label: "Txn History", icon: History },
     { id: "credit", label: "Credit & Loans", icon: CreditCard },
     { id: "subs", label: "Subscriptions", icon: Repeat },
     { id: "sip", label: "SIP Tracker", icon: Activity },
@@ -1578,6 +1583,7 @@ export default function FinanceDashboard() {
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
@@ -4808,6 +4814,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   const [chartData, setChartData] = useState({} as any);
   const [expandedSymbols, setExpandedSymbols] = useState(new Set() as Set<string>);
   const [fetchingChart, setFetchingChart] = useState(null as string | null);
+  const [sellLot, setSellLot] = useState(null as any);
 
   // Group stocks by (base symbol, exchange)
   const groups: any[] = Object.values(
@@ -4889,6 +4896,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
   const totalValue = state.stocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.currentPrice), 0);
   const totalInvested = state.stocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
   const pnl = totalValue - totalInvested;
+  const realizedPnl = (state.stockSells || []).reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
 
   const fmtVol = (v: number) => {
     if (!v) return "—";
@@ -4915,6 +4923,11 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
           value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
           sub={`on ${fmtINR(totalInvested)} invested`}
           subColor={pnl >= 0 ? THEME.sage : THEME.rust}
+        />
+        <Tile icon={ArrowLeftRight} label="Realized P&L"
+          value={fmtINRFull(realizedPnl)}
+          sub={`${(state.stockSells || []).length} sell txn${(state.stockSells || []).length !== 1 ? "s" : ""}`}
+          subColor={realizedPnl >= 0 ? THEME.sage : THEME.rust}
         />
       </div>
 
@@ -5151,6 +5164,7 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
                                 <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINR(lCurr)}</td>
                                 <td style={td}>
                                   <div style={{ display: "flex", gap: 2 }}>
+                                    <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice }); }} style={{ ...iconBtn, color: THEME.rust }} title="Sell"><ArrowLeftRight size={13} /></button>
                                     <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={iconBtn}><Edit3 size={13} /></button>
                                     <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={iconBtn}><Trash2 size={13} /></button>
                                   </div>
@@ -5196,6 +5210,21 @@ function DematTab({ state, addItem, removeItem, updateItem }) {
           initial={state.stocks.find((x: any) => x.id === editStockId)}
           onClose={() => setEditStockId(null)}
           onSave={(v: any) => { updateItem("stocks", editStockId, v); setEditStockId(null); }}
+        />
+      )}
+      {sellLot && (
+        <SellStockModal
+          lot={sellLot}
+          onClose={() => setSellLot(null)}
+          onSave={(sellRecord: any, remainingQty: number) => {
+            addItem("stockSells", sellRecord);
+            if (remainingQty <= 0) {
+              removeItem("stocks", sellLot.id);
+            } else {
+              updateItem("stocks", sellLot.id, { qty: String(remainingQty) });
+            }
+            setSellLot(null);
+          }}
         />
       )}
     </div>
@@ -5325,6 +5354,305 @@ function StockModal({ demats, onClose, onSave, initial = null, defaults = null }
         onClose={onClose}
       />
     </Modal>
+  );
+}
+
+// ================== SELL STOCK MODAL ==================
+function SellStockModal({ lot, onClose, onSave }: any) {
+  const today = new Date().toISOString().split("T")[0];
+  const [f, setF] = useState({
+    sellQty: String(lot.qty),
+    sellPrice: String(lot.currentPrice || ""),
+    sellDate: today,
+    broker: "",
+  });
+  const sellQtyNum = Number(f.sellQty) || 0;
+  const sellPriceNum = Number(f.sellPrice) || 0;
+  const profit = (sellPriceNum - Number(lot.avgPrice)) * sellQtyNum;
+  const remainingQty = Number(lot.qty) - sellQtyNum;
+
+  const handleSave = () => {
+    if (!sellQtyNum || !sellPriceNum || sellQtyNum > Number(lot.qty)) return;
+    const record = {
+      id: `ss-${Date.now()}`,
+      owner: lot.owner || "self",
+      symbol: lot.base || lot.symbol,
+      exchange: lot.exchange || "NSE",
+      qty: sellQtyNum,
+      buyPrice: Number(lot.avgPrice),
+      buyDate: lot.buyDate || "",
+      sellPrice: sellPriceNum,
+      sellDate: f.sellDate,
+      broker: f.broker,
+      dematId: lot.dematId || "",
+      profit: Number(profit.toFixed(2)),
+    };
+    onSave(record, remainingQty);
+  };
+
+  return (
+    <Modal title={`Sell ${lot.base || lot.symbol}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
+        Holding: <b>{lot.qty}</b> shares @ avg ₹{Number(lot.avgPrice).toFixed(2)} · Lot bought {lot.buyDate || "—"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Sell Qty">
+          <input style={input} type="number" min="1" max={lot.qty} value={f.sellQty}
+            onChange={(e) => setF({ ...f, sellQty: e.target.value })} />
+        </Field>
+        <Field label="Sell Price (₹)">
+          <input style={input} type="number" step="0.01" value={f.sellPrice}
+            onChange={(e) => setF({ ...f, sellPrice: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Sell Date">
+        <input style={input} type="date" value={f.sellDate}
+          onChange={(e) => setF({ ...f, sellDate: e.target.value })} />
+      </Field>
+      <Field label="Broker (optional)">
+        <input style={input} value={f.broker} placeholder="e.g. Zerodha"
+          onChange={(e) => setF({ ...f, broker: e.target.value })} />
+      </Field>
+      {sellQtyNum > 0 && sellPriceNum > 0 && (
+        <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? "rgba(72,199,142,0.1)" : "rgba(255,99,99,0.1)", marginTop: 4 }}>
+          <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span>
+          <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
+            {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </b>
+          {remainingQty > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingQty} shares remain</span>}
+          {remainingQty <= 0 && <span style={{ fontSize: 12, color: THEME.rust, marginLeft: 12 }}>Full lot sold</span>}
+        </div>
+      )}
+      {sellQtyNum > Number(lot.qty) && (
+        <div style={{ color: THEME.rust, fontSize: 12, marginTop: 4 }}>Cannot sell more than {lot.qty} shares</div>
+      )}
+      <ModalActions onSave={handleSave} onClose={onClose} />
+    </Modal>
+  );
+}
+
+// ================== TRANSACTION HISTORY TAB ==================
+function TxnHistoryTab({ state, removeItem }: any) {
+  const currentFY = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    return now.getMonth() >= 3 ? y : y - 1; // April onwards = new FY
+  })();
+  const [selectedFY, setSelectedFY] = useState(currentFY);
+  const [activeSection, setActiveSection] = useState<"all" | "bought" | "sold">("all");
+
+  const fyStart = (fy: number) => new Date(`${fy}-04-01`);
+  const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
+
+  // Get all FYs from buy dates and sell dates
+  const allFYs = useMemo(() => {
+    const fySet = new Set<number>();
+    fySet.add(currentFY);
+    (state.stocks || []).forEach((s: any) => {
+      if (s.buyDate) {
+        const d = new Date(s.buyDate);
+        const fy = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+        fySet.add(fy);
+      }
+    });
+    (state.stockSells || []).forEach((s: any) => {
+      if (s.sellDate) {
+        const d = new Date(s.sellDate);
+        const fy = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+        fySet.add(fy);
+      }
+    });
+    return Array.from(fySet).sort((a, b) => b - a);
+  }, [state.stocks, state.stockSells, currentFY]);
+
+  const boughtInFY = useMemo(() =>
+    (state.stocks || []).filter((s: any) => {
+      if (!s.buyDate) return false;
+      const d = new Date(s.buyDate);
+      return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
+    }).sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
+    [state.stocks, selectedFY]
+  );
+
+  const soldInFY = useMemo(() =>
+    (state.stockSells || []).filter((s: any) => {
+      if (!s.sellDate) return false;
+      const d = new Date(s.sellDate);
+      return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
+    }).sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
+    [state.stockSells, selectedFY]
+  );
+
+  const totalProfit = soldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
+
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const showBought = activeSection === "all" || activeSection === "bought";
+  const showSold = activeSection === "all" || activeSection === "sold";
+
+  return (
+    <div>
+      <SectionTitle sub="Complete record of every stock you bought and sold">
+        Transaction History
+      </SectionTitle>
+
+      {/* Controls */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24, alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Period:</span>
+          <select style={{ ...input, width: "auto", padding: "6px 10px" }} value={selectedFY}
+            onChange={(e) => setSelectedFY(Number(e.target.value))}>
+            {allFYs.map((fy) => (
+              <option key={fy} value={fy}>FY {String(fy).slice(2)}-{String(fy + 1).slice(2)}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {(["all", "bought", "sold"] as const).map((s) => (
+            <button key={s} style={{ ...btnGhost, fontSize: 12, padding: "5px 12px", ...(activeSection === s ? { background: THEME.accent, color: "#fff", borderColor: THEME.accent } : {}) }}
+              onClick={() => setActiveSection(s)}>
+              {s === "all" ? "All" : s === "bought" ? "Stocks Bought" : "Stocks Sold"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 28 }}>
+        <Tile icon={TrendingUp} label="Stocks Bought" value={String(boughtInFY.length)} sub={`FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)} lots`} />
+        <Tile icon={ArrowLeftRight} label="Stocks Sold" value={String(soldInFY.length)} sub={`${soldInFY.length} transactions`} />
+        <Tile icon={Coins} label="Realized P&L" value={`${totalProfit >= 0 ? "+" : ""}₹${Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          subColor={totalProfit >= 0 ? THEME.sage : THEME.rust} sub={totalProfit >= 0 ? "Profit" : "Loss"} />
+      </div>
+
+      {/* Stocks Bought */}
+      {showBought && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Stocks Bought</div>
+          {boughtInFY.length === 0 ? (
+            <div style={card}><EmptyHint text={`No stock purchases recorded in FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`} /></div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+                    <th style={{ ...th, paddingLeft: 4 }}>Company</th>
+                    <th style={{ ...th, textAlign: "right" }}>Qty</th>
+                    <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+                    <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
+                    <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                    <th style={{ ...th, textAlign: "right" }}>Curr Price</th>
+                    <th style={{ ...th, textAlign: "right" }}>Curr Value</th>
+                    <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
+                    <th style={th}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {boughtInFY.map((s: any) => {
+                    const curr = Number(s.currentPrice || 0);
+                    const inv = Number(s.qty) * Number(s.avgPrice);
+                    const val = Number(s.qty) * curr;
+                    const pnl = val - inv;
+                    return (
+                      <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                        <td style={{ ...td, paddingLeft: 4 }}>
+                          <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
+                          <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{s.exchange || "NSE"}</span>
+                        </td>
+                        <td style={{ ...td, textAlign: "right" }}>{s.qty}</td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.buyDate)}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{Number(s.avgPrice).toFixed(2)}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{curr ? `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td>
+                        <td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                          {curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                        </td>
+                        <td style={td}></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stocks Sold */}
+      {showSold && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>Stocks Sold</div>
+            {soldInFY.length > 0 && (
+              <div style={{ fontSize: 13 }}>
+                Net P&L: <b style={{ color: totalProfit >= 0 ? THEME.sage : THEME.rust }}>
+                  {totalProfit >= 0 ? "+" : ""}₹{Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </b>
+              </div>
+            )}
+          </div>
+          {soldInFY.length === 0 ? (
+            <div style={card}><EmptyHint text={`No stock sales recorded in FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`} /></div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
+                    <th style={{ ...th, paddingLeft: 4 }}>Company</th>
+                    <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
+                    <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
+                    <th style={{ ...th, textAlign: "right" }}>Qty</th>
+                    <th style={{ ...th, textAlign: "right" }}>Sell Date</th>
+                    <th style={{ ...th, textAlign: "right" }}>Sell Price</th>
+                    <th style={{ ...th, textAlign: "right" }}>Profit / Loss</th>
+                    <th style={{ ...th, textAlign: "right" }}>Broker</th>
+                    <th style={th}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {soldInFY.map((s: any) => {
+                    const profit = Number(s.profit || 0);
+                    return (
+                      <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                        <td style={{ ...td, paddingLeft: 4 }}>
+                          <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
+                          <span style={{ fontSize: 10, marginLeft: 5, color: THEME.muted, background: THEME.line, padding: "1px 4px", borderRadius: 3 }}>{s.exchange || "NSE"}</span>
+                        </td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.buyDate)}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{Number(s.buyPrice).toFixed(2)}</td>
+                        <td style={{ ...td, textAlign: "right" }}>{s.qty}</td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(s.sellDate)}</td>
+                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ color: Number(s.sellPrice) >= Number(s.buyPrice) ? THEME.sage : THEME.rust }}>
+                            ₹{Number(s.sellPrice).toFixed(2)} {Number(s.sellPrice) >= Number(s.buyPrice) ? "↑" : "↓"}
+                          </span>
+                        </td>
+                        <td style={{ ...td, textAlign: "right", color: profit >= 0 ? THEME.sage : THEME.rust, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                          {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </td>
+                        <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{s.broker || "—"}</td>
+                        <td style={td}>
+                          <button onClick={() => removeItem("stockSells", s.id)} style={iconBtn}><Trash2 size={13} /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: `2px solid ${THEME.line}` }}>
+                    <td colSpan={6} style={{ ...td, paddingLeft: 4, fontWeight: 700, fontSize: 13 }}>Total</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700, color: totalProfit >= 0 ? THEME.sage : THEME.rust }}>
+                      {totalProfit >= 0 ? "+" : ""}₹{Math.abs(totalProfit).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </td>
+                    <td colSpan={2} style={td}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
