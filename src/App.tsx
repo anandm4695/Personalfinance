@@ -8280,63 +8280,48 @@ function RentalTab({ state, addItem, removeItem, updateItem }: any) {
   const inDepositPaid = propertiesIn.reduce((total, p) =>
     total + Math.max(0, Number(p.securityDeposit || 0) - Number(p.depositReturned || 0)), 0);
 
-  const subBtnStyle = (active: boolean) => ({
-    padding: "7px 20px", borderRadius: 8, border: `1px solid ${active ? THEME.accent : THEME.line}`,
-    background: active ? THEME.accent : "transparent", color: active ? "#fff" : THEME.ink,
+  const segBtn = (active: boolean) => ({
+    padding: "7px 22px", borderRadius: 8, border: "none",
+    background: active ? THEME.accent : "transparent",
+    color: active ? "#fff" : THEME.muted,
     fontWeight: 600, fontSize: 13, cursor: "pointer",
   });
 
   return (
     <div>
-      <SectionTitle sub={`Track rent agreements, monthly receipts & security deposit · ${fyLabel}`}>
-        Rent Tracker
-      </SectionTitle>
-
-      {/* Sub-tab toggle */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <button style={subBtnStyle(sub === "out")} onClick={() => setSub("out")}>
-          Rented Out {propertiesOut.length > 0 && `(${propertiesOut.length})`}
+      {/* Header row — title left, button right */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <SectionTitle sub={`Track rent agreements, receipts & security deposit · ${fyLabel}`}>
+          Rent Tracker
+        </SectionTitle>
+        <button style={btnAccent} onClick={() => sub === "out" ? setShowAddOut(true) : setShowAddIn(true)}>
+          <Plus size={14} /> Add Property
         </button>
-        <button style={subBtnStyle(sub === "in")} onClick={() => setSub("in")}>
-          Rented In {propertiesIn.length > 0 && `(${propertiesIn.length})`}
+      </div>
+
+      {/* Sub-tab segmented control */}
+      <div style={{ display: "inline-flex", background: THEME.line, borderRadius: 10, padding: 3, marginBottom: 24 }}>
+        <button style={segBtn(sub === "out")} onClick={() => setSub("out")}>
+          Rented Out{propertiesOut.length > 0 ? ` (${propertiesOut.length})` : ""}
+        </button>
+        <button style={segBtn(sub === "in")} onClick={() => setSub("in")}>
+          Rented In{propertiesIn.length > 0 ? ` (${propertiesIn.length})` : ""}
         </button>
       </div>
 
       {/* ===== RENTED OUT ===== */}
       {sub === "out" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(outMonthlyRent)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Received {fyLabel}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(outThisFY)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(outMonthlyRent * 12)} expected</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(outDepositHeld)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>liability — to return</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Taxable IHP</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: outIHP > 0 ? THEME.rust : THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(Math.max(0, outIHP))}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>after 30% std deduction</div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <button style={btnAccent} onClick={() => setShowAddOut(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+            <Tile icon={Building2} label="Monthly Rent" value={fmtINRFull(outMonthlyRent)} sub="active agreements" />
+            <Tile icon={TrendingUp} label={`Received ${fyLabel}`} value={fmtINRFull(outThisFY)} sub={`of ${fmtINRFull(outMonthlyRent * 12)} expected`} />
+            <Tile icon={Landmark} label="Deposit Held" value={fmtINRFull(outDepositHeld)} sub="liability — to return" />
+            <Tile icon={Receipt} label="Taxable IHP" value={fmtINRFull(Math.max(0, outIHP))} sub="after 30% std deduction" />
           </div>
 
           {propertiesOut.length === 0 && (
-            <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
-              <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No properties rented out yet</div>
-              <div style={{ fontSize: 13 }}>Add your shop or flat to track rent receipts and security deposit</div>
+            <div style={card}>
+              <EmptyHint icon={Building2} text="Add your shop or flat to track rent receipts and security deposit" />
             </div>
           )}
 
@@ -8486,38 +8471,16 @@ function RentalTab({ state, addItem, removeItem, updateItem }: any) {
       {/* ===== RENTED IN ===== */}
       {sub === "in" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.rust, letterSpacing: "-0.02em" }}>{fmtINRFull(inMonthlyRent)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Paid {fyLabel}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(inThisFY)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(inMonthlyRent * 12)} expected</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Paid</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(inDepositPaid)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>asset — recoverable</div>
-            </div>
-            <div style={{ ...card, padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>HRA Eligible</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(inThisFY)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>auto-filled in Tax Vault</div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <button style={btnAccent} onClick={() => setShowAddIn(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+            <Tile icon={Building2} label="Monthly Rent" value={fmtINRFull(inMonthlyRent)} sub="active agreements" />
+            <Tile icon={TrendingDown} label={`Paid ${fyLabel}`} value={fmtINRFull(inThisFY)} sub={`of ${fmtINRFull(inMonthlyRent * 12)} expected`} />
+            <Tile icon={Shield} label="Deposit Paid" value={fmtINRFull(inDepositPaid)} sub="asset — recoverable" />
+            <Tile icon={Percent} label="HRA Eligible" value={fmtINRFull(inThisFY)} sub="auto-filled in Tax Vault" />
           </div>
 
           {propertiesIn.length === 0 && (
-            <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
-              <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No rented properties yet</div>
-              <div style={{ fontSize: 13 }}>Add the property you live in or rent commercially to track payments and deposit</div>
+            <div style={card}>
+              <EmptyHint icon={Building2} text="Add the property you rent to track payments and security deposit" />
             </div>
           )}
 
