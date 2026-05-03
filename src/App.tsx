@@ -451,6 +451,7 @@ const DEFAULT_STATE = (() => {
     informalBorrowed: [],
     informalLent: [],
     rentalProperties: [],
+    rentedProperties: [],
     subscriptions: [
       { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
@@ -742,6 +743,7 @@ export default function FinanceDashboard() {
       informalBorrowed: filterByOwner(state.informalBorrowed || []),
       informalLent: filterByOwner(state.informalLent || []),
       rentalProperties: filterByOwner(state.rentalProperties || []),
+      rentedProperties: filterByOwner(state.rentedProperties || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -819,6 +821,10 @@ export default function FinanceDashboard() {
       const returned = Number(p.depositReturned || 0);
       return s + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
     }, 0);
+    const rentedDepositAsset = (sState.rentedProperties || []).reduce((s, p) => {
+      const returned = Number(p.depositReturned || 0);
+      return s + Math.max(0, Number(p.securityDeposit || 0) - returned);
+    }, 0);
 
     const totalAssets =
       cashInBanks +
@@ -831,7 +837,8 @@ export default function FinanceDashboard() {
       mfValue +
       stockValue +
       loansGivenValue +
-      prepaidValue;
+      prepaidValue +
+      rentedDepositAsset;
     const totalLiabilities = ccOutstanding + loansTakenValue + rentalDepositLiability;
     const netWorth = totalAssets - totalLiabilities;
 
@@ -913,6 +920,7 @@ export default function FinanceDashboard() {
       loansGivenValue,
       prepaidValue,
       rentalDepositLiability,
+      rentedDepositAsset,
       totalAssets,
       totalLiabilities,
       netWorth,
@@ -8169,304 +8177,524 @@ function RentalDeductionModal({ onClose, onSave }: any) {
   );
 }
 
+function RentedInPropertyModal({ initial, onClose, onSave }: any) {
+  const [f, setF] = useState(initial ? {
+    owner: initial.owner || "self",
+    propertyName: initial.propertyName || "",
+    landlordName: initial.landlordName || "",
+    landlordPhone: initial.landlordPhone || "",
+    monthlyRent: initial.monthlyRent || "",
+    securityDeposit: initial.securityDeposit || "",
+    agreementStart: initial.agreementStart || "",
+    agreementEnd: initial.agreementEnd || "",
+    isActive: initial.isActive !== false,
+  } : { owner: "self", propertyName: "", landlordName: "", landlordPhone: "", monthlyRent: "", securityDeposit: "", agreementStart: "", agreementEnd: "", isActive: true });
+  return (
+    <Modal title={initial ? "Edit Rented Property" : "Add Rented Property"} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Owner / Profile" style={{ gridColumn: "1 / -1" }}>
+          <select style={input} value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })}>
+            {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Property / Address" style={{ gridColumn: "1 / -1" }}>
+          <input style={input} value={f.propertyName} onChange={(e) => setF({ ...f, propertyName: e.target.value })} placeholder="e.g. Flat 4B, Green Park" />
+        </Field>
+        <Field label="Landlord Name">
+          <input style={input} value={f.landlordName} onChange={(e) => setF({ ...f, landlordName: e.target.value })} placeholder="e.g. Suresh Mehta" />
+        </Field>
+        <Field label="Landlord Phone">
+          <input style={input} value={f.landlordPhone} onChange={(e) => setF({ ...f, landlordPhone: e.target.value })} placeholder="9876543210" />
+        </Field>
+        <Field label="Monthly Rent (₹)">
+          <input style={input} type="number" value={f.monthlyRent} onChange={(e) => setF({ ...f, monthlyRent: e.target.value })} placeholder="25000" />
+        </Field>
+        <Field label="Security Deposit Paid (₹)">
+          <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
+        </Field>
+        <Field label="Agreement Start">
+          <input style={input} type="date" value={f.agreementStart} onChange={(e) => setF({ ...f, agreementStart: e.target.value })} />
+        </Field>
+        <Field label="Agreement End">
+          <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
+        </Field>
+        <Field label="Status" style={{ gridColumn: "1 / -1" }}>
+          <select style={input} value={f.isActive ? "active" : "ended"} onChange={(e) => setF({ ...f, isActive: e.target.value === "active" })}>
+            <option value="active">Active</option>
+            <option value="ended">Ended / Vacated</option>
+          </select>
+        </Field>
+      </div>
+      <ModalActions onSave={() => f.propertyName && onSave(f)} onClose={onClose} saveLabel={initial ? "Update" : "Add Property"} />
+    </Modal>
+  );
+}
+
 function RentalTab({ state, addItem, removeItem, updateItem }: any) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [editProp, setEditProp] = useState(null as any);
-  const [expanded, setExpanded] = useState({} as Record<string, boolean>);
-  const [addReceiptFor, setAddReceiptFor] = useState(null as string | null);
-  const [addDeductionFor, setAddDeductionFor] = useState(null as string | null);
-  const [returnDepositFor, setReturnDepositFor] = useState(null as string | null);
-  const [returnAmt, setReturnAmt] = useState("");
+  const [sub, setSub] = useState<"out" | "in">("out");
 
-  const properties: any[] = state.rentalProperties || [];
-
+  // ── Shared FY ──
   const now = new Date();
   const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const fyStart = `${fyStartYear}-04-01`;
   const fyEnd = `${fyStartYear + 1}-03-31`;
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
 
-  const totalMonthlyRent = properties.filter((p) => p.isActive !== false).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
-  const totalThisFY = properties.reduce((total, p) =>
+  // ── Rented Out state ──
+  const [showAddOut, setShowAddOut] = useState(false);
+  const [editOut, setEditOut] = useState(null as any);
+  const [expandedOut, setExpandedOut] = useState({} as Record<string, boolean>);
+  const [addReceiptFor, setAddReceiptFor] = useState(null as string | null);
+  const [addDeductionFor, setAddDeductionFor] = useState(null as string | null);
+  const [returnDepositFor, setReturnDepositFor] = useState(null as string | null);
+  const [returnAmt, setReturnAmt] = useState("");
+
+  // ── Rented In state ──
+  const [showAddIn, setShowAddIn] = useState(false);
+  const [editIn, setEditIn] = useState(null as any);
+  const [expandedIn, setExpandedIn] = useState({} as Record<string, boolean>);
+  const [addPaymentFor, setAddPaymentFor] = useState(null as string | null);
+  const [returnInDepositFor, setReturnInDepositFor] = useState(null as string | null);
+  const [returnInAmt, setReturnInAmt] = useState("");
+
+  const propertiesOut: any[] = state.rentalProperties || [];
+  const propertiesIn: any[] = state.rentedProperties || [];
+
+  // ── Rented Out metrics ──
+  const outMonthlyRent = propertiesOut.filter((p) => p.isActive !== false).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
+  const outThisFY = propertiesOut.reduce((total, p) =>
     total + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
-  const totalDepositHeld = properties.reduce((total, p) => {
-    const deducted = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
-    const returned = Number(p.depositReturned || 0);
-    return total + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+  const outDepositHeld = propertiesOut.reduce((total, p) => {
+    const ded = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    return total + Math.max(0, Number(p.securityDeposit || 0) - ded - Number(p.depositReturned || 0));
   }, 0);
+  const outGAV = outThisFY;
+  const outMunTax = propertiesOut.reduce((s, p) => s + Number(p.municipalTax || 0), 0);
+  const outNAV = Math.max(0, outGAV - outMunTax);
+  const outIHP = outNAV - Math.round(outNAV * 0.30);
 
-  // Overall IHP for the FY
-  const gavTotal = properties.reduce((total, p) =>
-    total + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
-  const munTaxTotal = properties.reduce((s, p) => s + Number(p.municipalTax || 0), 0);
-  const navTotal = Math.max(0, gavTotal - munTaxTotal);
-  const stdDed = Math.round(navTotal * 0.30);
-  const ihpTotal = navTotal - stdDed;
+  // ── Rented In metrics ──
+  const inMonthlyRent = propertiesIn.filter((p) => p.isActive !== false).reduce((s, p) => s + Number(p.monthlyRent || 0), 0);
+  const inThisFY = propertiesIn.reduce((total, p) =>
+    total + (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
+  const inDepositPaid = propertiesIn.reduce((total, p) =>
+    total + Math.max(0, Number(p.securityDeposit || 0) - Number(p.depositReturned || 0)), 0);
 
-  const handleSave = (data: any) => {
-    if (editProp) {
-      updateItem("rentalProperties", editProp.id, data);
-      setEditProp(null);
-    } else {
-      addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0 });
-      setShowAdd(false);
-    }
-  };
+  const subBtnStyle = (active: boolean) => ({
+    padding: "7px 20px", borderRadius: 8, border: `1px solid ${active ? THEME.accent : THEME.line}`,
+    background: active ? THEME.accent : "transparent", color: active ? "#fff" : THEME.ink,
+    fontWeight: 600, fontSize: 13, cursor: "pointer",
+  });
 
   return (
     <div>
       <SectionTitle sub={`Track rent agreements, monthly receipts & security deposit · ${fyLabel}`}>
-        Rental Income
+        Rent Tracker
       </SectionTitle>
 
-      {/* Summary tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <div style={{ ...card, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(totalMonthlyRent)}</div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
-        </div>
-        <div style={{ ...card, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Received {fyLabel}</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(totalThisFY)}</div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(totalMonthlyRent * 12)} expected</div>
-        </div>
-        <div style={{ ...card, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(totalDepositHeld)}</div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>liability — to return</div>
-        </div>
-        <div style={{ ...card, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Taxable IHP</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: ihpTotal > 0 ? THEME.rust : THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(Math.max(0, ihpTotal))}</div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>after 30% std deduction</div>
-        </div>
+      {/* Sub-tab toggle */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <button style={subBtnStyle(sub === "out")} onClick={() => setSub("out")}>
+          Rented Out {propertiesOut.length > 0 && `(${propertiesOut.length})`}
+        </button>
+        <button style={subBtnStyle(sub === "in")} onClick={() => setSub("in")}>
+          Rented In {propertiesIn.length > 0 && `(${propertiesIn.length})`}
+        </button>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <button style={btnAccent} onClick={() => setShowAdd(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
-      </div>
+      {/* ===== RENTED OUT ===== */}
+      {sub === "out" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(outMonthlyRent)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
+            </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Received {fyLabel}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(outThisFY)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(outMonthlyRent * 12)} expected</div>
+            </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(outDepositHeld)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>liability — to return</div>
+            </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Taxable IHP</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: outIHP > 0 ? THEME.rust : THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(Math.max(0, outIHP))}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>after 30% std deduction</div>
+            </div>
+          </div>
 
-      {properties.length === 0 && (
-        <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
-          <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No rental properties yet</div>
-          <div style={{ fontSize: 13 }}>Add your shop or flat to start tracking rent receipts and security deposit</div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <button style={btnAccent} onClick={() => setShowAddOut(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
+          </div>
+
+          {propertiesOut.length === 0 && (
+            <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
+              <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No properties rented out yet</div>
+              <div style={{ fontSize: 13 }}>Add your shop or flat to track rent receipts and security deposit</div>
+            </div>
+          )}
+
+          {propertiesOut.map((p: any) => {
+            const isOpen = !!expandedOut[p.id];
+            const ded = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+            const ret = Number(p.depositReturned || 0);
+            const depositOutstanding = Math.max(0, Number(p.securityDeposit || 0) - ded - ret);
+            const totalReceived = (p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+            const fyReceived = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+            const isActive = p.isActive !== false;
+            const pGav = fyReceived;
+            const pMunTax = Number(p.municipalTax || 0);
+            const pNav = Math.max(0, pGav - pMunTax);
+            const pIhp = pNav - Math.round(pNav * 0.30);
+
+            return (
+              <div key={p.id} style={{ ...card, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                  onClick={() => setExpandedOut((e) => ({ ...e, [p.id]: !e[p.id] }))}>
+                  <Building2 size={20} color={isActive ? THEME.accent : THEME.muted} style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{p.propertyName || "Unnamed Property"}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {p.tenantName && <span>{p.tenantName} · </span>}
+                      {fmtINRFull(Number(p.monthlyRent))} /mo
+                      {p.agreementStart && <span> · {p.agreementStart} → {p.agreementEnd || "—"}</span>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", marginRight: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: THEME.sage }}>{fmtINRFull(totalReceived)}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>total received</div>
+                  </div>
+                  <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 99, flexShrink: 0,
+                    background: isActive ? "rgba(90,130,80,0.15)" : "rgba(128,128,128,0.12)",
+                    color: isActive ? THEME.sage : THEME.muted, fontWeight: 700 }}>
+                    {isActive ? "ACTIVE" : "ENDED"}
+                  </span>
+                  <button style={{ ...btnGhost, padding: "5px 8px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); setEditOut(p); }}><Pencil size={13} /></button>
+                  <button style={{ ...btnGhost, padding: "5px 8px", color: THEME.rust, flexShrink: 0 }}
+                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${p.propertyName}"?`)) removeItem("rentalProperties", p.id); }}>
+                    <Trash2 size={13} />
+                  </button>
+                  {isOpen ? <ChevronUp size={16} color={THEME.muted} /> : <ChevronDown size={16} color={THEME.muted} />}
+                </div>
+
+                {isOpen && (
+                  <div style={{ marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700 }}>Rent Receipts</div>
+                          <button style={{ ...btnGhost, fontSize: 11, padding: "4px 10px" }} onClick={() => setAddReceiptFor(p.id)}>
+                            <Plus size={11} style={{ marginRight: 3 }} /> Add
+                          </button>
+                        </div>
+                        {(p.receipts || []).length === 0 && <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>No receipts logged yet</div>}
+                        <div style={{ maxHeight: 240, overflowY: "auto" }}>
+                          {[...(p.receipts || [])].sort((a: any, b: any) => b.date.localeCompare(a.date)).map((r: any) => (
+                            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${THEME.line}`, fontSize: 13 }}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{r.month}</div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>{r.date}{r.note ? ` · ${r.note}` : ""}</div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ color: THEME.sage, fontWeight: 600 }}>{fmtINRFull(Number(r.amount))}</span>
+                                <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
+                                  onClick={() => updateItem("rentalProperties", p.id, { receipts: (p.receipts || []).filter((x: any) => x.id !== r.id) })}>
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Security Deposit (Held)</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                          <span style={{ color: THEME.muted }}>Received from tenant</span>
+                          <span style={{ fontWeight: 600 }}>{fmtINRFull(Number(p.securityDeposit))}</span>
+                        </div>
+                        {(p.depositDeductions || []).map((d: any) => (
+                          <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                            <span style={{ color: THEME.muted }}>− {d.reason} <span style={{ fontSize: 11 }}>({d.date})</span></span>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(Number(d.amount))}</span>
+                              <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
+                                onClick={() => updateItem("rentalProperties", p.id, { depositDeductions: (p.depositDeductions || []).filter((x: any) => x.id !== d.id) })}>
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {ret > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                            <span style={{ color: THEME.muted }}>Returned to tenant</span>
+                            <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(ret)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, padding: "8px 0" }}>
+                          <span>Outstanding (liability)</span>
+                          <span style={{ color: depositOutstanding > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(depositOutstanding)}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                          <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => setAddDeductionFor(p.id)}>
+                            <Plus size={11} style={{ marginRight: 3 }} /> Add Deduction
+                          </button>
+                          {depositOutstanding > 0 && (
+                            <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => { setReturnDepositFor(p.id); setReturnAmt(String(depositOutstanding)); }}>
+                              Return Deposit
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {pGav > 0 && (
+                      <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(128,128,128,0.06)", borderRadius: 8, fontSize: 12 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 10, color: THEME.muted }}>Income from House Property — Sec 22 · {fyLabel}</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                          <span style={{ color: THEME.muted }}>Gross Annual Value (rent received)</span><span style={{ fontWeight: 600 }}>{fmtINRFull(pGav)}</span>
+                        </div>
+                        {pMunTax > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                            <span style={{ color: THEME.muted }}>Less: Municipal Tax paid by owner</span><span style={{ color: THEME.rust }}>− {fmtINRFull(pMunTax)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                          <span style={{ color: THEME.muted }}>Net Annual Value</span><span>{fmtINRFull(pNav)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
+                          <span style={{ color: THEME.muted }}>Less: Standard Deduction 30% (Sec 24a)</span><span style={{ color: THEME.rust }}>− {fmtINRFull(Math.round(pNav * 0.30))}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontWeight: 700 }}>
+                          <span>Taxable IHP — carry to Tax Vault</span>
+                          <span style={{ color: pIhp > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(pIhp)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {properties.map((p: any) => {
-        const isOpen = !!expanded[p.id];
-        const deducted = (p.depositDeductions || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
-        const returned = Number(p.depositReturned || 0);
-        const depositOutstanding = Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
-        const totalReceived = (p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-        const fyReceived = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-        const isActive = p.isActive !== false;
-
-        const pGav = fyReceived;
-        const pMunTax = Number(p.municipalTax || 0);
-        const pNav = Math.max(0, pGav - pMunTax);
-        const pStdDed = Math.round(pNav * 0.30);
-        const pIhp = pNav - pStdDed;
-
-        return (
-          <div key={p.id} style={{ ...card, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
-              onClick={() => setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))}>
-              <Building2 size={20} color={isActive ? THEME.accent : THEME.muted} style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{p.propertyName || "Unnamed Property"}</div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                  {p.tenantName && <span>{p.tenantName} · </span>}
-                  {fmtINRFull(Number(p.monthlyRent))} /mo
-                  {p.agreementStart && <span> · {p.agreementStart} → {p.agreementEnd || "—"}</span>}
-                </div>
-              </div>
-              <div style={{ textAlign: "right", marginRight: 4 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.sage }}>{fmtINRFull(totalReceived)}</div>
-                <div style={{ fontSize: 11, color: THEME.muted }}>total received</div>
-              </div>
-              <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 99, flexShrink: 0,
-                background: isActive ? "rgba(90,130,80,0.15)" : "rgba(128,128,128,0.12)",
-                color: isActive ? THEME.sage : THEME.muted, fontWeight: 700 }}>
-                {isActive ? "ACTIVE" : "ENDED"}
-              </span>
-              <button style={{ ...btnGhost, padding: "5px 8px", flexShrink: 0 }}
-                onClick={(e) => { e.stopPropagation(); setEditProp(p); }}>
-                <Pencil size={13} />
-              </button>
-              <button style={{ ...btnGhost, padding: "5px 8px", color: THEME.rust, flexShrink: 0 }}
-                onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${p.propertyName}"?`)) removeItem("rentalProperties", p.id); }}>
-                <Trash2 size={13} />
-              </button>
-              {isOpen ? <ChevronUp size={16} color={THEME.muted} /> : <ChevronDown size={16} color={THEME.muted} />}
+      {/* ===== RENTED IN ===== */}
+      {sub === "in" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Monthly Rent</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.rust, letterSpacing: "-0.02em" }}>{fmtINRFull(inMonthlyRent)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>active agreements</div>
             </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Paid {fyLabel}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>{fmtINRFull(inThisFY)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>of {fmtINRFull(inMonthlyRent * 12)} expected</div>
+            </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Paid</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(inDepositPaid)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>asset — recoverable</div>
+            </div>
+            <div style={{ ...card, padding: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>HRA Eligible</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: THEME.gold, letterSpacing: "-0.02em" }}>{fmtINRFull(inThisFY)}</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>auto-filled in Tax Vault</div>
+            </div>
+          </div>
 
-            {isOpen && (
-              <div style={{ marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                  {/* Rent Receipts */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>Rent Receipts</div>
-                      <button style={{ ...btnGhost, fontSize: 11, padding: "4px 10px" }}
-                        onClick={() => setAddReceiptFor(p.id)}>
-                        <Plus size={11} style={{ marginRight: 3 }} /> Add
-                      </button>
-                    </div>
-                    {(p.receipts || []).length === 0 && (
-                      <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>No receipts logged yet</div>
-                    )}
-                    <div style={{ maxHeight: 240, overflowY: "auto" }}>
-                      {[...(p.receipts || [])].sort((a: any, b: any) => b.date.localeCompare(a.date)).map((r: any) => (
-                        <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                          padding: "7px 0", borderBottom: `1px solid ${THEME.line}`, fontSize: 13 }}>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{r.month}</div>
-                            <div style={{ fontSize: 11, color: THEME.muted }}>{r.date}{r.note ? ` · ${r.note}` : ""}</div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ color: THEME.sage, fontWeight: 600 }}>{fmtINRFull(Number(r.amount))}</span>
-                            <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
-                              onClick={() => updateItem("rentalProperties", p.id, { receipts: (p.receipts || []).filter((x: any) => x.id !== r.id) })}>
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <button style={btnAccent} onClick={() => setShowAddIn(true)}><Plus size={14} style={{ marginRight: 4 }} /> Add Property</button>
+          </div>
+
+          {propertiesIn.length === 0 && (
+            <div style={{ ...card, padding: 48, textAlign: "center", color: THEME.muted }}>
+              <Building2 size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No rented properties yet</div>
+              <div style={{ fontSize: 13 }}>Add the property you live in or rent commercially to track payments and deposit</div>
+            </div>
+          )}
+
+          {propertiesIn.map((p: any) => {
+            const isOpen = !!expandedIn[p.id];
+            const depositOutstanding = Math.max(0, Number(p.securityDeposit || 0) - Number(p.depositReturned || 0));
+            const totalPaid = (p.payments || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+            const fyPaid = (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+            const isActive = p.isActive !== false;
+
+            return (
+              <div key={p.id} style={{ ...card, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                  onClick={() => setExpandedIn((e) => ({ ...e, [p.id]: !e[p.id] }))}>
+                  <Building2 size={20} color={isActive ? THEME.rust : THEME.muted} style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{p.propertyName || "Unnamed Property"}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {p.landlordName && <span>{p.landlordName} · </span>}
+                      {fmtINRFull(Number(p.monthlyRent))} /mo
+                      {p.agreementStart && <span> · {p.agreementStart} → {p.agreementEnd || "—"}</span>}
                     </div>
                   </div>
+                  <div style={{ textAlign: "right", marginRight: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: THEME.rust }}>{fmtINRFull(totalPaid)}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>total paid</div>
+                  </div>
+                  <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 99, flexShrink: 0,
+                    background: isActive ? "rgba(207,74,74,0.12)" : "rgba(128,128,128,0.12)",
+                    color: isActive ? THEME.rust : THEME.muted, fontWeight: 700 }}>
+                    {isActive ? "ACTIVE" : "ENDED"}
+                  </span>
+                  <button style={{ ...btnGhost, padding: "5px 8px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); setEditIn(p); }}><Pencil size={13} /></button>
+                  <button style={{ ...btnGhost, padding: "5px 8px", color: THEME.rust, flexShrink: 0 }}
+                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${p.propertyName}"?`)) removeItem("rentedProperties", p.id); }}>
+                    <Trash2 size={13} />
+                  </button>
+                  {isOpen ? <ChevronUp size={16} color={THEME.muted} /> : <ChevronDown size={16} color={THEME.muted} />}
+                </div>
 
-                  {/* Security Deposit */}
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Security Deposit</div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
-                      <span style={{ color: THEME.muted }}>Received from tenant</span>
-                      <span style={{ fontWeight: 600 }}>{fmtINRFull(Number(p.securityDeposit))}</span>
-                    </div>
-                    {(p.depositDeductions || []).map((d: any) => (
-                      <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                        fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
-                        <span style={{ color: THEME.muted }}>
-                          − {d.reason}
-                          <span style={{ fontSize: 11, marginLeft: 4 }}>({d.date})</span>
-                        </span>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(Number(d.amount))}</span>
-                          <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
-                            onClick={() => updateItem("rentalProperties", p.id, { depositDeductions: (p.depositDeductions || []).filter((x: any) => x.id !== d.id) })}>
-                            <Trash2 size={11} />
+                {isOpen && (
+                  <div style={{ marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700 }}>Rent Payments</div>
+                          <button style={{ ...btnGhost, fontSize: 11, padding: "4px 10px" }} onClick={() => setAddPaymentFor(p.id)}>
+                            <Plus size={11} style={{ marginRight: 3 }} /> Add
                           </button>
                         </div>
+                        {(p.payments || []).length === 0 && <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>No payments logged yet</div>}
+                        <div style={{ maxHeight: 240, overflowY: "auto" }}>
+                          {[...(p.payments || [])].sort((a: any, b: any) => b.date.localeCompare(a.date)).map((r: any) => (
+                            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${THEME.line}`, fontSize: 13 }}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{r.month}</div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>{r.date}{r.note ? ` · ${r.note}` : ""}</div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ color: THEME.rust, fontWeight: 600 }}>{fmtINRFull(Number(r.amount))}</span>
+                                <button style={{ ...btnGhost, padding: "2px 5px", color: THEME.rust }}
+                                  onClick={() => updateItem("rentedProperties", p.id, { payments: (p.payments || []).filter((x: any) => x.id !== r.id) })}>
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {fyPaid > 0 && (
+                          <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(128,128,128,0.06)", borderRadius: 6, fontSize: 12 }}>
+                            <span style={{ color: THEME.muted }}>Paid this FY: </span>
+                            <b>{fmtINRFull(fyPaid)}</b>
+                            <span style={{ color: THEME.gold, marginLeft: 8 }}>→ use in HRA / 80GG deduction</span>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                    {returned > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
-                        <span style={{ color: THEME.muted }}>Returned to tenant</span>
-                        <span style={{ color: THEME.rust, fontWeight: 600 }}>−{fmtINRFull(returned)}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Security Deposit (Paid)</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                          <span style={{ color: THEME.muted }}>Paid to landlord</span>
+                          <span style={{ fontWeight: 600 }}>{fmtINRFull(Number(p.securityDeposit))}</span>
+                        </div>
+                        {Number(p.depositReturned || 0) > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${THEME.line}` }}>
+                            <span style={{ color: THEME.muted }}>Returned by landlord</span>
+                            <span style={{ color: THEME.sage, fontWeight: 600 }}>+{fmtINRFull(Number(p.depositReturned))}</span>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, padding: "8px 0" }}>
+                          <span>Outstanding (asset)</span>
+                          <span style={{ color: depositOutstanding > 0 ? THEME.sage : THEME.muted }}>{fmtINRFull(depositOutstanding)}</span>
+                        </div>
+                        {depositOutstanding > 0 && (
+                          <button style={{ ...btnGhost, fontSize: 11, marginTop: 8 }}
+                            onClick={() => { setReturnInDepositFor(p.id); setReturnInAmt(String(depositOutstanding)); }}>
+                            Mark Deposit Returned
+                          </button>
+                        )}
+                        {p.landlordPhone && (
+                          <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
+                            Landlord: {p.landlordName} · {p.landlordPhone}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, padding: "8px 0" }}>
-                      <span>Outstanding (liability)</span>
-                      <span style={{ color: depositOutstanding > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(depositOutstanding)}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                      <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => setAddDeductionFor(p.id)}>
-                        <Plus size={11} style={{ marginRight: 3 }} /> Add Deduction
-                      </button>
-                      {depositOutstanding > 0 && (
-                        <button style={{ ...btnGhost, fontSize: 11 }} onClick={() => { setReturnDepositFor(p.id); setReturnAmt(String(depositOutstanding)); }}>
-                          Return Deposit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* IHP Breakdown for this property */}
-                {pGav > 0 && (
-                  <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(128,128,128,0.06)", borderRadius: 8, fontSize: 12 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 10, color: THEME.muted, fontSize: 12 }}>
-                      Income from House Property — Sec 22 · {fyLabel}
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
-                      <span style={{ color: THEME.muted }}>Gross Annual Value (rent received)</span>
-                      <span style={{ fontWeight: 600 }}>{fmtINRFull(pGav)}</span>
-                    </div>
-                    {pMunTax > 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
-                        <span style={{ color: THEME.muted }}>Less: Municipal Tax paid by owner</span>
-                        <span style={{ color: THEME.rust }}>− {fmtINRFull(pMunTax)}</span>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
-                      <span style={{ color: THEME.muted }}>Net Annual Value (NAV)</span>
-                      <span>{fmtINRFull(pNav)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px dashed ${THEME.line}` }}>
-                      <span style={{ color: THEME.muted }}>Less: Standard Deduction 30% (Sec 24a)</span>
-                      <span style={{ color: THEME.rust }}>− {fmtINRFull(pStdDed)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontWeight: 700 }}>
-                      <span>Taxable IHP — add this in Tax Vault</span>
-                      <span style={{ color: pIhp > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(pIhp)}</span>
                     </div>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
 
-      {/* Return deposit inline form */}
+      {/* ── Rented Out modals ── */}
       {returnDepositFor && (
-        <Modal title="Return Security Deposit" onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }}>
-          <Field label="Amount Returned to Tenant (₹)">
+        <Modal title="Return Security Deposit to Tenant" onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }}>
+          <Field label="Amount Returned (₹)">
             <input style={input} type="number" value={returnAmt} onChange={(e) => setReturnAmt(e.target.value)} />
           </Field>
-          <ModalActions
-            onSave={() => {
-              const p = properties.find((x: any) => x.id === returnDepositFor);
-              if (p && Number(returnAmt) > 0) {
-                updateItem("rentalProperties", returnDepositFor, { depositReturned: Number(p.depositReturned || 0) + Number(returnAmt) });
-              }
-              setReturnDepositFor(null);
-              setReturnAmt("");
-            }}
-            onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }}
-            saveLabel="Confirm Return"
-          />
+          <ModalActions onSave={() => {
+            const p = propertiesOut.find((x: any) => x.id === returnDepositFor);
+            if (p && Number(returnAmt) > 0) updateItem("rentalProperties", returnDepositFor, { depositReturned: Number(p.depositReturned || 0) + Number(returnAmt) });
+            setReturnDepositFor(null); setReturnAmt("");
+          }} onClose={() => { setReturnDepositFor(null); setReturnAmt(""); }} saveLabel="Confirm Return" />
         </Modal>
       )}
-
-      {(showAdd || editProp) && (
-        <RentalPropertyModal
-          initial={editProp}
-          onClose={() => { setShowAdd(false); setEditProp(null); }}
-          onSave={handleSave}
-        />
+      {(showAddOut || editOut) && (
+        <RentalPropertyModal initial={editOut} onClose={() => { setShowAddOut(false); setEditOut(null); }}
+          onSave={(data: any) => {
+            if (editOut) { updateItem("rentalProperties", editOut.id, data); setEditOut(null); }
+            else { addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0 }); setShowAddOut(false); }
+          }} />
       )}
       {addReceiptFor && (
-        <RentalReceiptModal
-          onClose={() => setAddReceiptFor(null)}
+        <RentalReceiptModal onClose={() => setAddReceiptFor(null)}
           onSave={(data: any) => {
-            const p = properties.find((x: any) => x.id === addReceiptFor);
+            const p = propertiesOut.find((x: any) => x.id === addReceiptFor);
             if (p) updateItem("rentalProperties", addReceiptFor, { receipts: [...(p.receipts || []), { id: `rcpt-${Date.now()}`, ...data }] });
             setAddReceiptFor(null);
-          }}
-        />
+          }} />
       )}
       {addDeductionFor && (
-        <RentalDeductionModal
-          onClose={() => setAddDeductionFor(null)}
+        <RentalDeductionModal onClose={() => setAddDeductionFor(null)}
           onSave={(data: any) => {
-            const p = properties.find((x: any) => x.id === addDeductionFor);
+            const p = propertiesOut.find((x: any) => x.id === addDeductionFor);
             if (p) updateItem("rentalProperties", addDeductionFor, { depositDeductions: [...(p.depositDeductions || []), { id: `ded-${Date.now()}`, ...data }] });
             setAddDeductionFor(null);
-          }}
-        />
+          }} />
+      )}
+
+      {/* ── Rented In modals ── */}
+      {returnInDepositFor && (
+        <Modal title="Mark Deposit Returned by Landlord" onClose={() => { setReturnInDepositFor(null); setReturnInAmt(""); }}>
+          <Field label="Amount Returned by Landlord (₹)">
+            <input style={input} type="number" value={returnInAmt} onChange={(e) => setReturnInAmt(e.target.value)} />
+          </Field>
+          <ModalActions onSave={() => {
+            const p = propertiesIn.find((x: any) => x.id === returnInDepositFor);
+            if (p && Number(returnInAmt) > 0) updateItem("rentedProperties", returnInDepositFor, { depositReturned: Number(p.depositReturned || 0) + Number(returnInAmt) });
+            setReturnInDepositFor(null); setReturnInAmt("");
+          }} onClose={() => { setReturnInDepositFor(null); setReturnInAmt(""); }} saveLabel="Confirm" />
+        </Modal>
+      )}
+      {(showAddIn || editIn) && (
+        <RentedInPropertyModal initial={editIn} onClose={() => { setShowAddIn(false); setEditIn(null); }}
+          onSave={(data: any) => {
+            if (editIn) { updateItem("rentedProperties", editIn.id, data); setEditIn(null); }
+            else { addItem("rentedProperties", { ...data, payments: [], depositReturned: 0 }); setShowAddIn(false); }
+          }} />
+      )}
+      {addPaymentFor && (
+        <RentalReceiptModal onClose={() => setAddPaymentFor(null)}
+          onSave={(data: any) => {
+            const p = propertiesIn.find((x: any) => x.id === addPaymentFor);
+            if (p) updateItem("rentedProperties", addPaymentFor, { payments: [...(p.payments || []), { id: `pmt-${Date.now()}`, ...data }] });
+            setAddPaymentFor(null);
+          }} />
       )}
     </div>
   );
@@ -8478,7 +8706,16 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
   const [showTaxPmt, setShowTaxPmt] = useState(false);
   const [showSlabs, setShowSlabs] = useState(false);
   const [cgPlan, setCgPlan] = useState<{id:string;sellDate:string}[]>([]);
-  const [rentPaid, setRentPaid] = useState("180000");
+  const [rentPaid, setRentPaid] = useState(() => {
+    const now = new Date();
+    const fyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyStart = `${fyStartYear}-04-01`;
+    const fyEnd = `${fyStartYear + 1}-03-31`;
+    const annualRentPaid = (state.rentedProperties || []).reduce((total: number, p: any) =>
+      total + (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
+        .reduce((s: number, r: any) => s + Number(r.amount || 0), 0), 0);
+    return annualRentPaid > 0 ? String(annualRentPaid) : "180000";
+  });
   const [cityTier, setCityTier] = useState("metro");
 
   // ── Income inputs ──
@@ -9034,7 +9271,10 @@ function TaxTab({ state, addItem, removeItem, metrics, setState }) {
             <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>G9 · HRA Exemption Calculator (u/s 10(13A))</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Actual Rent Paid (Annual)</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>
+                  Actual Rent Paid (Annual)
+                  {(state.rentedProperties || []).length > 0 && <span style={{ color: THEME.gold, marginLeft: 6, fontSize: 11 }}>(auto-filled)</span>}
+                </div>
                 <input style={{ ...input, fontSize: 13 }} type="number" value={rentPaid} onChange={(e) => setRentPaid(e.target.value)} />
               </div>
               <div>
