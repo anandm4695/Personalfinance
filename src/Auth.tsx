@@ -79,14 +79,14 @@ const StatPill = ({ value, label }: { value: string; label: string }) => (
   </div>
 );
 
-export default function Auth({ onLogin }) {
+export default function Auth({ onLogin, onOffline }: { onLogin: (session: any) => void; onOffline?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState(null);
-  const [msg, setMsg] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
 
@@ -512,9 +512,35 @@ export default function Auth({ onLogin }) {
             </button>
           </div>
 
+          {/* Offline / Demo mode */}
+          {onOffline && (
+            <div style={{ marginTop: 20, textAlign: "center" }}>
+              <button
+                type="button"
+                onClick={onOffline}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255,255,255,0.3)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  padding: "6px 0",
+                  fontFamily: "'Inter', sans-serif",
+                  transition: "color 0.15s",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
+              >
+                Continue without an account (offline mode)
+              </button>
+            </div>
+          )}
+
           {/* Trust badge */}
           <div style={{
-            marginTop: 36,
+            marginTop: 20,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

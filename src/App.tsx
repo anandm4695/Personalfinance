@@ -30,9 +30,6 @@ import {
   Layers,
   Receipt,
   Repeat,
-  HandCoins,
-  Banknote,
-  LineChart as LineIcon,
   Sparkles,
   Sun,
   Moon,
@@ -49,9 +46,7 @@ import {
   Activity,
   Pause,
   Play,
-  Zap,
   Heart,
-  TrendingDown,
   Hash,
   FileUp,
   Percent,
@@ -528,6 +523,7 @@ export default function FinanceDashboard() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"idle"|"syncing"|"saved"|"error">("idle");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -655,6 +651,7 @@ export default function FinanceDashboard() {
     const userId = session.user?.id;
     if (!userId || userId === "offline-user") return;
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    setSyncStatus("syncing");
     syncTimerRef.current = setTimeout(async () => {
       try {
         const now = Date.now();
@@ -663,8 +660,12 @@ export default function FinanceDashboard() {
           data: { ...state, _ts: now },
           updated_at: new Date(now).toISOString()
         }, { onConflict: 'user_id' });
+        setSyncStatus("saved");
+        setTimeout(() => setSyncStatus("idle"), 2500);
       } catch (e) {
         console.error("Supabase save failed", e);
+        setSyncStatus("error");
+        setTimeout(() => setSyncStatus("idle"), 4000);
       }
     }, 1000);
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
@@ -1221,7 +1222,7 @@ export default function FinanceDashboard() {
         </div>
       );
     }
-    return <Auth onLogin={setSession} />;
+    return <Auth onLogin={setSession} onOffline={() => setSession({ user: { id: "offline-user" } })} />;
   }
 
   return (
@@ -1509,9 +1510,28 @@ export default function FinanceDashboard() {
                 </button>
               )}
 
+              {/* Sync status pill */}
+              {syncStatus !== "idle" && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+                  background: syncStatus === "saved" ? "color-mix(in srgb, var(--t-sage) 10%, transparent)"
+                            : syncStatus === "error"  ? "color-mix(in srgb, var(--t-rust) 10%, transparent)"
+                            : "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                  color: syncStatus === "saved" ? "var(--t-sage)"
+                       : syncStatus === "error"  ? "var(--t-rust)"
+                       : "var(--t-accent)",
+                  transition: "all 0.3s ease",
+                }}>
+                  {syncStatus === "syncing" && <RefreshCw size={11} style={{ animation: "spin 0.9s linear infinite" }} />}
+                  {syncStatus === "saved"   && <Check size={11} />}
+                  {syncStatus === "error"   && <AlertCircle size={11} />}
+                  <span>{syncStatus === "syncing" ? "Saving…" : syncStatus === "saved" ? "Saved" : "Sync failed"}</span>
+                </div>
+              )}
+
               <button onClick={exportJSON} style={{ ...btnGhost, display: "flex" }} title="Export backup">
                 <Download size={14} />
-                <span style={{ display: "none", "@media(min-width:1024px)": { display: "inline" } }}>Export</span>
               </button>
 
               <button
@@ -1526,6 +1546,20 @@ export default function FinanceDashboard() {
               >
                 <Settings size={14} />
               </button>
+
+              {session?.user?.id && session.user.id !== "offline-user" && (
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut().catch(() => {});
+                    setSession(null);
+                  }}
+                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}
+                  aria-label="Sign out"
+                  title="Sign out"
+                >
+                  <LogOut size={14} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -1861,34 +1895,41 @@ const SectionTitle = ({ children, sub }) => (
 // ================== TOAST + CONFIRM DIALOG ==================
 function ToastStack({ toasts }: { toasts: {id:string;msg:string;type:string}[] }) {
   if (!toasts.length) return null;
-  const colors = {
-    success: { bg: "#F0FDF4", border: "#BBF7D0", text: "#16A34A", icon: "✓" },
-    error:   { bg: "#FEF2F2", border: "#FECACA", text: "#DC2626", icon: "✕" },
-    warn:    { bg: "#FFFBEB", border: "#FDE68A", text: "#D97706", icon: "!" },
-    info:    { bg: "#EFF6FF", border: "#BFDBFE", text: "#2563EB", icon: "i" },
+  const configs: Record<string, { accent: string; icon: string; label: string }> = {
+    success: { accent: "var(--t-sage)",   icon: "✓", label: "success" },
+    error:   { accent: "var(--t-rust)",   icon: "✕", label: "error"   },
+    warn:    { accent: "var(--t-gold)",   icon: "!", label: "warning"  },
+    info:    { accent: "var(--t-accent)", icon: "i", label: "info"     },
   };
   return ReactDOM.createPortal(
     <div style={{ position: "fixed", bottom: 88, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
       {toasts.map((t) => {
-        const c = colors[t.type] || colors.success;
+        const cfg = configs[t.type] || configs.success;
         return (
           <div key={t.id} style={{
-            background: c.bg,
-            border: `1px solid ${c.border}`,
-            color: c.text,
+            background: "var(--t-darkInk)",
+            border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, var(--t-line))`,
+            color: "var(--t-ink)",
             padding: "12px 16px",
             borderRadius: 12,
             fontSize: 13,
             fontWeight: 600,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 10,
             maxWidth: 340,
             fontFamily: "var(--t-font, 'Inter', sans-serif)",
-            animation: "fadeSlideIn 0.25s ease",
+            animation: "toastIn 0.28s var(--ease-out) both",
           }}>
-            <span style={{ width: 18, height: 18, borderRadius: "50%", background: c.border, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{c.icon}</span>
+            <span style={{
+              width: 20, height: 20, borderRadius: "50%",
+              background: `color-mix(in srgb, ${cfg.accent} 15%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${cfg.accent} 40%, transparent)`,
+              color: cfg.accent,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 800, flexShrink: 0,
+            }}>{cfg.icon}</span>
             {t.msg}
           </div>
         );
@@ -10902,8 +10943,12 @@ function CsvImportModal({ accounts, onClose, onImport }) {
         if (parts.length < 4) throw new Error(`Row ${i + 1}: need at least date, amount, type, category`);
         const [date, amount, type, category, note, accountId] = parts;
         if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
+        const d = new Date(date);
+        if (isNaN(d.getTime())) throw new Error(`Row ${i + 1}: invalid date "${date}"`);
         if (!["credit", "debit"].includes(type.toLowerCase())) throw new Error(`Row ${i + 1}: type must be credit or debit`);
-        return { date, amount: String(Number(amount)), type: type.toLowerCase(), category: category || "Other", note: note || "", accountId: accountId || (accounts[0]?.id || "") };
+        const parsedAmount = Number(amount);
+        if (isNaN(parsedAmount) || parsedAmount < 0) throw new Error(`Row ${i + 1}: amount must be a non-negative number`);
+        return { date, amount: String(parsedAmount), type: type.toLowerCase(), category: category || "Other", note: note || "", accountId: accountId || (accounts[0]?.id || "") };
       });
       setPreview(rows);
     } catch (e) {

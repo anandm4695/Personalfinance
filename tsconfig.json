@@ -5,10 +5,14 @@
     "compilerOptions": {
         "strict": true,
         "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
         "lib": [
             "dom",
-            "es2015"
+            "dom.iterable",
+            "es2020"
         ],
-        "jsx": "react-jsx"
+        "jsx": "react-jsx",
+        "skipLibCheck": true
     }
 }
