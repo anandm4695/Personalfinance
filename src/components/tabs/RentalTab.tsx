@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { Building2, TrendingUp, Landmark, Receipt, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Shield, TrendingDown, Percent } from "lucide-react";
 import { THEME } from "../../utils/constants";

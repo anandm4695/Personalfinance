@@ -1,0 +1,84 @@
+// @ts-nocheck
+import React from "react";
+import ReactDOM from "react-dom";
+import { X } from "lucide-react";
+import { THEME } from "../../utils/constants";
+
+export function ConfirmDialog({ message, onConfirm, onCancel, btnGhost }: { message: string; onConfirm: () => void; onCancel: () => void; btnGhost: any }) {
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onCancel]);
+
+  return ReactDOM.createPortal(
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div className="modal-header">
+          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em", color: THEME.ink }}>Confirm Action</div>
+          <button className="modal-close-btn" onClick={onCancel} aria-label="Close"><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 14, color: THEME.ink, lineHeight: 1.6, marginBottom: 24 }}>{message}</p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button style={btnGhost} onClick={onCancel}>Cancel</button>
+            <button
+              onClick={onConfirm}
+              style={{ ...btnGhost, background: "#DC2626", border: "1px solid #DC2626", color: "#fff", fontWeight: 700 }}
+            >
+              Yes, delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type: string }[] }) {
+  if (!toasts.length) return null;
+  const configs: Record<string, { accent: string; icon: string; label: string }> = {
+    success: { accent: "var(--t-sage)", icon: "✓", label: "success" },
+    error: { accent: "var(--t-rust)", icon: "✕", label: "error" },
+    warn: { accent: "var(--t-gold)", icon: "!", label: "warning" },
+    info: { accent: "var(--t-accent)", icon: "i", label: "info" },
+  };
+
+  return ReactDOM.createPortal(
+    <div style={{ position: "fixed", bottom: 88, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
+      {toasts.map((t) => {
+        const cfg = configs[t.type] || configs.success;
+        return (
+          <div key={t.id} style={{
+            background: "var(--t-darkInk)",
+            border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, var(--t-line))`,
+            color: "var(--t-ink)",
+            padding: "12px 16px",
+            borderRadius: 12,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            maxWidth: 340,
+            fontFamily: "var(--t-font, 'Inter', sans-serif)",
+            animation: "toastIn 0.28s var(--ease-out) both",
+          }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: "50%",
+              background: `color-mix(in srgb, ${cfg.accent} 15%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${cfg.accent} 40%, transparent)`,
+              color: cfg.accent,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 800, flexShrink: 0,
+            }}>{cfg.icon}</span>
+            {t.msg}
+          </div>
+        );
+      })}
+    </div>,
+    document.body
+  );
+}

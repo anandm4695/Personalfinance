@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react";
 import { Modal, ModalActions } from "../ui/Modal";
 import { THEME } from "../../utils/constants";

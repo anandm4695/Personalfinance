@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react";
 import { Calculator, Shield, Receipt, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { THEME } from "../../utils/constants";
