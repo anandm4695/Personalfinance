@@ -696,6 +696,132 @@ tbody tr:hover td {
 .info-box-success{ background: color-mix(in srgb, var(--t-sage) 8%, transparent);   border: 1px solid color-mix(in srgb, var(--t-sage) 25%, transparent); color: var(--t-sage); }
 .info-box-info   { background: color-mix(in srgb, var(--t-accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--t-accent) 25%, transparent); color: var(--t-accent); }
 
+/* ── Header ────────────────────────────────────────────────────── */
+.header-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Header icon buttons — consistent hover state */
+.header-icon-btn {
+  background: transparent;
+  border: 1.5px solid var(--t-line);
+  color: var(--t-ink);
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+.header-icon-btn:hover {
+  background: color-mix(in srgb, var(--t-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--t-accent) 35%, var(--t-line));
+  color: var(--t-accent);
+}
+.header-icon-btn.danger:hover {
+  background: color-mix(in srgb, var(--t-rust) 8%, transparent);
+  border-color: color-mix(in srgb, var(--t-rust) 35%, var(--t-line));
+  color: var(--t-rust);
+}
+
+/* Search bar */
+.header-search input::placeholder { color: var(--t-muted); opacity: 0.7; }
+
+/* ── Button hover states (ghost buttons) ───────────────────────── */
+button[style*="border: 1.5px solid"]:not([disabled]):hover,
+button[style*="border:1.5px solid"]:not([disabled]):hover {
+  border-color: color-mix(in srgb, var(--t-accent) 50%, var(--t-line)) !important;
+  color: var(--t-accent) !important;
+}
+
+/* ── Tab navigation active indicator ──────────────────────────── */
+.desktop-tab-nav button {
+  position: relative;
+}
+.desktop-tab-nav button::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 80%;
+  height: 2px;
+  background: var(--t-accent);
+  border-radius: 2px 2px 0 0;
+  transition: transform 0.2s var(--ease-out);
+}
+.desktop-tab-nav button:hover::after {
+  transform: translateX(-50%) scaleX(0.5);
+  opacity: 0.5;
+}
+
+/* ── Card hover lift ───────────────────────────────────────────── */
+.card-lift {
+  transition: transform 0.2s var(--ease-premium), box-shadow 0.2s var(--ease-premium);
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ── Select styling ────────────────────────────────────────────── */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px !important;
+}
+
+/* ── Demo banner animation ─────────────────────────────────────── */
+.demo-banner {
+  animation: slideDown 0.3s var(--ease-out) both;
+}
+
+/* ── Table improvements ────────────────────────────────────────── */
+th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--t-line) 30%, transparent);
+  border-bottom: 1px solid var(--t-line);
+  white-space: nowrap;
+}
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--t-line) 60%, transparent);
+  font-size: 13px;
+  color: var(--t-ink);
+}
+tr:last-child td { border-bottom: none; }
+
+/* ── Sidebar nav improvements ──────────────────────────────────── */
+.sidebar-nav-btn {
+  transition: background 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
+}
+.sidebar-nav-btn:hover {
+  background: color-mix(in srgb, var(--t-accent) 7%, transparent) !important;
+  color: var(--t-accent) !important;
+}
+
+/* ── Input improvements ────────────────────────────────────────── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* ── Form field spacing ────────────────────────────────────────── */
+.form-grid { display: grid; gap: 16px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
 /* ── Print ─────────────────────────────────────────────────────── */
 @media print {
   nav, header, footer, button, .no-print, .mobile-bottom-nav, .fab { display: none !important; }
@@ -714,19 +840,22 @@ tbody tr:hover td {
   }
   .mobile-bottom-nav { display: flex; }
   .fab {
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     right: 16px;
-    width: 48px; height: 48px;
-    border-radius: 15px;
+    width: 46px; height: 46px;
+    border-radius: 14px;
   }
   .desktop-tab-nav { display: none !important; }
+  .header-search { display: none !important; }
   .modal-backdrop { padding: 0; align-items: flex-end; }
   .modal-panel {
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    max-height: 88vh;
+    max-height: 90vh;
     max-width: 100%;
   }
   .alerts-panel { width: calc(100vw - 24px); right: 12px; }
+  th { font-size: 10px; padding: 8px 10px; }
+  td { padding: 9px 10px; font-size: 12px; }
 }
 
 @media (max-width: 480px) {

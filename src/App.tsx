@@ -1382,22 +1382,26 @@ export default function FinanceDashboard() {
             style={{
               maxWidth: 1400,
               margin: "0 auto",
-              padding: sidebarNav ? "16px 32px" : "20px 32px",
+              padding: sidebarNav ? "14px 32px" : "16px 32px",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 16,
+              gap: 12,
             }}
           >
             {!sidebarNav && (
-              <div>
-                <div style={{ fontSize: 10, letterSpacing: "0.25em", color: THEME.muted, textTransform: "uppercase", marginBottom: 4, fontWeight: 500 }}>
-                  Personal Finance · FY {state.profile.fy}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #C4B5FD))", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 35%, transparent)", flexShrink: 0 }}>
+                  <IndianRupee size={18} color="#fff" strokeWidth={2.5} />
                 </div>
-                <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: "-0.03em", color: THEME.ink, lineHeight: 1 }}>
-                  Personal Finance by Anand Mohta
-                </h1>
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: "0.2em", color: THEME.muted, textTransform: "uppercase", fontWeight: 600, lineHeight: 1 }}>
+                    FY {state.profile.fy}
+                  </div>
+                  <h1 className="header-title" style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", color: THEME.ink, lineHeight: 1.2 }}>
+                    Personal Finance
+                  </h1>
+                </div>
               </div>
             )}
 
@@ -1410,58 +1414,65 @@ export default function FinanceDashboard() {
             )}
 
             {/* GLOBAL SEARCH */}
-            <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
-                <Search size={14} style={{ color: THEME.muted, flexShrink: 0 }} />
+            <div className="header-search" style={{ position: "relative", flex: 1, maxWidth: 280, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "color-mix(in srgb, var(--t-line) 40%, transparent)", border: `1px solid ${THEME.line}`, borderRadius: 10, padding: "8px 12px" }}>
+                <Search size={13} style={{ color: THEME.muted, flexShrink: 0 }} />
                 <input
                   type="text"
-                  placeholder="Search everything..."
+                  placeholder="Search…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setShowSearch(true); }}
                   onFocus={() => setShowSearch(true)}
                   onBlur={() => setTimeout(() => setShowSearch(false), 200)}
-                  style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: THEME.ink, fontFamily: "inherit", width: "100%" }}
+                  style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: THEME.ink, fontFamily: "inherit", width: "100%", minWidth: 0 }}
                 />
+                {search && (
+                  <button onClick={() => { setSearch(""); setShowSearch(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", padding: 0, flexShrink: 0 }}>
+                    <X size={12} />
+                  </button>
+                )}
               </div>
               {showSearch && searchResults.length > 0 && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: THEME.darkInk, border: `1px solid ${THEME.line}`, borderRadius: 12, marginTop: 8, zIndex: 200, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "var(--t-darkInk)", border: `1px solid ${THEME.line}`, borderRadius: 12, zIndex: 200, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
                   {searchResults.map((r, i) => (
-                    <div key={`${r.tab}-${r.name}-${i}`} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "12px 16px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div key={`${r.tab}-${r.name}-${i}`} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.12s" }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 5%, transparent)`}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{r.name}</div>
                         <div style={{ fontSize: 11, color: THEME.muted }}>{r.type}</div>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.accent }}>{r.detail}</div>
+                      <div style={{ fontSize: 12, color: THEME.accent, flexShrink: 0 }}>{r.detail}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* PROFILE SWITCHER */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Users size={16} color={THEME.muted} />
-              <select 
-                style={{ ...input, padding: "8px 12px", width: "auto", minWidth: 120, fontSize: 13, borderRadius: 10, background: "transparent", borderColor: THEME.line }}
+            <div style={{ display: "flex", gap: 4, alignItems: "center", position: "relative", flexShrink: 0 }}>
+              {/* PROFILE SWITCHER — compact */}
+              <select
+                style={{ ...input, padding: "7px 10px", width: "auto", fontSize: 12, borderRadius: 8, background: "transparent", borderColor: THEME.line, color: THEME.ink, maxWidth: 110 }}
                 value={activeProfile}
                 onChange={e => setActiveProfile(e.target.value)}
+                title="Switch profile"
               >
-                <option value="all">All Profiles</option>
+                <option value="all">All</option>
                 {PROFILES.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-            </div>
-
-            <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
               {/* Bell / Alerts */}
               <div style={{ position: "relative" }}>
                 <button
                   onClick={() => setShowAlerts((v) => !v)}
-                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px", position: "relative" }}
+                  className="header-icon-btn"
+                  style={{ position: "relative" }}
                   aria-label={`${alerts.length} alerts`}
+                  title="Alerts"
                 >
-                  <Bell size={16} />
+                  <Bell size={15} />
                   {alerts.length > 0 && (
                     <span className="notif-badge" style={{ position: "absolute", top: -5, right: -5 }}>
                       {alerts.length > 9 ? "9+" : alerts.length}
@@ -1522,11 +1533,11 @@ export default function FinanceDashboard() {
               {!sidebarNav && (
                 <button
                   onClick={() => setDarkMode(!darkMode)}
-                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}
+                  className="header-icon-btn"
                   aria-label="Toggle theme"
                   title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                 >
-                  {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+                  {darkMode ? <Sun size={15} /> : <Moon size={15} />}
                 </button>
               )}
 
@@ -1550,34 +1561,28 @@ export default function FinanceDashboard() {
                 </div>
               )}
 
-              <button onClick={exportJSON} style={{ ...btnGhost, display: "flex" }} title="Export backup">
-                <Download size={14} />
+              <button onClick={exportJSON} className="header-icon-btn" title="Export backup" aria-label="Export backup">
+                <Download size={15} />
               </button>
 
               <button
                 onClick={() => setTab("settings")}
-                style={{
-                  ...btnGhost,
-                  background: tab === "settings" ? THEME.accent : "transparent",
-                  color: tab === "settings" ? "#fff" : THEME.ink,
-                  borderColor: tab === "settings" ? THEME.accent : THEME.line,
-                }}
+                className="header-icon-btn"
+                style={tab === "settings" ? { background: THEME.accent, borderColor: THEME.accent, color: "#fff" } : {}}
                 aria-label="Settings"
+                title="Settings"
               >
-                <Settings size={14} />
+                <Settings size={15} />
               </button>
 
               {session?.user?.id && session.user.id !== "offline-user" && (
                 <button
-                  onClick={async () => {
-                    await supabase.auth.signOut().catch(() => {});
-                    setSession(null);
-                  }}
-                  style={{ ...btnGhost, borderRadius: 10, padding: "9px 12px" }}
+                  onClick={async () => { await supabase.auth.signOut().catch(() => {}); setSession(null); }}
+                  className="header-icon-btn danger"
                   aria-label="Sign out"
                   title="Sign out"
                 >
-                  <LogOut size={14} />
+                  <LogOut size={15} />
                 </button>
               )}
             </div>
@@ -1620,23 +1625,23 @@ export default function FinanceDashboard() {
           {/* Quick Stats Bar */}
           {(() => {
             const items = [
-              { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust, positive: metrics.netWorth >= 0 },
-              { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold, positive: metrics.savingsRate >= 20 },
-              { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage, positive: metrics.taxDue === 0 },
-              { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome), color: THEME.sage, positive: true },
-              { label: "Monthly Spend", value: fmtINRFull(metrics.monthExpense), color: THEME.muted, positive: null },
+              { label: "Net Worth",      value: fmtINRFull(metrics.netWorth),              color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
+              { label: "Savings Rate",   value: metrics.savingsRate.toFixed(1) + "%",       color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
+              { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome),            color: THEME.sage },
+              { label: "Monthly Spend",  value: fmtINRFull(metrics.monthExpense),           color: THEME.ink },
+              { label: "Est. Tax",       value: fmtINRFull(metrics.taxDue),                 color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
             ];
             return (
               <div style={{ borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk, overflowX: "auto" }} className="no-scrollbar">
-                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "10px 32px", display: "flex", gap: 0, alignItems: "center", minWidth: "max-content" }}>
+                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "8px 32px", display: "flex", alignItems: "center", minWidth: "max-content" }}>
                   {items.map(({ label, value, color }, idx) => (
                     <React.Fragment key={label}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 20px" }}>
-                        <span style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: THEME.muted, fontWeight: 500 }}>{label}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 1, padding: "4px 18px" }}>
+                        <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase", color: THEME.muted, fontWeight: 600 }}>{label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
                       </div>
                       {idx < items.length - 1 && (
-                        <div style={{ width: 1, height: 28, background: THEME.line, flexShrink: 0 }} />
+                        <div style={{ width: 1, height: 24, background: THEME.line, flexShrink: 0 }} />
                       )}
                     </React.Fragment>
                   ))}
@@ -1648,12 +1653,12 @@ export default function FinanceDashboard() {
 
         {/* Demo data recovery banner — shown when no real data exists in this browser */}
         {isDemo && (
-          <div style={{
-            background: "color-mix(in srgb, var(--t-gold) 10%, var(--t-paper))",
-            borderBottom: "2px solid color-mix(in srgb, var(--t-gold) 35%, transparent)",
+          <div className="demo-banner" style={{
+            background: "color-mix(in srgb, var(--t-gold) 8%, var(--t-paper))",
+            borderBottom: "1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)",
           }}>
             <div style={{
-              maxWidth: 1400, margin: "0 auto", padding: "12px 32px",
+              maxWidth: 1400, margin: "0 auto", padding: "10px 32px",
               display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
             }}>
               <AlertCircle size={16} style={{ color: "var(--t-gold)", flexShrink: 0 }} />
