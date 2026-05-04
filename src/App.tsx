@@ -477,6 +477,16 @@ const DEFAULT_STATE = (() => {
   };
 })();
 
+// All data arrays set to empty — used when user clicks "Start Fresh"
+const EMPTY_DATA = {
+  bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
+  bonds: [], ppf: [], nps: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
+  demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
+  informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
+  subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
+  reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
+};
+
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
   const [state, setState] = useState(() => {
@@ -524,6 +534,10 @@ export default function FinanceDashboard() {
   }, []);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [syncStatus, setSyncStatus] = useState<"idle"|"syncing"|"saved"|"error">("idle");
+  // true when no saved data exists in this browser — shows the "demo data" recovery banner
+  const [isDemo, setIsDemo] = useState<boolean>(() => {
+    try { return !localStorage.getItem(STORAGE_KEY); } catch { return false; }
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -1077,6 +1091,7 @@ export default function FinanceDashboard() {
           return;
         }
         setState({ ...DEFAULT_STATE, ...parsed });
+        setIsDemo(false);
         showToast("Backup restored successfully");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
@@ -1085,6 +1100,11 @@ export default function FinanceDashboard() {
     };
     reader.readAsText(file);
   };
+
+  const dismissDemo = useCallback((startFresh = false) => {
+    if (startFresh) setState(prev => ({ ...prev, ...EMPTY_DATA }));
+    setIsDemo(false);
+  }, []);
 
   const exportCSV = () => {
     const rows = [["Date", "Account", "Type", "Category", "Amount", "Note"]];
@@ -1626,6 +1646,51 @@ export default function FinanceDashboard() {
           })()}
         </header>
 
+        {/* Demo data recovery banner — shown when no real data exists in this browser */}
+        {isDemo && (
+          <div style={{
+            background: "color-mix(in srgb, var(--t-gold) 10%, var(--t-paper))",
+            borderBottom: "2px solid color-mix(in srgb, var(--t-gold) 35%, transparent)",
+          }}>
+            <div style={{
+              maxWidth: 1400, margin: "0 auto", padding: "12px 32px",
+              display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+            }}>
+              <AlertCircle size={16} style={{ color: "var(--t-gold)", flexShrink: 0 }} />
+              <span style={{ flex: 1, fontSize: 13, color: "var(--t-ink)", minWidth: 200 }}>
+                <strong>You're viewing demo data.</strong> If you've used this app before on another device or URL, import your backup to restore your real data. Or start fresh to begin entering your own.
+              </span>
+              <label style={{
+                display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+                padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                border: "1px solid var(--t-line)", color: "var(--t-ink)", background: "var(--t-paper)",
+              }}>
+                <Upload size={13} /> Import Backup
+                <input type="file" accept=".json" style={{ display: "none" }} onChange={(e) => { importJSON(e); }} />
+              </label>
+              <button
+                style={{
+                  padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  border: "1px solid var(--t-line)", color: "var(--t-ink)", background: "var(--t-paper)", cursor: "pointer",
+                }}
+                onClick={() => dismissDemo(true)}
+              >
+                Start Fresh
+              </button>
+              <button
+                style={{
+                  padding: "7px 10px", borderRadius: 8, fontSize: 12,
+                  border: "1px solid transparent", color: "var(--t-muted)", background: "transparent", cursor: "pointer",
+                }}
+                onClick={() => dismissDemo(false)}
+                title="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <main
           style={{
             maxWidth: sidebarNav ? 1200 : 1400,
@@ -1661,6 +1726,7 @@ export default function FinanceDashboard() {
                 resetAll={resetAll}
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
+                onImportSuccess={() => setIsDemo(false)}
                 accentKey={accentKey} setAccentKey={setAccentKey}
                 density={density} setDensity={setDensity}
                 sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
@@ -10259,7 +10325,7 @@ function QuickAddModal({ onClose, onSave, bankAccounts }) {
 
 // ================== SETTINGS TAB ==================
 function SettingsTab({
-  state, setState, exportJSON, resetAll, showToast, onSignOut,
+  state, setState, exportJSON, resetAll, showToast, onSignOut, onImportSuccess,
   accentKey, setAccentKey,
   density, setDensity,
   sidebarNav, setSidebarNav,
@@ -10296,6 +10362,7 @@ function SettingsTab({
           return;
         }
         setState({ ...DEFAULT_STATE, ...parsed });
+        onImportSuccess?.();
         showToast("Backup restored successfully");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
