@@ -34,6 +34,7 @@ import { fmtINR, fmtINRFull, monthsBetween, today, getCCDueDate } from "../../ut
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { MonthlyReportModal } from "../modals/MonthlyReportModal";
 
 interface AnalyticsTabProps {
   metrics: any;
@@ -52,6 +53,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   const [sub, setSub] = useState("dashboard");
   const [drillCat, setDrillCat] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
 
   const subs = [
     { id: "dashboard", label: "Dashboard", icon: PieIcon },
@@ -182,7 +184,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
         </div>
-        <Button variant="secondary" size="sm" icon={<Printer size={14} />}>
+        <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => setShowReport(true)}>
           Monthly Report
         </Button>
       </div>
@@ -288,7 +290,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </AreaChart>
             </ResponsiveContainer>
           </Card>
-          
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <Card style={{ padding: 24 }}>
               <div className="section-label">Monthly Income vs Expense</div>
@@ -415,6 +416,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </Card>
            </div>
         </div>
+      )}
+      {showReport && (
+        <MonthlyReportModal metrics={metrics} state={state} onClose={() => setShowReport(false)} />
       )}
     </div>
   );

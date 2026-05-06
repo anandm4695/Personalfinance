@@ -42,6 +42,7 @@ import {
   Database,
   User,
   Layout as LayoutIcon,
+  Upload,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -76,7 +77,6 @@ import { SettingsTab } from "./components/tabs/SettingsTab";
 // Modal Imports
 import { CsvImportModal } from "./components/modals/CsvImportModal";
 import { QuickAddModal } from "./components/modals/QuickAddModal";
-import { MonthlyReportModal } from "./components/modals/MonthlyReportModal";
 
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
@@ -245,7 +245,7 @@ export default function FinanceDashboard() {
     try { return (localStorage.getItem("finance-density") as DensityKey) || "normal"; } catch { return "normal"; }
   });
   const [sidebarNav, setSidebarNav] = useState<boolean>(() => {
-    try { return localStorage.getItem("finance-sidebar") === "true"; } catch { return false; }
+    try { return localStorage.getItem("finance-sidebar") !== "false"; } catch { return true; }
   });
   const [radiusKey, setRadiusKey] = useState<string>(() => {
     try { return localStorage.getItem("finance-radius") || "modern"; } catch { return "modern"; }
@@ -878,8 +878,8 @@ export default function FinanceDashboard() {
     {
       title: "Overview",
       items: [
-        { id: "analytics", label: "Dashboard", icon: PieIcon },
-        { id: "txnhistory", label: "Transaction History", icon: History },
+        { id: "analytics", label: "Executive Dashboard", icon: PieIcon },
+        { id: "txnhistory", label: "Global Ledger", icon: History },
       ]
     },
     {
@@ -892,21 +892,27 @@ export default function FinanceDashboard() {
       ]
     },
     {
+      title: "Liabilities & Credit",
+      items: [
+        { id: "credit", label: "Credit & Loans", icon: CreditCard },
+      ]
+    },
+    {
       title: "Planning & Spends",
       items: [
         { id: "tax", label: "Tax Vault", icon: Calculator },
-        { id: "rental", label: "Rental Details", icon: Building2 },
-        { id: "subs", label: "Subscriptions", icon: Repeat },
         { id: "sip", label: "SIP Tracker", icon: Activity },
         { id: "insurance", label: "Insurance", icon: Heart },
         { id: "budget", label: "Budgeting", icon: Wallet },
+        { id: "rental", label: "Rental Details", icon: Building2 },
+        { id: "subs", label: "Subscriptions", icon: Repeat },
       ]
     },
     {
       title: "System",
       items: [
-        { id: "reminders", label: "Reminders", icon: Bell },
-        { id: "calculators", label: "Calculators", icon: Hash },
+        { id: "reminders", label: "Reminders & Alerts", icon: Bell },
+        { id: "calculators", label: "Financial Calculators", icon: Hash },
         { id: "settings", label: "App Settings", icon: Settings },
       ]
     }
@@ -939,12 +945,27 @@ export default function FinanceDashboard() {
         results.push({ type: "Goal", name: g.name, detail: fmtINRFull(g.currentAmount) + " / " + fmtINRFull(g.targetAmount), tab: "goals" });
       }
     });
+    state.creditCards.forEach((c) => {
+      if ((c.issuer || "").toLowerCase().includes(q) || (c.last4 || "").includes(q)) {
+        results.push({ type: "Credit Card", name: c.issuer, detail: `**** ${c.last4} · ${fmtINRFull(c.outstanding)}`, tab: "credit" });
+      }
+    });
+    state.loansTaken.forEach((l) => {
+      if ((l.lender || "").toLowerCase().includes(q)) {
+        results.push({ type: "Loan Taken", name: l.lender, detail: `${l.type} · ${fmtINRFull(l.outstanding)}`, tab: "credit" });
+      }
+    });
+    state.bankAccounts.forEach((b) => {
+      if ((b.bankName || "").toLowerCase().includes(q)) {
+        results.push({ type: "Bank Account", name: b.bankName, detail: `${b.accountNumber} · ${fmtINRFull(b.balance)}`, tab: "banks" });
+      }
+    });
     state.subscriptions.forEach((s) => {
       if ((s.name || "").toLowerCase().includes(q)) {
         results.push({ type: "Subscription", name: s.name, detail: fmtINRFull(s.amount) + " / " + s.cycle, tab: "subs" });
       }
     });
-    return results.slice(0, 8);
+    return results.slice(0, 10);
   }, [search, state]);
 
   const d = DENSITY[density] || DENSITY.normal;
@@ -1007,13 +1028,12 @@ export default function FinanceDashboard() {
         fontFamily: "var(--t-font, 'Inter', sans-serif)",
         color: THEME.ink,
         position: "relative",
-        display: sidebarNav ? "flex" : "block",
+        display: "flex",
         fontSize: d.fontSize,
       }}
     >
       {/* ── SIDEBAR NAVIGATION ── */}
-      {sidebarNav && (
-        <aside
+      <aside
           style={{
             width: 280,
             background: THEME.darkInk,
@@ -1094,7 +1114,6 @@ export default function FinanceDashboard() {
             </button>
           </div>
         </aside>
-      )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* HEADER */}
@@ -1116,36 +1135,20 @@ export default function FinanceDashboard() {
             style={{
               maxWidth: 1400,
               margin: "0 auto",
-              padding: sidebarNav ? "14px 32px" : "16px 32px",
+              padding: "14px 32px",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 12,
             }}
           >
-            {!sidebarNav && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 70%, #C4B5FD))", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 35%, transparent)", flexShrink: 0 }}>
-                  <IndianRupee size={18} color="#fff" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, letterSpacing: "0.2em", color: THEME.muted, textTransform: "uppercase", fontWeight: 600, lineHeight: 1 }}>
-                    FY {state.profile.fy}
-                  </div>
-                  <h1 className="header-title" style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", color: THEME.ink, lineHeight: 1.2 }}>
-                    Personal Finance
-                  </h1>
-                </div>
-              </div>
-            )}
 
-            {sidebarNav && (
-               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--t-accent) 10%, transparent)", borderRadius: 8, color: THEME.accent, fontWeight: 700, fontSize: 13 }}>
-                    {allTabs.find(t => t.id === tab)?.label}
-                  </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+               <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--t-accent) 10%, transparent)", borderRadius: 8, color: THEME.accent, fontWeight: 700, fontSize: 13 }}>
+                 {allTabs.find(t => t.id === tab)?.label}
                </div>
-            )}
+            </div>
 
             {/* GLOBAL SEARCH */}
             <div className="header-search" style={{ position: "relative", flex: 1, maxWidth: 280, minWidth: 0 }}>
@@ -1322,39 +1325,7 @@ export default function FinanceDashboard() {
             </div>
           </div>
 
-          {/* TOP TAB NAV (only if not sidebar) */}
-          {!sidebarNav && (
-            <nav style={{ maxWidth: 1400, margin: "0 auto", padding: "0 32px", display: "flex", gap: 8, overflowX: "auto", borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk }} className="no-scrollbar desktop-tab-nav">
-              {tabs.map((t) => {
-                const Icon = t.icon;
-                const active = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => { setTab(t.id); if (t.children) setSubTab(t.children[0].id); else setSubTab(null); }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "16px 20px",
-                      fontFamily: "inherit",
-                      fontSize: 14,
-                      color: active ? THEME.accent : THEME.muted,
-                      borderBottom: `3px solid ${active ? THEME.accent : "transparent"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      whiteSpace: "nowrap",
-                      fontWeight: active ? 700 : 500,
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <Icon size={14} /> {t.label}
-                  </button>
-                );
-              })}
-            </nav>
-          )}
+
 
           {/* Quick Stats Bar */}
           {(() => {
@@ -1432,16 +1403,16 @@ export default function FinanceDashboard() {
 
         <main
           style={{
-            maxWidth: sidebarNav ? 1200 : 1400,
-            margin: sidebarNav ? "0" : "0 auto",
-            padding: sidebarNav ? "40px" : "32px",
+            maxWidth: 1200,
+            margin: "0",
+            padding: "40px",
             position: "relative",
             zIndex: 1,
             background: "var(--t-paper)",
           }}
         >
           <div key={tab} className="tab-content-enter">
-            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} />}
+            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} />}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}

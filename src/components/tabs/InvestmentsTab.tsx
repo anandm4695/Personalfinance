@@ -61,13 +61,23 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         return <FDSection items={state.fixedDeposits} removeItem={removeItem} />;
       case "rd":
         return <RDSection items={state.recurringDeposits} removeItem={removeItem} />;
+      case "bond":
+        return <BondSection items={state.bonds} removeItem={removeItem} />;
+      case "ppf":
+        return <PPFSection items={state.ppf} removeItem={removeItem} />;
+      case "nps":
+        return <NPSSection items={state.nps} removeItem={removeItem} />;
+      case "mf":
+        return <MFSection items={state.mutualFunds} removeItem={removeItem} />;
+      case "lic":
+        return <LICSection items={state.lic} removeItem={removeItem} />;
       case "income":
         return <YieldTracker state={state} />;
       default:
         return (
           <Card style={{ padding: 48, textAlign: "center" }}>
             <div style={{ fontSize: 14, color: THEME.muted }}>
-              Section "{sub}" content coming soon in the refactor...
+              Select a category to view your holdings.
             </div>
           </Card>
         );
@@ -81,7 +91,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Investments Portfolio</h2>
           <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Growth, preservation, and yield instruments</div>
         </div>
-        <Button variant="accent" icon={<Plus size={14} />}>
+        <Button variant="accent" icon={<Plus size={14} />} onClick={() => {/* TODO: Add Modal */}}>
           Add Investment
         </Button>
       </div>
@@ -134,6 +144,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 const FDSection = ({ items, removeItem }: any) => (
   <div className="animate-fade-in-up">
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No Fixed Deposits found</Card>}
       {items.map((f: any) => {
         const maturity = fdMaturity(Number(f.principal), Number(f.rate), Number(f.years));
         return (
@@ -147,18 +158,10 @@ const FDSection = ({ items, removeItem }: any) => (
             </div>
             <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 16 }}>{fmtINRFull(f.principal)}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Rate: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.rate}%</span>
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Tenure: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.years} yrs</span>
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Matures: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.maturityDate}</span>
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Total: <span style={{ color: THEME.sage, fontWeight: 700 }}>{fmtINR(maturity)}</span>
-              </div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Rate: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.rate}%</span></div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Tenure: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.years} yrs</span></div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Matures: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.maturityDate}</span></div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>Total: <span style={{ color: THEME.sage, fontWeight: 700 }}>{fmtINR(maturity)}</span></div>
             </div>
           </Card>
         );
@@ -170,6 +173,7 @@ const FDSection = ({ items, removeItem }: any) => (
 const RDSection = ({ items, removeItem }: any) => (
   <div className="animate-fade-in-up">
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No Recurring Deposits found</Card>}
       {items.map((r: any) => {
         const maturity = rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths));
         return (
@@ -191,6 +195,131 @@ const RDSection = ({ items, removeItem }: any) => (
           </Card>
         );
       })}
+    </div>
+  </div>
+);
+
+const BondSection = ({ items, removeItem }: any) => (
+  <div className="animate-fade-in-up">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No Bonds found</Card>}
+      {items.map((b: any) => (
+        <Card key={b.id} style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+            <Badge variant="gold">{b.issuer || "Bond"}</Badge>
+            <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("bonds", b.id)} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{b.name}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{fmtINRFull(b.faceValue)}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ fontSize: 11, color: THEME.muted }}>Coupon: <span style={{ color: THEME.accent, fontWeight: 700 }}>{b.coupon}%</span></div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>Maturity: <span style={{ color: THEME.ink, fontWeight: 700 }}>{b.maturityDate}</span></div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const PPFSection = ({ items, removeItem }: any) => (
+  <div className="animate-fade-in-up">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No PPF accounts found</Card>}
+      {items.map((p: any) => (
+        <Card key={p.id} style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+            <Badge variant="accent">PPF Account</Badge>
+            <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("ppf", p.id)} />
+          </div>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Balance</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(p.balance)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>Bank/Post Office: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.institution || "—"}</span></div>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const NPSSection = ({ items, removeItem }: any) => (
+  <div className="animate-fade-in-up">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No NPS accounts found</Card>}
+      {items.map((n: any) => (
+        <Card key={n.id} style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+            <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
+            <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
+          </div>
+          <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Current Corpus</div>
+          <div style={{ fontSize: 28, fontWeight: 900 }}>{fmtINRFull(n.balance)}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{n.pran || "—"}</span></div>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
+const MFSection = ({ items, removeItem }: any) => (
+  <div className="animate-fade-in-up">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No Mutual Funds found</Card>}
+      {items.map((m: any) => {
+        const pnl = Number(m.currentValue || 0) - Number(m.investedValue || 0);
+        const pnlPct = Number(m.investedValue || 0) > 0 ? (pnl / Number(m.investedValue)) * 100 : 0;
+        return (
+          <Card key={m.id} style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+              <Badge variant="accent">{m.category || "Equity"}</Badge>
+              <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("mutualFunds", m.id)} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>{m.name}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+               <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" }}>Invested</div>
+                  <div style={{ fontWeight: 700 }}>{fmtINR(m.investedValue)}</div>
+               </div>
+               <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" }}>Current</div>
+                  <div style={{ fontWeight: 800, color: THEME.accent }}>{fmtINR(m.currentValue)}</div>
+               </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
+               <div style={{ fontSize: 11, color: THEME.muted }}>Returns</div>
+               <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                  {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+               </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const LICSection = ({ items, removeItem }: any) => (
+  <div className="animate-fade-in-up">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      {items.length === 0 && <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>No LIC policies found</Card>}
+      {items.map((l: any) => (
+        <Card key={l.id} style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <Badge variant="rust">LIC Policy</Badge>
+            <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("lic", l.id)} />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>{l.planName}</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12 }}>Policy: {l.policyNumber}</div>
+          <div style={{ display: "grid", gap: 8 }}>
+             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: THEME.muted }}>Sum Assured</span>
+                <span style={{ fontWeight: 700 }}>{fmtINRFull(l.sumAssured)}</span>
+             </div>
+             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: THEME.muted }}>Premium</span>
+                <span style={{ fontWeight: 700 }}>{fmtINRFull(l.annualPremium)}/yr</span>
+             </div>
+          </div>
+        </Card>
+      ))}
     </div>
   </div>
 );
