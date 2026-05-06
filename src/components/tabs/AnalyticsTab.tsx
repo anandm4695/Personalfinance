@@ -154,6 +154,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   return (
     <div className="tab-content-enter">
+      {/* Quick Stats Bar (Moved from App.tsx) */}
+      {(() => {
+        const items = [
+          { label: "Net Worth",      value: fmtINRFull(metrics.netWorth),              color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
+          { label: "Savings Rate",   value: metrics.savingsRate.toFixed(1) + "%",       color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
+          { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome),            color: THEME.sage },
+          { label: "Monthly Spend",  value: fmtINRFull(metrics.monthExpense),           color: THEME.ink },
+          { label: "Est. Tax",       value: fmtINRFull(metrics.taxDue),                 color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+        ];
+        return (
+          <div style={{ background: "transparent", overflowX: "auto", marginBottom: 24 }} className="no-scrollbar">
+            <div style={{ display: "flex", alignItems: "center", minWidth: "max-content", background: THEME.darkInk, borderRadius: 12, padding: "12px 10px", border: `1px solid ${THEME.line}` }}>
+              {items.map(({ label, value, color }, idx) => (
+                <React.Fragment key={label}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 24px" }}>
+                    <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase", color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
+                  </div>
+                  {idx < items.length - 1 && (
+                    <div style={{ width: 1, height: 28, background: THEME.line, flexShrink: 0 }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8, background: THEME.line, padding: 4, borderRadius: 12 }}>
           {subs.map((s) => {

@@ -95,37 +95,6 @@ export function SettingsTab({
               </div>
             </Field>
 
-            <Field label="Navigation Layout">
-              <div style={{ display: "flex", gap: 12 }}>
-                {[
-                  { id: true, label: "Sidebar", icon: LayoutIcon },
-                  { id: false, label: "Top Navigation", icon: CreditCard }
-                ].map((l) => (
-                  <button
-                    key={l.label}
-                    onClick={() => setSidebarNav(l.id)}
-                    style={{
-                      flex: 1,
-                      padding: "12px",
-                      borderRadius: 12,
-                      border: `2px solid ${sidebarNav === l.id ? THEME.accent : THEME.line}`,
-                      background: sidebarNav === l.id ? "color-mix(in srgb, var(--t-accent) 8%, transparent)" : "transparent",
-                      color: sidebarNav === l.id ? THEME.accent : THEME.muted,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <l.icon size={16} />
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-            </Field>
 
           </div>
         </Card>

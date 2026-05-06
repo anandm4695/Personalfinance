@@ -207,7 +207,7 @@ tbody tr:hover td {
 }
 .card-hover:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 .card-interactive {
   cursor: pointer;
@@ -216,7 +216,7 @@ tbody tr:hover td {
 .card-interactive:hover {
   box-shadow: var(--shadow-card-hover);
   border-color: color-mix(in srgb, var(--t-accent) 25%, var(--t-line));
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 .card-interactive:active { transform: scale(0.995) translateY(0); }
 

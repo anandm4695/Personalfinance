@@ -295,6 +295,7 @@ export default function FinanceDashboard() {
   const [showSearch, setShowSearch] = useState(false);
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   // Apply theme CSS vars whenever darkMode, accentKey, or other UI settings change
   useEffect(() => {
@@ -1064,55 +1065,54 @@ export default function FinanceDashboard() {
           </div>
 
           <nav style={{ flex: 1, overflowY: "auto", padding: "0 16px" }} className="no-scrollbar">
-            {navGroups.map((group) => (
-              <div key={group.title} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: THEME.muted, padding: "0 16px", marginBottom: 12 }}>
-                  {group.title}
+            {navGroups.map((group) => {
+              const isCollapsed = collapsedGroups[group.title];
+              return (
+                <div key={group.title} style={{ marginBottom: 20 }}>
+                  <div
+                    onClick={() => setCollapsedGroups(prev => ({ ...prev, [group.title]: !prev[group.title] }))}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "0 16px", marginBottom: 12 }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: THEME.muted }}>
+                      {group.title}
+                    </div>
+                    <ChevronDown size={14} color={THEME.muted} style={{ transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                  </div>
+                  {!isCollapsed && group.items.map((t) => {
+                    const Icon = t.icon;
+                    const active = tab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => { setTab(t.id); setSubTab(null); }}
+                        className={`nav-item ${active ? "active" : ""}`}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "10px 16px",
+                          borderRadius: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          marginBottom: 4,
+                          color: active ? THEME.accent : THEME.muted,
+                          fontWeight: active ? 800 : 600,
+                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
+                      >
+                        <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+                        <span style={{ fontSize: 13.5 }}>{t.label}</span>
+                        {active && <div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: THEME.accent }} />}
+                      </button>
+                    );
+                  })}
                 </div>
-                {group.items.map((t) => {
-                  const Icon = t.icon;
-                  const active = tab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => { setTab(t.id); setSubTab(null); }}
-                      className={`nav-item ${active ? "active" : ""}`}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "10px 16px",
-                        borderRadius: 12,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 4,
-                        color: active ? THEME.accent : THEME.muted,
-                        fontWeight: active ? 800 : 600,
-                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    >
-                      <Icon size={18} strokeWidth={active ? 2.5 : 2} />
-                      <span style={{ fontSize: 13.5 }}>{t.label}</span>
-                      {active && <div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: THEME.accent }} />}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+              );
+            })}
           </nav>
-
-          <div style={{ padding: 24, borderTop: `1px solid ${THEME.line}` }}>
-             <button
-              onClick={() => setDarkMode(!darkMode)}
-              style={{ ...btnGhost, width: "100%", justifyContent: "center" }}
-            >
-              {darkMode ? <Sun size={14} /> : <Moon size={14} />}
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </button>
-          </div>
         </aside>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1267,16 +1267,14 @@ export default function FinanceDashboard() {
               </div>
 
               {/* Dark mode toggle */}
-              {!sidebarNav && (
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="header-icon-btn"
-                  aria-label="Toggle theme"
-                  title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-                >
-                  {darkMode ? <Sun size={15} /> : <Moon size={15} />}
-                </button>
-              )}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="header-icon-btn"
+                aria-label="Toggle theme"
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
 
               {/* Sync status pill */}
               {syncStatus !== "idle" && (
@@ -1312,7 +1310,7 @@ export default function FinanceDashboard() {
                 <Settings size={15} />
               </button>
 
-              {session?.user?.id && session.user.id !== "offline-user" && (
+              {session && (
                 <button
                   onClick={async () => { await supabase.auth.signOut().catch(() => {}); setSession(null); }}
                   className="header-icon-btn danger"
@@ -1324,36 +1322,6 @@ export default function FinanceDashboard() {
               )}
             </div>
           </div>
-
-
-
-          {/* Quick Stats Bar */}
-          {(() => {
-            const items = [
-              { label: "Net Worth",      value: fmtINRFull(metrics.netWorth),              color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
-              { label: "Savings Rate",   value: metrics.savingsRate.toFixed(1) + "%",       color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
-              { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome),            color: THEME.sage },
-              { label: "Monthly Spend",  value: fmtINRFull(metrics.monthExpense),           color: THEME.ink },
-              { label: "Est. Tax",       value: fmtINRFull(metrics.taxDue),                 color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
-            ];
-            return (
-              <div style={{ borderTop: `1px solid ${THEME.line}`, background: THEME.darkInk, overflowX: "auto" }} className="no-scrollbar">
-                <div style={{ maxWidth: 1400, margin: "0 auto", padding: "8px 32px", display: "flex", alignItems: "center", minWidth: "max-content" }}>
-                  {items.map(({ label, value, color }, idx) => (
-                    <React.Fragment key={label}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 1, padding: "4px 18px" }}>
-                        <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase", color: THEME.muted, fontWeight: 600 }}>{label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
-                      </div>
-                      {idx < items.length - 1 && (
-                        <div style={{ width: 1, height: 24, background: THEME.line, flexShrink: 0 }} />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
         </header>
 
         {/* Demo data recovery banner — shown when no real data exists in this browser */}
