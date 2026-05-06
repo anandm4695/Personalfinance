@@ -42,6 +42,7 @@ interface AnalyticsTabProps {
   assetBreakdown: any[];
   trendData: any[];
   chartStyle: any;
+  setState: any;
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
@@ -50,10 +51,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   assetBreakdown,
   trendData,
   chartStyle,
+  setState,
 }) => {
   const [sub, setSub] = useState("dashboard");
   const [drillCat, setDrillCat] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [editingTarget, setEditingTarget] = useState(false);
 
   const subs = [
     { id: "dashboard", label: "Dashboard", icon: PieIcon },
@@ -218,8 +221,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       </div>
 
       {sub === "dashboard" && (
-        <div className="animate-fade-in-up">
-          <Card variant="hero" style={{ marginBottom: 28 }}>
+        <div className="animate-fade-in-up bento-grid">
+          <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
@@ -230,35 +233,119 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             
             <div style={{ position: "relative", zIndex: 1, marginBottom: 32 }}>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Total Net Worth</div>
-              <div style={{ fontSize: "clamp(42px, 5.5vw, 64px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", color: "#fff" }}>
+              <div style={{ fontSize: "clamp(42px, 5.5vw, 72px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", color: "#fff" }}>
                 {fmtINRFull(metrics.netWorth)}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#34D399", fontSize: 13, fontWeight: 700 }}>
+                  <TrendingUp size={14} />
+                  {((metrics.mfValue + metrics.stockValue) / (metrics.totalAssets || 1) * 100).toFixed(1)}% equity ratio
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+                  · Total assets {fmtINRFull(metrics.totalAssets)}
+                </div>
               </div>
             </div>
             
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "16px 24px", position: "relative", zIndex: 1, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "24px 32px", position: "relative", zIndex: 1, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
               <HeroStat label="Bank Cash" value={metrics.cashInBanks} />
-              <HeroStat label="Investments" value={metrics.mfValue + metrics.stockValue} />
-              <HeroStat label="Liabilities" value={metrics.totalLiabilities} negative />
-              <HeroStat label="Monthly P&L" value={metrics.monthIncome - metrics.monthExpense} sage={metrics.monthIncome > metrics.monthExpense} />
+              <HeroStat label="Fixed Deposits" value={metrics.fdValue} />
+              <HeroStat label="Mutual Funds" value={metrics.mfValue} />
+              <HeroStat label="Stocks" value={metrics.stockValue} />
+              <HeroStat label="PPF + NPS" value={metrics.ppfValue + metrics.npsValue} />
+              <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
+              <HeroStat label="Loans Taken" value={metrics.totalLiabilities - metrics.ccOutstanding} negative />
+              <HeroStat label="Subs / Mo" value={metrics.subTotal} />
             </div>
           </Card>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 32 }}>
-             <Card style={{ padding: 24 }}>
+          <div className="bento-col-12" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+            {/* 1. SAVINGS RATE */}
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+               <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Savings Rate</div>
+               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                 <div style={{ position: "relative", width: 68, height: 68, flexShrink: 0 }}>
+                   <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%" }}>
+                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={THEME.line} strokeWidth="3" />
+                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={metrics.savingsRate >= 20 ? THEME.sage : THEME.gold} strokeWidth="4" strokeDasharray={`${Math.max(0, Math.min(100, metrics.savingsRate))}, 100`} strokeLinecap="round" />
+                   </svg>
+                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800 }}>{metrics.savingsRate.toFixed(0)}%</div>
+                 </div>
+                 <div>
+                   <div style={{ fontSize: 32, fontWeight: 800, color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold, lineHeight: 1, marginBottom: 6, letterSpacing: "-0.02em" }}>{metrics.savingsRate.toFixed(1)}%</div>
+                   <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 8, fontWeight: 500 }}>of monthly income</div>
+                   <div style={{ fontSize: 12, fontWeight: 700, color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold }}>{metrics.savingsRate >= 20 ? "On track" : "Needs attention"}</div>
+                 </div>
+               </div>
+            </Card>
+
+            {/* 2. DEBT-TO-ASSET */}
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+               <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Debt-to-Asset Ratio</div>
+               <div>
+                 <div style={{ fontSize: 38, fontWeight: 900, color: metrics.debtToAssetRatio < 25 ? THEME.sage : THEME.rust, lineHeight: 1, marginBottom: 16, letterSpacing: "-0.02em" }}>{metrics.debtToAssetRatio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
+                 <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5, fontWeight: 500 }}>Healthy if under 40% · Your liabilities {fmtINRFull(metrics.totalLiabilities)}</div>
+               </div>
+            </Card>
+
+            {/* 3. LIQUIDITY SCORE */}
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+               <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Liquidity Score</div>
+               <div>
+                 {(() => {
+                   const liquid = metrics.cashInBanks;
+                   const locked = metrics.totalAssets - liquid;
+                   const ratio = metrics.totalAssets > 0 ? (liquid / metrics.totalAssets) * 100 : 0;
+                   return (
+                     <>
+                       <div style={{ fontSize: 38, fontWeight: 900, color: THEME.accent, lineHeight: 1, marginBottom: 16, letterSpacing: "-0.02em" }}>{ratio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
+                       <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5, fontWeight: 500 }}>Liquid {fmtINRFull(liquid)} · Locked {fmtINRFull(locked)}</div>
+                     </>
+                   );
+                 })()}
+               </div>
+            </Card>
+
+            {/* 4. INVESTMENT P&L */}
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+               <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Investment P&L</div>
+               <div>
+                 {(() => {
+                   const invested = metrics.mfInvested + metrics.stockInvested;
+                   const current = metrics.mfValue + metrics.stockValue;
+                   const pnl = current - invested;
+                   const returnPct = invested > 0 ? (pnl / invested) * 100 : 0;
+                   const isPos = pnl >= 0;
+                   const c = isPos ? THEME.sage : THEME.rust;
+                   return (
+                     <>
+                       <div style={{ fontSize: 34, fontWeight: 900, color: c, lineHeight: 1, marginBottom: 10, letterSpacing: "-0.02em" }}>{isPos ? "+" : ""}{fmtINRFull(pnl)}</div>
+                       <div style={{ fontSize: 14, fontWeight: 700, color: c, marginBottom: 8, display: "flex", alignItems: "center", gap: 2 }}>
+                         {isPos ? <ChevronUp size={18} strokeWidth={3} /> : <ChevronDown size={18} strokeWidth={3} />}
+                         {Math.abs(returnPct).toFixed(1)}% overall return
+                       </div>
+                       <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>Unrealised · Invested {fmtINRFull(invested)}</div>
+                     </>
+                   );
+                 })()}
+               </div>
+            </Card>
+          </div>
+             <Card className="bento-col-4 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
                 <div className="section-label">Financial Health</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-                  <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, color: dashboardData.scoreColor }}>{dashboardData.totalScore}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
+                  <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: dashboardData.scoreColor }}>{dashboardData.totalScore}</div>
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: dashboardData.scoreColor }}>{dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}</div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Health Score</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: dashboardData.scoreColor }}>{dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}</div>
+                    <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Overall Score</div>
                   </div>
                 </div>
-                <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gap: 14 }}>
                   {dashboardData.subScores.map((s) => (
                     <div key={s.label}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ color: THEME.muted }}>{s.label}</span>
-                        <span style={{ fontWeight: 600 }}>{s.score}/{s.max}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                        <span style={{ color: THEME.muted, fontWeight: 600 }}>{s.label}</span>
+                        <span style={{ fontWeight: 800 }}>{s.score}/{s.max}</span>
                       </div>
                       <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: dashboardData.scoreColor }} /></div>
                     </div>
@@ -266,21 +353,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
              </Card>
 
-             <Card style={{ padding: 24 }}>
+             <Card className="bento-col-5 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
                 <div className="section-label">Upcoming Dues</div>
                 {dashboardData.dues.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13 }}>No major dues coming up</div>
+                  <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>No major dues coming up</div>
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gap: 12, flex: 1, alignContent: "flex-start" }}>
                     {dashboardData.dues.slice(0, 4).map((d, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", borderRadius: 10, background: "rgba(128,128,128,0.04)" }}>
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 12, background: "rgba(128,128,128,0.04)" }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700 }}>{d.name}</div>
-                          <div style={{ fontSize: 11, color: THEME.muted }}>{d.date}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{d.name}</div>
+                          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{d.date}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800 }}>{fmtINR(d.amount)}</div>
-                          <Badge variant={d.daysLeft <= 5 ? "rust" : "gold"} style={{ fontSize: 9 }}>{d.daysLeft}d left</Badge>
+                          <div style={{ fontSize: 15, fontWeight: 800 }}>{fmtINR(d.amount)}</div>
+                          <Badge variant={d.daysLeft <= 5 ? "rust" : "gold"} style={{ fontSize: 10, marginTop: 4 }}>{d.daysLeft}d left</Badge>
                         </div>
                       </div>
                     ))}
@@ -288,16 +375,229 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 )}
              </Card>
 
-             <Card style={{ padding: 24 }}>
-                <div className="section-label">Savings Streak</div>
+             <Card className="bento-col-3 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%", justifyContent: "center" }}>
+                <div className="section-label" style={{ textAlign: "center" }}>Savings Streak</div>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
-                  <div style={{ fontSize: 48, marginBottom: 8 }}>{dashboardData.streakEmoji}</div>
-                  <div style={{ fontSize: 42, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>{dashboardData.streak}</div>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Months Saved</div>
-                  <Badge variant="sage" style={{ marginTop: 12 }}>{dashboardData.streakMsg}</Badge>
+                  <div style={{ fontSize: 56, marginBottom: 12 }}>{dashboardData.streakEmoji}</div>
+                  <div style={{ fontSize: 56, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>{dashboardData.streak}</div>
+                  <div style={{ fontSize: 13, color: THEME.muted, marginTop: 8, fontWeight: 600 }}>Months Saved</div>
+                  <Badge variant="sage" style={{ marginTop: 16, padding: "6px 12px", fontSize: 12 }}>{dashboardData.streakMsg}</Badge>
                 </div>
              </Card>
-          </div>
+
+             <Card className="bento-col-7" style={{ padding: 24 }}>
+              <div className="section-label">Monthly P&L (Last 6 Months)</div>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={trendData.slice(-6)}>
+                  <defs>
+                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                    </linearGradient>
+                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.4} />
+                    </linearGradient>
+                    <filter id="glow-sage" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.sage} floodOpacity="0.4" />
+                    </filter>
+                    <filter id="glow-rust" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.rust} floodOpacity="0.4" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Legend iconType="circle" />
+                  <Bar dataKey="income" name="Income" fill="url(#gIncome)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
+                  <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
+                </BarChart>
+              </ResponsiveContainer>
+             </Card>
+
+             <Card className="bento-col-5" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
+               <div className="section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <span>Savings Goal & Pacing</span>
+                 {editingTarget ? (
+                   <input
+                     type="number"
+                     autoFocus
+                     defaultValue={state.profile.savingsTarget || 20}
+                     onBlur={(e) => {
+                       const val = e.target.value;
+                       const num = parseInt(val);
+                       if (!isNaN(num) && num >= 0 && num <= 100) {
+                         setState((prev: any) => ({
+                           ...prev,
+                           profile: { ...prev.profile, savingsTarget: num }
+                         }));
+                       }
+                       setEditingTarget(false);
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') e.currentTarget.blur();
+                       if (e.key === 'Escape') setEditingTarget(false);
+                     }}
+                     style={{
+                       width: 60,
+                       background: 'rgba(52, 211, 153, 0.1)',
+                       border: `1px solid ${THEME.sage}`,
+                       borderRadius: 6,
+                       color: THEME.sage,
+                       fontSize: 12,
+                       fontWeight: 800,
+                       padding: '2px 6px',
+                       outline: 'none',
+                       textAlign: 'center'
+                     }}
+                   />
+                 ) : (
+                   <Badge 
+                     variant="sage" 
+                     style={{ cursor: 'pointer' }}
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setEditingTarget(true);
+                     }}
+                   >
+                     Target: {state.profile.savingsTarget || 20}%
+                   </Badge>
+                 )}
+               </div>
+               
+               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
+                 {(() => {
+                   const income = metrics.monthIncome || 0;
+                   const spent = metrics.monthExpense || 0;
+                   const targetPct = state.profile.savingsTarget || 20;
+                   const savingsTarget = income * (targetPct / 100);
+                   const safeSpendLimit = income * ((100 - targetPct) / 100);
+                   const remainingSafe = safeSpendLimit - spent;
+                   const spendingPct = income > 0 ? (spent / income) * 100 : 0;
+                   const isOverBudget = spent > safeSpendLimit;
+                   
+                   // Calculate remaining days in month for daily actionable
+                   const now = new Date();
+                   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                   const daysLeft = Math.max(1, lastDay - now.getDate());
+                   const dailyBudget = remainingSafe > 0 ? (remainingSafe / daysLeft) : 0;
+
+                   return (
+                     <>
+                       <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                         <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
+                           {remainingSafe > 0 ? "Safe to Spend" : "Savings Alert"}
+                         </div>
+                         <div style={{ fontSize: 32, fontWeight: 900, color: remainingSafe > 0 ? THEME.sage : THEME.rust, letterSpacing: '-0.03em' }}>
+                           {fmtINRFull(Math.abs(remainingSafe))}
+                         </div>
+                         <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+                           {remainingSafe > 0 
+                             ? `Keep daily spend below ${fmtINR(dailyBudget)} to hit your ${targetPct}% goal`
+                             : `You've exceeded your safety limit by ${fmtINR(Math.abs(remainingSafe))}`}
+                         </div>
+                       </div>
+
+                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 10, padding: '12px 0', borderTop: `1px solid ${THEME.line}`, borderBottom: `1px solid ${THEME.line}` }}>
+                         <div style={{ textAlign: 'center' }}>
+                           <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Income</div>
+                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(income)}</div>
+                         </div>
+                         <div style={{ textAlign: 'center' }}>
+                           <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Spent</div>
+                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(spent)}</div>
+                         </div>
+                         <div style={{ textAlign: 'center' }}>
+                           <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>To Save</div>
+                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>{fmtINRFull(savingsTarget)}</div>
+                         </div>
+                       </div>
+
+                       <div style={{ position: 'relative', height: 12, background: THEME.line, borderRadius: 6, overflow: 'hidden' }}>
+                         {/* Safe Zone Marker */}
+                         <div style={{ 
+                           position: 'absolute', 
+                           left: `${100 - targetPct}%`, 
+                           top: 0, 
+                           bottom: 0, 
+                           width: 2, 
+                           background: THEME.accent, 
+                           zIndex: 2,
+                           opacity: 0.5 
+                         }} />
+                         
+                         {/* Actual Spending Fill */}
+                         <div style={{ 
+                           width: `${Math.min(100, spendingPct)}%`, 
+                           height: '100%', 
+                           background: isOverBudget ? THEME.rust : spendingPct > (100 - targetPct) * 0.8 ? THEME.gold : THEME.sage,
+                           transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                         }} />
+                       </div>
+
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                         <span>SPENT: {spendingPct.toFixed(0)}%</span>
+                         <span>GOAL: {targetPct}% SAVED</span>
+                       </div>
+
+                       <div style={{ 
+                         padding: '12px', 
+                         borderRadius: 12, 
+                         background: isOverBudget ? 'rgba(248, 113, 113, 0.05)' : 'rgba(52, 211, 153, 0.05)',
+                         border: `1px solid ${isOverBudget ? 'rgba(248, 113, 113, 0.1)' : 'rgba(52, 211, 153, 0.1)'}`,
+                         fontSize: 12,
+                         lineHeight: 1.5,
+                         color: isOverBudget ? THEME.rust : THEME.sage,
+                         fontWeight: 500
+                       }}>
+                         {isOverBudget 
+                           ? "⚠️ Your spending has eaten into your savings target. Consider deferring non-essential purchases."
+                           : "✨ You're pacing well! Staying disciplined now will help you reach your financial milestones faster."}
+                       </div>
+                     </>
+                   );
+                 })()}
+               </div>
+             </Card>
+
+             <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                 <div className="section-label" style={{ marginBottom: 0 }}>Recent Transactions</div>
+                 <Badge variant="muted">{state.transactions.length} total</Badge>
+               </div>
+               {state.transactions.length === 0 ? (
+                 <div style={{ textAlign: "center", padding: "32px 0", color: THEME.muted, fontSize: 13 }}>No transactions yet</div>
+               ) : (
+                 <div style={{ display: "grid", gap: 12 }}>
+                   {state.transactions
+                     .slice()
+                     .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                     .slice(0, 5)
+                     .map((t: any) => (
+                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                           <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                             {t.type === "credit" ? <TrendingUp size={18} /> : <Receipt size={18} />}
+                           </div>
+                           <div>
+                             <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{t.note || t.category}</div>
+                             <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{t.date} · {t.category}</div>
+                           </div>
+                         </div>
+                         <div style={{ textAlign: "right" }}>
+                           <div style={{ fontSize: 15, fontWeight: 800, color: t.type === "credit" ? THEME.sage : THEME.ink }}>
+                             {t.type === "credit" ? "+" : "-"}{fmtINR(t.amount)}
+                           </div>
+                           <div style={{ fontSize: 11, fontWeight: 600, color: t.type === "credit" ? THEME.sage : THEME.rust, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                             {t.type === "credit" ? "Credit" : "Debit"}
+                           </div>
+                         </div>
+                       </div>
+                   ))}
+                 </div>
+               )}
+             </Card>
         </div>
       )}
 
@@ -309,12 +609,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <AreaChart data={netWorthTrend}>
                 <defs>
                   <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor={THEME.accent} floodOpacity="0.5" />
+                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
                 <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
                 <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-                <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNw)" />
+                <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNw)" style={{ filter: "url(#glow)" }} />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
@@ -323,13 +626,29 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div className="section-label">Monthly Income vs Expense</div>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={trendData.slice(-6)}>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={fmtINR} />
-                  <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                  <Legend />
-                  <Bar dataKey="income" name="Income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Expense" fill={THEME.rust} radius={[4, 4, 0, 0]} />
+                  <defs>
+                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                    </linearGradient>
+                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.4} />
+                    </linearGradient>
+                    <filter id="glow-sage" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.sage} floodOpacity="0.4" />
+                    </filter>
+                    <filter id="glow-rust" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.rust} floodOpacity="0.4" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Legend iconType="circle" />
+                  <Bar dataKey="income" name="Income" fill="url(#gIncome)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
+                  <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -340,12 +659,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     { name: "Mutual Funds", current: metrics.mfValue, invested: metrics.mfInvested },
                     { name: "Stocks", current: metrics.stockValue, invested: metrics.stockInvested }
                   ]}>
-                    <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={fmtINR} />
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                    <Bar dataKey="current" fill={THEME.sage} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="invested" fill={THEME.muted} radius={[4, 4, 0, 0]} />
+                    <defs>
+                      <linearGradient id="gCurrent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                      </linearGradient>
+                      <linearGradient id="gInvested" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={THEME.muted} stopOpacity={0.5} />
+                        <stop offset="100%" stopColor={THEME.muted} stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                    <Legend iconType="circle" />
+                    <Bar dataKey="current" name="Current Value" fill="url(#gCurrent)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
+                    <Bar dataKey="invested" name="Invested" fill="url(#gInvested)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                </ResponsiveContainer>
             </Card>
@@ -445,6 +775,73 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
            </div>
         </div>
       )}
+      {sub === "calendar" && (
+        <div className="animate-fade-in-up">
+          <Card style={{ padding: 24, marginBottom: 32 }}>
+            <div className="section-label">Bill Calendar · {new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })}</div>
+            {(() => {
+              const now = new Date();
+              const year = now.getFullYear(), month = now.getMonth();
+              const firstDay = new Date(year, month, 1).getDay();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
+              const today2 = now.getDate();
+              const dueDays: Record<number, any[]> = {};
+              
+              (state.creditCards || []).forEach((c: any) => {
+                const dueDate = getCCDueDate(c);
+                if (dueDate) {
+                  const d = new Date(dueDate);
+                  if (d.getFullYear() === year && d.getMonth() === month) {
+                    dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: c.issuer || "Card", color: THEME.rust });
+                  }
+                }
+              });
+              
+              (state.subscriptions || []).filter((s: any) => !s.paused).forEach((s: any) => {
+                if (s.renewalDate) {
+                  const d = new Date(s.renewalDate);
+                  if (d.getFullYear() === year && d.getMonth() === month) {
+                    dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: s.name, color: THEME.gold });
+                  }
+                }
+              });
+              
+              [15].forEach((day) => { if (month === 5) dueDays[day] = (dueDays[day] || []).concat({ label: "Adv. Tax", color: THEME.accent }); });
+              if (month === 8 || month === 11 || month === 2) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
+              
+              const cells: (number | null)[] = [];
+              for (let i = 0; i < firstDay; i++) cells.push(null);
+              for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+              
+              return (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 8 }}>
+                    {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+                      <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
+                    ))}
+                    {cells.map((d, i) => (
+                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: d === today2 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : dueDays[d!] ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
+                        {d && <>
+                          <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
+                          {(dueDays[d] || []).slice(0, 3).map((due: any, j: number) => (
+                            <div key={j} style={{ fontSize: 9, color: due.color, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{due.label}</div>
+                          ))}
+                        </>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 12 }}>
+                    <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
+                    <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions</span>
+                    <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
+                  </div>
+                </>
+              );
+            })()}
+          </Card>
+        </div>
+      )}
+
       {showReport && (
         <MonthlyReportModal metrics={metrics} state={state} onClose={() => setShowReport(false)} />
       )}

@@ -31,12 +31,12 @@ export const Card: React.FC<CardProps> = ({
     }
   };
 
-  const fullClassName = `${getVariantClass()} ${hover ? "card-hover" : ""} ${onClick ? "card-interactive" : ""} ${className}`;
+  const fullClassName = `spotlight-wrapper ${getVariantClass()} ${hover ? "card-hover" : ""} ${onClick ? "card-interactive" : ""} ${className}`;
 
   return (
     <div className={fullClassName} style={style} onClick={onClick}>
       {variant === "hero" && <div className="hero-card-mesh" />}
-      {children}
+      <div className="spotlight-content">{children}</div>
     </div>
   );
 };

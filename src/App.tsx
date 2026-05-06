@@ -21,6 +21,8 @@ import {
   LogOut,
   RefreshCw,
   Check,
+  CheckCheck,
+  Clock,
   AlertCircle,
   Download,
   IndianRupee,
@@ -77,6 +79,7 @@ import { SettingsTab } from "./components/tabs/SettingsTab";
 // Modal Imports
 import { CsvImportModal } from "./components/modals/CsvImportModal";
 import { QuickAddModal } from "./components/modals/QuickAddModal";
+import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
 
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
@@ -97,7 +100,7 @@ const DEFAULT_STATE = (() => {
   const ym = d.toISOString().slice(0, 7);
   const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
   return {
-    profile: { name: "Anand", fy: "2025-26", regime: "new" },
+    profile: { name: "Anand", fy: "2025-26", regime: "new", savingsTarget: 20 },
     bankAccounts: [
       { id: "1", owner: "self", bankName: "HDFC Bank", accountNumber: "XXXX1234", balance: "150000" },
       { id: "2", owner: "self", bankName: "SBI", accountNumber: "XXXX5678", balance: "45000" },
@@ -293,6 +296,7 @@ export default function FinanceDashboard() {
   }, []);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -428,6 +432,37 @@ export default function FinanceDashboard() {
     }, 1000);
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [state, loaded, session]);
+
+  // Global mouse tracker for Spotlight effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const cards = document.querySelectorAll('.spotlight-wrapper') as NodeListOf<HTMLElement>;
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Keyboard shortcut for Command Palette (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowCmdPalette(prev => !prev);
+      }
+      if (e.key === "Escape") {
+        setShowCmdPalette(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Fire browser push notifications for reminders due within 3 days (runs once per session)
   useEffect(() => {
@@ -743,6 +778,33 @@ export default function FinanceDashboard() {
     return arr;
   }, [filteredState.transactions]);
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+    const name = state.profile?.name || "there";
+    
+    const now = Date.now();
+    const day = 86400000;
+    let currentWeek = 0;
+    let prevWeek = 0;
+    filteredState.transactions.filter(t => t.type === "debit" && t.date).forEach(t => {
+      const diff = now - new Date(t.date).getTime();
+      if (diff <= 7 * day && diff >= 0) currentWeek += Number(t.amount);
+      else if (diff <= 14 * day && diff > 7 * day) prevWeek += Number(t.amount);
+    });
+    
+    let spendInsight = "";
+    if (prevWeek > 0) {
+      const pct = Math.abs((currentWeek - prevWeek) / prevWeek) * 100;
+      if (currentWeek < prevWeek) spendInsight = `Your spending is down ${pct.toFixed(0)}% this week.`;
+      else if (currentWeek > prevWeek + 500) spendInsight = `Your spending is up ${pct.toFixed(0)}% this week.`;
+    } else if (currentWeek > 0) {
+      spendInsight = `You've spent ${fmtINR(currentWeek)} this week.`;
+    }
+    
+    return { title: `Good ${timeOfDay}, ${name}.`, subtitle: spendInsight };
+  }, [filteredState.transactions, state.profile]);
+
   // ================== CRUD ==================
   // ================== ALERTS CENTRE ==================
   const alerts = useMemo(() => {
@@ -796,8 +858,12 @@ export default function FinanceDashboard() {
       const days = Math.ceil((new Date(s.renewalDate).getTime() - now.getTime()) / 86400000);
       if (days >= 0 && days <= 7) list.push({ level: "info", title: `${s.name} renews in ${days}d`, detail: fmtINRFull(s.amount), tab: "subs" });
     });
-    return list;
-  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, metrics.monthExpense, metrics.cashInBanks]);
+    const filteredList = list.filter(a => {
+      const dismissUntil = state.dismissedAlerts?.[a.title];
+      return !(dismissUntil && dismissUntil > Date.now());
+    });
+    return filteredList;
+  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, metrics.monthExpense, metrics.cashInBanks, state.dismissedAlerts]);
 
   const addItem = (key, item) =>
     setState((s) => ({ ...s, [key]: [...s[key], { id: uid(), ...item }] }));
@@ -1035,9 +1101,9 @@ export default function FinanceDashboard() {
     >
       {/* ── SIDEBAR NAVIGATION ── */}
       <aside
+          className="glass"
           style={{
             width: 280,
-            background: THEME.darkInk,
             borderRight: `1px solid ${THEME.line}`,
             position: "sticky",
             top: 0,
@@ -1118,9 +1184,9 @@ export default function FinanceDashboard() {
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* HEADER */}
         <header
+          className="glass"
           style={{
             borderBottom: `1px solid ${THEME.line}`,
-            background: THEME.darkInk,
             position: "sticky",
             top: 0,
             zIndex: 40,
@@ -1144,10 +1210,15 @@ export default function FinanceDashboard() {
           >
 
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-               <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--t-accent) 10%, transparent)", borderRadius: 8, color: THEME.accent, fontWeight: 700, fontSize: 13 }}>
-                 {allTabs.find(t => t.id === tab)?.label}
-               </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ fontWeight: 800, fontSize: 18, color: THEME.ink, letterSpacing: "-0.01em" }}>
+                {greeting.title}
+              </div>
+              {greeting.subtitle && (
+                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
+                  {greeting.subtitle}
+                </div>
+              )}
             </div>
 
             {/* GLOBAL SEARCH */}
@@ -1220,9 +1291,26 @@ export default function FinanceDashboard() {
                   <div className="alerts-panel">
                     <div style={{ padding: "14px 16px", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Alerts</div>
-                      <button onClick={() => setShowAlerts(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", padding: 4, borderRadius: 6 }}>
-                        <X size={14} />
-                      </button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {alerts.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setState((s: any) => {
+                                const newDismissed = { ...(s.dismissedAlerts || {}) };
+                                alerts.forEach(a => { newDismissed[a.title] = Infinity; });
+                                return { ...s, dismissedAlerts: newDismissed };
+                              });
+                            }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}
+                            title="Clear All"
+                          >
+                            <CheckCheck size={14} /> Clear All
+                          </button>
+                        )}
+                        <button onClick={() => setShowAlerts(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", padding: 4, borderRadius: 6 }}>
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                     {alerts.length === 0 ? (
                       <div style={{ padding: "24px 16px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
@@ -1233,15 +1321,15 @@ export default function FinanceDashboard() {
                         {alerts.map((a, i) => (
                           <div
                             key={`${a.tab}-${a.title}-${i}`}
-                            onClick={() => { setTab(a.tab); setShowAlerts(false); }}
+                            className="alert-item"
                             style={{
                               padding: "12px 16px",
-                              cursor: "pointer",
                               borderBottom: `1px solid ${THEME.line}`,
                               display: "flex",
                               gap: 10,
                               alignItems: "flex-start",
                               transition: "background 0.15s",
+                              position: "relative",
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 4%, transparent)`}
                             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
@@ -1254,9 +1342,41 @@ export default function FinanceDashboard() {
                               flexShrink: 0,
                               marginTop: 4,
                             }} />
-                            <div style={{ minWidth: 0 }}>
+                            <div style={{ minWidth: 0, flex: 1, cursor: "pointer" }} onClick={() => { setTab(a.tab); setShowAlerts(false); }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, marginBottom: 2 }}>{a.title}</div>
                               <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>{a.detail}</div>
+                            </div>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setState((s: any) => ({ ...s, dismissedAlerts: { ...(s.dismissedAlerts || {}), [a.title]: Date.now() + 24 * 60 * 60 * 1000 } }));
+                                }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
+                                title="Snooze 24h"
+                                onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                <Clock size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setState((s: any) => ({ ...s, dismissedAlerts: { ...(s.dismissedAlerts || {}), [a.title]: Infinity } }));
+                                }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
+                                title="Clear"
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 15%, transparent)`;
+                                  e.currentTarget.style.color = THEME.rust;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "none";
+                                  e.currentTarget.style.color = THEME.muted;
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -1380,7 +1500,7 @@ export default function FinanceDashboard() {
           }}
         >
           <div key={tab} className="tab-content-enter">
-            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} />}
+            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} setState={setState} />}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
@@ -1514,6 +1634,16 @@ export default function FinanceDashboard() {
           onCancel={() => setConfirmDialog(null)}
         />
       )}
+
+      {/* ── COMMAND PALETTE ── */}
+      <CommandPaletteModal 
+        isOpen={showCmdPalette}
+        onClose={() => setShowCmdPalette(false)}
+        onNavigate={(t) => setTab(t)}
+        onAction={(a) => {
+          if (a === "quick-add") setFabModal(true);
+        }}
+      />
     </div>
   );
 }
