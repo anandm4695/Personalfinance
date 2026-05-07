@@ -980,7 +980,13 @@ export default function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
-        await supabase.from(table).insert({ id: newId, user_id: userId, ...finalItem });
+        // Prevent Postgres type errors by converting empty strings to null
+        const cleanItem = { id: newId, user_id: userId, ...finalItem };
+        for (const k in cleanItem) {
+          if (cleanItem[k] === "") cleanItem[k] = null;
+        }
+        const { error } = await supabase.from(table).insert(cleanItem);
+        if (error) console.error(`Supabase Insert Error (${table}):`, error);
       }
     }
     logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
@@ -1012,7 +1018,14 @@ export default function FinanceDashboard() {
         let finalPatch = camelToSnake(patch);
         if (key === "budgets" && patch.monthly) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
         if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
-        await supabase.from(table).update(finalPatch).eq("id", id);
+        
+        // Prevent Postgres type errors by converting empty strings to null
+        for (const k in finalPatch) {
+          if (finalPatch[k] === "") finalPatch[k] = null;
+        }
+        
+        const { error } = await supabase.from(table).update(finalPatch).eq("id", id);
+        if (error) console.error(`Supabase Update Error (${table}):`, error);
       }
     }
     logActivity(`UPDATE_${key.toUpperCase()}`, `Updated item in ${key}`, { id, patch });
