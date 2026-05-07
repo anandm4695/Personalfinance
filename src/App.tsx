@@ -411,6 +411,17 @@ export default function FinanceDashboard() {
     saveStateLocal(state);
   }, [state, loaded]);
 
+  const snakeToCamel = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(snakeToCamel);
+    const res: any = {};
+    for (const k in obj) {
+      const camel = k.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      res[camel] = obj[k] !== null && typeof obj[k] === 'object' ? snakeToCamel(obj[k]) : obj[k];
+    }
+    return res;
+  };
+
   // 1. Initial Load & Sync Refinement
   useEffect(() => {
     if (!session) {
@@ -456,25 +467,25 @@ export default function FinanceDashboard() {
         if (prof.data || (banks.data && banks.data.length > 0)) {
           const newState = {
             ...DEFAULT_STATE,
-            profile: prof.data || DEFAULT_STATE.profile,
-            settings: sett.data || DEFAULT_STATE.settings,
-            bankAccounts: banks.data || [],
-            transactions: txns.data || [],
-            mutualFunds: mfs.data || [],
-            stocks: stks.data || [],
-            demat: demats.data || [],
-            fixedDeposits: fds.data || [],
-            recurringDeposits: rds.data || [],
-            bonds: bnds.data || [],
-            ppf: pn.data?.filter(x => x.type === 'PPF') || [],
-            nps: pn.data?.filter(x => x.type === 'NPS') || [],
-            creditCards: ccs.data || [],
-            loansTaken: lns.data?.filter(x => !x.is_lent) || [],
-            loansGiven: lns.data?.filter(x => x.is_lent) || [],
-            goals: gls.data || [],
-            budgets: bdgts.data?.map(b => ({ ...b, monthly: b.monthly_limit })) || [],
-            subscriptions: subs.data || [],
-            reminders: rems.data?.map(r => ({ ...r, date: r.reminder_date })) || [],
+            profile: snakeToCamel(prof.data) || DEFAULT_STATE.profile,
+            settings: snakeToCamel(sett.data) || DEFAULT_STATE.settings,
+            bankAccounts: snakeToCamel(banks.data) || [],
+            transactions: snakeToCamel(txns.data) || [],
+            mutualFunds: snakeToCamel(mfs.data) || [],
+            stocks: snakeToCamel(stks.data) || [],
+            demat: snakeToCamel(demats.data) || [],
+            fixedDeposits: snakeToCamel(fds.data) || [],
+            recurringDeposits: snakeToCamel(rds.data) || [],
+            bonds: snakeToCamel(bnds.data) || [],
+            ppf: snakeToCamel(pn.data?.filter(x => x.type === 'PPF')) || [],
+            nps: snakeToCamel(pn.data?.filter(x => x.type === 'NPS')) || [],
+            creditCards: snakeToCamel(ccs.data) || [],
+            loansTaken: snakeToCamel(lns.data?.filter(x => !x.is_lent)) || [],
+            loansGiven: snakeToCamel(lns.data?.filter(x => x.is_lent)) || [],
+            goals: snakeToCamel(gls.data) || [],
+            budgets: snakeToCamel(bdgts.data)?.map((b: any) => ({ ...b, monthly: b.monthlyLimit })) || [],
+            subscriptions: snakeToCamel(subs.data) || [],
+            reminders: snakeToCamel(rems.data)?.map((r: any) => ({ ...r, date: r.reminderDate })) || [],
           };
           console.log("Supabase: Applying normalized state");
           setState(newState);
