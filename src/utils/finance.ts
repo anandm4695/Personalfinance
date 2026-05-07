@@ -31,8 +31,16 @@ export const fmtINRFull = (n: number | string | null | undefined) => {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 };
 
-export const uid = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+export const uid = () => {
+  if (typeof crypto !== "undefined" && (crypto as any).randomUUID) {
+    return (crypto as any).randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
