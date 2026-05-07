@@ -247,6 +247,7 @@ const EMPTY_DATA = {
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [state, setState] = useState(() => {
     const saved = loadState();
     if (!saved) return DEFAULT_STATE;
@@ -331,14 +332,13 @@ export default function FinanceDashboard() {
     setToasts((prev) => [...prev, { id, msg, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [syncStatus, setSyncStatus] = useState<"idle"|"syncing"|"saved"|"error">("idle");
 
   useEffect(() => {
     try {
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         if (!error) setSession(session);
-      }).catch(() => {});
+        setIsAuthChecking(false);
+      }).catch(() => { setIsAuthChecking(false); });
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
       });
@@ -425,7 +425,6 @@ export default function FinanceDashboard() {
 
     (async () => {
       try {
-        setSyncStatus("syncing");
         console.log("Supabase: Fetching all modules in parallel for user:", userId);
         
         // Fetch everything in parallel
@@ -486,13 +485,12 @@ export default function FinanceDashboard() {
           if (legacy?.data) {
             console.log("Supabase: Legacy data found. Starting migration...");
             await migrateLegacyData(userId, legacy.data);
-            showToast("Data migrated to new system!");
+            setState({ ...DEFAULT_STATE, ...legacy.data });
+            showToast("Legacy data loaded.");
           } else {
             console.log("Supabase: No legacy data found either.");
           }
         }
-        setSyncStatus("saved");
-        setTimeout(() => setSyncStatus("idle"), 2000);
       } catch (e) {
         console.error("Supabase load failed", e);
         showToast("Cloud fetch failed. Check your DB setup.", "error");
@@ -511,8 +509,9 @@ export default function FinanceDashboard() {
         ...data.transactions.map(x => supabase.from("transactions").insert({ user_id: userId, ...x })),
         // ... add other modules as needed
       ];
+      // Wait for inserts to complete
       await Promise.all(ops);
-      window.location.reload(); // Refresh to load from new tables
+      // Removed window.location.reload() to prevent infinite reload loops if migration partially fails.
     } catch (e) { console.warn("Migration failed", e); }
   };
 
@@ -1181,6 +1180,14 @@ export default function FinanceDashboard() {
 
   const isSupabaseConfigured = !!(process.env.REACT_APP_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL.includes("placeholder"));
 
+  if (isAuthChecking) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0F172A" }}>
+        <RefreshCw className="spin" color="#818CF8" size={32} />
+      </div>
+    );
+  }
+
   if (!session) {
     if (!isSupabaseConfigured) {
       return (
@@ -1206,7 +1213,7 @@ export default function FinanceDashboard() {
         </div>
       );
     }
-    return <Auth onLogin={setSession} onOffline={() => { showToast("Live database connection required.", "error"); }} />;
+    return <Auth onLogin={setSession} />;
   }
 
   return (
@@ -1519,25 +1526,6 @@ export default function FinanceDashboard() {
                 {darkMode ? <Sun size={15} /> : <Moon size={15} />}
               </button>
 
-              {/* Sync status pill */}
-              {syncStatus !== "idle" && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-                  background: syncStatus === "saved" ? "color-mix(in srgb, var(--t-sage) 10%, transparent)"
-                            : syncStatus === "error"  ? "color-mix(in srgb, var(--t-rust) 10%, transparent)"
-                            : "color-mix(in srgb, var(--t-accent) 10%, transparent)",
-                  color: syncStatus === "saved" ? "var(--t-sage)"
-                       : syncStatus === "error"  ? "var(--t-rust)"
-                       : "var(--t-accent)",
-                  transition: "all 0.3s ease",
-                }}>
-                  {syncStatus === "syncing" && <RefreshCw size={11} style={{ animation: "spin 0.9s linear infinite" }} />}
-                  {syncStatus === "saved"   && <Check size={11} />}
-                  {syncStatus === "error"   && <AlertCircle size={11} />}
-                  <span>{syncStatus === "syncing" ? "Saving…" : syncStatus === "saved" ? "Saved" : "Sync failed"}</span>
-                </div>
-              )}
 
               <button onClick={exportJSON} className="header-icon-btn" title="Export backup" aria-label="Export backup">
                 <Download size={15} />
@@ -1603,7 +1591,6 @@ export default function FinanceDashboard() {
                 resetAll={resetAll}
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
-                onImportSuccess={() => setIsDemo(false)}
                 updateProfile={updateProfile}
                 accentKey={accentKey} setAccentKey={(v) => updateSettings({ accentKey: v })}
                 density={density} setDensity={(v) => updateSettings({ density: v })}

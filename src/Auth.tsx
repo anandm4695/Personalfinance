@@ -322,17 +322,6 @@ export default function Auth({ onLogin, onOffline }: { onLogin: (session: any) =
             )}
           </div>
 
-          {/* Offline mode */}
-          {onOffline && (
-            <div style={{ marginTop:16, textAlign:"center" }}>
-              <button type="button" onClick={onOffline} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.25)", fontSize:12, cursor:"pointer", padding:"6px 0", fontFamily:"inherit", transition:"color 0.15s", textDecoration:"underline", textUnderlineOffset:3 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
-              >
-                Continue without an account (offline mode)
-              </button>
-            </div>
-          )}
 
           {/* Trust badge */}
           <div style={{ marginTop:20, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 16px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10 }}>
