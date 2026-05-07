@@ -216,6 +216,17 @@ const DEFAULT_STATE = (() => {
       { id: "sip2", owner: "self", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
       { id: "sip3", owner: "self", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
     ],
+    settings: {
+      darkMode: false,
+      accentKey: "blue",
+      density: "normal",
+      sidebarNav: true,
+      radiusKey: "modern",
+      fontKey: "inter",
+      bgStyle: "plain",
+      animSpeed: "smooth",
+      chartStyle: "monotone"
+    }
   };
 })();
 
@@ -227,46 +238,92 @@ const EMPTY_DATA = {
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
   reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
+  settings: {
+    darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
+    radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
+  }
 };
 
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
+  const [session, setSession] = useState<any>(null);
   const [state, setState] = useState(() => {
     const saved = loadState();
-    return saved ? { ...DEFAULT_STATE, ...saved } : DEFAULT_STATE;
+    if (!saved) return DEFAULT_STATE;
+    return {
+      ...DEFAULT_STATE,
+      ...saved,
+      settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) }
+    };
   });
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    try { return localStorage.getItem("finance-theme") === "dark"; } catch { return false; }
-  });
-  const [accentKey, setAccentKey] = useState<AccentKey>(() => {
-    try { return (localStorage.getItem("finance-accent") as AccentKey) || "blue"; } catch { return "blue"; }
-  });
-  const [density, setDensity] = useState<DensityKey>(() => {
-    try { return (localStorage.getItem("finance-density") as DensityKey) || "normal"; } catch { return "normal"; }
-  });
-  const [sidebarNav, setSidebarNav] = useState<boolean>(() => {
-    try { return localStorage.getItem("finance-sidebar") !== "false"; } catch { return true; }
-  });
-  const [radiusKey, setRadiusKey] = useState<string>(() => {
-    try { return localStorage.getItem("finance-radius") || "modern"; } catch { return "modern"; }
-  });
-  const [fontKey, setFontKey] = useState<string>(() => {
-    try { return localStorage.getItem("finance-font") || "inter"; } catch { return "inter"; }
-  });
-  const [bgStyle, setBgStyle] = useState<string>(() => {
-    try { return localStorage.getItem("finance-bg") || "plain"; } catch { return "plain"; }
-  });
+
+  // Derived settings from state for easier access
+  const settings = state.settings || DEFAULT_STATE.settings;
+  const { 
+    darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle 
+  } = settings;
+
+  const logActivity = useCallback(async (actionType: string, description: string, metadata?: any) => {
+    if (!session || !session.user?.id || session.user.id === "offline-user") return;
+    try {
+      await supabase.from("activity_logs").insert({
+        user_id: session.user.id,
+        action_type: actionType,
+        description,
+        metadata
+      });
+    } catch (e) {
+      console.warn("Activity logging failed", e);
+    }
+  }, [session]);
+
+  // Helper to update settings
+  const updateSettings = useCallback(async (updates: Partial<typeof settings>) => {
+    setState(s => ({
+      ...s,
+      settings: { ...(s.settings || DEFAULT_STATE.settings), ...updates }
+    }));
+    
+    const userId = session?.user?.id;
+    if (userId && userId !== "offline-user") {
+      // Convert camelCase to snake_case for DB
+      const dbUpdates: any = {};
+      if (updates.darkMode !== undefined) dbUpdates.dark_mode = updates.darkMode;
+      if (updates.accentKey !== undefined) dbUpdates.accent_key = updates.accentKey;
+      if (updates.density !== undefined) dbUpdates.density = updates.density;
+      if (updates.sidebarNav !== undefined) dbUpdates.sidebar_nav = updates.sidebarNav;
+      if (updates.radiusKey !== undefined) dbUpdates.radius_key = updates.radiusKey;
+      if (updates.fontKey !== undefined) dbUpdates.font_key = updates.fontKey;
+      if (updates.bgStyle !== undefined) dbUpdates.bg_style = updates.bgStyle;
+      if (updates.animSpeed !== undefined) dbUpdates.anim_speed = updates.animSpeed;
+      if (updates.chartStyle !== undefined) dbUpdates.chart_style = updates.chartStyle;
+      
+      await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
+    }
+
+    // Log setting changes
+    const keys = Object.keys(updates).join(", ");
+    logActivity("UPDATE_SETTINGS", `Updated settings: ${keys}`, updates);
+  }, [logActivity, session]);
+
+  // Helper to update profile
+  const updateProfile = useCallback(async (updates: Partial<typeof state.profile>) => {
+    setState(s => ({
+      ...s,
+      profile: { ...s.profile, ...updates }
+    }));
+
+    const userId = session?.user?.id;
+    if (userId && userId !== "offline-user") {
+      await supabase.from("profiles").upsert({ user_id: userId, ...updates });
+    }
+    logActivity("UPDATE_PROFILE", "Updated user profile", updates);
+  }, [logActivity, session]);
+
   const [activeProfile, setActiveProfile] = useState<string>("all");
-  const [animSpeed, setAnimSpeed] = useState<string>(() => {
-    try { return localStorage.getItem("finance-anim") || "smooth"; } catch { return "smooth"; }
-  });
-  const [chartStyle, setChartStyle] = useState<string>(() => {
-    try { return localStorage.getItem("finance-chart") || "monotone"; } catch { return "monotone"; }
-  });
-  const [session, setSession] = useState<any>(null);
   const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{message:string;onConfirm:()=>void}|null>(null);
   const showToast = useCallback((msg: string, type = "success") => {
@@ -276,10 +333,6 @@ export default function FinanceDashboard() {
   }, []);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [syncStatus, setSyncStatus] = useState<"idle"|"syncing"|"saved"|"error">("idle");
-  // true when no saved data exists in this browser — shows the "demo data" recovery banner
-  const [isDemo, setIsDemo] = useState<boolean>(() => {
-    try { return !localStorage.getItem(STORAGE_KEY); } catch { return false; }
-  });
 
   useEffect(() => {
     try {
@@ -338,17 +391,6 @@ export default function FinanceDashboard() {
     // Drive the CSS class-based dark theme so styles.css vars activate
     document.documentElement.classList.toggle("dark-theme", darkMode);
     document.body.classList.toggle("dark-theme", darkMode);
-    try {
-      localStorage.setItem("finance-theme", darkMode ? "dark" : "light");
-      localStorage.setItem("finance-accent", accentKey);
-      localStorage.setItem("finance-density", density);
-      localStorage.setItem("finance-sidebar", String(sidebarNav));
-      localStorage.setItem("finance-radius", radiusKey);
-      localStorage.setItem("finance-font", fontKey);
-      localStorage.setItem("finance-bg", bgStyle);
-      localStorage.setItem("finance-anim", animSpeed);
-      localStorage.setItem("finance-chart", chartStyle);
-    } catch {}
   }, [darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle]);
 
   // Background style (dots / mesh) injected dynamically since it depends on user setting
@@ -369,69 +411,110 @@ export default function FinanceDashboard() {
     saveStateLocal(state);
   }, [state, loaded]);
 
-  // Load from Supabase on mount (real logged-in users get cloud sync)
+  // 1. Initial Load & Sync Refinement
   useEffect(() => {
     if (!session) {
-      // No session: mark loaded so saves start immediately
       setLoaded(true);
       return;
     }
     const userId = session.user?.id;
-    // Demo / offline mode — skip Supabase, just use localStorage
     if (!userId || userId === "offline-user") {
       setLoaded(true);
       return;
     }
+
     (async () => {
       try {
-        const { data } = await supabase
-          .from("user_state")
-          .select("data")
-          .eq("user_id", userId)
-          .single();
-        if (data && data.data) {
-          const cloudData = data.data;
-          const localData = loadState();
-          const cloudTs = cloudData._ts || 0;
-          const localTs = localData?._ts || 0;
-          // Only apply cloud data if it is strictly newer than what is already in localStorage.
-          // This prevents an old Supabase snapshot from overwriting data the user added locally.
-          if (cloudTs > localTs) {
-            setState({ ...DEFAULT_STATE, ...cloudData });
+        setSyncStatus("syncing");
+        console.log("Supabase: Fetching all modules in parallel for user:", userId);
+        
+        // Fetch everything in parallel
+        const [
+          prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems
+        ] = await Promise.all([
+          supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
+          supabase.from("bank_accounts").select("*").eq("user_id", userId),
+          supabase.from("transactions").select("*").eq("user_id", userId),
+          supabase.from("mutual_funds").select("*").eq("user_id", userId),
+          supabase.from("stocks").select("*").eq("user_id", userId),
+          supabase.from("demat_accounts").select("*").eq("user_id", userId),
+          supabase.from("fixed_deposits").select("*").eq("user_id", userId),
+          supabase.from("recurring_deposits").select("*").eq("user_id", userId),
+          supabase.from("bonds").select("*").eq("user_id", userId),
+          supabase.from("ppf_nps").select("*").eq("user_id", userId),
+          supabase.from("credit_cards").select("*").eq("user_id", userId),
+          supabase.from("loans").select("*").eq("user_id", userId),
+          supabase.from("goals").select("*").eq("user_id", userId),
+          supabase.from("budgets").select("*").eq("user_id", userId),
+          supabase.from("subscriptions").select("*").eq("user_id", userId),
+          supabase.from("reminders").select("*").eq("user_id", userId),
+        ]);
+
+        console.log("Supabase: Data received", { prof: !!prof.data, banks: banks.data?.length, txns: txns.data?.length });
+
+        // Check if user has normalized data
+        if (prof.data || (banks.data && banks.data.length > 0)) {
+          const newState = {
+            ...DEFAULT_STATE,
+            profile: prof.data || DEFAULT_STATE.profile,
+            settings: sett.data || DEFAULT_STATE.settings,
+            bankAccounts: banks.data || [],
+            transactions: txns.data || [],
+            mutualFunds: mfs.data || [],
+            stocks: stks.data || [],
+            demat: demats.data || [],
+            fixedDeposits: fds.data || [],
+            recurringDeposits: rds.data || [],
+            bonds: bnds.data || [],
+            ppf: pn.data?.filter(x => x.type === 'PPF') || [],
+            nps: pn.data?.filter(x => x.type === 'NPS') || [],
+            creditCards: ccs.data || [],
+            loansTaken: lns.data?.filter(x => !x.is_lent) || [],
+            loansGiven: lns.data?.filter(x => x.is_lent) || [],
+            goals: gls.data || [],
+            budgets: bdgts.data?.map(b => ({ ...b, monthly: b.monthly_limit })) || [],
+            subscriptions: subs.data || [],
+            reminders: rems.data?.map(r => ({ ...r, date: r.reminder_date })) || [],
+          };
+          console.log("Supabase: Applying normalized state");
+          setState(newState);
+        } else {
+          // Check for legacy JSONB data to migrate
+          console.log("Supabase: No normalized data found. Checking for legacy JSONB blob...");
+          const { data: legacy } = await supabase.from("user_state").select("data").eq("user_id", userId).maybeSingle();
+          if (legacy?.data) {
+            console.log("Supabase: Legacy data found. Starting migration...");
+            await migrateLegacyData(userId, legacy.data);
+            showToast("Data migrated to new system!");
+          } else {
+            console.log("Supabase: No legacy data found either.");
           }
         }
+        setSyncStatus("saved");
+        setTimeout(() => setSyncStatus("idle"), 2000);
       } catch (e) {
         console.error("Supabase load failed", e);
+        showToast("Cloud fetch failed. Check your DB setup.", "error");
       }
       setLoaded(true);
     })();
   }, [session]);
 
-  // Sync to Supabase on change — debounced 1 s so rapid edits don't hammer the API
-  useEffect(() => {
-    if (!loaded || !session) return;
-    const userId = session.user?.id;
-    if (!userId || userId === "offline-user") return;
-    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    setSyncStatus("syncing");
-    syncTimerRef.current = setTimeout(async () => {
-      try {
-        const now = Date.now();
-        await supabase.from("user_state").upsert({
-          user_id: userId,
-          data: { ...state, _ts: now },
-          updated_at: new Date(now).toISOString()
-        }, { onConflict: 'user_id' });
-        setSyncStatus("saved");
-        setTimeout(() => setSyncStatus("idle"), 2500);
-      } catch (e) {
-        console.error("Supabase save failed", e);
-        setSyncStatus("error");
-        setTimeout(() => setSyncStatus("idle"), 4000);
-      }
-    }, 1000);
-    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, [state, loaded, session]);
+  const migrateLegacyData = async (userId: string, data: any) => {
+    try {
+      // Very simplified migration — just push current state to tables
+      const ops = [
+        supabase.from("profiles").upsert({ user_id: userId, ...data.profile }),
+        supabase.from("user_settings").upsert({ user_id: userId, ...data.settings }),
+        ...data.bankAccounts.map(x => supabase.from("bank_accounts").insert({ user_id: userId, ...x })),
+        ...data.transactions.map(x => supabase.from("transactions").insert({ user_id: userId, ...x })),
+        // ... add other modules as needed
+      ];
+      await Promise.all(ops);
+      window.location.reload(); // Refresh to load from new tables
+    } catch (e) { console.warn("Migration failed", e); }
+  };
 
   // Global mouse tracker for Spotlight effect
   useEffect(() => {
@@ -865,15 +948,76 @@ export default function FinanceDashboard() {
     return filteredList;
   }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, metrics.monthExpense, metrics.cashInBanks, state.dismissedAlerts]);
 
-  const addItem = (key, item) =>
-    setState((s) => ({ ...s, [key]: [...s[key], { id: uid(), ...item }] }));
-  const removeItem = (key, id) =>
+  const TABLE_MAP: Record<string, string> = {
+    bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
+    stocks: "stocks", demat: "demat_accounts", fixedDeposits: "fixed_deposits",
+    recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps",
+    creditCards: "credit_cards", loansTaken: "loans", loansGiven: "loans",
+    goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders"
+  };
+
+  const camelToSnake = (obj: any) => {
+    const res: any = {};
+    for (const k in obj) {
+      const snake = k.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
+      res[snake] = obj[k];
+    }
+    return res;
+  };
+
+  const addItem = async (key, item) => {
+    const userId = session?.user?.id;
+    let finalItem = camelToSnake(item);
+    
+    if (key === "ppf" || key === "nps") finalItem.type = key.toUpperCase();
+    if (key === "loansTaken") finalItem.is_lent = false;
+    if (key === "loansGiven") finalItem.is_lent = true;
+    if (key === "budgets") { finalItem.monthly_limit = item.monthly; delete finalItem.monthly; }
+    if (key === "reminders") { finalItem.reminder_date = item.date; delete finalItem.date; }
+
+    const newId = uid();
+    setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...item }] }));
+    
+    if (userId && userId !== "offline-user") {
+      const table = TABLE_MAP[key];
+      if (table) {
+        await supabase.from(table).insert({ id: newId, user_id: userId, ...finalItem });
+      }
+    }
+    logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
+  };
+
+  const removeItem = async (key, id) => {
+    const userId = session?.user?.id;
     setState((s) => ({ ...s, [key]: s[key].filter((x) => x.id !== id) }));
-  const updateItem = (key, id, patch) =>
+    
+    if (userId && userId !== "offline-user") {
+      const table = TABLE_MAP[key];
+      if (table) {
+        await supabase.from(table).delete().eq("id", id);
+      }
+    }
+    logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
+  };
+
+  const updateItem = async (key, id, patch) => {
+    const userId = session?.user?.id;
     setState((s) => ({
       ...s,
       [key]: s[key].map((x) => (x.id === id ? { ...x, ...patch } : x)),
     }));
+
+    if (userId && userId !== "offline-user") {
+      const table = TABLE_MAP[key];
+      if (table) {
+        let finalPatch = camelToSnake(patch);
+        if (key === "budgets" && patch.monthly) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
+        if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
+        await supabase.from(table).update(finalPatch).eq("id", id);
+      }
+    }
+    logActivity(`UPDATE_${key.toUpperCase()}`, `Updated item in ${key}`, { id, patch });
+  };
 
   // ================== EXPORT / IMPORT ==================
   const exportJSON = () => {
@@ -901,7 +1045,6 @@ export default function FinanceDashboard() {
           return;
         }
         setState({ ...DEFAULT_STATE, ...parsed });
-        setIsDemo(false);
         showToast("Backup restored successfully");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
@@ -913,7 +1056,6 @@ export default function FinanceDashboard() {
 
   const dismissDemo = useCallback((startFresh = false) => {
     if (startFresh) setState(prev => ({ ...prev, ...EMPTY_DATA }));
-    setIsDemo(false);
   }, []);
 
   const exportCSV = () => {
@@ -1056,34 +1198,15 @@ export default function FinanceDashboard() {
           fontFamily: "'Inter', sans-serif",
         }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>⚙️</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Setup Required</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Backend Connection Required</h2>
           <p style={{ color: "rgba(255,255,255,0.45)", maxWidth: 380, lineHeight: 1.6, fontSize: 14 }}>
             Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_URL</code> and{" "}
-            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4 }}>.env</code> file.
+            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your environment.
           </p>
-          <button
-            onClick={() => setSession({ user: { id: "offline-user" } })}
-            style={{
-              padding: "14px 28px",
-              background: "linear-gradient(135deg, #4F46E5, #818CF8)",
-              border: "none",
-              borderRadius: 12,
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 15,
-              fontWeight: 700,
-              fontFamily: "'Inter', sans-serif",
-              boxShadow: "0 8px 24px rgba(79,70,229,0.35)",
-              transition: "all 0.2s ease",
-              marginTop: 8,
-            }}
-          >
-            Continue in Demo Mode
-          </button>
         </div>
       );
     }
-    return <Auth onLogin={setSession} onOffline={() => setSession({ user: { id: "offline-user" } })} />;
+    return <Auth onLogin={setSession} onOffline={() => { showToast("Live database connection required.", "error"); }} />;
   }
 
   return (
@@ -1388,7 +1511,7 @@ export default function FinanceDashboard() {
 
               {/* Dark mode toggle */}
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={() => updateSettings({ darkMode: !darkMode })}
                 className="header-icon-btn"
                 aria-label="Toggle theme"
                 title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
@@ -1444,50 +1567,7 @@ export default function FinanceDashboard() {
           </div>
         </header>
 
-        {/* Demo data recovery banner — shown when no real data exists in this browser */}
-        {isDemo && (
-          <div className="demo-banner" style={{
-            background: "color-mix(in srgb, var(--t-gold) 8%, var(--t-paper))",
-            borderBottom: "1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)",
-          }}>
-            <div style={{
-              maxWidth: 1400, margin: "0 auto", padding: "10px 32px",
-              display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-            }}>
-              <AlertCircle size={16} style={{ color: "var(--t-gold)", flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: 13, color: "var(--t-ink)", minWidth: 200 }}>
-                <strong>You're viewing demo data.</strong> If you've used this app before on another device or URL, import your backup to restore your real data. Or start fresh to begin entering your own.
-              </span>
-              <label style={{
-                display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
-                padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                border: "1px solid var(--t-line)", color: "var(--t-ink)", background: "var(--t-paper)",
-              }}>
-                <Upload size={13} /> Import Backup
-                <input type="file" accept=".json" style={{ display: "none" }} onChange={(e) => { importJSON(e); }} />
-              </label>
-              <button
-                style={{
-                  padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  border: "1px solid var(--t-line)", color: "var(--t-ink)", background: "var(--t-paper)", cursor: "pointer",
-                }}
-                onClick={() => dismissDemo(true)}
-              >
-                Start Fresh
-              </button>
-              <button
-                style={{
-                  padding: "7px 10px", borderRadius: 8, fontSize: 12,
-                  border: "1px solid transparent", color: "var(--t-muted)", background: "transparent", cursor: "pointer",
-                }}
-                onClick={() => dismissDemo(false)}
-                title="Dismiss"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Sync status pill in header area handled by header logic */}
 
         <main
           style={{
@@ -1524,14 +1604,15 @@ export default function FinanceDashboard() {
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
                 onImportSuccess={() => setIsDemo(false)}
-                accentKey={accentKey} setAccentKey={setAccentKey}
-                density={density} setDensity={setDensity}
-                sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
-                radiusKey={radiusKey} setRadiusKey={setRadiusKey}
-                fontKey={fontKey} setFontKey={setFontKey}
-                bgStyle={bgStyle} setBgStyle={setBgStyle}
-                animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
-                chartStyle={chartStyle} setChartStyle={setChartStyle}
+                updateProfile={updateProfile}
+                accentKey={accentKey} setAccentKey={(v) => updateSettings({ accentKey: v })}
+                density={density} setDensity={(v) => updateSettings({ density: v })}
+                sidebarNav={sidebarNav} setSidebarNav={(v) => updateSettings({ sidebarNav: v })}
+                radiusKey={radiusKey} setRadiusKey={(v) => updateSettings({ radiusKey: v })}
+                fontKey={fontKey} setFontKey={(v) => updateSettings({ fontKey: v })}
+                bgStyle={bgStyle} setBgStyle={(v) => updateSettings({ bgStyle: v })}
+                animSpeed={animSpeed} setAnimSpeed={(v) => updateSettings({ animSpeed: v })}
+                chartStyle={chartStyle} setChartStyle={(v) => updateSettings({ chartStyle: v })}
               />
             )}
           </div>

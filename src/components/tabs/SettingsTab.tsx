@@ -10,6 +10,7 @@ const DEFAULT_STATE = {}; // Placeholder or should be passed as prop if needed f
 
 export function SettingsTab({
   state, setState, exportJSON, resetAll, showToast, onSignOut, onImportSuccess,
+  updateProfile,
   accentKey, setAccentKey,
   density, setDensity,
   sidebarNav, setSidebarNav,
@@ -24,7 +25,7 @@ export function SettingsTab({
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveProfile = () => {
-    setState((s: any) => ({ ...s, profile: { ...s.profile, ...prof } }));
+    updateProfile(prof);
     setSaved(true);
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
