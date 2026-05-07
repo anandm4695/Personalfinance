@@ -450,7 +450,9 @@ export default function FinanceDashboard() {
         supabase.from("reminders").select("*").eq("user_id", userId),
       ]);
 
-      if (prof.data || (banks.data && banks.data.length > 0)) {
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems].some(r => r.data && r.data.length > 0);
+      
+      if (prof.data || hasAnyData) {
         const newState = {
           ...DEFAULT_STATE,
           profile: snakeToCamel(prof.data) || DEFAULT_STATE.profile,
