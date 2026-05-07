@@ -422,6 +422,71 @@ export default function FinanceDashboard() {
     return res;
   };
 
+  const fetchAllData = useCallback(async () => {
+    const userId = session?.user?.id;
+    if (!userId || userId === "offline-user") return;
+
+    try {
+      console.log("Supabase: Fetching all modules in parallel for user:", userId);
+      const [
+        prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems
+      ] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("bank_accounts").select("*").eq("user_id", userId),
+        supabase.from("transactions").select("*").eq("user_id", userId),
+        supabase.from("mutual_funds").select("*").eq("user_id", userId),
+        supabase.from("stocks").select("*").eq("user_id", userId),
+        supabase.from("demat_accounts").select("*").eq("user_id", userId),
+        supabase.from("fixed_deposits").select("*").eq("user_id", userId),
+        supabase.from("recurring_deposits").select("*").eq("user_id", userId),
+        supabase.from("bonds").select("*").eq("user_id", userId),
+        supabase.from("ppf_nps").select("*").eq("user_id", userId),
+        supabase.from("credit_cards").select("*").eq("user_id", userId),
+        supabase.from("loans").select("*").eq("user_id", userId),
+        supabase.from("goals").select("*").eq("user_id", userId),
+        supabase.from("budgets").select("*").eq("user_id", userId),
+        supabase.from("subscriptions").select("*").eq("user_id", userId),
+        supabase.from("reminders").select("*").eq("user_id", userId),
+      ]);
+
+      if (prof.data || (banks.data && banks.data.length > 0)) {
+        const newState = {
+          ...DEFAULT_STATE,
+          profile: snakeToCamel(prof.data) || DEFAULT_STATE.profile,
+          settings: snakeToCamel(sett.data) || DEFAULT_STATE.settings,
+          bankAccounts: snakeToCamel(banks.data) || [],
+          transactions: snakeToCamel(txns.data) || [],
+          mutualFunds: snakeToCamel(mfs.data) || [],
+          stocks: snakeToCamel(stks.data) || [],
+          demat: snakeToCamel(demats.data) || [],
+          fixedDeposits: snakeToCamel(fds.data) || [],
+          recurringDeposits: snakeToCamel(rds.data) || [],
+          bonds: snakeToCamel(bnds.data) || [],
+          ppf: snakeToCamel(pn.data?.filter(x => x.type === 'PPF')) || [],
+          nps: snakeToCamel(pn.data?.filter(x => x.type === 'NPS')) || [],
+          creditCards: snakeToCamel(ccs.data) || [],
+          loansTaken: snakeToCamel(lns.data?.filter(x => !x.is_lent)) || [],
+          loansGiven: snakeToCamel(lns.data?.filter(x => x.is_lent)) || [],
+          goals: snakeToCamel(gls.data) || [],
+          budgets: snakeToCamel(bdgts.data)?.map((b: any) => ({ ...b, monthly: b.monthlyLimit })) || [],
+          subscriptions: snakeToCamel(subs.data) || [],
+          reminders: snakeToCamel(rems.data)?.map((r: any) => ({ ...r, date: r.reminderDate })) || [],
+        };
+        setState(newState);
+      } else {
+        // Check for legacy JSONB data to migrate
+        const { data: legacy } = await supabase.from("user_state").select("data").eq("user_id", userId).maybeSingle();
+        if (legacy?.data) {
+          await migrateLegacyData(userId, legacy.data);
+          setState({ ...DEFAULT_STATE, ...legacy.data });
+        }
+      }
+    } catch (e) {
+      console.error("Supabase load failed", e);
+    }
+  }, [session]);
+
   // 1. Initial Load & Sync Refinement
   useEffect(() => {
     if (!session) {
@@ -436,77 +501,13 @@ export default function FinanceDashboard() {
 
     (async () => {
       try {
-        console.log("Supabase: Fetching all modules in parallel for user:", userId);
-        
-        // Fetch everything in parallel
-        const [
-          prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems
-        ] = await Promise.all([
-          supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-          supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
-          supabase.from("bank_accounts").select("*").eq("user_id", userId),
-          supabase.from("transactions").select("*").eq("user_id", userId),
-          supabase.from("mutual_funds").select("*").eq("user_id", userId),
-          supabase.from("stocks").select("*").eq("user_id", userId),
-          supabase.from("demat_accounts").select("*").eq("user_id", userId),
-          supabase.from("fixed_deposits").select("*").eq("user_id", userId),
-          supabase.from("recurring_deposits").select("*").eq("user_id", userId),
-          supabase.from("bonds").select("*").eq("user_id", userId),
-          supabase.from("ppf_nps").select("*").eq("user_id", userId),
-          supabase.from("credit_cards").select("*").eq("user_id", userId),
-          supabase.from("loans").select("*").eq("user_id", userId),
-          supabase.from("goals").select("*").eq("user_id", userId),
-          supabase.from("budgets").select("*").eq("user_id", userId),
-          supabase.from("subscriptions").select("*").eq("user_id", userId),
-          supabase.from("reminders").select("*").eq("user_id", userId),
-        ]);
-
-        console.log("Supabase: Data received", { prof: !!prof.data, banks: banks.data?.length, txns: txns.data?.length });
-
-        // Check if user has normalized data
-        if (prof.data || (banks.data && banks.data.length > 0)) {
-          const newState = {
-            ...DEFAULT_STATE,
-            profile: snakeToCamel(prof.data) || DEFAULT_STATE.profile,
-            settings: snakeToCamel(sett.data) || DEFAULT_STATE.settings,
-            bankAccounts: snakeToCamel(banks.data) || [],
-            transactions: snakeToCamel(txns.data) || [],
-            mutualFunds: snakeToCamel(mfs.data) || [],
-            stocks: snakeToCamel(stks.data) || [],
-            demat: snakeToCamel(demats.data) || [],
-            fixedDeposits: snakeToCamel(fds.data) || [],
-            recurringDeposits: snakeToCamel(rds.data) || [],
-            bonds: snakeToCamel(bnds.data) || [],
-            ppf: snakeToCamel(pn.data?.filter(x => x.type === 'PPF')) || [],
-            nps: snakeToCamel(pn.data?.filter(x => x.type === 'NPS')) || [],
-            creditCards: snakeToCamel(ccs.data) || [],
-            loansTaken: snakeToCamel(lns.data?.filter(x => !x.is_lent)) || [],
-            loansGiven: snakeToCamel(lns.data?.filter(x => x.is_lent)) || [],
-            goals: snakeToCamel(gls.data) || [],
-            budgets: snakeToCamel(bdgts.data)?.map((b: any) => ({ ...b, monthly: b.monthlyLimit })) || [],
-            subscriptions: snakeToCamel(subs.data) || [],
-            reminders: snakeToCamel(rems.data)?.map((r: any) => ({ ...r, date: r.reminderDate })) || [],
-          };
-          console.log("Supabase: Applying normalized state");
-          setState(newState);
-        } else {
-          // Check for legacy JSONB data to migrate
-          console.log("Supabase: No normalized data found. Checking for legacy JSONB blob...");
-          const { data: legacy } = await supabase.from("user_state").select("data").eq("user_id", userId).maybeSingle();
-          if (legacy?.data) {
-            console.log("Supabase: Legacy data found. Starting migration...");
-            await migrateLegacyData(userId, legacy.data);
-            setState({ ...DEFAULT_STATE, ...legacy.data });
-            showToast("Legacy data loaded.");
-          } else {
-            console.log("Supabase: No legacy data found either.");
-          }
-        }
+        await fetchAllData();
       } catch (e) {
         console.error("Supabase load failed", e);
         showToast("Cloud fetch failed. Check your DB setup.", "error");
+      } finally {
+        setLoaded(true);
       }
-      setLoaded(true);
     })();
   }, [session]);
 
@@ -998,6 +999,9 @@ export default function FinanceDashboard() {
         }
         const { error } = await supabase.from(table).insert(cleanItem);
         if (error) console.error(`Supabase Insert Error (${table}):`, error);
+        
+        // Strict Rule: Auto fetch data after mutation
+        await fetchAllData();
       }
     }
     logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
@@ -1011,6 +1015,9 @@ export default function FinanceDashboard() {
       const table = TABLE_MAP[key];
       if (table) {
         await supabase.from(table).delete().eq("id", id);
+        
+        // Strict Rule: Auto fetch data after mutation
+        await fetchAllData();
       }
     }
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
@@ -1037,6 +1044,9 @@ export default function FinanceDashboard() {
         
         const { error } = await supabase.from(table).update(finalPatch).eq("id", id);
         if (error) console.error(`Supabase Update Error (${table}):`, error);
+        
+        // Strict Rule: Auto fetch data after mutation
+        await fetchAllData();
       }
     }
     logActivity(`UPDATE_${key.toUpperCase()}`, `Updated item in ${key}`, { id, patch });
