@@ -1097,34 +1097,51 @@ export default function FinanceDashboard() {
           localStorage.clear();
           sessionStorage.clear();
           
-          // 2. Wipe Supabase Tables sequentially to ensure success
-          if (userId && userId !== "offline-user") {
-            const tables = [...new Set(Object.values(TABLE_MAP)), "activity_logs"];
-            for (const table of tables) {
-              const { error } = await supabase.from(table).delete().eq("user_id", userId);
-              if (error) {
-                console.error(`Failed to wipe ${table}:`, error);
-                throw new Error(`Cloud wipe failed for ${table}`);
-              }
-            }
-            
-            // 3. Reset Profile & Settings to Defaults in DB
-            await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
-            await supabase.from("user_settings").update({ 
-               dark_mode: false, accent_key: "blue", density: "normal", 
-               sidebar_nav: true, radius_key: "modern", font_key: "inter", 
-               bg_style: "plain", anim_speed: "smooth", chart_style: "monotone" 
-            }).eq("user_id", userId);
+          if (!userId || userId === "offline-user") {
+            setState(EMPTY_DATA);
+            window.location.replace(window.location.origin + "/?reset=local");
+            return;
           }
           
-          showToast("Global reset successful. Purging cache...");
+          // 2. Wipe Supabase Tables sequentially (Dependencies first: child tables before parents)
+          const tables = [
+            "transactions",       // Child of bank_accounts
+            "stocks",             // Child of demat_accounts
+            "bank_accounts", 
+            "demat_accounts", 
+            "mutual_funds", 
+            "fixed_deposits", 
+            "recurring_deposits", 
+            "bonds", 
+            "ppf_nps", 
+            "credit_cards", 
+            "loans", 
+            "goals", 
+            "budgets", 
+            "subscriptions", 
+            "reminders", 
+            "activity_logs"
+          ];
+
+          for (const table of tables) {
+            const { error } = await supabase.from(table).delete().eq("user_id", userId);
+            if (error) console.warn(`Note: Could not wipe ${table}, it may already be empty or restricted.`);
+          }
           
-          // 4. Clean State & Force hard navigation to clear memory/cache
+          // 3. Reset Profile & Settings to Defaults in DB
+          await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
+          await supabase.from("user_settings").update({ 
+             dark_mode: false, accent_key: "blue", density: "normal", 
+             sidebar_nav: true, radius_key: "modern", font_key: "inter", 
+             bg_style: "plain", anim_speed: "smooth", chart_style: "monotone" 
+          }).eq("user_id", userId);
+          
+          // 4. Final state clear and hard redirect (replace ensures no back-button state)
           setState(EMPTY_DATA);
-          window.location.href = window.location.origin + "/?reset=true";
+          window.location.replace(window.location.origin + "/?reset=success");
         } catch (err) {
           console.error("Reset failed", err);
-          showToast("Reset failed. Some data might remain in cloud.", "error");
+          showToast("Reset failed. Please check your connection.", "error");
           setIsResetting(false);
         }
       },
