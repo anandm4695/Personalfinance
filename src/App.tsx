@@ -1120,7 +1120,8 @@ export default function FinanceDashboard() {
             "budgets", 
             "subscriptions", 
             "reminders", 
-            "activity_logs"
+            "activity_logs",
+            "user_state"          // Legacy data store
           ];
 
           for (const table of tables) {
