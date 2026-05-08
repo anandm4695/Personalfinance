@@ -52,7 +52,7 @@ const btnGhost = {
 };
 
 const card = {
-  background: "var(--t-darkInk)",
+  background: "var(--surface-0)",
   borderRadius: 12,
   border: `1px solid ${THEME.line}`,
   padding: 20,

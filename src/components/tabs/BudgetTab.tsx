@@ -15,12 +15,12 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
 );
 
 const Tile = ({ icon: Icon, label, value, sub, subColor, negative }: any) => (
-  <div style={{ background: "var(--t-darkInk)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid var(--t-line)` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--t-muted)", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
       <Icon size={14} /> {label}
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800, color: negative ? THEME.rust : THEME.ink }}>{value}</div>
-    {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
+    <div style={{ fontSize: 20, fontWeight: 800, color: negative ? "var(--t-rust)" : "var(--t-ink)" }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: subColor || "var(--t-muted)", marginTop: 4, fontWeight: 600 }}>{sub}</div>}
   </div>
 );
 
@@ -56,9 +56,9 @@ const input = {
 };
 
 const card = {
-  background: "var(--t-darkInk)",
+  background: "var(--surface-0)",
   borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
+  border: "1px solid var(--t-line)",
   padding: 20,
 };
 

@@ -408,7 +408,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                   <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
                   <Legend iconType="circle" />
                   <Bar dataKey="income" name="Income" fill="url(#gIncome)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
                   <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
@@ -616,7 +616,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
                 <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
                 <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-                <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
                 <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNw)" style={{ filter: "url(#glow)" }} />
               </AreaChart>
             </ResponsiveContainer>
@@ -645,7 +645,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                   <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
                   <Legend iconType="circle" />
                   <Bar dataKey="income" name="Income" fill="url(#gIncome)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
                   <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
@@ -672,7 +672,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--t-darkInk)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
                     <Legend iconType="circle" />
                     <Bar dataKey="current" name="Current Value" fill="url(#gCurrent)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
                     <Bar dataKey="invested" name="Invested" fill="url(#gInvested)" radius={[4, 4, 0, 0]} />

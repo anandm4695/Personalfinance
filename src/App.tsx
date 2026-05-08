@@ -1114,7 +1114,24 @@ export default function FinanceDashboard() {
   const resetAll = () => {
     setConfirmDialog({
       message: "Delete ALL data? This action cannot be undone and will clear every account, transaction, goal and setting.",
-      onConfirm: () => setState(DEFAULT_STATE),
+      onConfirm: async () => {
+        const userId = session?.user?.id;
+
+        // Clear local state immediately
+        setState(prev => ({ ...prev, ...EMPTY_DATA }));
+
+        // Also wipe all Supabase tables for this user
+        if (userId && userId !== "offline-user") {
+          const uniqueTables = [...new Set(Object.values(TABLE_MAP))];
+          await Promise.all(
+            uniqueTables.map(table =>
+              supabase.from(table).delete().eq("user_id", userId)
+            )
+          );
+        }
+
+        showToast("All data has been reset successfully");
+      },
     });
   };
 
@@ -1407,7 +1424,7 @@ export default function FinanceDashboard() {
                 )}
               </div>
               {showSearch && searchResults.length > 0 && (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "var(--t-darkInk)", border: `1px solid ${THEME.line}`, borderRadius: 12, zIndex: 200, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 12, zIndex: 200, boxShadow: "0 12px 40px rgba(0,0,0,0.15)", overflow: "hidden" }}>
                   {searchResults.map((r, i) => (
                     <div key={`${r.tab}-${r.name}-${i}`} onMouseDown={() => { setTab(r.tab); setSearch(""); setShowSearch(false); }} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "background 0.12s" }}
                       onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 5%, transparent)`}
@@ -1596,11 +1613,10 @@ export default function FinanceDashboard() {
         <main
           style={{
             maxWidth: 1200,
-            margin: "0",
+            margin: "0 auto",
             padding: "40px",
             position: "relative",
             zIndex: 1,
-            background: "var(--t-paper)",
           }}
         >
           <div key={tab} className="tab-content-enter">
@@ -1643,7 +1659,7 @@ export default function FinanceDashboard() {
 
         <footer style={{
           textAlign: "center",
-          padding: "32px 20px 80px",
+          padding: "28px 20px 32px",
           color: THEME.muted,
           fontSize: 12,
           borderTop: `1px solid ${THEME.line}`,

@@ -46,7 +46,7 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
         style={{
           width: "100%",
           maxWidth: 600,
-          background: "var(--t-darkInk)",
+          background: "var(--surface-0)",
           borderRadius: "var(--radius-xl)",
           border: "1px solid color-mix(in srgb, var(--t-line) 50%, transparent)",
           boxShadow: "var(--shadow-2xl)",

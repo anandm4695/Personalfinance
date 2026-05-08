@@ -13,7 +13,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
 );
 
 const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
-  <div style={{ background: "var(--t-darkInk)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
       <Icon size={14} /> {label}
     </div>
@@ -30,7 +30,7 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const card = {
-  background: "var(--t-darkInk)",
+  background: "var(--surface-0)",
   borderRadius: 12,
   border: `1px solid ${THEME.line}`,
   padding: 20,

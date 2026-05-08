@@ -548,7 +548,7 @@ tbody tr:hover td {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   z-index: 500;
@@ -559,7 +559,7 @@ tbody tr:hover td {
   animation: fadeIn 0.15s ease;
 }
 .modal-panel {
-  background: var(--t-darkInk);
+  background: var(--surface-0);
   border-radius: var(--radius-xl);
   border: 1px solid var(--t-line);
   box-shadow: var(--shadow-2xl), 0 0 0 1px rgba(255,255,255,0.02);
@@ -605,7 +605,7 @@ tbody tr:hover td {
   top: calc(100% + 10px);
   right: 0;
   width: 340px;
-  background: var(--t-darkInk);
+  background: var(--surface-0);
   border: 1px solid var(--t-line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
@@ -657,7 +657,7 @@ tbody tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--t-darkInk);
+  border: 2px solid var(--surface-0);
   line-height: 1;
   animation: pulse-ring 2s ease infinite;
 }
@@ -688,10 +688,13 @@ tbody tr:hover td {
 
 /* ── Glass surface ─────────────────────────────────────────────── */
 .glass {
-  background: color-mix(in srgb, var(--t-darkInk) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-0) 88%, transparent);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid color-mix(in srgb, var(--t-line) 50%, transparent);
+}
+.dark-theme .glass {
+  background: color-mix(in srgb, var(--surface-0) 80%, transparent);
 }
 
 /* ── Mobile bottom nav ─────────────────────────────────────────── */
@@ -891,6 +894,36 @@ tr:last-child td { border-bottom: none; }
 .sidebar-nav-btn:hover {
   background: color-mix(in srgb, var(--t-accent) 7%, transparent) !important;
   color: var(--t-accent) !important;
+}
+
+/* ── Nav item (sidebar) — active + hover ───────────────────────── */
+.nav-item {
+  font-family: inherit;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+.nav-item:hover:not(.active) {
+  background: color-mix(in srgb, var(--t-accent) 6%, transparent) !important;
+  color: var(--t-accent) !important;
+}
+.nav-item.active {
+  background: color-mix(in srgb, var(--t-accent) 10%, transparent) !important;
+  color: var(--t-accent) !important;
+  box-shadow: inset 3px 0 0 var(--t-accent);
+}
+.nav-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--t-accent) 8%, transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.nav-item:active::after {
+  opacity: 1;
 }
 
 /* ── Input improvements ────────────────────────────────────────── */
