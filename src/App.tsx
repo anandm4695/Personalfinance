@@ -111,121 +111,15 @@ const DEFAULT_STATE = {
 
 const EMPTY_DATA = DEFAULT_STATE;
 
-const MOCK_DATA = (() => {
-  const d = new Date();
-  const ym = d.toISOString().slice(0, 7);
-  const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
-  return {
-    ...DEFAULT_STATE,
-    profile: { name: "Anand", fy: "2025-26", regime: "new", savingsTarget: 20 },
-    bankAccounts: [
-      { id: "1", owner: "self", bankName: "HDFC Bank", accountNumber: "XXXX1234", balance: "150000" },
-      { id: "2", owner: "self", bankName: "SBI", accountNumber: "XXXX5678", balance: "45000" },
-      { id: "3", owner: "wife", bankName: "ICICI Bank", accountNumber: "XXXX9988", balance: "80000" },
-      { id: "4", owner: "huf", bankName: "Axis Bank", accountNumber: "XXXX1111", balance: "250000" }
-    ],
-    transactions: [
-      { id: "t1", owner: "self", date: `${ym}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t2", owner: "self", date: `${ym}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" },
-      { id: "t3", owner: "self", date: `${ym}-10`, accountId: "2", amount: "8000", type: "debit", category: "Food", note: "Groceries & Dining" },
-      { id: "t4", owner: "self", date: `${ym}-15`, accountId: "2", amount: "5000", type: "debit", category: "Utilities", note: "Electricity & Internet" },
-      { id: "t5", owner: "self", date: `${lastM}-01`, accountId: "1", amount: "120000", type: "credit", category: "Salary", note: "Monthly Salary" },
-      { id: "t6", owner: "self", date: `${lastM}-05`, accountId: "1", amount: "15000", type: "debit", category: "Rent", note: "House Rent" }
-    ],
-    fixedDeposits: [
-      { id: "fd1", owner: "self", bank: "HDFC Bank", principal: "500000", rate: "7", years: "3", startDate: "2023-01-01", maturityDate: "2026-01-01" },
-      { id: "fd2", owner: "huf", bank: "Axis Bank", principal: "1000000", rate: "7.5", years: "5", startDate: "2022-06-01", maturityDate: "2027-06-01" }
-    ],
-    recurringDeposits: [
-      { id: "rd1", owner: "self", bank: "SBI", monthly: "5000", rate: "6.5", tenureMonths: "24", startDate: "2024-01-01" },
-      { id: "rd2", owner: "self", bank: "Post Office", monthly: "3000", rate: "6.8", tenureMonths: "36", startDate: "2023-06-01" },
-    ],
-    bonds: [
-      { id: "b1", owner: "self", name: "G-Sec 7.26% 2033", type: "Government", faceValue: "100000", coupon: "7.26", maturityDate: "2033-09-15" },
-      { id: "b2", owner: "self", name: "HDFC Corp Bond", type: "Corporate", faceValue: "50000", coupon: "8.5", maturityDate: "2030-03-31" },
-    ],
-    ppf: [
-      { id: "p1", owner: "self", bank: "Post Office", balance: "350000", openDate: "2015-04-01", thisYearContribution: "150000" },
-      { id: "p2", owner: "wife", bank: "SBI", balance: "200000", openDate: "2018-04-01", thisYearContribution: "50000" }
-    ],
-    nps: [
-      { id: "n1", owner: "self", pran: "110123456789", tier: "I", balance: "250000", thisYearContribution: "50000", contributions: [
-        { id: "nc1", date: "2024-04-05", selfAmount: "50000", employerAmount: "18000" },
-        { id: "nc2", date: "2025-04-10", selfAmount: "50000", employerAmount: "20000" },
-      ] },
-    ],
-    mutualFunds: [
-      { id: "m1", owner: "self", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
-      { id: "m2", owner: "self", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" },
-      { id: "m3", owner: "daughter", scheme: "HDFC Children's Gift Fund", type: "Hybrid", units: "1000", currentNav: "150", invested: "100000" }
-    ],
-    stocks: [
-      { id: "s1", owner: "self", symbol: "RELIANCE", dematId: "d1", qty: "20", currentPrice: "2250", avgPrice: "2500" },
-      { id: "s2", owner: "self", symbol: "TCS", dematId: "d1", qty: "15", currentPrice: "3600", avgPrice: "2800" },
-      { id: "s3", owner: "self", symbol: "INFY", dematId: "d2", qty: "25", currentPrice: "1580", avgPrice: "1400" },
-      { id: "s4", owner: "self", symbol: "HDFCBANK", dematId: "d2", qty: "10", currentPrice: "1720", avgPrice: "1650" },
-    ],
-    demat: [
-      { id: "d1", owner: "self", broker: "Zerodha", dpId: "IN300095", clientId: "AB1234" },
-      { id: "d2", owner: "self", broker: "Groww", dpId: "IN303719", clientId: "GW5678" },
-    ],
-    creditCards: [
-      { 
-        id: "c1", 
-        owner: "self",
-        issuer: "Amazon Pay ICICI", 
-        network: "Visa", 
-        last4: "5678", 
-        limit: "300000", 
-        outstanding: "24000", 
-        billDate: "20", 
-        dueDay: "10",
-        annualFee: "0",
-        waiverInfo: "Life Time Free",
-        helpline: "1800 102 3333",
-        transactions: [
-          { id: "ctx1", date: `${ym}-05`, merchant: "Amazon.in", amount: "1200", category: "Shopping" },
-          { id: "ctx2", date: `${ym}-12`, merchant: "Swiggy", amount: "450", category: "Food" }
-        ]
-      }
-    ],
-    loansTaken: [
-      { id: "l1", owner: "self", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
-    ],
-    subscriptions: [
-      { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
-      { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
-    ],
-    goals: [
-      { id: "g1", owner: "self", name: "Emergency Fund", category: "Emergency Fund", targetAmount: "600000", currentAmount: "400000", priority: "High", startDate: "2024-01-01", targetDate: "2025-12-31" },
-      { id: "g2", owner: "daughter", name: "College Fund", category: "Education", targetAmount: "2000000", currentAmount: "250000", priority: "Medium", startDate: "2024-06-01", targetDate: "2030-06-01" }
-    ],
-    income: [
-      { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
-    ],
-    budgets: [
-      { id: "b1", owner: "self", category: "Food", monthly: "10000" },
-      { id: "b2", owner: "self", category: "Rent", monthly: "15000" },
-      { id: "b3", owner: "self", category: "Transport", monthly: "3000" },
-      { id: "b4", owner: "self", category: "Entertainment", monthly: "2000" },
-    ],
-    sips: [
-      { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
-      { id: "sip2", owner: "self", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
-      { id: "sip3", owner: "self", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
-    ]
-  };
-})();
+
 
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [state, setState] = useState(() => {
-    // 1. Force clear if we just reset (handles race conditions and ghost tabs)
-    if (window.location.search.includes("reset=success")) {
-      localStorage.clear();
-      sessionStorage.clear();
+    // 1. If we just reset, start with default state
+    if (window.location.search.includes("reset=success") || window.location.search.includes("reset=local")) {
       return DEFAULT_STATE;
     }
 
@@ -241,14 +135,18 @@ export default function FinanceDashboard() {
   // 2. Cross-tab sync: If another tab clears storage, this one should reload/wipe
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
+      // StorageEvent only fires for OTHER tabs/windows.
       // If storage is cleared (key is null) or our dashboard key is changed
-      if (!e.key || e.key.includes("finance_dashboard")) {
-        window.location.reload();
+      // We only reload if it's a genuine data change from another tab, NOT a reset we are currently handling.
+      if (e.storageArea === localStorage && !isResetting) {
+        if (!e.key || e.key.includes("finance_dashboard")) {
+          window.location.reload();
+        }
       }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+  }, [isResetting]);
 
   const [loaded, setLoaded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -476,6 +374,10 @@ export default function FinanceDashboard() {
         if (legacy?.data) {
           await migrateLegacyData(userId, legacy.data);
           setState({ ...DEFAULT_STATE, ...legacy.data });
+        } else {
+          // IMPORTANT: If user is logged in but has zero cloud data, 
+          // we MUST clear any local dummy data to prevent "ghost data" confusion.
+          setState(DEFAULT_STATE);
         }
       }
     } catch (e) {
@@ -988,16 +890,25 @@ export default function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
+        // Specific field mapping for various modules to match Supabase schema
+        if (key === "bankAccounts") { delete finalItem.type; } // bank_accounts table has no type column
+        if (key === "creditCards") { finalItem.card_limit = item.limit; delete finalItem.limit; }
+        if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
+
         // Prevent Postgres type errors by converting empty strings to null
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
         }
-        const { error } = await supabase.from(table).insert(cleanItem);
-        if (error) console.error(`Supabase Insert Error (${table}):`, error);
         
-        // Strict Rule: Auto fetch data after mutation
-        await fetchAllData();
+        const { error } = await supabase.from(table).insert(cleanItem);
+        if (error) {
+          console.error(`Supabase Insert Error (${table}):`, error);
+          showToast(`Cloud sync failed for ${key}`, "error");
+        } else {
+          // Only fetch if successful to avoid overwriting optimistic update with failed state
+          await fetchAllData();
+        }
       }
     }
     logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
@@ -1033,16 +944,23 @@ export default function FinanceDashboard() {
         if (key === "budgets" && patch.monthly) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
         if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
         
+        // Specific field mapping for updates
+        if (key === "bankAccounts") { delete finalPatch.type; }
+        if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
+        if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
+
         // Prevent Postgres type errors by converting empty strings to null
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
         }
         
         const { error } = await supabase.from(table).update(finalPatch).eq("id", id);
-        if (error) console.error(`Supabase Update Error (${table}):`, error);
-        
-        // Strict Rule: Auto fetch data after mutation
-        await fetchAllData();
+        if (error) {
+          console.error(`Supabase Update Error (${table}):`, error);
+          showToast(`Cloud update failed for ${key}`, "error");
+        } else {
+          await fetchAllData();
+        }
       }
     }
     logActivity(`UPDATE_${key.toUpperCase()}`, `Updated item in ${key}`, { id, patch });
@@ -1117,7 +1035,8 @@ export default function FinanceDashboard() {
             localStorage.clear();
             sessionStorage.clear();
             setState(EMPTY_DATA);
-            window.location.replace(window.location.origin + "/?reset=local");
+            setIsResetting(false);
+            showToast("Local data reset successfully.", "success");
             return;
           }
           
@@ -1156,9 +1075,8 @@ export default function FinanceDashboard() {
           localStorage.clear();
           sessionStorage.clear();
           setState(EMPTY_DATA);
-          
-          // 5. Hard redirect
-          window.location.replace(window.location.origin + "/?reset=success");
+          setIsResetting(false);
+          showToast("All data cleared from cloud and local storage.", "success");
         } catch (err) {
           console.error("Reset failed", err);
           showToast("Reset failed. Please check your connection.", "error");
