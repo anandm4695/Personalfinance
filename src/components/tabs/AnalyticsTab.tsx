@@ -75,7 +75,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const ym = d.toISOString().slice(0, 7);
       const value = histMap[ym] !== undefined
         ? histMap[ym]
-        : metrics.netWorth - (trendData.length - 1 - i) * (metrics.monthIncome - metrics.monthExpense) * 0.9;
+        : metrics.netWorth; // Use current net worth instead of simulated slope
       return { month: t.month, value, real: histMap[ym] !== undefined };
     });
   }, [trendData, metrics, state.netWorthHistory]);
@@ -85,18 +85,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (metrics.savingsRate >= 30) savingsScore = 25;
     else if (metrics.savingsRate >= 20) savingsScore = 18;
     else if (metrics.savingsRate >= 10) savingsScore = 10;
-    else savingsScore = 4;
+    else if (metrics.savingsRate > 0) savingsScore = 4;
+    else savingsScore = 0;
     
-    if (metrics.debtToAssetRatio < 10) debtScore = 25;
+    if (metrics.totalAssets === 0 && metrics.totalLiabilities === 0) debtScore = 0;
+    else if (metrics.debtToAssetRatio < 10) debtScore = 25;
     else if (metrics.debtToAssetRatio < 25) debtScore = 18;
     else if (metrics.debtToAssetRatio < 50) debtScore = 10;
-    else debtScore = 4;
+    else if (metrics.totalLiabilities > 0) debtScore = 4;
+    else debtScore = 0;
     
     const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
     if (emergencyMonths > 6) emergencyScore = 25;
     else if (emergencyMonths >= 3) emergencyScore = 18;
     else if (emergencyMonths >= 1) emergencyScore = 10;
-    else emergencyScore = 4;
+    else if (emergencyMonths > 0) emergencyScore = 4;
+    else emergencyScore = 0;
     
     if (state.mutualFunds.length > 0) divScore += 6;
     if (state.stocks.length > 0) divScore += 6;
