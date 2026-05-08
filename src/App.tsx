@@ -222,6 +222,13 @@ export default function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [state, setState] = useState(() => {
+    // 1. Force clear if we just reset (handles race conditions and ghost tabs)
+    if (window.location.search.includes("reset=success")) {
+      localStorage.clear();
+      sessionStorage.clear();
+      return DEFAULT_STATE;
+    }
+
     const saved = loadState();
     if (!saved) return DEFAULT_STATE;
     return {
@@ -230,6 +237,19 @@ export default function FinanceDashboard() {
       settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) }
     };
   });
+
+  // 2. Cross-tab sync: If another tab clears storage, this one should reload/wipe
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      // If storage is cleared (key is null) or our dashboard key is changed
+      if (!e.key || e.key.includes("finance_dashboard")) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   const [loaded, setLoaded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
