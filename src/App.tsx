@@ -95,11 +95,28 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
   );
 };
 
-const DEFAULT_STATE = (() => {
+const DEFAULT_STATE = {
+  profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
+  bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
+  bonds: [], ppf: [], nps: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
+  demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
+  informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
+  subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
+  reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
+  settings: {
+    darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
+    radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
+  }
+};
+
+const EMPTY_DATA = DEFAULT_STATE;
+
+const MOCK_DATA = (() => {
   const d = new Date();
   const ym = d.toISOString().slice(0, 7);
   const lastM = new Date(new Date(d).setMonth(d.getMonth() - 1)).toISOString().slice(0, 7);
   return {
+    ...DEFAULT_STATE,
     profile: { name: "Anand", fy: "2025-26", regime: "new", savingsTarget: 20 },
     bankAccounts: [
       { id: "1", owner: "self", bankName: "HDFC Bank", accountNumber: "XXXX1234", balance: "150000" },
@@ -137,14 +154,6 @@ const DEFAULT_STATE = (() => {
         { id: "nc2", date: "2025-04-10", selfAmount: "50000", employerAmount: "20000" },
       ] },
     ],
-    lic: [
-      { id: "lic1", owner: "self", policyNumber: "12345678", planName: "Jeevan Anand", sumAssured: "1000000", annualPremium: "45000", premiumPaid: "180000", maturityDate: "2035-06-15" },
-      { id: "lic2", owner: "self", policyNumber: "98765432", planName: "Money Back 20yr", sumAssured: "500000", annualPremium: "28000", premiumPaid: "84000", maturityDate: "2030-12-31" },
-    ],
-    termPlans: [
-      { id: "tp1", owner: "self", insurer: "HDFC Life", planName: "Click 2 Protect", coverAmount: "10000000", annualPremium: "12000", expiryDate: "2055-08-01" },
-      { id: "tp2", owner: "self", insurer: "LIC", planName: "Tech Term", coverAmount: "5000000", annualPremium: "8500", expiryDate: "2050-04-15" },
-    ],
     mutualFunds: [
       { id: "m1", owner: "self", scheme: "Parag Parikh Flexi Cap", type: "Equity", units: "800", currentNav: "325", invested: "200000" },
       { id: "m2", owner: "self", scheme: "Nifty 50 Index Fund", type: "Index", units: "500", currentNav: "370", invested: "150000" },
@@ -180,15 +189,9 @@ const DEFAULT_STATE = (() => {
         ]
       }
     ],
-    prepaidCards: [],
     loansTaken: [
       { id: "l1", owner: "self", lender: "HDFC Bank", type: "Car", principal: "800000", outstanding: "550000", emi: "18000", rate: "8.5", monthsRemaining: "36" }
     ],
-    loansGiven: [],
-    informalBorrowed: [],
-    informalLent: [],
-    rentalProperties: [],
-    rentedProperties: [],
     subscriptions: [
       { id: "sub1", owner: "self", name: "Netflix", amount: "649", cycle: "monthly", renewalDate: `${ym}-28` },
       { id: "sub2", owner: "self", name: "Amazon Prime", amount: "1499", cycle: "yearly", renewalDate: `${ym}-30` }
@@ -200,50 +203,19 @@ const DEFAULT_STATE = (() => {
     income: [
       { id: "i1", owner: "self", source: "Salary", category: "Salary", amount: "1440000", date: `${ym}-01` }
     ],
-    taxPayments: [],
     budgets: [
       { id: "b1", owner: "self", category: "Food", monthly: "10000" },
       { id: "b2", owner: "self", category: "Rent", monthly: "15000" },
       { id: "b3", owner: "self", category: "Transport", monthly: "3000" },
       { id: "b4", owner: "self", category: "Entertainment", monthly: "2000" },
     ],
-    reminders: [],
-    stockSells: [],
-    mfSells: [],
-    netWorthHistory: [],
     sips: [
       { id: "sip1", owner: "self", scheme: "Parag Parikh Flexi Cap", fundType: "Equity", amount: "5000", frequency: "monthly", startDate: "2023-01-01", totalInstallments: "36" },
       { id: "sip2", owner: "self", scheme: "Nifty 50 Index Fund", fundType: "Index", amount: "3000", frequency: "monthly", startDate: "2022-07-01", totalInstallments: "60" },
       { id: "sip3", owner: "self", scheme: "HDFC Hybrid Equity", fundType: "Hybrid", amount: "2000", frequency: "monthly", startDate: "2024-01-01", totalInstallments: "24" },
-    ],
-    settings: {
-      darkMode: false,
-      accentKey: "blue",
-      density: "normal",
-      sidebarNav: true,
-      radiusKey: "modern",
-      fontKey: "inter",
-      bgStyle: "plain",
-      animSpeed: "smooth",
-      chartStyle: "monotone"
-    }
+    ]
   };
 })();
-
-// All data arrays set to empty — used when user clicks "Start Fresh"
-const EMPTY_DATA = {
-  profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
-  bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
-  bonds: [], ppf: [], nps: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
-  demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
-  informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
-  subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
-  reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
-  settings: {
-    darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
-    radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
-  }
-};
 
 // ================== MAIN APP ==================
 export default function FinanceDashboard() {
@@ -1121,17 +1093,22 @@ export default function FinanceDashboard() {
         try {
           const userId = session?.user?.id;
           
-          // 1. Wipe Local Storage first to prevent hydration of stale data
-          localStorage.removeItem(STORAGE_KEY);
+          // 1. Wipe EVERYTHING from local storage/session immediately
+          localStorage.clear();
+          sessionStorage.clear();
           
-          // 2. Wipe Supabase Tables sequentially (safer for FK constraints)
+          // 2. Wipe Supabase Tables sequentially to ensure success
           if (userId && userId !== "offline-user") {
             const tables = [...new Set(Object.values(TABLE_MAP)), "activity_logs"];
             for (const table of tables) {
-              await supabase.from(table).delete().eq("user_id", userId);
+              const { error } = await supabase.from(table).delete().eq("user_id", userId);
+              if (error) {
+                console.error(`Failed to wipe ${table}:`, error);
+                throw new Error(`Cloud wipe failed for ${table}`);
+              }
             }
             
-            // 3. Reset Profile & Settings to Defaults
+            // 3. Reset Profile & Settings to Defaults in DB
             await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
             await supabase.from("user_settings").update({ 
                dark_mode: false, accent_key: "blue", density: "normal", 
@@ -1140,16 +1117,14 @@ export default function FinanceDashboard() {
             }).eq("user_id", userId);
           }
           
-          showToast("Nuke complete. Restarting dashboard...");
+          showToast("Global reset successful. Purging cache...");
           
-          // 4. Force hard navigation to clear memory/cache
+          // 4. Clean State & Force hard navigation to clear memory/cache
           setState(EMPTY_DATA);
-          setTimeout(() => {
-            window.location.href = window.location.origin;
-          }, 1500);
+          window.location.href = window.location.origin + "/?reset=true";
         } catch (err) {
           console.error("Reset failed", err);
-          showToast("Reset failed. Please try again.", "error");
+          showToast("Reset failed. Some data might remain in cloud.", "error");
           setIsResetting(false);
         }
       },
