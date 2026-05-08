@@ -232,6 +232,7 @@ const DEFAULT_STATE = (() => {
 
 // All data arrays set to empty — used when user clicks "Start Fresh"
 const EMPTY_DATA = {
+  profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
   bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
   bonds: [], ppf: [], nps: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
   demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
@@ -258,6 +259,7 @@ export default function FinanceDashboard() {
     };
   });
   const [loaded, setLoaded] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
 
@@ -1113,29 +1115,42 @@ export default function FinanceDashboard() {
 
   const resetAll = () => {
     setConfirmDialog({
-      message: "Delete ALL data? This action cannot be undone and will clear every account, transaction, goal and setting.",
+      message: "Are you absolutely sure? This will PERMANENTLY delete all your financial records and settings across all modules. This action cannot be undone.",
       onConfirm: async () => {
+        setIsResetting(true);
         try {
           const userId = session?.user?.id;
-          // Clear local state
-          setState(prev => ({ ...prev, ...EMPTY_DATA }));
           
-          // Wipe Supabase
+          // 1. Wipe Local Storage first to prevent hydration of stale data
+          localStorage.removeItem(STORAGE_KEY);
+          
+          // 2. Wipe Supabase Tables sequentially (safer for FK constraints)
           if (userId && userId !== "offline-user") {
-            const uniqueTables = [...new Set(Object.values(TABLE_MAP))];
-            await Promise.all(
-              uniqueTables.map(table =>
-                supabase.from(table).delete().eq("user_id", userId)
-              )
-            );
+            const tables = [...new Set(Object.values(TABLE_MAP)), "activity_logs"];
+            for (const table of tables) {
+              await supabase.from(table).delete().eq("user_id", userId);
+            }
+            
+            // 3. Reset Profile & Settings to Defaults
+            await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
+            await supabase.from("user_settings").update({ 
+               dark_mode: false, accent_key: "blue", density: "normal", 
+               sidebar_nav: true, radius_key: "modern", font_key: "inter", 
+               bg_style: "plain", anim_speed: "smooth", chart_style: "monotone" 
+            }).eq("user_id", userId);
           }
           
-          showToast("All data has been reset successfully");
-          // Force a full refresh after a small delay to let toast be seen (or just reload immediately)
-          setTimeout(() => window.location.reload(), 800);
+          showToast("Nuke complete. Restarting dashboard...");
+          
+          // 4. Force hard navigation to clear memory/cache
+          setState(EMPTY_DATA);
+          setTimeout(() => {
+            window.location.href = window.location.origin;
+          }, 1500);
         } catch (err) {
           console.error("Reset failed", err);
           showToast("Reset failed. Please try again.", "error");
+          setIsResetting(false);
         }
       },
     });
@@ -1770,6 +1785,22 @@ export default function FinanceDashboard() {
           if (a === "quick-add") setFabModal(true);
         }}
       />
+
+      {/* ── RESET OVERLAY ── */}
+      {isResetting && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 10000,
+          background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          color: "#fff", gap: 20
+        }}>
+          <RefreshCw size={48} className="animate-spin" style={{ color: THEME.accent }} />
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>Nuking Local & Cloud Data</div>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Please wait, performing secure wipe...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
