@@ -117,19 +117,33 @@ const EMPTY_DATA = DEFAULT_STATE;
 export default function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [tab, setTab] = useState("analytics");
+  const [subTab, setSubTab] = useState(null);
+
   const [state, setState] = useState(() => {
     // 1. If we just reset, start with default state
     if (window.location.search.includes("reset=success") || window.location.search.includes("reset=local")) {
       return DEFAULT_STATE;
     }
 
-    const saved = loadState();
-    if (!saved) return DEFAULT_STATE;
-    return {
-      ...DEFAULT_STATE,
-      ...saved,
-      settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) }
-    };
+    const saved = loadState() || {};
+    const newState = { ...DEFAULT_STATE };
+    
+    // Ensure every top-level key from DEFAULT_STATE exists in newState
+    // and that array keys are actually arrays.
+    Object.keys(DEFAULT_STATE).forEach(key => {
+      if (Array.isArray(DEFAULT_STATE[key])) {
+        newState[key] = Array.isArray(saved[key]) ? saved[key] : [];
+      } else if (typeof DEFAULT_STATE[key] === 'object' && DEFAULT_STATE[key] !== null) {
+        newState[key] = { ...DEFAULT_STATE[key], ...(saved[key] || {}) };
+      } else {
+        newState[key] = saved[key] !== undefined ? saved[key] : DEFAULT_STATE[key];
+      }
+    });
+    
+    return newState;
   });
 
   // 2. Cross-tab sync: If another tab clears storage, this one should reload/wipe
@@ -148,10 +162,7 @@ export default function FinanceDashboard() {
     return () => window.removeEventListener("storage", handleStorage);
   }, [isResetting]);
 
-  const [loaded, setLoaded] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [tab, setTab] = useState("analytics");
-  const [subTab, setSubTab] = useState(null);
+
 
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
@@ -507,7 +518,7 @@ export default function FinanceDashboard() {
 
   const filteredState = useMemo(() => {
     if (activeProfile === "all") return state;
-    const filterByOwner = (arr: any[]) => arr.filter((item) => item.owner === activeProfile);
+    const filterByOwner = (arr: any[]) => (Array.isArray(arr) ? arr : []).filter((item) => item.owner === activeProfile);
     return {
       ...state,
       bankAccounts: filterByOwner(state.bankAccounts),
@@ -544,7 +555,7 @@ export default function FinanceDashboard() {
   // ================== COMPUTED FINANCIAL METRICS ==================
   const metrics = useMemo(() => {
     const sState = filteredState;
-    const cashInBanks = sState.bankAccounts.reduce(
+    const cashInBanks = (sState.bankAccounts || []).reduce(
       (s, a) => s + Number(a.balance || 0),
       0
     );
