@@ -107,10 +107,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
     
     const subScores = [
-      { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100 },
-      { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100 },
-      { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100 },
-      { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100 },
+      { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100, color: savingsScore >= 25 ? THEME.sage : savingsScore >= 18 ? THEME.gold : savingsScore >= 10 ? "#F97316" : THEME.rust },
+      { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100, color: debtScore >= 25 ? THEME.sage : debtScore >= 18 ? THEME.gold : debtScore >= 10 ? "#F97316" : THEME.rust },
+      { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100, color: emergencyScore >= 25 ? THEME.sage : emergencyScore >= 18 ? THEME.gold : emergencyScore >= 10 ? "#F97316" : THEME.rust },
+      { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100, color: divScore >= 25 ? THEME.sage : divScore >= 18 ? THEME.gold : divScore >= 10 ? "#F97316" : THEME.rust },
     ];
     
     const todayMs = new Date().getTime();
@@ -168,7 +168,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         ];
         return (
           <div style={{ background: "transparent", overflowX: "auto", marginBottom: 24 }} className="no-scrollbar">
-            <div style={{ display: "flex", alignItems: "center", minWidth: "max-content", background: THEME.darkInk, borderRadius: 12, padding: "12px 10px", border: `1px solid ${THEME.line}` }}>
+            <div style={{ display: "flex", alignItems: "center", minWidth: "max-content", background: "var(--surface-0)", borderRadius: 12, padding: "12px 10px", border: `1px solid ${THEME.line}`, boxShadow: "var(--shadow-sm)" }}>
               {items.map(({ label, value, color }, idx) => (
                 <React.Fragment key={label}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 24px" }}>
@@ -222,7 +222,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {sub === "dashboard" && (
         <div className="animate-fade-in-up bento-grid">
-          <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px" }}>
+          <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "var(--t-darkInk)", color: "#fff" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
@@ -347,7 +347,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <span style={{ color: THEME.muted, fontWeight: 600 }}>{s.label}</span>
                         <span style={{ fontWeight: 800 }}>{s.score}/{s.max}</span>
                       </div>
-                      <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: dashboardData.scoreColor }} /></div>
+                      <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: s.color }} /></div>
                     </div>
                   ))}
                 </div>
@@ -387,8 +387,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
              <Card className="bento-col-7" style={{ padding: 24 }}>
               <div className="section-label">Monthly P&L (Last 6 Months)</div>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={trendData.slice(-6)}>
+              {trendData.filter(t => t.income > 0 || t.expense > 0).length === 0 ? (
+                <div style={{ height: 250, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
+                  Add transactions to see your P&L trend
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={trendData.slice(-6)}>
                   <defs>
                     <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
@@ -414,6 +419,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
                 </BarChart>
               </ResponsiveContainer>
+              )}
              </Card>
 
              <Card className="bento-col-5" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
@@ -531,7 +537,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                          <div style={{ 
                            width: `${Math.min(100, spendingPct)}%`, 
                            height: '100%', 
-                           background: isOverBudget ? THEME.rust : spendingPct > (100 - targetPct) * 0.8 ? THEME.gold : THEME.sage,
+                           background: isOverBudget ? THEME.rust : spendingPct > 95 ? "#F97316" : spendingPct > (100 - targetPct) * 0.8 ? THEME.gold : spendingPct > 50 ? "#A3E635" : THEME.sage,
                            transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
                          }} />
                        </div>
@@ -605,21 +611,27 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div className="animate-fade-in-up">
            <Card style={{ marginBottom: 28, padding: 24 }}>
             <div className="section-label">Net Worth Growth</div>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={netWorthTrend}>
-                <defs>
-                  <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor={THEME.accent} floodOpacity="0.5" />
-                  </filter>
-                </defs>
-                <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-                <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
-                <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
-                <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNw)" style={{ filter: "url(#glow)" }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {netWorthTrend.length === 0 || netWorthTrend.every(t => t.value === 0) ? (
+              <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
+                Not enough history to show net worth trend
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={netWorthTrend}>
+                  <defs>
+                    <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor={THEME.accent} floodOpacity="0.5" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINR} />
+                  <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNw)" style={{ filter: "url(#glow)" }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </Card>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <Card style={{ padding: 24 }}>

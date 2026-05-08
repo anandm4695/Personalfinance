@@ -169,7 +169,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
             const budget = Number(b.monthly || 0);
             const pct = budget > 0 ? (spent / budget) * 100 : 0;
             const over = pct > 100;
-            const barColor = over ? THEME.rust : pct > 80 ? THEME.gold : THEME.sage;
+            const barColor = over ? THEME.rust : pct > 95 ? "#F97316" : pct > 80 ? THEME.gold : pct > 50 ? "#A3E635" : THEME.sage;
 
             const nowDate = new Date();
             const daysPassed = nowDate.getDate();

@@ -1115,22 +1115,28 @@ export default function FinanceDashboard() {
     setConfirmDialog({
       message: "Delete ALL data? This action cannot be undone and will clear every account, transaction, goal and setting.",
       onConfirm: async () => {
-        const userId = session?.user?.id;
-
-        // Clear local state immediately
-        setState(prev => ({ ...prev, ...EMPTY_DATA }));
-
-        // Also wipe all Supabase tables for this user
-        if (userId && userId !== "offline-user") {
-          const uniqueTables = [...new Set(Object.values(TABLE_MAP))];
-          await Promise.all(
-            uniqueTables.map(table =>
-              supabase.from(table).delete().eq("user_id", userId)
-            )
-          );
+        try {
+          const userId = session?.user?.id;
+          // Clear local state
+          setState(prev => ({ ...prev, ...EMPTY_DATA }));
+          
+          // Wipe Supabase
+          if (userId && userId !== "offline-user") {
+            const uniqueTables = [...new Set(Object.values(TABLE_MAP))];
+            await Promise.all(
+              uniqueTables.map(table =>
+                supabase.from(table).delete().eq("user_id", userId)
+              )
+            );
+          }
+          
+          showToast("All data has been reset successfully");
+          // Force a full refresh after a small delay to let toast be seen (or just reload immediately)
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          console.error("Reset failed", err);
+          showToast("Reset failed. Please try again.", "error");
         }
-
-        showToast("All data has been reset successfully");
       },
     });
   };

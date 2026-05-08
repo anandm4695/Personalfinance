@@ -148,6 +148,8 @@ create table if not exists public.credit_cards (
   outstanding numeric default 0,
   bill_date text,
   due_day text,
+  annual_fee numeric default 0,
+  helpline text,
   created_at timestamp with time zone default now()
 );
 
