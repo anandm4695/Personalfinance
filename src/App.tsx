@@ -1093,17 +1093,15 @@ export default function FinanceDashboard() {
         try {
           const userId = session?.user?.id;
           
-          // 1. Wipe EVERYTHING from local storage/session immediately
-          localStorage.clear();
-          sessionStorage.clear();
-          
           if (!userId || userId === "offline-user") {
+            localStorage.clear();
+            sessionStorage.clear();
             setState(EMPTY_DATA);
             window.location.replace(window.location.origin + "/?reset=local");
             return;
           }
           
-          // 2. Wipe Supabase Tables sequentially (Dependencies first: child tables before parents)
+          // 1. Wipe Supabase Tables sequentially (Dependencies first: child tables before parents)
           const tables = [
             "transactions",       // Child of bank_accounts
             "stocks",             // Child of demat_accounts
@@ -1126,10 +1124,12 @@ export default function FinanceDashboard() {
 
           for (const table of tables) {
             const { error } = await supabase.from(table).delete().eq("user_id", userId);
-            if (error) console.warn(`Note: Could not wipe ${table}, it may already be empty or restricted.`);
+            if (error && error.code !== "PGRST116") { // Ignore if table doesn't exist or no rows match
+               console.warn(`Cloud wipe partial for ${table}:`, error.message);
+            }
           }
           
-          // 3. Reset Profile & Settings to Defaults in DB
+          // 2. Reset Profile & Settings to Defaults in DB
           await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
           await supabase.from("user_settings").update({ 
              dark_mode: false, accent_key: "blue", density: "normal", 
@@ -1137,8 +1137,12 @@ export default function FinanceDashboard() {
              bg_style: "plain", anim_speed: "smooth", chart_style: "monotone" 
           }).eq("user_id", userId);
           
-          // 4. Final state clear and hard redirect (replace ensures no back-button state)
+          // 3. Final wipe of storage and state clear
+          localStorage.clear();
+          sessionStorage.clear();
           setState(EMPTY_DATA);
+          
+          // 4. Hard redirect
           window.location.replace(window.location.origin + "/?reset=success");
         } catch (err) {
           console.error("Reset failed", err);
