@@ -236,6 +236,44 @@ export default function FinanceDashboard() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
 
+  // 2. Aggressive Cleanup of Legacy Dummy Data
+  useEffect(() => {
+    const saved = loadState();
+    const isDummy = (s: any) => {
+      if (!s) return false;
+      // Markers of the old MOCK_DATA
+      return (Array.isArray(s.bankAccounts) && s.bankAccounts.some(b => b.id === "1" || b.id === "2")) || 
+             (s.profile?.name === "Anand" && (!session || session.user.id === "offline-user"));
+    };
+
+    if (isDummy(saved)) {
+      console.log("Cleanup: Detected legacy dummy data in storage. Wiping...");
+      localStorage.clear();
+      sessionStorage.clear();
+      setState(DEFAULT_STATE);
+      window.location.reload();
+    }
+  }, [session]);
+
+  // 2. Aggressive Cleanup of Legacy Dummy Data
+  useEffect(() => {
+    const saved = loadState();
+    const isDummy = (s: any) => {
+      if (!s) return false;
+      // Markers of the old MOCK_DATA
+      return (Array.isArray(s.bankAccounts) && s.bankAccounts.some(b => b.id === "1" || b.id === "2")) || 
+             (s.profile?.name === "Anand" && (!session || session.user.id === "offline-user"));
+    };
+
+    if (isDummy(saved)) {
+      console.log("Cleanup: Detected legacy dummy data in storage. Wiping...");
+      localStorage.clear();
+      sessionStorage.clear();
+      setState(DEFAULT_STATE);
+      // We don't reload here to avoid infinite loops, but we've cleared the state
+    }
+  }, [session]);
+
   useEffect(() => {
     try {
       supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -379,18 +417,11 @@ export default function FinanceDashboard() {
           reminders: snakeToCamel(rems.data)?.map((r: any) => ({ ...r, date: r.reminderDate })) || [],
         };
         setState(newState);
-      } else {
-        // Check for legacy JSONB data to migrate
-        const { data: legacy } = await supabase.from("user_state").select("data").eq("user_id", userId).maybeSingle();
-        if (legacy?.data) {
-          await migrateLegacyData(userId, legacy.data);
-          setState({ ...DEFAULT_STATE, ...legacy.data });
         } else {
           // IMPORTANT: If user is logged in but has zero cloud data, 
           // we MUST clear any local dummy data to prevent "ghost data" confusion.
           setState(DEFAULT_STATE);
         }
-      }
     } catch (e) {
       console.error("Supabase load failed", e);
     }
@@ -1036,7 +1067,7 @@ export default function FinanceDashboard() {
 
   const resetAll = () => {
     setConfirmDialog({
-      message: "Are you absolutely sure? This will PERMANENTLY delete all your financial records and settings across all modules. This action cannot be undone.",
+      message: "CRITICAL: This will permanently wipe ALL data from your device AND the cloud (Supabase). This action is irreversible. Proceed?",
       onConfirm: async () => {
         setIsResetting(true);
         try {
@@ -1045,49 +1076,43 @@ export default function FinanceDashboard() {
           if (!userId || userId === "offline-user") {
             localStorage.clear();
             sessionStorage.clear();
-            setState(EMPTY_DATA);
+            setState(DEFAULT_STATE);
             setIsResetting(false);
             showToast("Local data reset successfully.", "success");
             return;
           }
           
-          // 1. PHASE 1: Child Tables (Must go first to avoid FK constraints)
-          const childTables = ["transactions", "stocks", "activity_logs", "reminders", "user_state"];
-          for (const table of childTables) {
-            const { error } = await supabase.from(table).delete().eq("user_id", userId).select();
-            if (error && error.code !== "PGRST116") {
-               console.error(`Wipe failed for child table ${table}:`, error);
-               // We continue for now but will throw later if critical
-            }
+          // 1. PHASE 1: Delete all module data across all tables
+          const tables = Object.values(TABLE_MAP);
+          const extraTables = ["activity_logs", "user_state"];
+          const allModuleTables = [...new Set([...tables, ...extraTables])];
+          
+          for (const table of allModuleTables) {
+            await supabase.from(table).delete().eq("user_id", userId);
           }
 
-          // 2. PHASE 2: Parent & Master Tables
-          const parentTables = [
-            "bank_accounts", "demat_accounts", "mutual_funds", "fixed_deposits", 
-            "recurring_deposits", "bonds", "ppf_nps", "credit_cards", "loans", 
-            "goals", "budgets", "subscriptions"
-          ];
-          for (const table of parentTables) {
-            const { error } = await supabase.from(table).delete().eq("user_id", userId).select();
-            if (error && error.code !== "PGRST116") {
-               console.error(`Wipe failed for parent table ${table}:`, error);
-            }
-          }
+          // 2. PHASE 2: Reset Profile & Settings to Defaults in DB
+          await supabase.from("profiles").update({ 
+            name: "there", fy: "2025-26", regime: "new", savings_target: 20 
+          }).eq("user_id", userId);
           
-          // 3. Reset Profile & Settings to Defaults in DB
-          await supabase.from("profiles").update({ name: "there", fy: "2025-26", regime: "new", savings_target: 20 }).eq("user_id", userId);
           await supabase.from("user_settings").update({ 
              dark_mode: false, accent_key: "blue", density: "normal", 
              sidebar_nav: true, radius_key: "modern", font_key: "inter", 
              bg_style: "plain", anim_speed: "smooth", chart_style: "monotone" 
           }).eq("user_id", userId);
           
-          // 4. Final wipe of storage and state clear
+          // 3. Final wipe of local storage and state clear
           localStorage.clear();
           sessionStorage.clear();
-          setState(EMPTY_DATA);
-          setIsResetting(false);
-          showToast("All data cleared from cloud and local storage.", "success");
+          setState(DEFAULT_STATE);
+          
+          showToast("Cloud and local data wiped successfully.", "success");
+          
+          // Force reload to clean up all listeners
+          setTimeout(() => {
+            window.location.href = window.location.origin;
+          }, 1500);
         } catch (err) {
           console.error("Reset failed", err);
           showToast("Reset failed. Please check your connection.", "error");
