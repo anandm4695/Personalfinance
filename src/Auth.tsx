@@ -97,12 +97,18 @@ export default function Auth({
     setOauthLoading(provider);
     setError(null);
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin },
       });
+      if (error) throw error;
+      // On success the browser redirects — loading state clears automatically
     } catch (err: any) {
-      setError(err.message);
+      setError(
+        err.message?.includes("provider is not enabled")
+          ? `${provider === "google" ? "Google" : "Apple"} sign-in is not yet enabled. Please use email & password.`
+          : err.message
+      );
       setOauthLoading(null);
     }
   };
@@ -131,22 +137,22 @@ export default function Auth({
             <IndianRupee size={20} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="af-logo-name">FinVault</div>
-            <div className="af-logo-tagline">Personal Finance OS</div>
+            <div className="af-logo-name">Personal Finance</div>
+            <div className="af-logo-tagline">by Anand Mohta</div>
           </div>
         </div>
 
         {/* Hero */}
         <div className="af-hero">
           <div className="af-badge">
-            <TrendingUp size={11} aria-hidden="true" />
-            <span>Intelligent Finance Platform</span>
+            <IndianRupee size={11} aria-hidden="true" />
+            <span>Every money matters.</span>
           </div>
           <h1 className="af-h1">
-            Take Control of<br />Every Rupee.
+            Your Money.<br />Your Future.
           </h1>
           <p className="af-h1-sub">
-            Track expenses, investments, budgets, and wealth—all in one intelligent platform.
+            Personal Finance by Anand Mohta — track expenses, investments, goals, and your complete wealth in one secure place.
           </p>
         </div>
 
@@ -217,20 +223,24 @@ export default function Auth({
           </svg>
         </div>
 
-        {/* Stat pills */}
-        <div className="af-stat-row">
-          <div className="af-stat-pill" style={{ animationDelay: "0.1s" }}>
-            <Target size={13} color="#10B981" aria-hidden="true" />
-            <span className="af-stat-lbl">Monthly Savings</span>
-            <span className="af-stat-val">₹32K</span>
-            <span className="af-stat-chg">+8.2%</span>
-          </div>
-          <div className="af-stat-pill" style={{ animationDelay: "0.2s" }}>
-            <Globe size={13} color="#818CF8" aria-hidden="true" />
-            <span className="af-stat-lbl">Goals on Track</span>
-            <span className="af-stat-val">6 / 8</span>
-            <span className="af-stat-chg af-stat-chg-indigo">75%</span>
-          </div>
+        {/* Feature highlights */}
+        <div className="af-features">
+          {[
+            { icon: <IndianRupee size={14} />, color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.2)", title: "Transactions & Budget", desc: "Track every rupee in & out" },
+            { icon: <TrendingUp size={14} />, color: "#818CF8", bg: "rgba(129,140,248,0.12)", border: "rgba(129,140,248,0.2)", title: "Stocks, MFs & FDs", desc: "Your full investment portfolio" },
+            { icon: <Target size={14} />, color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.2)", title: "Goals & Planning", desc: "Set targets, track progress" },
+            { icon: <Shield size={14} />, color: "#38BDF8", bg: "rgba(56,189,248,0.12)", border: "rgba(56,189,248,0.2)", title: "Loans & Credit Cards", desc: "Manage liabilities clearly" },
+          ].map((f, i) => (
+            <div key={f.title} className="af-feature-item" style={{ animationDelay: `${0.1 + i * 0.07}s` }}>
+              <div className="af-feature-icon" style={{ background: f.bg, border: `1px solid ${f.border}`, color: f.color }}>
+                {f.icon}
+              </div>
+              <div>
+                <div className="af-feature-title">{f.title}</div>
+                <div className="af-feature-desc">{f.desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Trust badges */}
@@ -260,7 +270,10 @@ export default function Auth({
             <div className="af-logo-mark af-logo-mark-sm">
               <IndianRupee size={15} color="#fff" strokeWidth={2.5} />
             </div>
-            <span className="af-mobile-brand">FinVault</span>
+            <div>
+              <div className="af-mobile-brand">Personal Finance</div>
+              <div style={{ fontSize: 10, color: "#64748B", fontWeight: 500, marginTop: 1 }}>by Anand Mohta</div>
+            </div>
           </div>
 
           {/* Header */}
@@ -272,8 +285,8 @@ export default function Auth({
               {isForgot
                 ? "Enter your email and we'll send a secure recovery link"
                 : isSignUp
-                ? "Join thousands managing their wealth intelligently"
-                : "Sign in to your financial command centre"}
+                ? "Create your account and take control of your finances"
+                : "Sign in to your personal finance dashboard"}
             </p>
           </div>
 
@@ -604,18 +617,17 @@ const AF_STYLES = `
 }
 .af-logo-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 900;
   color: #FFFFFF;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 .af-logo-tagline {
   font-size: 10px;
   font-weight: 500;
-  color: rgba(255,255,255,0.28);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.06em;
   margin-top: 4px;
 }
 
@@ -739,55 +751,46 @@ const AF_STYLES = `
   animation: af-ring-pulse 2.2s ease-out 2.8s infinite;
 }
 
-/* Stat row */
-.af-stat-row {
-  display: flex;
-  gap: 12px;
-  margin-top: 14px;
+/* Feature highlights */
+.af-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
   position: relative;
   z-index: 1;
 }
-.af-stat-pill {
-  flex: 1;
+.af-feature-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 12px;
-  padding: 11px 13px;
+  padding: 13px 14px;
   animation: af-rise 0.7s cubic-bezier(0.22,1,0.36,1) both;
-  min-width: 0;
 }
-.af-stat-lbl {
+.af-feature-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.af-feature-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.82);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.af-feature-desc {
   font-size: 10.5px;
-  color: rgba(255,255,255,0.3);
-  font-weight: 500;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.af-stat-val {
-  font-size: 13px;
-  font-weight: 700;
-  color: #FFF;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-}
-.af-stat-chg {
-  font-size: 10px;
-  font-weight: 700;
-  color: #10B981;
-  background: rgba(16,185,129,0.1);
-  padding: 2px 7px;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-.af-stat-chg-indigo {
-  color: #818CF8;
-  background: rgba(129,140,248,0.12);
+  color: rgba(255,255,255,0.28);
+  margin-top: 2px;
+  line-height: 1.3;
 }
 
 /* Trust row */
@@ -1197,6 +1200,7 @@ const AF_STYLES = `
   .af-left  { width: 50%; padding: 44px; }
   .af-right { width: 50%; padding: 44px 36px; }
   .af-h1    { font-size: 38px; }
-  .af-stat-lbl { display: none; }
+  .af-features { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .af-feature-desc { display: none; }
 }
 `;
