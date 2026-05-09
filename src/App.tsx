@@ -1012,6 +1012,29 @@ export default function FinanceDashboard() {
               setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
             }
           }, 8000);
+        } else if (firstErr.code === "PGRST204") {
+          // Column missing in DB schema — strip the bad column(s) and retry
+          let retryItem: any = { ...cleanItem };
+          let currentErr: any = firstErr;
+          const stripped: string[] = [];
+          while (currentErr?.code === "PGRST204") {
+            const match = currentErr.message?.match(/Could not find the '(\w+)' column/);
+            const badCol = match ? match[1] : null;
+            if (!badCol || retryItem[badCol] === undefined) break;
+            delete retryItem[badCol];
+            stripped.push(badCol);
+            const { error: retryErr } = await supabase.from(table).upsert(retryItem, { onConflict: "id" });
+            currentErr = retryErr || null;
+          }
+          if (!currentErr) {
+            console.warn(`[Supabase] Saved without missing cols: ${stripped.join(", ")} — run SQL migration to sync all fields`);
+          } else if (isNetworkError(currentErr.message)) {
+            showToast("Saved locally — syncing in background…", "warn");
+          } else {
+            console.error(`Supabase Upsert Error (${table}):`, currentErr);
+            showToast(`Sync failed [${currentErr.code}]: ${currentErr.message}`, "error");
+            setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+          }
         } else {
           // Schema / auth / constraint error — revert immediately and show details
           console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
@@ -1072,14 +1095,30 @@ export default function FinanceDashboard() {
         }
 
         const isNetErr = (msg?: string) => !!(msg?.includes("Load failed") || msg?.includes("Failed to fetch") || msg?.includes("NetworkError") || msg?.includes("network"));
-        const doUpdate = () => supabase.from(table).update(finalPatch).eq("id", id);
-        const { error } = await doUpdate();
+        const doUpdate = (patch: any) => supabase.from(table).update(patch).eq("id", id);
+        const { error } = await doUpdate(finalPatch);
         if (error) {
           if (isNetErr(error.message)) {
             setTimeout(async () => {
-              const { error: r } = await doUpdate();
+              const { error: r } = await doUpdate(finalPatch);
               if (r) console.error(`Supabase Update retry failed (${table}):`, r.message);
             }, 8000);
+          } else if (error.code === "PGRST204") {
+            // Column missing in DB schema — strip bad column(s) and retry
+            let retryPatch: any = { ...finalPatch };
+            let currentErr: any = error;
+            while (currentErr?.code === "PGRST204") {
+              const match = currentErr.message?.match(/Could not find the '(\w+)' column/);
+              const badCol = match ? match[1] : null;
+              if (!badCol || retryPatch[badCol] === undefined) break;
+              delete retryPatch[badCol];
+              const { error: retryErr } = await doUpdate(retryPatch);
+              currentErr = retryErr || null;
+            }
+            if (currentErr) {
+              console.error(`Supabase Update Error (${table}):`, currentErr.message);
+              showToast(`Update sync failed: ${currentErr.message}`, "error");
+            }
           } else {
             console.error(`Supabase Update Error (${table}):`, error.message, error.details);
             showToast(`Update sync failed: ${error.message || "check connection"}`, "error");
