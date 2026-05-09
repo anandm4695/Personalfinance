@@ -80,7 +80,6 @@ import { CalculatorsTab } from "./components/tabs/CalculatorsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
 
 // Modal Imports
-import { CsvImportModal } from "./components/modals/CsvImportModal";
 import { QuickAddModal } from "./components/modals/QuickAddModal";
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
 
@@ -106,6 +105,7 @@ const DEFAULT_STATE = {
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
   reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
+  dismissedAlerts: {},
   settings: {
     darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
     radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
@@ -1852,6 +1852,7 @@ export default function FinanceDashboard() {
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
                 updateProfile={updateProfile}
+                darkMode={darkMode} toggleDarkMode={() => updateSettings({ darkMode: !darkMode })}
                 accentKey={accentKey} setAccentKey={(v) => updateSettings({ accentKey: v })}
                 density={density} setDensity={(v) => updateSettings({ density: v })}
                 sidebarNav={sidebarNav} setSidebarNav={(v) => updateSettings({ sidebarNav: v })}
