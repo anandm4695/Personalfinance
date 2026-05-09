@@ -354,7 +354,8 @@ export default function FinanceDashboard() {
     try {
       console.log("Supabase: Fetching all modules in parallel for user:", userId);
       const [
-        prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems
+        prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems,
+        licP, termP, infLns, rentP, sipsQ, stSells, mfSells, nwh
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -374,9 +375,17 @@ export default function FinanceDashboard() {
         supabase.from("budgets").select("*").eq("user_id", userId),
         supabase.from("subscriptions").select("*").eq("user_id", userId),
         supabase.from("reminders").select("*").eq("user_id", userId),
+        supabase.from("lic_policies").select("*").eq("user_id", userId),
+        supabase.from("term_plans").select("*").eq("user_id", userId),
+        supabase.from("informal_loans").select("*").eq("user_id", userId),
+        supabase.from("rental_properties").select("*").eq("user_id", userId),
+        supabase.from("sips").select("*").eq("user_id", userId),
+        supabase.from("stock_sells").select("*").eq("user_id", userId),
+        supabase.from("mf_sells").select("*").eq("user_id", userId),
+        supabase.from("net_worth_history").select("*").eq("user_id", userId),
       ]);
 
-      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems].some(r => r.data && r.data.length > 0);
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, infLns, rentP, sipsQ, stSells, mfSells].some(r => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState(currentState => {
@@ -411,6 +420,20 @@ export default function FinanceDashboard() {
           ...(!bdgts.error && bdgts.data != null ? { budgets: snakeToCamel(bdgts.data).map((b: any) => ({ ...b, monthly: b.monthlyLimit })) } : {}),
           ...(!subs.error && subs.data != null ? { subscriptions: snakeToCamel(subs.data) } : {}),
           ...(!rems.error && rems.data != null ? { reminders: snakeToCamel(rems.data).map((r: any) => ({ ...r, date: r.reminderDate })) } : {}),
+          ...(!licP.error && licP.data != null ? { lic: snakeToCamel(licP.data) } : {}),
+          ...(!termP.error && termP.data != null ? { termPlans: snakeToCamel(termP.data) } : {}),
+          ...(!infLns.error && infLns.data != null ? {
+            informalBorrowed: snakeToCamel(infLns.data.filter(x => x.direction === 'borrowed')),
+            informalLent: snakeToCamel(infLns.data.filter(x => x.direction === 'lent')),
+          } : {}),
+          ...(!rentP.error && rentP.data != null ? {
+            rentalProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'out')),
+            rentedProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'in')),
+          } : {}),
+          ...(!sipsQ.error && sipsQ.data != null ? { sips: snakeToCamel(sipsQ.data) } : {}),
+          ...(!stSells.error && stSells.data != null ? { stockSells: snakeToCamel(stSells.data) } : {}),
+          ...(!mfSells.error && mfSells.data != null ? { mfSells: snakeToCamel(mfSells.data) } : {}),
+          ...(!nwh.error && nwh.data != null ? { netWorthHistory: snakeToCamel(nwh.data).map((r: any) => ({ month: r.month, netWorth: r.netWorth })) } : {}),
         };
       });
     } catch (e) {
@@ -534,7 +557,13 @@ export default function FinanceDashboard() {
         return cash + mf + stocks + fd + ppf + nps + lic + bonds - cc - loans;
       })();
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
-      return { ...s, netWorthHistory: [...history, { month: ym, netWorth: nw }].slice(-36) };
+      const newHistory = [...history, { month: ym, netWorth: nw }].slice(-36);
+      // Persist current month's snapshot to Supabase
+      const uid2 = session?.user?.id;
+      if (uid2 && uid2 !== "offline-user") {
+        supabase.from("net_worth_history").upsert({ user_id: uid2, month: ym, net_worth: nw }, { onConflict: "user_id,month" }).then(() => {});
+      }
+      return { ...s, netWorthHistory: newHistory };
     });
   }, [loaded]); // intentionally omit other deps — runs once after initial load
 
@@ -895,7 +924,11 @@ export default function FinanceDashboard() {
     stocks: "stocks", demat: "demat_accounts", fixedDeposits: "fixed_deposits",
     recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps",
     creditCards: "credit_cards", prepaidCards: "prepaid_cards", loansTaken: "loans", loansGiven: "loans",
-    goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders"
+    goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders",
+    lic: "lic_policies", termPlans: "term_plans",
+    informalBorrowed: "informal_loans", informalLent: "informal_loans",
+    rentalProperties: "rental_properties", rentedProperties: "rental_properties",
+    sips: "sips", stockSells: "stock_sells", mfSells: "mf_sells",
   };
 
   const camelToSnake = (obj: any) => {
@@ -916,6 +949,10 @@ export default function FinanceDashboard() {
     if (key === "loansGiven") finalItem.is_lent = true;
     if (key === "budgets") { finalItem.monthly_limit = item.monthly; delete finalItem.monthly; }
     if (key === "reminders") { finalItem.reminder_date = item.date; delete finalItem.date; }
+    if (key === "informalBorrowed") finalItem.direction = "borrowed";
+    if (key === "informalLent") finalItem.direction = "lent";
+    if (key === "rentalProperties") finalItem.property_type = "out";
+    if (key === "rentedProperties") finalItem.property_type = "in";
 
     const newId = uid();
     setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...item }] }));
@@ -929,7 +966,7 @@ export default function FinanceDashboard() {
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
         // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
-        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
+        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
@@ -1025,7 +1062,7 @@ export default function FinanceDashboard() {
         if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
 
-        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
+        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
           else if (NUMERIC_COLS_U.has(k) && typeof finalPatch[k] === "string" && finalPatch[k] !== null) {
@@ -1069,7 +1106,7 @@ export default function FinanceDashboard() {
     const userId = session?.user?.id;
     if (!userId || userId === "offline-user") return;
 
-    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
+    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
 
     const cleanItem = (obj: any) => {
       const r: any = {};
@@ -1110,6 +1147,21 @@ export default function FinanceDashboard() {
       ...push("budgets",             data.budgets,      item => ({ monthly_limit: item.monthlyLimit ?? item.monthly ?? null, monthly: undefined })),
       ...push("subscriptions",       data.subscriptions),
       ...push("reminders",           data.reminders,    item => ({ reminder_date: item.reminderDate ?? item.date ?? null, date: undefined })),
+      ...push("lic_policies",        data.lic),
+      ...push("term_plans",          data.termPlans),
+      ...push("informal_loans",      data.informalBorrowed, () => ({ direction: "borrowed" })),
+      ...push("informal_loans",      data.informalLent,     () => ({ direction: "lent" })),
+      ...push("rental_properties",   data.rentalProperties, () => ({ property_type: "out" })),
+      ...push("rental_properties",   data.rentedProperties, () => ({ property_type: "in" })),
+      ...push("sips",                data.sips),
+      ...push("stock_sells",         data.stockSells),
+      ...push("mf_sells",            data.mfSells),
+      ...(data.netWorthHistory || []).map(entry =>
+        supabase.from("net_worth_history").upsert(
+          { user_id: userId, month: entry.month, net_worth: entry.netWorth ?? entry.net_worth ?? 0 },
+          { onConflict: "user_id,month" }
+        )
+      ),
     ].filter(Boolean);
 
     await Promise.allSettled(ops);
