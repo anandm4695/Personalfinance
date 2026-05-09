@@ -962,7 +962,7 @@ export default function FinanceDashboard() {
       if (table) {
         // Specific field mapping for various modules to match Supabase schema
         if (key === "bankAccounts") { delete finalItem.type; } // bank_accounts table has no type column
-        if (key === "creditCards") { finalItem.card_limit = item.limit; delete finalItem.limit; delete finalItem.waiver_info; delete finalItem.transactions; }
+        if (key === "creditCards") { finalItem.card_limit = item.limit; delete finalItem.limit; }
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
         // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
@@ -1059,7 +1059,7 @@ export default function FinanceDashboard() {
         
         // Specific field mapping for updates
         if (key === "bankAccounts") { delete finalPatch.type; }
-        if (key === "creditCards") { if (patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; } delete finalPatch.waiver_info; delete finalPatch.transactions; }
+        if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
 
         const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
