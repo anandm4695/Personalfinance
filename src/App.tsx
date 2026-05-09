@@ -937,30 +937,47 @@ export default function FinanceDashboard() {
           }
         }
 
-        console.log(`[Supabase Insert] table=${table}`, cleanItem);
-        // Retry up to 3 times for network errors (Safari "Load failed", Chrome "Failed to fetch")
-        let lastError: any = null;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const { error } = await supabase.from(table).insert(cleanItem);
-          if (!error) { lastError = null; break; }
-          lastError = error;
-          const isNetworkErr = error.message?.includes("Load failed") || error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError");
-          if (!isNetworkErr) break; // don't retry schema/auth errors
-          if (attempt < 3) {
-            console.warn(`[Supabase] Network error on attempt ${attempt}, retrying in ${attempt * 2}s…`);
-            await new Promise(r => setTimeout(r, attempt * 2000));
-          }
-        }
-        if (lastError) {
-          console.error(`Supabase Insert Error (${table}):`, { code: lastError.code, message: lastError.message, details: lastError.details, hint: lastError.hint });
-          const isNetworkErr = lastError.message?.includes("Load failed") || lastError.message?.includes("Failed to fetch");
-          if (isNetworkErr) {
-            showToast("No connection to database — check your internet or Supabase project status.", "error");
-          } else {
-            const hint = lastError.hint ? ` (${lastError.hint})` : lastError.details ? ` (${lastError.details})` : "";
-            showToast(`Sync failed [${lastError.code}]: ${lastError.message}${hint}`, "error");
-          }
-          // Revert optimistic update only after all retries exhausted
+        // Use upsert (INSERT ... ON CONFLICT DO UPDATE) so retries are idempotent.
+        // If the first request reached Supabase but the response was lost, a plain INSERT
+        // would fail with duplicate-key on retry. Upsert handles that safely.
+        const isNetworkError = (msg?: string) =>
+          !!(msg?.includes("Load failed") || msg?.includes("Failed to fetch") || msg?.includes("NetworkError") || msg?.includes("network"));
+
+        const tryUpsert = () => supabase.from(table).upsert(cleanItem, { onConflict: "id" });
+
+        console.log(`[Supabase Upsert] table=${table}`, cleanItem);
+        let { error: firstErr } = await tryUpsert();
+
+        if (!firstErr) {
+          // Success on first try — nothing to do
+        } else if (isNetworkError(firstErr.message)) {
+          // Network blip — keep the item in UI (don't revert), retry silently in background
+          showToast("Saved locally — syncing in background…", "warn");
+          console.warn("[Supabase] Network error, will retry upsert in 8s", firstErr.message);
+          setTimeout(async () => {
+            const { error: retryErr } = await tryUpsert();
+            if (!retryErr) {
+              showToast("Synced to cloud!", "success");
+            } else if (isNetworkError(retryErr.message)) {
+              // Second attempt also failed — try one final time after 20 more seconds
+              setTimeout(async () => {
+                const { error: finalErr } = await tryUpsert();
+                if (finalErr) {
+                  console.error("[Supabase] All upsert attempts failed:", finalErr);
+                  showToast("Sync failed after 3 attempts — item kept locally. Reload to retry.", "error");
+                }
+              }, 20000);
+            } else {
+              console.error("[Supabase] Upsert retry failed (schema/auth):", retryErr);
+              showToast(`Sync error: ${retryErr.message}`, "error");
+              setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+            }
+          }, 8000);
+        } else {
+          // Schema / auth / constraint error — revert immediately and show details
+          console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
+          const hint = firstErr.hint ? ` (${firstErr.hint})` : firstErr.details ? ` (${firstErr.details})` : "";
+          showToast(`Sync failed [${firstErr.code}]: ${firstErr.message}${hint}`, "error");
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         }
       }
@@ -1006,15 +1023,28 @@ export default function FinanceDashboard() {
         if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
 
-        // Prevent Postgres type errors by converting empty strings to null
+        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
+          else if (NUMERIC_COLS_U.has(k) && typeof finalPatch[k] === "string" && finalPatch[k] !== null) {
+            const parsed = parseFloat(finalPatch[k]);
+            finalPatch[k] = isNaN(parsed) ? null : parsed;
+          }
         }
-        
-        const { error } = await supabase.from(table).update(finalPatch).eq("id", id);
+
+        const isNetErr = (msg?: string) => !!(msg?.includes("Load failed") || msg?.includes("Failed to fetch") || msg?.includes("NetworkError") || msg?.includes("network"));
+        const doUpdate = () => supabase.from(table).update(finalPatch).eq("id", id);
+        const { error } = await doUpdate();
         if (error) {
-          console.error(`Supabase Update Error (${table}):`, error.message, error.details);
-          showToast(`Update sync failed: ${error.message || "check connection"}`, "error");
+          if (isNetErr(error.message)) {
+            setTimeout(async () => {
+              const { error: r } = await doUpdate();
+              if (r) console.error(`Supabase Update retry failed (${table}):`, r.message);
+            }, 8000);
+          } else {
+            console.error(`Supabase Update Error (${table}):`, error.message, error.details);
+            showToast(`Update sync failed: ${error.message || "check connection"}`, "error");
+          }
         }
       }
     }
