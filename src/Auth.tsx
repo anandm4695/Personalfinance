@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabaseClient";
 import {
   Shield,
@@ -15,19 +15,11 @@ import {
   IndianRupee,
   Sparkles,
   BarChart3,
-  CreditCard,
-  Wallet,
   Globe,
   Zap,
-  ArrowUpRight,
+  Activity,
+  Cpu,
 } from "lucide-react";
-
-const FEATURES = [
-  { icon: TrendingUp, color: "#10B981", title: "Wealth Mastery",    desc: "Real-time assets & liabilities" },
-  { icon: PieChart,   color: "#6366F1", title: "Portfolio 360",     desc: "Stocks, Funds & more" },
-  { icon: Target,     color: "#F59E0B", title: "Precision Goals",   desc: "Watch your savings grow" },
-  { icon: BarChart3,  color: "#EF4444", title: "Tax Strategy",      desc: "Optimized for your income" },
-];
 
 export default function Auth({ onLogin, onOffline }: { onLogin: (session: any) => void; onOffline?: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -40,42 +32,40 @@ export default function Auth({ onLogin, onOffline }: { onLogin: (session: any) =
   const [msg, setMsg] = useState<string | null>(null);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  const inputStyle = (focused: boolean) => ({
-    width: "100%",
-    background: focused ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.02)",
-    border: `1px solid ${focused ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.1)"}`,
-    borderRadius: "12px",
-    padding: "16px",
-    color: "#FFFFFF",
-    fontSize: "15px",
-    outline: "none",
-    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-    boxShadow: focused ? "0 0 0 1px rgba(255, 255, 255, 0.1)" : "none",
-    backdropFilter: "blur(20px)",
-  });
+  // Time-aware greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  }, []);
+
+  // Parallax effect
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20
+      });
+    };
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isForgot) {
-      setLoading(true); setError(null); setMsg(null);
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
-        });
-        if (error) throw error;
-        setMsg("Check your inbox for a recovery link.");
-      } catch (err: any) { setError(err.message); }
-      finally { setLoading(false); }
-      return;
-    }
-    if (isSignUp && password.length < 8) { setError("Security: Minimum 8 characters required."); return; }
     setLoading(true); setError(null); setMsg(null);
     try {
-      if (isSignUp) {
+      if (isForgot) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        if (error) throw error;
+        setMsg("Recovery protocols initiated. Check your inbox.");
+      } else if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMsg("Almost there! Check your email to verify.");
+        setMsg("Security link sent. Please verify your identity.");
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -95,214 +85,224 @@ export default function Auth({ onLogin, onOffline }: { onLogin: (session: any) =
     <div style={{
       minHeight: "100vh",
       display: "flex",
-      background: "#050505",
-      fontFamily: "'Inter', sans-serif",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#02040A",
+      fontFamily: "'Outfit', sans-serif",
       color: "#FFFFFF",
       overflow: "hidden",
       position: "relative",
     }}>
-      {/* ── BACKGROUND TEXTURE ── */}
-      <div style={{ position: "absolute", inset: 0, opacity: 0.03, pointerEvents: "none", background: "url('https://grainy-gradients.vercel.app/noise.svg')" }} />
-      <div style={{ position: "absolute", bottom: "-20%", left: "10%", width: "80%", height: "60%", background: "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%)", filter: "blur(120px)" }} />
+      {/* ── NEURAL GRID BACKGROUND ── */}
+      <div style={{
+        position: "absolute",
+        inset: "-5%",
+        backgroundImage: `
+          linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px)
+        `,
+        backgroundSize: "60px 60px",
+        transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0) rotateX(10deg)`,
+        transition: "transform 0.1s ease-out",
+        zIndex: 0,
+        maskImage: "radial-gradient(circle at center, black 0%, transparent 80%)",
+      }} />
 
-      <div style={{ position: "relative", zIndex: 1, display: "flex", width: "100%", height: "100vh" }}>
-        
-        {/* ── LEFT: EXECUTIVE SHOWCASE ── */}
-        <div className="hide-mobile" style={{ flex: 1.1, display: "flex", flexDirection: "column", padding: "80px", justifyContent: "space-between", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
-          <div className="fade-in" style={{ animationDelay: "0.1s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 64 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <IndianRupee size={20} color="#000" strokeWidth={3} />
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.04em" }}>FinCommand</div>
-            </div>
+      {/* ── AMBIENT GLOWS ── */}
+      <div style={{ position: "absolute", top: "20%", left: "30%", width: "40vw", height: "40vw", background: "radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
+      <div style={{ position: "absolute", bottom: "10%", right: "20%", width: "30vw", height: "30vw", background: "radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)", filter: "blur(80px)", zIndex: 0 }} />
 
-            <div style={{ maxWidth: 540 }}>
-              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(48px, 5vw, 72px)", fontWeight: 300, lineHeight: 1.1, marginBottom: 32, letterSpacing: "-0.02em" }}>
-                Wealth management, <br/>
-                <span style={{ fontStyle: "italic", fontWeight: 400 }}>redefined.</span>
-              </h1>
-              <p style={{ fontSize: 18, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, fontWeight: 300, maxWidth: 440 }}>
-                A private, high-fidelity command center designed for the modern investor. Precision tracking for your global assets.
-              </p>
-            </div>
-          </div>
+      {/* ── FLOATING INTELLIGENCE TOKENS ── */}
+      <div className="tokens-container hide-mobile">
+        <Token icon={TrendingUp} label="Wealth" x="15%" y="25%" delay="0s" color="#6366F1" />
+        <Token icon={PieChart} label="Assets" x="80%" y="30%" delay="1s" color="#10B981" />
+        <Token icon={Shield} label="Encrypted" x="20%" y="70%" delay="2s" color="#F59E0B" />
+        <Token icon={Cpu} label="AI Engine" x="75%" y="75%" delay="3s" color="#EF4444" />
+      </div>
 
-          {/* MOCKUP PREVIEW */}
-          <div className="fade-in-up" style={{ animationDelay: "0.4s", position: "relative", height: 260, marginTop: 40 }}>
-            <div className="glass-card" style={{ width: 400, padding: 24, borderRadius: 24, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-                <div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>Net Worth Estimate</div>
-                  <div style={{ fontSize: 28, fontWeight: 700 }}>₹8.42 Cr</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#10B981", fontSize: 13, fontWeight: 600 }}>
-                  <TrendingUp size={14} /> +12.4%
-                </div>
-              </div>
-              <div style={{ height: 80, display: "flex", alignItems: "flex-end", gap: 8 }}>
-                {[30, 45, 35, 60, 50, 80, 70, 95].map((h, i) => (
-                  <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 7 ? "#FFFFFF" : "rgba(255,255,255,0.1)", borderRadius: 4, transition: "height 1s ease" }} />
-                ))}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "rgba(255,255,255,0.3)" }}><div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366F1" }} /> Stocks</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "rgba(255,255,255,0.3)" }}><div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} /> MF</div>
-                </div>
-                <ArrowUpRight size={14} color="rgba(255,255,255,0.2)" />
-              </div>
-            </div>
-          </div>
-
-          <div className="fade-in" style={{ animationDelay: "0.6s", display: "flex", alignItems: "center", gap: 40 }}>
-             <div style={{ display: "flex", flexDirection: "column" }}>
-               <div style={{ fontSize: 24, fontWeight: 700 }}>100%</div>
-               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Private Data</div>
-             </div>
-             <div style={{ display: "flex", flexDirection: "column" }}>
-               <div style={{ fontSize: 24, fontWeight: 700 }}>256-bit</div>
-               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Encryption</div>
-             </div>
-             <div style={{ display: "flex", flexDirection: "column" }}>
-               <div style={{ fontSize: 24, fontWeight: 700 }}>0.4s</div>
-               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cloud Sync</div>
-             </div>
-          </div>
+      {/* ── MAIN VAULT CARD ── */}
+      <div 
+        className="vault-card"
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          padding: "64px",
+          borderRadius: 40,
+          background: "rgba(10, 15, 30, 0.4)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          backdropFilter: "blur(40px)",
+          boxShadow: "0 40px 100px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)",
+          zIndex: 10,
+          position: "relative",
+          textAlign: "center"
+        }}
+      >
+        {/* Logo */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginBottom: 40 }}>
+           <div className="pulse-border" style={{ padding: 12, borderRadius: 16, background: "linear-gradient(135deg, #6366F1, #4F46E5)" }}>
+              <IndianRupee size={24} color="#fff" strokeWidth={3} />
+           </div>
+           <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1 }}>FinCommand</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.2em", textTransform: "uppercase", marginTop: 4 }}>System Access</div>
+           </div>
         </div>
 
-        {/* ── RIGHT: MINIMALIST FORM ── */}
-        <div style={{ flex: 0.9, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
-          <div className="fade-in" style={{ width: "100%", maxWidth: 400, animationDelay: "0.2s" }}>
-            
-            <div style={{ marginBottom: 48 }}>
-              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 12 }}>
-                {isForgot ? "Reset Access" : isSignUp ? "Create Account" : "Welcome Back"}
-              </h2>
-              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", fontWeight: 400, lineHeight: 1.5 }}>
-                {isForgot ? "Enter your registered email to continue." : isSignUp ? "Establish your private financial vault today." : "Access your secure financial command center."}
-              </p>
-            </div>
+        <div style={{ marginBottom: 40 }}>
+          <h1 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.05em", marginBottom: 12 }}>
+            {greeting}, <span style={{ color: "#6366F1" }}>CFO</span>
+          </h1>
+          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+            {isForgot ? "Initiate account recovery protocols." : isSignUp ? "Establish your secure wealth perimeter." : "Authorize to enter your financial vault."}
+          </p>
+        </div>
 
-            {error && (
-              <div className="animate-shake" style={{ background: "rgba(239, 68, 68, 0.05)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 12, padding: "14px", marginBottom: 32, display: "flex", gap: 12, alignItems: "center" }}>
-                <Shield size={16} color="#F87171" />
-                <span style={{ fontSize: 13, color: "#F87171", fontWeight: 500 }}>{error}</span>
-              </div>
-            )}
-
-            {msg && (
-              <div style={{ background: "rgba(16, 185, 129, 0.05)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 12, padding: "14px", marginBottom: 32, display: "flex", gap: 12, alignItems: "center" }}>
-                <CheckCircle2 size={16} color="#34D399" />
-                <span style={{ fontSize: 13, color: "#34D399", fontWeight: 500 }}>{msg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              <div className="input-group">
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.1em" }}>Corporate Email</label>
-                <input
-                  type="email" required
-                  value={email} onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setEmailFocused(true)} onBlur={() => setEmailFocused(false)}
-                  style={inputStyle(emailFocused)}
-                  placeholder="name@exclusive.com"
-                />
-              </div>
-
-              {!isForgot && (
-                <div className="input-group">
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Password</label>
-                    {!isSignUp && (
-                      <button type="button" onClick={() => switchMode("forgot")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0 }}>Forgot?</button>
-                    )}
-                  </div>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type={showPass ? "text" : "password"} required
-                      value={password} onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)}
-                      style={inputStyle(passFocused)}
-                      placeholder="••••••••"
-                    />
-                    <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer" }}>
-                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit" disabled={loading}
-                className="submit-btn"
-                style={{
-                  width: "100%", padding: "18px", borderRadius: "12px",
-                  background: loading ? "rgba(255,255,255,0.1)" : "#FFFFFF",
-                  color: "#000", border: "none", fontSize: 15, fontWeight: 800,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-                  transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                  marginTop: 16,
-                  letterSpacing: "-0.01em"
-                }}
-              >
-                {loading ? <Loader2 size={20} className="spin" /> : (
-                  <>
-                    {isForgot ? "Send Link" : isSignUp ? "Create Vault" : "Authorize Session"}
-                    <ArrowRight size={18} strokeWidth={3} />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div style={{ marginTop: 40, textAlign: "center", fontSize: 14 }}>
-              {isForgot ? (
-                <button onClick={() => switchMode("login")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontWeight: 700, cursor: "pointer" }}>← Return to Login</button>
-              ) : (
-                <span style={{ color: "rgba(255,255,255,0.3)" }}>
-                  {isSignUp ? "Already registered? " : "Not a member yet? "}
-                  <button onClick={() => switchMode(isSignUp ? "login" : "signup")} style={{ background: "none", border: "none", color: "#FFFFFF", fontWeight: 800, cursor: "pointer", marginLeft: 4 }}>
-                    {isSignUp ? "Sign In" : "Start Now"}
-                  </button>
-                </span>
-              )}
-            </div>
-
-            <div style={{ marginTop: 64, display: "flex", justifyContent: "center", gap: 24, opacity: 0.3 }}>
-               <Globe size={16} />
-               <Lock size={16} />
-               <Zap size={16} />
-            </div>
+        {error && (
+          <div className="animate-shake" style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 16, padding: "16px", marginBottom: 32, display: "flex", gap: 12, alignItems: "center" }}>
+            <Activity size={18} color="#F87171" />
+            <span style={{ fontSize: 14, color: "#F87171", fontWeight: 600 }}>{error}</span>
           </div>
+        )}
+
+        {msg && (
+          <div style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 16, padding: "16px", marginBottom: 32, display: "flex", gap: 12, alignItems: "center" }}>
+            <CheckCircle2 size={18} color="#34D399" />
+            <span style={{ fontSize: 14, color: "#34D399", fontWeight: 600 }}>{msg}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="input-field">
+            <input
+              type="email" required
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setEmailFocused(true)} onBlur={() => setEmailFocused(false)}
+              className={emailFocused ? "focused" : ""}
+              style={inputStyles}
+              placeholder="System Email"
+            />
+          </div>
+
+          {!isForgot && (
+            <div className="input-field" style={{ position: "relative" }}>
+              <input
+                type={showPass ? "text" : "password"} required
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)}
+                className={passFocused ? "focused" : ""}
+                style={inputStyles}
+                placeholder="Access Key"
+              />
+              <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer" }}>
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          )}
+
+          <button
+            type="submit" disabled={loading}
+            className="submit-vault-btn"
+            style={{
+              width: "100%", padding: "20px", borderRadius: "20px",
+              background: loading ? "rgba(99, 102, 241, 0.4)" : "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              color: "#fff", border: "none", fontSize: 18, fontWeight: 800,
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+              transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+              boxShadow: "0 20px 40px rgba(99, 102, 241, 0.3)",
+              letterSpacing: "-0.02em"
+            }}
+          >
+            {loading ? <Loader2 size={24} className="spin" /> : (
+              <>
+                {isForgot ? "Recovery Link" : isSignUp ? "Establish Perimeter" : "Enter Vault"}
+                <ArrowRight size={20} strokeWidth={3} />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div style={{ marginTop: 40, display: "flex", justifyContent: "center", gap: 8, fontSize: 14 }}>
+           {isForgot ? (
+             <button onClick={() => switchMode("login")} style={toggleBtnStyle}>← Return to Authorization</button>
+           ) : (
+             <>
+               <span style={{ color: "rgba(255,255,255,0.3)" }}>{isSignUp ? "Registered?" : "No access?"}</span>
+               <button onClick={() => switchMode(isSignUp ? "login" : "signup")} style={toggleBtnStyle}>
+                 {isSignUp ? "Sign In" : "Request Credentials"}
+               </button>
+             </>
+           )}
         </div>
       </div>
 
+      {/* ── FOOTER BADGES ── */}
+      <div style={{ position: "absolute", bottom: 40, display: "flex", gap: 32, opacity: 0.2, zIndex: 1 }}>
+         <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Lock size={14} /> <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>ENCRYPTED</span></div>
+         <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Globe size={14} /> <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>GLOBAL NODE</span></div>
+         <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Zap size={14} /> <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>ZERO LATENCY</span></div>
+      </div>
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@300;400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');
         
-        .fade-in { animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-        .fade-in-up { animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+        .pulse-border { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
+
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .glass-card:hover { border-color: rgba(255,255,255,0.15) !important; transform: translateY(-5px); transition: all 0.5s ease; }
-        
-        .submit-btn:hover:not(:disabled) { background: #F0F0F0 !important; transform: scale(1.02); }
-        .submit-btn:active { transform: scale(0.98); }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        .token { animation: float 6s ease-in-out infinite; }
+
+        .submit-vault-btn:hover:not(:disabled) { transform: translateY(-4px) scale(1.02); filter: brightness(1.1); box-shadow: 0 30px 60px rgba(99, 102, 241, 0.5) !important; }
+        .submit-vault-btn:active { transform: translateY(0) scale(0.98); }
 
         .animate-shake { animation: shake 0.5s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
-        @media (max-width: 1024px) {
+        @media (max-width: 768px) {
+          .vault-card { max-width: 100% !important; height: 100vh !important; border-radius: 0 !important; display: flex; flex-direction: column; justify-content: center; }
           .hide-mobile { display: none !important; }
-          .glass-panel { max-width: 100% !important; border-radius: 0 !important; height: 100vh !important; display: flex; flexDirection: column; justifyContent: center; }
         }
       `}</style>
     </div>
   );
 }
+
+function Token({ icon: Icon, label, x, y, delay, color }: any) {
+  return (
+    <div className="token" style={{ position: "absolute", left: x, top: y, animationDelay: delay, zIndex: 1, textAlign: "center" }}>
+      <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, color }}>
+        <Icon size={24} />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+    </div>
+  );
+}
+
+const inputStyles = {
+  width: "100%",
+  background: "rgba(255, 255, 255, 0.03)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "20px",
+  padding: "20px 24px",
+  color: "#FFFFFF",
+  fontSize: "16px",
+  fontWeight: "500",
+  outline: "none",
+  transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+};
+
+const toggleBtnStyle = {
+  background: "none",
+  border: "none",
+  color: "#6366F1",
+  fontWeight: 800,
+  cursor: "pointer",
+  padding: 0,
+  marginLeft: 4
+};
