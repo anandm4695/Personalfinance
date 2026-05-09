@@ -926,16 +926,23 @@ export default function FinanceDashboard() {
         if (key === "creditCards") { finalItem.card_limit = item.limit; delete finalItem.limit; }
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
-        // Prevent Postgres type errors by converting empty strings to null
+        // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
+        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
+          else if (NUMERIC_COLS.has(k) && typeof cleanItem[k] === "string" && cleanItem[k] !== null) {
+            const parsed = parseFloat(cleanItem[k]);
+            cleanItem[k] = isNaN(parsed) ? null : parsed;
+          }
         }
-        
+
+        console.log(`[Supabase Insert] table=${table}`, cleanItem);
         const { error } = await supabase.from(table).insert(cleanItem);
         if (error) {
-          console.error(`Supabase Insert Error (${table}):`, error.message, error.details);
-          showToast(`Sync failed: ${error.message || "check connection"}`, "error");
+          console.error(`Supabase Insert Error (${table}):`, { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const hint = error.hint ? ` (${error.hint})` : error.details ? ` (${error.details})` : "";
+          showToast(`Sync failed [${error.code}]: ${error.message}${hint}`, "error");
           // Revert optimistic update on failure
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         }
