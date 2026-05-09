@@ -376,36 +376,41 @@ export default function FinanceDashboard() {
       ]);
 
       const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems].some(r => r.data && r.data.length > 0);
-      
-      if (prof.data || hasAnyData) {
-        const newState = {
-          ...DEFAULT_STATE,
-          profile: snakeToCamel(prof.data) || DEFAULT_STATE.profile,
-          settings: snakeToCamel(sett.data) || DEFAULT_STATE.settings,
-          bankAccounts: snakeToCamel(banks.data) || [],
-          transactions: snakeToCamel(txns.data) || [],
-          mutualFunds: snakeToCamel(mfs.data) || [],
-          stocks: snakeToCamel(stks.data) || [],
-          demat: snakeToCamel(demats.data) || [],
-          fixedDeposits: snakeToCamel(fds.data) || [],
-          recurringDeposits: snakeToCamel(rds.data) || [],
-          bonds: snakeToCamel(bnds.data) || [],
-          ppf: snakeToCamel(pn.data?.filter(x => x.type === 'PPF')) || [],
-          nps: snakeToCamel(pn.data?.filter(x => x.type === 'NPS')) || [],
-          creditCards: snakeToCamel(ccs.data) || [],
-          loansTaken: snakeToCamel(lns.data?.filter(x => !x.is_lent)) || [],
-          loansGiven: snakeToCamel(lns.data?.filter(x => x.is_lent)) || [],
-          goals: snakeToCamel(gls.data) || [],
-          budgets: snakeToCamel(bdgts.data)?.map((b: any) => ({ ...b, monthly: b.monthlyLimit })) || [],
-          subscriptions: snakeToCamel(subs.data) || [],
-          reminders: snakeToCamel(rems.data)?.map((r: any) => ({ ...r, date: r.reminderDate })) || [],
-        };
-        setState(newState);
-        } else {
-          // IMPORTANT: If user is logged in but has zero cloud data, 
-          // we MUST clear any local dummy data to prevent "ghost data" confusion.
-          setState(DEFAULT_STATE);
+
+      // Use functional setState so failed queries fall back to current state instead of wiping data
+      setState(currentState => {
+        if (!prof.data && !hasAnyData) {
+          // Logged in but truly no cloud data — clear local state
+          return DEFAULT_STATE;
         }
+        return {
+          ...currentState,
+          ...(prof.data ? { profile: snakeToCamel(prof.data) } : {}),
+          ...(sett.data ? { settings: snakeToCamel(sett.data) } : {}),
+          // Only overwrite each array if the query succeeded (no error + data is not null)
+          ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
+          ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
+          ...(!mfs.error && mfs.data != null ? { mutualFunds: snakeToCamel(mfs.data) } : {}),
+          ...(!stks.error && stks.data != null ? { stocks: snakeToCamel(stks.data) } : {}),
+          ...(!demats.error && demats.data != null ? { demat: snakeToCamel(demats.data) } : {}),
+          ...(!fds.error && fds.data != null ? { fixedDeposits: snakeToCamel(fds.data) } : {}),
+          ...(!rds.error && rds.data != null ? { recurringDeposits: snakeToCamel(rds.data) } : {}),
+          ...(!bnds.error && bnds.data != null ? { bonds: snakeToCamel(bnds.data) } : {}),
+          ...(!pn.error && pn.data != null ? {
+            ppf: snakeToCamel(pn.data.filter(x => x.type === 'PPF')),
+            nps: snakeToCamel(pn.data.filter(x => x.type === 'NPS')),
+          } : {}),
+          ...(!ccs.error && ccs.data != null ? { creditCards: snakeToCamel(ccs.data) } : {}),
+          ...(!lns.error && lns.data != null ? {
+            loansTaken: snakeToCamel(lns.data.filter(x => !x.is_lent)),
+            loansGiven: snakeToCamel(lns.data.filter(x => x.is_lent)),
+          } : {}),
+          ...(!gls.error && gls.data != null ? { goals: snakeToCamel(gls.data) } : {}),
+          ...(!bdgts.error && bdgts.data != null ? { budgets: snakeToCamel(bdgts.data).map((b: any) => ({ ...b, monthly: b.monthlyLimit })) } : {}),
+          ...(!subs.error && subs.data != null ? { subscriptions: snakeToCamel(subs.data) } : {}),
+          ...(!rems.error && rems.data != null ? { reminders: snakeToCamel(rems.data).map((r: any) => ({ ...r, date: r.reminderDate })) } : {}),
+        };
+      });
     } catch (e) {
       console.error("Supabase load failed", e);
     }
@@ -929,11 +934,10 @@ export default function FinanceDashboard() {
         
         const { error } = await supabase.from(table).insert(cleanItem);
         if (error) {
-          console.error(`Supabase Insert Error (${table}):`, error);
-          showToast(`Cloud sync failed for ${key}`, "error");
-        } else {
-          // Only fetch if successful to avoid overwriting optimistic update with failed state
-          await fetchAllData();
+          console.error(`Supabase Insert Error (${table}):`, error.message, error.details);
+          showToast(`Sync failed: ${error.message || "check connection"}`, "error");
+          // Revert optimistic update on failure
+          setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         }
       }
     }
@@ -947,10 +951,13 @@ export default function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
-        await supabase.from(table).delete().eq("id", id);
-        
-        // Strict Rule: Auto fetch data after mutation
-        await fetchAllData();
+        const { error } = await supabase.from(table).delete().eq("id", id);
+        if (error) {
+          console.error(`Supabase Delete Error (${table}):`, error.message);
+          showToast(`Delete sync failed: ${error.message}`, "error");
+          // Revert optimistic remove — re-fetch to restore
+          fetchAllData();
+        }
       }
     }
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
@@ -982,10 +989,8 @@ export default function FinanceDashboard() {
         
         const { error } = await supabase.from(table).update(finalPatch).eq("id", id);
         if (error) {
-          console.error(`Supabase Update Error (${table}):`, error);
-          showToast(`Cloud update failed for ${key}`, "error");
-        } else {
-          await fetchAllData();
+          console.error(`Supabase Update Error (${table}):`, error.message, error.details);
+          showToast(`Update sync failed: ${error.message || "check connection"}`, "error");
         }
       }
     }
