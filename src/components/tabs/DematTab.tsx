@@ -223,12 +223,75 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
   };
 
   return (
-    <div>
-      <SectionTitle sub="Brokerage accounts and every scrip you hold">
-        Demat & Stocks
-      </SectionTitle>
+    <div className="tab-content-enter">
+      {/* ── HEADER AREA ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Demat & Stocks</h2>
+              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Brokerage accounts and every scrip you hold</div>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button style={{ ...btnGhost, opacity: fetchingPrices ? 0.6 : 1 }} onClick={fetchLivePrices} disabled={fetchingPrices}>
+                <RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />
+                {fetchingPrices ? "Fetching…" : "Refresh Prices"}
+              </button>
+              <button style={btnSolid} onClick={() => { setStockDefaults(null); setShowStock(true); }}><Plus size={14} /> Add Stock</button>
+            </div>
+          </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
+          {/* ── PREMIUM UNDERLINED NAV (Accounts Filter) ── */}
+          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
+            <button
+              onClick={() => setSelectedDematId(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0 0 16px 0",
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: selectedDematId === null ? THEME.accent : THEME.muted,
+                borderBottom: `2px solid ${selectedDematId === null ? THEME.accent : "transparent"}`,
+                fontWeight: selectedDematId === null ? 800 : 600,
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                whiteSpace: "nowrap"
+              }}
+            >
+              All Portfolios
+            </button>
+            {state.demat.map((d: any) => {
+              const active = selectedDematId === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setSelectedDematId(d.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0 0 16px 0",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: active ? THEME.accent : THEME.muted,
+                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
+                    fontWeight: active ? 800 : 600,
+                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {d.broker || "Account"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
         <Tile icon={Briefcase} label="Demat Accounts" value={state.demat.length} />
         <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} />
         <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : ""} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
@@ -237,7 +300,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Demat Accounts</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>Demat Accounts</div>
         <button style={btnGhost} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Demat</button>
       </div>
       <Grid>
@@ -251,31 +314,11 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
         ))}
       </Grid>
 
-      <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-        <div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Stock Holdings</div>
-          {lastRefreshed && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Live prices as of {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
-          {fetchError && <div style={{ fontSize: 11, color: THEME.rust, marginTop: 2 }}>{fetchError}</div>}
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button style={{ ...btnGhost, display: "flex", alignItems: "center", gap: 6, opacity: fetchingPrices ? 0.6 : 1 }} onClick={fetchLivePrices} disabled={fetchingPrices}>
-            <RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />
-            {fetchingPrices ? "Fetching…" : "Refresh Prices"}
-          </button>
-          <button style={btnSolid} onClick={() => { setStockDefaults(null); setShowStock(true); }}><Plus size={14} /> Add Stock</button>
-        </div>
+      <div style={{ marginTop: 40, marginBottom: 12 }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Stock Holdings</div>
+        {lastRefreshed && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Live prices as of {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
+        {fetchError && <div style={{ fontSize: 11, color: THEME.rust, marginTop: 2 }}>{fetchError}</div>}
       </div>
-
-      {state.demat.length > 1 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <button onClick={() => setSelectedDematId(null)} style={{ ...btnGhost, fontSize: 12, background: selectedDematId === null ? THEME.accent : undefined, color: selectedDematId === null ? "#fff" : undefined, border: selectedDematId === null ? `1px solid ${THEME.accent}` : undefined }}>All Accounts</button>
-          {state.demat.map((d: any) => (
-            <button key={d.id} onClick={() => setSelectedDematId(d.id)} style={{ ...btnGhost, fontSize: 12, background: selectedDematId === d.id ? THEME.accent : undefined, color: selectedDematId === d.id ? "#fff" : undefined, border: selectedDematId === d.id ? `1px solid ${THEME.accent}` : undefined }}>
-              {d.broker || d.dpId || "Account"}{d.dpId && d.broker ? <span style={{ opacity: 0.7, marginLeft: 4 }}>· {d.dpId}</span> : null}
-            </button>
-          ))}
-        </div>
-      )}
 
       {state.stocks.length === 0 ? (
         <div style={card}><EmptyHint text="No stock holdings yet" /></div>

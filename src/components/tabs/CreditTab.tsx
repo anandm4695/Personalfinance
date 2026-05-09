@@ -247,27 +247,55 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
   ];
 
   return (
-    <div>
-      <SectionTitle sub="Cards, debts owed, and debts owed to you">
-        Credit & Loans
-      </SectionTitle>
+    <div className="tab-content-enter">
+      {/* ── HEADER AREA ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Credit & Loans</h2>
+              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Cards, debts owed, and personal lending</div>
+            </div>
+            {sub !== "borrowed" && sub !== "lent" && (
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
+                Add {subs.find(s => s.id === sub)?.label.split(' ')[0]}
+              </Button>
+            )}
+          </div>
 
-      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: `1px solid ${THEME.line}` }}>
-        {subs.map((s) => {
-          const active = sub === s.id;
-          return (
-            <button key={s.id} onClick={() => setSub(s.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 20px", fontFamily: "inherit", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: active ? THEME.accent : THEME.muted, borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`, fontWeight: active ? 700 : 500 }}>{s.label}</button>
-          );
-        })}
+          {/* ── PREMIUM UNDERLINED NAV ── */}
+          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
+            {subs.map((s) => {
+              const active = sub === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSub(s.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0 0 16px 0",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: active ? THEME.accent : THEME.muted,
+                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
+                    fontWeight: active ? 800 : 600,
+                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {sub !== "borrowed" && sub !== "lent" && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-          <button style={btnSolid} onClick={() => setModal(sub)}><Plus size={14} /> Add</button>
-        </div>
-      )}
-
-      {sub === "cc" && (
+      <div style={{ marginTop: 24 }}>
+        {sub === "cc" && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
             <div style={card}>
@@ -342,6 +370,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
       {editId && sub === "prepaid" && <PrepaidModal initial={state.prepaidCards.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("prepaidCards", editId, v); setEditId(null); }} />}
       {editId && sub === "taken" && <LoanTakenModal initial={state.loansTaken.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansTaken", editId, v); setEditId(null); }} />}
       {editId && sub === "given" && <LoanGivenModal initial={state.loansGiven.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansGiven", editId, v); setEditId(null); }} />}
+      </div>
     </div>
   );
 }

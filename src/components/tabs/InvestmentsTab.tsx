@@ -86,57 +86,70 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
   return (
     <div className="tab-content-enter">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Investments Portfolio</h2>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Growth, preservation, and yield instruments</div>
+      {/* ── HEADER AREA ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Investments Portfolio</h2>
+              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Growth, preservation, and yield instruments</div>
+            </div>
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => {/* TODO: Add Modal */}}>
+              Add Investment
+            </Button>
+          </div>
+
+          {/* ── PREMIUM UNDERLINED NAV ── */}
+          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
+            {subs.map((s) => {
+              const active = sub === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSub(s.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "0 0 16px 0",
+                    background: "none",
+                    border: "none",
+                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
+                    color: active ? THEME.accent : THEME.muted,
+                    fontWeight: active ? 800 : 600,
+                    cursor: "pointer",
+                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                    whiteSpace: "nowrap",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    position: "relative"
+                  }}
+                >
+                  {s.label}
+                  {s.count !== undefined && (
+                    <span style={{ 
+                      fontSize: 10, 
+                      background: active ? THEME.accent : "rgba(128,128,128,0.1)", 
+                      color: active ? "#fff" : THEME.muted,
+                      padding: "2px 6px", 
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      transition: "all 0.3s"
+                    }}>
+                      {s.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <Button variant="accent" icon={<Plus size={14} />} onClick={() => {/* TODO: Add Modal */}}>
-          Add Investment
-        </Button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 20 }} className="no-scrollbar">
-        {subs.map((s) => {
-          const Icon = s.icon;
-          const active = sub === s.id;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSub(s.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 16px",
-                borderRadius: 12,
-                border: "none",
-                background: active ? THEME.accent : "rgba(128,128,128,0.06)",
-                color: active ? "#fff" : THEME.muted,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <Icon size={16} />
-              <span style={{ fontSize: 13 }}>{s.label}</span>
-              {s.count !== undefined && (
-                <span style={{ 
-                  fontSize: 10, 
-                  background: active ? "rgba(255,255,255,0.2)" : "rgba(128,128,128,0.1)", 
-                  padding: "2px 6px", 
-                  borderRadius: 6 
-                }}>
-                  {s.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div style={{ marginTop: 24 }}>
+        {renderContent()}
       </div>
-
-      {renderContent()}
     </div>
   );
 };
