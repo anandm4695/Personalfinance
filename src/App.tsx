@@ -1065,21 +1065,73 @@ export default function FinanceDashboard() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+  const pushBackupToSupabase = async (data: any) => {
+    const userId = session?.user?.id;
+    if (!userId || userId === "offline-user") return;
+
+    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years"]);
+
+    const cleanItem = (obj: any) => {
+      const r: any = {};
+      for (const k in obj) {
+        if (k === "user_id" || k === "userId") continue;
+        if (obj[k] === "") r[k] = null;
+        else if (NUMERIC.has(k) && typeof obj[k] === "string") { const n = parseFloat(obj[k]); r[k] = isNaN(n) ? null : n; }
+        else r[k] = obj[k];
+      }
+      return r;
+    };
+
+    const push = (table: string, items: any[], extra?: (item: any) => any) =>
+      (items || []).map(item => {
+        const base = cleanItem(camelToSnake(item));
+        const merged = { ...base, ...(extra ? extra(item) : {}), user_id: userId };
+        return supabase.from(table).upsert(merged, { onConflict: "id" });
+      });
+
+    const ops = [
+      data.profile  && supabase.from("profiles").upsert({ ...cleanItem(camelToSnake(data.profile)), user_id: userId }),
+      data.settings && supabase.from("user_settings").upsert({ ...cleanItem(camelToSnake(data.settings)), user_id: userId }),
+      ...push("bank_accounts",      data.bankAccounts),
+      ...push("transactions",        data.transactions),
+      ...push("mutual_funds",        data.mutualFunds),
+      ...push("stocks",              data.stocks),
+      ...push("demat_accounts",      data.demat),
+      ...push("fixed_deposits",      data.fixedDeposits),
+      ...push("recurring_deposits",  data.recurringDeposits),
+      ...push("bonds",               data.bonds),
+      ...push("ppf_nps",             data.ppf, () => ({ type: "PPF" })),
+      ...push("ppf_nps",             data.nps, () => ({ type: "NPS" })),
+      ...push("credit_cards",        data.creditCards, item => ({ card_limit: item.cardLimit ?? item.limit ?? null, limit: undefined })),
+      ...push("prepaid_cards",       data.prepaidCards),
+      ...push("loans",               data.loansTaken,  () => ({ is_lent: false })),
+      ...push("loans",               data.loansGiven,  () => ({ is_lent: true  })),
+      ...push("goals",               data.goals),
+      ...push("budgets",             data.budgets,      item => ({ monthly_limit: item.monthlyLimit ?? item.monthly ?? null, monthly: undefined })),
+      ...push("subscriptions",       data.subscriptions),
+      ...push("reminders",           data.reminders,    item => ({ reminder_date: item.reminderDate ?? item.date ?? null, date: undefined })),
+    ].filter(Boolean);
+
+    await Promise.allSettled(ops);
+  };
+
   const importJSON = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const input = e.target;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.bankAccounts)) {
+        if (!parsed || typeof parsed !== "object" || typeof parsed.profile !== "object") {
           showToast("Invalid backup — not a valid finance export", "error");
           input.value = "";
           return;
         }
         setState({ ...DEFAULT_STATE, ...parsed });
-        showToast("Backup restored successfully");
+        showToast("Restoring backup and syncing to cloud...");
+        await pushBackupToSupabase(parsed);
+        showToast("Backup fully restored ✓");
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
       }
@@ -1743,6 +1795,7 @@ export default function FinanceDashboard() {
                 state={state}
                 setState={setState}
                 exportJSON={exportJSON}
+                onRestoreBackup={importJSON}
                 resetAll={resetAll}
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}

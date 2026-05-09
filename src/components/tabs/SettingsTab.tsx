@@ -9,7 +9,7 @@ import { Field } from "../ui/Form";
 const DEFAULT_STATE = {}; // Placeholder or should be passed as prop if needed for reset
 
 export function SettingsTab({
-  state, setState, exportJSON, resetAll, showToast, onSignOut, onImportSuccess,
+  state, setState, exportJSON, onRestoreBackup, resetAll, showToast, onSignOut,
   updateProfile,
   accentKey, setAccentKey,
   density, setDensity,
@@ -32,31 +32,6 @@ export function SettingsTab({
   };
 
   useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
-
-  const handleImport = (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const input = e.target;
-    const reader = new FileReader();
-    reader.onload = (ev: any) => {
-      try {
-        const parsed = JSON.parse(ev.target.result as string);
-        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.bankAccounts)) {
-          showToast("Invalid backup — not a valid finance export", "error");
-          input.value = "";
-          return;
-        }
-        // In modular version, DEFAULT_STATE should probably be passed or imported from App
-        setState((s: any) => ({ ...s, ...parsed })); 
-        onImportSuccess?.();
-        showToast("Backup restored successfully");
-      } catch {
-        showToast("Error parsing file", "error");
-      }
-      input.value = "";
-    };
-    reader.readAsText(file);
-  };
 
   const inputStyle = { width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 };
 
@@ -115,7 +90,7 @@ export function SettingsTab({
               <input
                 type="file"
                 accept=".json"
-                onChange={handleImport}
+                onChange={onRestoreBackup}
                 style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
               />
             </div>
