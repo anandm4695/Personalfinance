@@ -363,6 +363,8 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
 function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [closeDate, setCloseDate] = useState(today());
 
   const activeCards = items.filter((c: any) => c.status !== "closed");
   const closedCards = items.filter((c: any) => c.status === "closed");
@@ -422,9 +424,9 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
             >
               {/* Action buttons */}
               <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
-                {!isClosed && (
+                {!isClosed && closingId !== c.id && (
                   <button
-                    onClick={() => onUpdateCard(c.id, { status: "closed", closedDate: today() })}
+                    onClick={() => { setClosingId(c.id); setCloseDate(today()); }}
                     title="Mark card as closed"
                     style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
                   >
@@ -443,6 +445,20 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
                 <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Edit3 size={14} /></button>
                 <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Trash2 size={14} /></button>
               </div>
+              {closingId === c.id && (
+                <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(15,15,25,0.97)", border: "1px solid rgba(239,68,68,0.45)", borderRadius: 8, padding: "8px 10px", display: "flex", gap: 6, alignItems: "center", zIndex: 20, boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                  <input type="date" value={closeDate} onChange={e => setCloseDate(e.target.value)}
+                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 5, color: "#fff", fontSize: 11, padding: "4px 7px", outline: "none" }} />
+                  <button onClick={() => { onUpdateCard(c.id, { status: "closed", closedDate: closeDate }); setClosingId(null); }}
+                    style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#ff8080", borderRadius: 5, fontSize: 10, fontWeight: 700, padding: "4px 10px", cursor: "pointer" }}>
+                    Confirm
+                  </button>
+                  <button onClick={() => setClosingId(null)}
+                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", lineHeight: 1 }}>
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* Network logo + owner + status badge */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -549,6 +565,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [closeDate, setCloseDate] = useState(today());
   const selected = items.find((c: any) => c.id === selectedId);
 
   const computeStats = (txns: any[]) => {
@@ -609,9 +627,9 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
               filter: isClosed ? "grayscale(35%)" : "none",
             }}>
               <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
-                {!isClosed && (
+                {!isClosed && closingId !== p.id && (
                   <button
-                    onClick={() => onUpdateCard(p.id, { status: "closed", closedDate: today() })}
+                    onClick={() => { setClosingId(p.id); setCloseDate(today()); }}
                     title="Mark card as closed"
                     style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
                   >
@@ -630,6 +648,20 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
                 <button onClick={() => onEdit(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Edit3 size={14} /></button>
                 <button onClick={() => onRemove(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Trash2 size={14} /></button>
               </div>
+              {closingId === p.id && (
+                <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(15,15,25,0.97)", border: "1px solid rgba(239,68,68,0.45)", borderRadius: 8, padding: "8px 10px", display: "flex", gap: 6, alignItems: "center", zIndex: 20, boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                  <input type="date" value={closeDate} onChange={e => setCloseDate(e.target.value)}
+                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 5, color: "#fff", fontSize: 11, padding: "4px 7px", outline: "none" }} />
+                  <button onClick={() => { onUpdateCard(p.id, { status: "closed", closedDate: closeDate }); setClosingId(null); }}
+                    style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#ff8080", borderRadius: 5, fontSize: 10, fontWeight: 700, padding: "4px 10px", cursor: "pointer" }}>
+                    Confirm
+                  </button>
+                  <button onClick={() => setClosingId(null)}
+                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", lineHeight: 1 }}>
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
