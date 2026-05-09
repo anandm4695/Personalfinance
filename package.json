@@ -22,7 +22,8 @@
   "devDependencies": {
     "@types/react": "18.2.38",
     "@types/react-dom": "18.2.15",
-    "typescript": "4.4.4"
+    "typescript": "4.4.4",
+    "vercel": "^47.1.4"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React from "react";
+import ReactDOM from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -17,7 +18,7 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   maxWidth = 560,
 }) => {
-  return (
+  const content = (
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-panel"
@@ -35,6 +36,8 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(content, document.body);
 };
 
 export const ModalActions: React.FC<{
