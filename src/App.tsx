@@ -354,7 +354,7 @@ export default function FinanceDashboard() {
     try {
       console.log("Supabase: Fetching all modules in parallel for user:", userId);
       const [
-        prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems
+        prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -368,6 +368,7 @@ export default function FinanceDashboard() {
         supabase.from("bonds").select("*").eq("user_id", userId),
         supabase.from("ppf_nps").select("*").eq("user_id", userId),
         supabase.from("credit_cards").select("*").eq("user_id", userId),
+        supabase.from("prepaid_cards").select("*").eq("user_id", userId),
         supabase.from("loans").select("*").eq("user_id", userId),
         supabase.from("goals").select("*").eq("user_id", userId),
         supabase.from("budgets").select("*").eq("user_id", userId),
@@ -375,7 +376,7 @@ export default function FinanceDashboard() {
         supabase.from("reminders").select("*").eq("user_id", userId),
       ]);
 
-      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems].some(r => r.data && r.data.length > 0);
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems].some(r => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState(currentState => {
@@ -401,6 +402,7 @@ export default function FinanceDashboard() {
             nps: snakeToCamel(pn.data.filter(x => x.type === 'NPS')),
           } : {}),
           ...(!ccs.error && ccs.data != null ? { creditCards: snakeToCamel(ccs.data) } : {}),
+          ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
           ...(!lns.error && lns.data != null ? {
             loansTaken: snakeToCamel(lns.data.filter(x => !x.is_lent)),
             loansGiven: snakeToCamel(lns.data.filter(x => x.is_lent)),
@@ -892,7 +894,7 @@ export default function FinanceDashboard() {
     bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
     stocks: "stocks", demat: "demat_accounts", fixedDeposits: "fixed_deposits",
     recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps",
-    creditCards: "credit_cards", loansTaken: "loans", loansGiven: "loans",
+    creditCards: "credit_cards", prepaidCards: "prepaid_cards", loansTaken: "loans", loansGiven: "loans",
     goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders"
   };
 

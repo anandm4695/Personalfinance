@@ -299,7 +299,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
               <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} />
             </>
           )}
-          {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} />}
+          {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} />}
           {sub === "taken" && (
             <>
               <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} />
@@ -546,18 +546,213 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   );
 }
 
-function PrepaidList({ items, onRemove, onEdit }: any) {
-  if (!items.length) return <EmptyHint text="No prepaid cards/wallets" />;
+function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = items.find((c: any) => c.id === selectedId);
+
+  const computeStats = (txns: any[]) => {
+    const loaded = (txns || []).filter((t: any) => t.type === "load").reduce((s: number, t: any) => s + Number(t.amount), 0);
+    const spent = (txns || []).filter((t: any) => t.type === "spend").reduce((s: number, t: any) => s + Number(t.amount), 0);
+    return { loaded, spent, balance: loaded - spent };
+  };
+
+  if (!items.length) return <EmptyHint text="No prepaid cards or wallets yet. Add Sodexo, Zeta, ICICI Prepaid and more." />;
+
   return (
-    <Grid>
-      {items.map((p: any) => (
-        <InvestCard key={p.id} onRemove={() => onRemove(p.id)} onEdit={() => onEdit(p.id)}>
-          <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{p.provider}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginTop: 4 }}>{p.name}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800, marginTop: 12 }}>{fmtINRFull(p.balance)}</div>
-        </InvestCard>
-      ))}
-    </Grid>
+    <div>
+      <Grid>
+        {items.map((p: any) => {
+          const { loaded, spent, balance } = computeStats(p.transactions);
+          const txnCount = (p.transactions || []).length;
+          const name = p.cardName || p.name || p.provider || "Prepaid Card";
+          return (
+            <div key={p.id} style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #0d1f17 100%)", color: "#fff", borderRadius: 12, padding: 20, paddingBottom: 56, position: "relative" }}>
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6 }}>
+                <button onClick={() => onEdit(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Edit3 size={14} /></button>
+                <button onClick={() => onRemove(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Trash2 size={14} /></button>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(34,197,94,0.2)", color: "#6ee7b7", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(34,197,94,0.3)" }}>
+                  {p.cardType || "Prepaid"}
+                </span>
+                <OwnerBadge owner={p.owner} />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 12 }}>{name}</div>
+              {p.last4 && <div style={{ fontSize: 13, letterSpacing: "0.1em", marginTop: 4, opacity: 0.5 }}>•••• •••• •••• {p.last4}</div>}
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Available Balance</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: balance >= 0 ? "#6ee7b7" : "#ff8080", marginTop: 2 }}>{fmtINRFull(balance)}</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
+                <div>Loaded: <b style={{ color: "#6ee7b7" }}>{fmtINR(loaded)}</b></div>
+                <div>Spent: <b style={{ color: "#ff8080" }}>{fmtINR(spent)}</b></div>
+              </div>
+              <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{txnCount} transaction{txnCount !== 1 ? "s" : ""}</div>
+              <button
+                onClick={() => setSelectedId(p.id)}
+                style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.06)", border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              >
+                <List size={14} /> Transactions & Load Money
+              </button>
+            </div>
+          );
+        })}
+      </Grid>
+      {selectedId && selected && (
+        <PrepaidTransactionLedger
+          prepaid={selected}
+          onClose={() => setSelectedId(null)}
+          onUpdate={(newTxns: any) => onUpdateCard(selected.id, { transactions: newTxns })}
+        />
+      )}
+    </div>
+  );
+}
+
+function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
+  const [txs, setTxs] = useState<any[]>(prepaid.transactions || []);
+  const [showAdd, setShowAdd] = useState(false);
+  const [txType, setTxType] = useState<"load" | "spend">("spend");
+  const [form, setForm] = useState({ date: today(), amount: "", note: "", category: "Food" });
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const totalLoaded = txs.filter(t => t.type === "load").reduce((s, t) => s + Number(t.amount), 0);
+  const totalSpent = txs.filter(t => t.type === "spend").reduce((s, t) => s + Number(t.amount), 0);
+  const balance = totalLoaded - totalSpent;
+  const cats = ["Food", "Groceries", "Transport", "Shopping", "Entertainment", "Medical", "Utilities", "Other"];
+
+  const openAdd = (type: "load" | "spend") => {
+    setTxType(type);
+    setForm({ date: today(), amount: "", note: "", category: "Food" });
+    setEditId(null);
+    setShowAdd(true);
+  };
+
+  const save = () => {
+    if (!form.amount) return;
+    const entry = { ...form, type: txType, amount: Number(form.amount), id: editId || `ptx-${Date.now()}` };
+    const updated = editId ? txs.map(t => t.id === editId ? entry : t) : [...txs, entry];
+    setTxs(updated);
+    onUpdate(updated);
+    setShowAdd(false);
+    setEditId(null);
+    setForm({ date: today(), amount: "", note: "", category: "Food" });
+  };
+
+  const editTx = (t: any) => {
+    setTxType(t.type);
+    setForm({ date: t.date, amount: String(t.amount), note: t.note || "", category: t.category || "Food" });
+    setEditId(t.id);
+    setShowAdd(true);
+  };
+
+  const removeTx = (id: string) => {
+    const updated = txs.filter(t => t.id !== id);
+    setTxs(updated);
+    onUpdate(updated);
+  };
+
+  const cardName = prepaid.cardName || prepaid.name || prepaid.provider || "Prepaid Card";
+
+  return (
+    <Modal title={`${cardName} — Transactions`} onClose={onClose} maxWidth={640}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+        {[
+          { label: "Total Loaded", value: fmtINR(totalLoaded), color: THEME.sage, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)" },
+          { label: "Total Spent", value: fmtINR(totalSpent), color: THEME.rust, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)" },
+          { label: "Balance", value: fmtINR(balance), color: balance >= 0 ? THEME.sage : THEME.rust, bg: `rgba(${balance >= 0 ? "34,197,94" : "239,68,68"},0.08)`, border: `rgba(${balance >= 0 ? "34,197,94" : "239,68,68"},0.2)` },
+        ].map(s => (
+          <div key={s.label} style={{ padding: 12, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, textAlign: "center" as const }}>
+            <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{s.label}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: s.color, marginTop: 4 }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Transaction History</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.sage, borderColor: `${THEME.sage}55` }} onClick={() => openAdd("load")}>
+            <TrendingUp size={13} /> Load Money
+          </button>
+          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.rust, borderColor: `${THEME.rust}55` }} onClick={() => openAdd("spend")}>
+            <TrendingDown size={13} /> Record Spend
+          </button>
+        </div>
+      </div>
+
+      {showAdd && (
+        <div style={{ padding: 16, borderRadius: 10, marginBottom: 16, background: txType === "load" ? "rgba(34,197,94,0.04)" : "rgba(239,68,68,0.04)", border: `1px solid ${txType === "load" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, color: txType === "load" ? THEME.sage : THEME.rust, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
+            {editId ? "Edit Transaction" : txType === "load" ? "Load Money" : "Record Spend"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <Field label="Date"><input type="date" style={input} value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></Field>
+            <Field label="Amount (₹)"><input type="number" style={input} min="0" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} placeholder="0" /></Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: txType === "spend" ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 12 }}>
+            <Field label={txType === "load" ? "Note (optional)" : "Merchant / Note"}>
+              <input style={input} value={form.note} onChange={e => setForm({...form, note: e.target.value})} placeholder={txType === "load" ? "e.g. Monthly credit" : "e.g. Lunch at canteen"} />
+            </Field>
+            {txType === "spend" && (
+              <Field label="Category">
+                <select style={input} value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                  {cats.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "none", background: txType === "load" ? THEME.sage : THEME.rust, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }} onClick={save}>
+              {editId ? "Update" : txType === "load" ? "Load Money" : "Record Spend"}
+            </button>
+            <button style={{ ...btnGhost, padding: "10px 16px" }} onClick={() => { setShowAdd(false); setEditId(null); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ maxHeight: 360, overflowY: "auto" }}>
+        {txs.length === 0 ? (
+          <div style={{ padding: "32px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>No transactions yet — load money or record a spend above</div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${THEME.line}`, color: THEME.muted }}>
+                <th style={{ padding: "10px 8px", textAlign: "left" as const, fontWeight: 600, fontSize: 11 }}>Date</th>
+                <th style={{ padding: "10px 8px", textAlign: "left" as const, fontWeight: 600, fontSize: 11 }}>Type</th>
+                <th style={{ padding: "10px 8px", textAlign: "left" as const, fontWeight: 600, fontSize: 11 }}>Note</th>
+                <th style={{ padding: "10px 8px", textAlign: "left" as const, fontWeight: 600, fontSize: 11 }}>Category</th>
+                <th style={{ padding: "10px 8px", textAlign: "right" as const, fontWeight: 600, fontSize: 11 }}>Amount</th>
+                <th style={{ width: 60 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...txs].sort((a: any, b: any) => b.date.localeCompare(a.date)).map((t: any) => (
+                <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                  <td style={{ padding: "11px 8px" }}>{t.date}</td>
+                  <td style={{ padding: "11px 8px" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: t.type === "load" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: t.type === "load" ? THEME.sage : THEME.rust }}>
+                      {t.type === "load" ? "LOAD" : "SPEND"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "11px 8px", color: THEME.muted }}>{t.note || "—"}</td>
+                  <td style={{ padding: "11px 8px", color: THEME.muted, fontSize: 11 }}>{t.type === "spend" ? (t.category || "—") : "—"}</td>
+                  <td style={{ padding: "11px 8px", textAlign: "right" as const, fontWeight: 700, color: t.type === "load" ? THEME.sage : THEME.rust }}>
+                    {t.type === "load" ? "+" : "−"}{fmtINR(t.amount)}
+                  </td>
+                  <td style={{ padding: "11px 8px" }}>
+                    <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+                      <button onClick={() => editTx(t)} style={{ background: "transparent", border: "none", color: THEME.muted, cursor: "pointer", padding: 4 }}><Edit3 size={13} /></button>
+                      <button onClick={() => removeTx(t.id)} style={{ background: "transparent", border: "none", color: THEME.rust, cursor: "pointer", padding: 4 }}><X size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -663,14 +858,51 @@ function CCModal({ onClose, onSave, initial = null }: any) {
 }
 
 function PrepaidModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { provider: "", name: "", balance: "", owner: "self" });
+  const [f, setF] = useState(initial || { owner: "self", cardName: "", cardType: "Meal Card", last4: "", transactions: [] });
+  const [openingBal, setOpeningBal] = useState("");
+
   return (
-    <Modal title={initial ? "Edit Prepaid Card / Wallet" : "Add Prepaid Card / Wallet"} onClose={onClose}>
-      <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-      <Field label="Provider"><input style={input} value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} placeholder="e.g. Paytm, Amazon Pay" /></Field>
-      <Field label="Name/Label"><input style={input} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-      <Field label="Balance"><input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} /></Field>
-      <ModalActions onSave={() => f.provider && onSave(f)} onClose={onClose} />
+    <Modal title={initial ? "Edit Prepaid Card" : "Add Prepaid Card / Wallet"} onClose={onClose}>
+      <Field label="Owner / Profile">
+        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Card Name">
+        <input style={input} value={f.cardName || f.name || ""} onChange={e => setF({...f, cardName: e.target.value})} placeholder="e.g. Sodexo Meal Card, Zeta, ICICI Prepaid" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Card Type">
+          <select style={input} value={f.cardType || "Prepaid Card"} onChange={e => setF({...f, cardType: e.target.value})}>
+            <option>Meal Card</option>
+            <option>Digital Wallet</option>
+            <option>Travel Card</option>
+            <option>Prepaid Card</option>
+            <option>Gift Card</option>
+            <option>Fuel Card</option>
+          </select>
+        </Field>
+        <Field label="Last 4 Digits (optional)">
+          <input style={input} maxLength={4} value={f.last4 || ""} onChange={e => setF({...f, last4: e.target.value})} placeholder="1234" />
+        </Field>
+      </div>
+      {!initial && (
+        <Field label="Current Balance on Card (optional)">
+          <input style={input} type="number" value={openingBal} onChange={e => setOpeningBal(e.target.value)} placeholder="Balance already loaded on this card" />
+        </Field>
+      )}
+      <ModalActions
+        onSave={() => {
+          const name = f.cardName || f.name;
+          if (!name) return;
+          const initTxns: any[] = f.transactions || [];
+          const txns = (!initial && openingBal && Number(openingBal) > 0)
+            ? [...initTxns, { id: `ptx-${Date.now()}`, date: today(), type: "load", amount: Number(openingBal), note: "Opening balance" }]
+            : initTxns;
+          onSave({ ...f, cardName: name, transactions: txns });
+        }}
+        onClose={onClose}
+      />
     </Modal>
   );
 }

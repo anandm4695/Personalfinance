@@ -137,6 +137,17 @@ create table if not exists public.ppf_nps (
 );
 
 -- 6. Liabilities
+create table if not exists public.prepaid_cards (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  owner text not null,
+  card_name text not null,
+  card_type text,
+  last4 text,
+  transactions jsonb default '[]'::jsonb,
+  created_at timestamp with time zone default now()
+);
+
 create table if not exists public.credit_cards (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
