@@ -923,7 +923,6 @@ export default function FinanceDashboard() {
       if (table) {
         // Specific field mapping for various modules to match Supabase schema
         if (key === "bankAccounts") { delete finalItem.type; } // bank_accounts table has no type column
-        if (key === "subscriptions") { delete finalItem.category; } // subscriptions table has no category column
         if (key === "creditCards") { finalItem.card_limit = item.limit; delete finalItem.limit; }
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
@@ -1021,7 +1020,6 @@ export default function FinanceDashboard() {
         
         // Specific field mapping for updates
         if (key === "bankAccounts") { delete finalPatch.type; }
-        if (key === "subscriptions") { delete finalPatch.category; }
         if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
 

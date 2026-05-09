@@ -197,6 +197,7 @@ create table if not exists public.subscriptions (
   user_id uuid references auth.users not null,
   owner text not null,
   name text not null,
+  category text,
   amount numeric default 0,
   cycle text check (cycle in ('monthly', 'quarterly', 'yearly')),
   renewal_date date,
