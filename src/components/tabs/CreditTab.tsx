@@ -6,6 +6,8 @@ import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {
@@ -232,8 +234,8 @@ const Stat = ({ k, v }: { k: string; v: any }) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
-  const [sub, setSub] = useState("cc");
+export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: any) {
+  const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -246,10 +248,14 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
     { id: "lent", label: "To People", icon: TrendingUp },
   ];
 
+  React.useEffect(() => {
+    if (subTab) setSub(subTab);
+  }, [subTab]);
+
   const activeLabel = subs.find(s => s.id === sub)?.label || "";
 
   return (
-    <div className="tab-content-enter">
+    <div>
       {/* ── HEADER AREA ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
         <div>
@@ -263,63 +269,33 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
-        {/* ── VERTICAL SIDEBAR NAV ── */}
-        <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Categories</div>
-          {subs.map((s) => {
-            const Icon = s.icon;
-            const active = sub === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSub(s.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
-                  color: active ? THEME.accent : THEME.muted,
-                  fontWeight: active ? 800 : 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                  textAlign: "left",
-                  fontSize: 14,
-                  width: "100%",
-                }}
-              >
-                <Icon size={16} strokeWidth={active ? 2.5 : 2} />
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
+      <div>
         {/* ── CONTENT AREA ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{activeLabel}</h3>
-          </div>
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>{activeLabel}</h3>
+        </div>
 
           {sub === "cc" && (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
-                <Card style={{ background: "rgba(79, 70, 229, 0.05)", border: `1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Limit</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0))}</div>
-                </Card>
-                <Card style={{ background: "rgba(239, 68, 68, 0.05)", border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Outstanding</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0))}</div>
-                </Card>
-                <Card style={{ background: "rgba(34, 197, 94, 0.05)", border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}</div>
-                </Card>
-              </div>
+              {(() => {
+                const activeCards = state.creditCards.filter((c: any) => c.status !== "closed");
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+                    <Card style={{ background: "rgba(79, 70, 229, 0.05)", border: `1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Limit <span style={{ fontWeight: 400 }}>(active)</span></div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0))}</div>
+                    </Card>
+                    <Card style={{ background: "rgba(239, 68, 68, 0.05)", border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Outstanding <span style={{ fontWeight: 400 }}>(active)</span></div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0))}</div>
+                    </Card>
+                    <Card style={{ background: "rgba(34, 197, 94, 0.05)", border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available <span style={{ fontWeight: 400 }}>(active)</span></div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}</div>
+                    </Card>
+                  </div>
+                );
+              })()}
               <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} />
             </>
           )}
@@ -369,7 +345,6 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
           {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} />}
           {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
           {sub === "lent" && <InformalLoanView direction="lent" items={state.informalLent || []} onAddPerson={(v: any) => addItem("informalLent", v)} onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)} onRemove={(id: any) => removeItem("informalLent", id)} />}
-        </div>
       </div>
 
       {modal === "cc" && <CCModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("creditCards", v); setModal(null); }} />}
@@ -387,32 +362,156 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
 
 function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
-  if (!items.length) return <EmptyHint text="No credit cards yet" />;
+  const [viewMode, setViewMode] = useState<"active" | "closed">("active");
+
+  const activeCards = items.filter((c: any) => c.status !== "closed");
+  const closedCards = items.filter((c: any) => c.status === "closed");
+  const displayCards = viewMode === "active" ? activeCards : closedCards;
   const selectedCard = items.find((c: any) => c.id === selectedLedger);
+
+  if (!items.length) return <EmptyHint text="No credit cards yet" />;
+
   return (
     <div>
+      {/* Active / Closed toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+        {(["active", "closed"] as const).map(mode => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            style={{
+              padding: "6px 18px",
+              borderRadius: 20,
+              border: viewMode === mode ? "none" : `1.5px solid ${THEME.line}`,
+              background: viewMode === mode
+                ? (mode === "active" ? THEME.accent : "#555")
+                : "transparent",
+              color: viewMode === mode ? "#fff" : THEME.muted,
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {mode === "active" ? `Active (${activeCards.length})` : `Closed (${closedCards.length})`}
+          </button>
+        ))}
+      </div>
+
+      {displayCards.length === 0 && (
+        <EmptyHint text={viewMode === "active" ? "No active credit cards" : "No closed credit cards yet"} />
+      )}
+
       <Grid>
-        {items.map((c: any) => {
+        {displayCards.map((c: any) => {
+          const isClosed = c.status === "closed";
           const util = Number(c.limit) ? (Number(c.outstanding) / Number(c.limit)) * 100 : 0;
           return (
-            <div key={c.id} style={{ ...cardDark, position: "relative", background: `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`, paddingBottom: 60 }}>
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+            <div
+              key={c.id}
+              style={{
+                ...cardDark,
+                position: "relative",
+                background: isClosed
+                  ? `linear-gradient(135deg, #3a3a42 0%, #2a2a32 100%)`
+                  : `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`,
+                paddingBottom: isClosed ? 20 : 60,
+                opacity: isClosed ? 0.8 : 1,
+                filter: isClosed ? "grayscale(35%)" : "none",
+              }}
+            >
+              {/* Action buttons */}
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
+                {!isClosed && (
+                  <button
+                    onClick={() => onUpdateCard(c.id, { status: "closed", closedDate: today() })}
+                    title="Mark card as closed"
+                    style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+                  >
+                    CLOSE CARD
+                  </button>
+                )}
+                {isClosed && (
+                  <button
+                    onClick={() => onUpdateCard(c.id, { status: "active", closedDate: "" })}
+                    title="Reactivate card"
+                    style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", cursor: "pointer", color: "#6ee7b7", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+                  >
+                    REACTIVATE
+                  </button>
+                )}
                 <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Edit3 size={14} /></button>
                 <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Trash2 size={14} /></button>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}><CardNetworkLogo network={c.network} /><OwnerBadge owner={c.owner} /></div>
+
+              {/* Network logo + owner + status badge */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <CardNetworkLogo network={c.network} />
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {isClosed && (
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", background: "rgba(239,68,68,0.2)", color: "#ff8080", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(239,68,68,0.35)" }}>
+                      CLOSED
+                    </span>
+                  )}
+                  <OwnerBadge owner={c.owner} />
+                </div>
+              </div>
+
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
               <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>•••• •••• •••• {c.last4 || "****"}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20, fontSize: 12 }}><div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Outstanding</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div></div><div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Limit</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div></div></div>
-              <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}><div>Bill Date: <strong>{c.billDate || "—"}th</strong></div><div>Due Day: <strong>{c.dueDay || "—"}th</strong></div><div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div><div>Helpline: <strong>{c.helpline || "—"}</strong></div></div>
+              {isClosed && c.closedDate && (
+                <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
+                  Closed on {new Date(c.closedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20, fontSize: 12 }}>
+                <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Outstanding</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div></div>
+                <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Limit</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div></div>
+              </div>
+              <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
+                <div>Bill Date: <strong>{c.billDate || "—"}th</strong></div>
+                <div>Due Day: <strong>{c.dueDay || "—"}th</strong></div>
+                <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
+                <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
+              </div>
               {c.waiverInfo && <div style={{ marginTop: 12, fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "6px 10px", borderRadius: 6, color: THEME.gold }}>Waiver: {c.waiverInfo}</div>}
-              <div style={{ marginTop: 16 }}><div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}><div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : THEME.gold, borderRadius: 2 }} /></div><div style={{ fontSize: 10, color: util > 70 ? THEME.rust : "rgba(245,239,227,0.6)", marginTop: 6 }}>{util.toFixed(1)}% utilization</div></div>
-              <button onClick={() => setSelectedLedger(c.id)} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.05)", border: "none", borderTop: `1px solid rgba(255,255,255,0.1)`, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><List size={14} /> View Transactions ({c.transactions?.length || 0})</button>
+
+              {/* Utilization bar — active cards only */}
+              {!isClosed && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
+                    <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : THEME.gold, borderRadius: 2 }} />
+                  </div>
+                  <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : "rgba(245,239,227,0.6)", marginTop: 6 }}>{util.toFixed(1)}% utilization</div>
+                </div>
+              )}
+
+              {/* Transactions button */}
+              {!isClosed && (
+                <button onClick={() => setSelectedLedger(c.id)} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.05)", border: "none", borderTop: `1px solid rgba(255,255,255,0.1)`, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <List size={14} /> View Transactions ({c.transactions?.length || 0})
+                </button>
+              )}
+              {isClosed && (c.transactions?.length || 0) > 0 && (
+                <button onClick={() => setSelectedLedger(c.id)} style={{ marginTop: 14, width: "100%", padding: "8px 0", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8, color: "rgba(255,255,255,0.45)", cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <List size={12} /> View History ({c.transactions.length} txns)
+                </button>
+              )}
             </div>
           );
         })}
       </Grid>
-      {selectedLedger && selectedCard && <CCTransactionLedger card={selectedCard} onClose={() => setSelectedLedger(null)} onUpdate={(newTransactions: any) => { const newOutstanding = newTransactions.reduce((acc: any, t: any) => acc + Number(t.amount), 0); onUpdateCard(selectedLedger, { transactions: newTransactions, outstanding: String(newOutstanding) }); }} />}
+      {selectedLedger && selectedCard && (
+        <CCTransactionLedger
+          card={selectedCard}
+          onClose={() => setSelectedLedger(null)}
+          onUpdate={(newTransactions: any) => {
+            const newOutstanding = newTransactions.reduce((acc: any, t: any) => acc + Number(t.amount), 0);
+            onUpdateCard(selectedLedger, { transactions: newTransactions, outstanding: String(newOutstanding) });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -506,7 +605,8 @@ function LoanGivenList({ items, onRemove, onEdit }: any) {
 }
 
 function CCModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { issuer: "", network: "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self" });
+  const [f, setF] = useState(initial || { issuer: "", network: "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "" });
+  const isClosed = f.status === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
@@ -515,6 +615,48 @@ function CCModal({ onClose, onSave, initial = null }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Statement Date (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 20" value={f.billDate} onChange={(e) => setF({ ...f, billDate: e.target.value })} /></Field><Field label="Due Day (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 10" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Annual Fee"><input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} /></Field><Field label="Helpline Number"><input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" /></Field></div>
       <Field label="Waiver Details"><textarea style={{ ...input, height: 60, resize: "none" }} value={f.waiverInfo} onChange={(e) => setF({ ...f, waiverInfo: e.target.value })} placeholder="e.g. Spend 1L in a year to waive off annual fee" /></Field>
+
+      {/* Card Status */}
+      <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Card Status</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {["active", "closed"].map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setF({ ...f, status: s, closedDate: s === "active" ? "" : (f.closedDate || today()) })}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                borderRadius: 10,
+                border: f.status === s
+                  ? `2px solid ${s === "active" ? THEME.sage : THEME.rust}`
+                  : `1.5px solid ${THEME.line}`,
+                background: f.status === s
+                  ? (s === "active" ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)")
+                  : "transparent",
+                color: f.status === s
+                  ? (s === "active" ? THEME.sage : THEME.rust)
+                  : THEME.muted,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {s === "active" ? "✓ Active" : "✕ Closed"}
+            </button>
+          ))}
+        </div>
+        {isClosed && (
+          <div style={{ marginTop: 12 }}>
+            <Field label="Closed On">
+              <input style={input} type="date" value={f.closedDate || ""} onChange={(e) => setF({ ...f, closedDate: e.target.value })} />
+            </Field>
+          </div>
+        )}
+      </div>
+
       <ModalActions onSave={() => f.issuer && onSave(f)} onClose={onClose} />
     </Modal>
   );

@@ -45,6 +45,9 @@ import {
   User,
   Layout as LayoutIcon,
   Upload,
+  Coins,
+  Shield,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -1116,14 +1119,30 @@ export default function FinanceDashboard() {
       items: [
         { id: "banks", label: "Bank Accounts", icon: Landmark },
         { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
-        { id: "investments", label: "Fixed Income", icon: TrendingUp },
+        { id: "investments", label: "Fixed Income", icon: TrendingUp, children: [
+          { id: "fd",     label: "Fixed Deposits",     icon: Coins     },
+          { id: "rd",     label: "Recurring Deposits", icon: Repeat    },
+          { id: "bond",   label: "Bonds",              icon: FileText  },
+          { id: "ppf",    label: "PPF",                icon: Shield    },
+          { id: "nps",    label: "NPS",                icon: Briefcase },
+          { id: "mf",     label: "Mutual Funds",       icon: BarChart3 },
+          { id: "lic",    label: "LIC",                icon: Shield    },
+          { id: "income", label: "Yield Tracker",      icon: Activity  },
+        ]},
         { id: "goals", label: "Financial Goals", icon: Target },
       ]
     },
     {
       title: "Liabilities & Credit",
       items: [
-        { id: "credit", label: "Credit & Loans", icon: CreditCard },
+        { id: "credit", label: "Credit & Loans", icon: CreditCard, children: [
+          { id: "cc",       label: "Credit Cards",  icon: CreditCard   },
+          { id: "prepaid",  label: "Prepaid Cards", icon: Wallet       },
+          { id: "taken",    label: "Loans Taken",   icon: ArrowLeft    },
+          { id: "given",    label: "Loans Given",   icon: ArrowRight   },
+          { id: "borrowed", label: "From People",   icon: User         },
+          { id: "lent",     label: "To People",     icon: IndianRupee  },
+        ]},
       ]
     },
     {
@@ -1298,32 +1317,87 @@ export default function FinanceDashboard() {
                   {!isCollapsed && group.items.map((t) => {
                     const Icon = t.icon;
                     const active = tab === t.id;
+                    const hasChildren = t.children && t.children.length > 0;
                     return (
-                      <button
-                        key={t.id}
-                        onClick={() => { setTab(t.id); setSubTab(null); }}
-                        className={`nav-item ${active ? "active" : ""}`}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "10px 16px",
-                          borderRadius: 12,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          marginBottom: 4,
-                          color: active ? THEME.accent : THEME.muted,
-                          fontWeight: active ? 800 : 600,
-                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                        }}
-                      >
-                        <Icon size={18} strokeWidth={active ? 2.5 : 2} />
-                        <span style={{ fontSize: 13.5 }}>{t.label}</span>
-                        {active && <div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: THEME.accent }} />}
-                      </button>
+                      <div key={t.id}>
+                        <button
+                          onClick={() => {
+                            setTab(t.id);
+                            setSubTab(hasChildren ? t.children[0].id : null);
+                          }}
+                          className={`nav-item ${active ? "active" : ""}`}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            marginBottom: 4,
+                            color: active ? THEME.accent : THEME.muted,
+                            fontWeight: active ? 800 : 600,
+                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                          }}
+                        >
+                          <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+                          <span style={{ fontSize: 13.5, flex: 1 }}>{t.label}</span>
+                          {hasChildren
+                            ? <ChevronDown size={13} style={{ transform: active ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s ease", opacity: 0.5 }} />
+                            : active && <div style={{ width: 5, height: 5, borderRadius: "50%", background: THEME.accent }} />
+                          }
+                        </button>
+
+                        {/* ── Sub-items (Fixed Income children) ── */}
+                        {hasChildren && active && (
+                          <div style={{
+                            marginLeft: 18,
+                            paddingLeft: 14,
+                            borderLeft: `2px solid color-mix(in srgb, var(--t-accent) 22%, transparent)`,
+                            marginBottom: 6,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}>
+                            {t.children.map((child) => {
+                              const ChildIcon = child.icon;
+                              const childActive = subTab === child.id;
+                              return (
+                                <button
+                                  key={child.id}
+                                  onClick={() => { setTab(t.id); setSubTab(child.id); }}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    padding: "7px 10px",
+                                    borderRadius: 8,
+                                    border: "none",
+                                    background: childActive ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "transparent",
+                                    color: childActive ? THEME.accent : THEME.muted,
+                                    fontWeight: childActive ? 700 : 500,
+                                    cursor: "pointer",
+                                    width: "100%",
+                                    textAlign: "left",
+                                    fontSize: 12.5,
+                                    transition: "all 0.15s ease",
+                                    fontFamily: "inherit",
+                                  }}
+                                >
+                                  <ChildIcon size={13} strokeWidth={childActive ? 2.5 : 2} />
+                                  <span style={{ flex: 1 }}>{child.label}</span>
+                                  {childActive && (
+                                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: THEME.accent }} />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1595,7 +1669,7 @@ export default function FinanceDashboard() {
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
-            {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
             {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
