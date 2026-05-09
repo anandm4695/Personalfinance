@@ -1,13 +1,13 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, IndianRupee, PieChart as PieIcon, Activity, Calculator, Receipt, Target, Heart, Wallet, Building2, Repeat, Bell, Hash, Settings, LogOut, Sun, Moon, Download, Clock } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 
-// Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
   <div style={{ marginBottom: 32 }}>
     <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
@@ -16,13 +16,13 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
 );
 
 const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+  <Card style={{ padding: 20 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
       <Icon size={14} /> {label}
     </div>
     <div style={{ fontSize: 20, fontWeight: 800 }}>{value}</div>
     {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
-  </div>
+  </Card>
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
@@ -94,13 +94,13 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
 );
 
 const InvestCard = ({ children, onRemove, onEdit }: any) => (
-  <div style={{ ...card, position: "relative" }}>
+  <Card style={{ position: "relative" }}>
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
       <button onClick={onEdit} style={iconBtn}><Edit3 size={14} /></button>
       <button onClick={onRemove} style={iconBtn}><Trash2 size={14} /></button>
     </div>
     {children}
-  </div>
+  </Card>
 );
 
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
@@ -225,99 +225,104 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
   return (
     <div className="tab-content-enter">
       {/* ── HEADER AREA ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Demat & Stocks</h2>
-              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Brokerage accounts and every scrip you hold</div>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button style={{ ...btnGhost, opacity: fetchingPrices ? 0.6 : 1 }} onClick={fetchLivePrices} disabled={fetchingPrices}>
-                <RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />
-                {fetchingPrices ? "Fetching…" : "Refresh Prices"}
-              </button>
-              <button style={btnSolid} onClick={() => { setStockDefaults(null); setShowStock(true); }}><Plus size={14} /> Add Stock</button>
-            </div>
-          </div>
-
-          {/* ── PREMIUM UNDERLINED NAV (Accounts Filter) ── */}
-          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
-            <button
-              onClick={() => setSelectedDematId(null)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0 0 16px 0",
-                fontSize: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                color: selectedDematId === null ? THEME.accent : THEME.muted,
-                borderBottom: `2px solid ${selectedDematId === null ? THEME.accent : "transparent"}`,
-                fontWeight: selectedDematId === null ? 800 : 600,
-                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                whiteSpace: "nowrap"
-              }}
-            >
-              All Portfolios
-            </button>
-            {state.demat.map((d: any) => {
-              const active = selectedDematId === d.id;
-              return (
-                <button
-                  key={d.id}
-                  onClick={() => setSelectedDematId(d.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "0 0 16px 0",
-                    fontSize: 12,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: active ? THEME.accent : THEME.muted,
-                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
-                    fontWeight: active ? 800 : 600,
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  {d.broker || "Account"}
-                </button>
-              );
-            })}
-          </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+        <div>
+          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Demat & Stocks</h2>
+          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Live portfolio tracking and brokerage management</div>
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button 
+            variant="ghost" 
+            icon={<RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />}
+            onClick={fetchLivePrices} 
+            disabled={fetchingPrices}
+          >
+            {fetchingPrices ? "Updating…" : "Live Refresh"}
+          </Button>
+          <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
+            Add Scrip
+          </Button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
-        <Tile icon={Briefcase} label="Demat Accounts" value={state.demat.length} />
-        <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} />
-        <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : ""} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
-        <Tile icon={Percent} label="Portfolio Return" value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"} sub={`on ${fmtINR(totalInvested)} invested`} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
-        <Tile icon={ArrowLeftRight} label="Realized P&L" value={fmtINRFull(realizedPnl)} sub={`${filteredSells.length} sell txn${filteredSells.length !== 1 ? "s" : ""}`} subColor={realizedPnl >= 0 ? THEME.sage : THEME.rust} />
-      </div>
+      <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
+        {/* ── VERTICAL SIDEBAR NAV ── */}
+        <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Portfolios</div>
+          <button
+            onClick={() => setSelectedDematId(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 16px",
+              borderRadius: 12,
+              border: "none",
+              background: selectedDematId === null ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+              color: selectedDematId === null ? THEME.accent : THEME.muted,
+              fontWeight: selectedDematId === null ? 800 : 600,
+              cursor: "pointer",
+              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              textAlign: "left",
+              fontSize: 14,
+              width: "100%",
+            }}
+          >
+            <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
+            Global View
+          </button>
+          {state.demat.map((d: any) => {
+            const active = selectedDematId === d.id;
+            return (
+              <button
+                key={d.id}
+                onClick={() => setSelectedDematId(d.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                  color: active ? THEME.accent : THEME.muted,
+                  fontWeight: active ? 800 : 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                  textAlign: "left",
+                  fontSize: 14,
+                  width: "100%",
+                }}
+              >
+                <Briefcase size={16} strokeWidth={active ? 2.5 : 2} />
+                {d.broker || "Broker"}
+              </button>
+            );
+          })}
+        </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700 }}>Demat Accounts</div>
-        <button style={btnGhost} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Demat</button>
-      </div>
-      <Grid>
-        {state.demat.length === 0 && <EmptyHint text="Add your brokerage/demat account" />}
-        {state.demat.map((d: any) => (
-          <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
-            <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{d.broker}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginTop: 4 }}>DP ID: {d.dpId || "—"}</div>
-            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Client ID: {d.clientId || "—"}</div>
-          </InvestCard>
-        ))}
-      </Grid>
+        {/* ── CONTENT AREA ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
+            <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} />
+            <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : ""} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
+            <Tile icon={Percent} label="Net Return" value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
+          </div>
 
-      <div style={{ marginTop: 40, marginBottom: 12 }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Stock Holdings</div>
-        {lastRefreshed && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Live prices as of {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>}
-        {fetchError && <div style={{ fontSize: 11, color: THEME.rust, marginTop: 2 }}>{fetchError}</div>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 18, fontWeight: 800 }}>Demat Accounts</div>
+            <button style={{ ...btnGhost, fontSize: 12, borderRadius: 8 }} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Account</button>
+          </div>
+          <Grid>
+            {state.demat.length === 0 && <EmptyHint text="Add your brokerage/demat account" />}
+            {state.demat.map((d: any) => (
+              <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
+                <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{d.broker}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>ID: {d.dpId || d.clientId || "—"}</div>
+              </InvestCard>
+            ))}
+          </Grid>
+        </div>
       </div>
 
       {state.stocks.length === 0 ? (

@@ -87,68 +87,70 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   return (
     <div className="tab-content-enter">
       {/* ── HEADER AREA ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Investments Portfolio</h2>
-              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Growth, preservation, and yield instruments</div>
-            </div>
-            <Button variant="accent" icon={<Plus size={14} />} onClick={() => {/* TODO: Add Modal */}}>
-              Add Investment
-            </Button>
-          </div>
-
-          {/* ── PREMIUM UNDERLINED NAV ── */}
-          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
-            {subs.map((s) => {
-              const active = sub === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSub(s.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "0 0 16px 0",
-                    background: "none",
-                    border: "none",
-                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
-                    color: active ? THEME.accent : THEME.muted,
-                    fontWeight: active ? 800 : 600,
-                    cursor: "pointer",
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    whiteSpace: "nowrap",
-                    fontSize: 12,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    position: "relative"
-                  }}
-                >
-                  {s.label}
-                  {s.count !== undefined && (
-                    <span style={{ 
-                      fontSize: 10, 
-                      background: active ? THEME.accent : "rgba(128,128,128,0.1)", 
-                      color: active ? "#fff" : THEME.muted,
-                      padding: "2px 6px", 
-                      borderRadius: 6,
-                      fontWeight: 700,
-                      transition: "all 0.3s"
-                    }}>
-                      {s.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+        <div>
+          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Investments Portfolio</h2>
+          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Growth, preservation, and yield instruments across multiple asset classes</div>
         </div>
+        <Button variant="accent" icon={<Plus size={14} />} onClick={() => {/* TODO: Add Modal */}}>
+          Add Investment
+        </Button>
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        {renderContent()}
+      <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
+        {/* ── VERTICAL SIDEBAR NAV ── */}
+        <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Asset Classes</div>
+          {subs.map((s) => {
+            const Icon = s.icon;
+            const active = sub === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSub(s.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                  color: active ? THEME.accent : THEME.muted,
+                  fontWeight: active ? 800 : 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                  textAlign: "left",
+                  fontSize: 14,
+                  width: "100%",
+                }}
+              >
+                <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+                <span style={{ flex: 1 }}>{s.label}</span>
+                {s.count !== undefined && (
+                  <span style={{ 
+                    fontSize: 10, 
+                    background: active ? THEME.accent : "rgba(128,128,128,0.1)", 
+                    color: active ? "#fff" : THEME.muted,
+                    padding: "2px 6px", 
+                    borderRadius: 6,
+                    fontWeight: 700,
+                  }}>
+                    {s.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── CONTENT AREA ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{subs.find(s => s.id === sub)?.label}</h3>
+          </div>
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

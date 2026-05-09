@@ -238,128 +238,139 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
   const [editId, setEditId] = useState<string | null>(null);
 
   const subs = [
-    { id: "cc", label: "Credit Cards", key: "creditCards" },
-    { id: "prepaid", label: "Prepaid Cards", key: "prepaidCards" },
-    { id: "taken", label: "Loans Taken", key: "loansTaken" },
-    { id: "given", label: "Loans Given", key: "loansGiven" },
-    { id: "borrowed", label: "From People", key: "informalBorrowed" },
-    { id: "lent", label: "To People", key: "informalLent" },
+    { id: "cc", label: "Credit Cards", icon: IndianRupee },
+    { id: "prepaid", label: "Prepaid Cards", icon: IndianRupee },
+    { id: "taken", label: "Loans Taken", icon: TrendingDown },
+    { id: "given", label: "Loans Given", icon: TrendingUp },
+    { id: "borrowed", label: "From People", icon: TrendingDown },
+    { id: "lent", label: "To People", icon: TrendingUp },
   ];
+
+  const activeLabel = subs.find(s => s.id === sub)?.label || "";
 
   return (
     <div className="tab-content-enter">
       {/* ── HEADER AREA ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>Credit & Loans</h2>
-              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Cards, debts owed, and personal lending</div>
-            </div>
-            {sub !== "borrowed" && sub !== "lent" && (
-              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
-                Add {subs.find(s => s.id === sub)?.label.split(' ')[0]}
-              </Button>
-            )}
-          </div>
-
-          {/* ── PREMIUM UNDERLINED NAV ── */}
-          <div style={{ display: "flex", gap: 32, overflowX: "auto", marginBottom: -1 }} className="no-scrollbar">
-            {subs.map((s) => {
-              const active = sub === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSub(s.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "0 0 16px 0",
-                    fontSize: 12,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: active ? THEME.accent : THEME.muted,
-                    borderBottom: `2px solid ${active ? THEME.accent : "transparent"}`,
-                    fontWeight: active ? 800 : 600,
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+        <div>
+          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Credit & Liabilities</h2>
+          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Manage cards, debts, and personal lending portfolios</div>
         </div>
+        {sub !== "borrowed" && sub !== "lent" && (
+          <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
+            Add {activeLabel.split(' ')[0]}
+          </Button>
+        )}
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        {sub === "cc" && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-            <div style={card}>
-              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Credit Limit</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0))}</div>
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Outstanding</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0))}</div>
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available Credit</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}</div>
-            </div>
+      <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
+        {/* ── VERTICAL SIDEBAR NAV ── */}
+        <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Categories</div>
+          {subs.map((s) => {
+            const Icon = s.icon;
+            const active = sub === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSub(s.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                  color: active ? THEME.accent : THEME.muted,
+                  fontWeight: active ? 800 : 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                  textAlign: "left",
+                  fontSize: 14,
+                  width: "100%",
+                }}
+              >
+                <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── CONTENT AREA ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{activeLabel}</h3>
           </div>
-          <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} />
-        </>
-      )}
-      {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} />}
-      {sub === "taken" && (
-        <>
-          <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} />
-          {state.loansTaken.length > 0 && (
-            <div style={{ marginTop: 32 }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Payoff Progress</div>
-              <div style={{ display: "grid", gap: 16 }}>
-                {state.loansTaken.map((l: any) => {
-                  const principal = Number(l.principal) || 0;
-                  const outstanding = Number(l.outstanding) || 0;
-                  const emi = Number(l.emi) || 0;
-                  const months = Number(l.monthsRemaining) || 0;
-                  const paid = principal - outstanding;
-                  const paidPct = principal > 0 ? (paid / principal) * 100 : 0;
-                  const totalRemaining = emi * months;
-                  const interestRemaining = Math.max(0, totalRemaining - outstanding);
-                  const payoffDate = new Date();
-                  payoffDate.setMonth(payoffDate.getMonth() + months);
-                  return (
-                    <div key={l.id} style={card}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                        <div><div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>{l.type || "Loan"}</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{l.lender}</div></div>
-                        <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(outstanding)}</div><div style={{ fontSize: 11, color: THEME.muted }}>outstanding</div></div>
-                      </div>
-                      <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
-                        <div style={{ height: "100%", width: Math.min(paidPct, 100) + "%", background: paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust, borderRadius: 5, transition: "width 0.6s" }} />
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, fontSize: 12 }}>
-                        <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Principal paid</div><div style={{ fontWeight: 700, color: THEME.sage }}>{fmtINR(paid)}</div></div>
-                        <div><div style={{ color: THEME.muted, marginBottom: 2 }}>EMI</div><div style={{ fontWeight: 700 }}>{fmtINR(emi)}/mo</div></div>
-                        <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Interest remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINR(interestRemaining)}</div></div>
-                        <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Payoff date</div><div style={{ fontWeight: 700 }}>{months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—"}</div></div>
-                      </div>
-                      <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted }}>{paidPct.toFixed(1)}% of principal repaid · {months} months left</div>
-                    </div>
-                  );
-                })}
+
+          {sub === "cc" && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+                <Card style={{ background: "rgba(79, 70, 229, 0.05)", border: `1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Limit</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0))}</div>
+                </Card>
+                <Card style={{ background: "rgba(239, 68, 68, 0.05)", border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Outstanding</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0))}</div>
+                </Card>
+                <Card style={{ background: "rgba(34, 197, 94, 0.05)", border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(state.creditCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}</div>
+                </Card>
               </div>
-            </div>
+              <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} />
+            </>
           )}
-        </>
-      )}
-      {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} />}
-      {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
-      {sub === "lent" && <InformalLoanView direction="lent" items={state.informalLent || []} onAddPerson={(v: any) => addItem("informalLent", v)} onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)} onRemove={(id: any) => removeItem("informalLent", id)} />}
+          {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} />}
+          {sub === "taken" && (
+            <>
+              <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} />
+              {state.loansTaken.length > 0 && (
+                <div style={{ marginTop: 32 }}>
+                  <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Payoff Progress</div>
+                  <div style={{ display: "grid", gap: 16 }}>
+                    {state.loansTaken.map((l: any) => {
+                      const principal = Number(l.principal) || 0;
+                      const outstanding = Number(l.outstanding) || 0;
+                      const emi = Number(l.emi) || 0;
+                      const months = Number(l.monthsRemaining) || 0;
+                      const paid = principal - outstanding;
+                      const paidPct = principal > 0 ? (paid / principal) * 100 : 0;
+                      const totalRemaining = emi * months;
+                      const interestRemaining = Math.max(0, totalRemaining - outstanding);
+                      const payoffDate = new Date();
+                      payoffDate.setMonth(payoffDate.getMonth() + months);
+                      return (
+                        <Card key={l.id}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                            <div><div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>{l.type || "Loan"}</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{l.lender}</div></div>
+                            <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(outstanding)}</div><div style={{ fontSize: 11, color: THEME.muted }}>outstanding</div></div>
+                          </div>
+                          <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
+                            <div style={{ height: "100%", width: Math.min(paidPct, 100) + "%", background: paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust, borderRadius: 5, transition: "width 0.6s" }} />
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, fontSize: 12 }}>
+                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Principal paid</div><div style={{ fontWeight: 700, color: THEME.sage }}>{fmtINR(paid)}</div></div>
+                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>EMI</div><div style={{ fontWeight: 700 }}>{fmtINR(emi)}/mo</div></div>
+                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Interest remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINR(interestRemaining)}</div></div>
+                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Payoff date</div><div style={{ fontWeight: 700 }}>{months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—"}</div></div>
+                          </div>
+                          <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted }}>{paidPct.toFixed(1)}% of principal repaid · {months} months left</div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} />}
+          {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
+          {sub === "lent" && <InformalLoanView direction="lent" items={state.informalLent || []} onAddPerson={(v: any) => addItem("informalLent", v)} onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)} onRemove={(id: any) => removeItem("informalLent", id)} />}
+        </div>
+      </div>
 
       {modal === "cc" && <CCModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("creditCards", v); setModal(null); }} />}
       {modal === "prepaid" && <PrepaidModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("prepaidCards", v); setModal(null); }} />}
@@ -370,7 +381,6 @@ export function CreditTab({ state, addItem, removeItem, updateItem }: any) {
       {editId && sub === "prepaid" && <PrepaidModal initial={state.prepaidCards.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("prepaidCards", editId, v); setEditId(null); }} />}
       {editId && sub === "taken" && <LoanTakenModal initial={state.loansTaken.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansTaken", editId, v); setEditId(null); }} />}
       {editId && sub === "given" && <LoanGivenModal initial={state.loansGiven.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansGiven", editId, v); setEditId(null); }} />}
-      </div>
     </div>
   );
 }
