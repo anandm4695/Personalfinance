@@ -251,26 +251,7 @@ export default function FinanceDashboard() {
       localStorage.clear();
       sessionStorage.clear();
       setState(DEFAULT_STATE);
-      window.location.reload();
-    }
-  }, [session]);
-
-  // 2. Aggressive Cleanup of Legacy Dummy Data
-  useEffect(() => {
-    const saved = loadState();
-    const isDummy = (s: any) => {
-      if (!s) return false;
-      // Markers of the old MOCK_DATA
-      return (Array.isArray(s.bankAccounts) && s.bankAccounts.some(b => b.id === "1" || b.id === "2")) || 
-             (s.profile?.name === "Anand" && (!session || session.user.id === "offline-user"));
-    };
-
-    if (isDummy(saved)) {
-      console.log("Cleanup: Detected legacy dummy data in storage. Wiping...");
-      localStorage.clear();
-      sessionStorage.clear();
-      setState(DEFAULT_STATE);
-      // We don't reload here to avoid infinite loops, but we've cleared the state
+      // We don't reload here to avoid infinite loops if DEFAULT_STATE still looks 'dummy'
     }
   }, [session]);
 
