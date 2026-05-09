@@ -83,7 +83,20 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           <input style={input} type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} />
         </Field>
         <Field label="Target Date">
-          <input style={input} type="date" value={f.targetDate} onChange={(e) => setF({ ...f, targetDate: e.target.value })} />
+          {f.targetDate ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input style={{ ...input, flex: 1 }} type="date" value={f.targetDate} onChange={(e) => setF({ ...f, targetDate: e.target.value })} />
+              <button type="button" onClick={() => setF({ ...f, targetDate: "" })}
+                style={{ padding: "10px 12px", border: "1.5px solid #ef4444", borderRadius: 10, background: "transparent", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                Clear
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setF({ ...f, targetDate: today() })}
+              style={{ ...input, background: "transparent", border: `1.5px dashed ${THEME.line}`, color: THEME.muted, cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 500 }}>
+              + Set a target date (optional)
+            </button>
+          )}
         </Field>
       </div>
       <ModalActions
