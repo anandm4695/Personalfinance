@@ -938,12 +938,29 @@ export default function FinanceDashboard() {
         }
 
         console.log(`[Supabase Insert] table=${table}`, cleanItem);
-        const { error } = await supabase.from(table).insert(cleanItem);
-        if (error) {
-          console.error(`Supabase Insert Error (${table}):`, { code: error.code, message: error.message, details: error.details, hint: error.hint });
-          const hint = error.hint ? ` (${error.hint})` : error.details ? ` (${error.details})` : "";
-          showToast(`Sync failed [${error.code}]: ${error.message}${hint}`, "error");
-          // Revert optimistic update on failure
+        // Retry up to 3 times for network errors (Safari "Load failed", Chrome "Failed to fetch")
+        let lastError: any = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const { error } = await supabase.from(table).insert(cleanItem);
+          if (!error) { lastError = null; break; }
+          lastError = error;
+          const isNetworkErr = error.message?.includes("Load failed") || error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError");
+          if (!isNetworkErr) break; // don't retry schema/auth errors
+          if (attempt < 3) {
+            console.warn(`[Supabase] Network error on attempt ${attempt}, retrying in ${attempt * 2}s…`);
+            await new Promise(r => setTimeout(r, attempt * 2000));
+          }
+        }
+        if (lastError) {
+          console.error(`Supabase Insert Error (${table}):`, { code: lastError.code, message: lastError.message, details: lastError.details, hint: lastError.hint });
+          const isNetworkErr = lastError.message?.includes("Load failed") || lastError.message?.includes("Failed to fetch");
+          if (isNetworkErr) {
+            showToast("No connection to database — check your internet or Supabase project status.", "error");
+          } else {
+            const hint = lastError.hint ? ` (${lastError.hint})` : lastError.details ? ` (${lastError.details})` : "";
+            showToast(`Sync failed [${lastError.code}]: ${lastError.message}${hint}`, "error");
+          }
+          // Revert optimistic update only after all retries exhausted
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         }
       }
