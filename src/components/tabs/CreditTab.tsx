@@ -548,6 +548,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 
 function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const selected = items.find((c: any) => c.id === selectedId);
 
   const computeStats = (txns: any[]) => {
@@ -556,29 +557,102 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
     return { loaded, spent, balance: loaded - spent };
   };
 
+  const activeCards = items.filter((p: any) => p.status !== "closed");
+  const closedCards = items.filter((p: any) => p.status === "closed");
+  const displayCards = viewMode === "active" ? activeCards : closedCards;
+
   if (!items.length) return <EmptyHint text="No prepaid cards or wallets yet. Add Sodexo, Zeta, ICICI Prepaid and more." />;
 
   return (
     <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+        {(["active", "closed"] as const).map(mode => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            style={{
+              padding: "6px 18px",
+              borderRadius: 20,
+              border: viewMode === mode ? "none" : `1.5px solid ${THEME.line}`,
+              background: viewMode === mode ? (mode === "active" ? THEME.accent : "#555") : "transparent",
+              color: viewMode === mode ? "#fff" : THEME.muted,
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {mode === "active" ? `Active (${activeCards.length})` : `Closed (${closedCards.length})`}
+          </button>
+        ))}
+      </div>
+
+      {displayCards.length === 0 && (
+        <EmptyHint text={viewMode === "active" ? "No active prepaid cards" : "No closed prepaid cards yet"} />
+      )}
+
       <Grid>
-        {items.map((p: any) => {
+        {displayCards.map((p: any) => {
+          const isClosed = p.status === "closed";
           const { loaded, spent, balance } = computeStats(p.transactions);
           const txnCount = (p.transactions || []).length;
           const name = p.cardName || p.name || p.provider || "Prepaid Card";
           return (
-            <div key={p.id} style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #0d1f17 100%)", color: "#fff", borderRadius: 12, padding: 20, paddingBottom: 56, position: "relative" }}>
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6 }}>
+            <div key={p.id} style={{
+              background: isClosed
+                ? "linear-gradient(135deg, #2a2a1a 0%, #1a1a0d 100%)"
+                : "linear-gradient(135deg, #1a3a2a 0%, #0d1f17 100%)",
+              color: "#fff", borderRadius: 12, padding: 20,
+              paddingBottom: isClosed ? 20 : 56,
+              position: "relative",
+              opacity: isClosed ? 0.8 : 1,
+              filter: isClosed ? "grayscale(35%)" : "none",
+            }}>
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
+                {!isClosed && (
+                  <button
+                    onClick={() => onUpdateCard(p.id, { status: "closed", closedDate: today() })}
+                    title="Mark card as closed"
+                    style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+                  >
+                    CLOSE CARD
+                  </button>
+                )}
+                {isClosed && (
+                  <button
+                    onClick={() => onUpdateCard(p.id, { status: "active", closedDate: "" })}
+                    title="Reactivate card"
+                    style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", cursor: "pointer", color: "#6ee7b7", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+                  >
+                    REACTIVATE
+                  </button>
+                )}
                 <button onClick={() => onEdit(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Edit3 size={14} /></button>
                 <button onClick={() => onRemove(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><Trash2 size={14} /></button>
               </div>
+
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(34,197,94,0.2)", color: "#6ee7b7", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(34,197,94,0.3)" }}>
-                  {p.cardType || "Prepaid"}
-                </span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(34,197,94,0.2)", color: "#6ee7b7", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(34,197,94,0.3)" }}>
+                    {p.cardType || "Prepaid"}
+                  </span>
+                  {isClosed && (
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", background: "rgba(239,68,68,0.2)", color: "#ff8080", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(239,68,68,0.35)" }}>
+                      CLOSED
+                    </span>
+                  )}
+                </div>
                 <OwnerBadge owner={p.owner} />
               </div>
+
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 12 }}>{name}</div>
               {p.last4 && <div style={{ fontSize: 13, letterSpacing: "0.1em", marginTop: 4, opacity: 0.5 }}>•••• •••• •••• {p.last4}</div>}
+              {isClosed && p.closedDate && (
+                <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
+                  Closed on {new Date(p.closedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </div>
+              )}
+
               <div style={{ marginTop: 18 }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Available Balance</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: balance >= 0 ? "#6ee7b7" : "#ff8080", marginTop: 2 }}>{fmtINRFull(balance)}</div>
@@ -588,12 +662,20 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
                 <div>Spent: <b style={{ color: "#ff8080" }}>{fmtINR(spent)}</b></div>
               </div>
               <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{txnCount} transaction{txnCount !== 1 ? "s" : ""}</div>
-              <button
-                onClick={() => setSelectedId(p.id)}
-                style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.06)", border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              >
-                <List size={14} /> Transactions & Load Money
-              </button>
+
+              {!isClosed && (
+                <button
+                  onClick={() => setSelectedId(p.id)}
+                  style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.06)", border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <List size={14} /> Transactions & Load Money
+                </button>
+              )}
+              {isClosed && txnCount > 0 && (
+                <button onClick={() => setSelectedId(p.id)} style={{ marginTop: 14, width: "100%", padding: "8px 0", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "rgba(255,255,255,0.45)", cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <List size={12} /> View History ({txnCount} txns)
+                </button>
+              )}
             </div>
           );
         })}
