@@ -48,6 +48,8 @@ import {
   Coins,
   Shield,
   Briefcase,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -126,6 +128,7 @@ export default function FinanceDashboard() {
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
+  const [privacyMode, setPrivacyMode] = useState(true);
 
   const [state, setState] = useState(() => {
     // 1. If we just reset, start with default state
@@ -1871,6 +1874,17 @@ export default function FinanceDashboard() {
                 )}
               </div>
 
+              {/* Privacy toggle */}
+              <button
+                onClick={() => setPrivacyMode(v => !v)}
+                className="header-icon-btn"
+                aria-label={privacyMode ? "Reveal financial data" : "Hide financial data"}
+                title={privacyMode ? "Unhide data" : "Hide data"}
+                style={privacyMode ? { color: THEME.rust, borderColor: THEME.rust } : {}}
+              >
+                {privacyMode ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+
               {/* Dark mode toggle */}
               <button
                 onClick={() => updateSettings({ darkMode: !darkMode })}
@@ -1919,6 +1933,10 @@ export default function FinanceDashboard() {
             padding: "40px",
             position: "relative",
             zIndex: 1,
+            filter: privacyMode ? "blur(7px)" : "none",
+            transition: "filter 0.3s ease",
+            userSelect: privacyMode ? "none" : "auto",
+            pointerEvents: privacyMode ? "none" : "auto",
           }}
         >
           <div key={tab} className="tab-content-enter">
