@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Database, User, Check, Download, RefreshCw,
-  Sun, Moon, X as XIcon, LogOut, Tags,
+  X as XIcon, LogOut, Tags,
   RotateCcw, Plus, AlertTriangle, Settings,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES } from "../../utils/constants";
@@ -230,40 +230,10 @@ function EditableList({ listKey, items, onUpdate }: any) {
 }
 
 // ─── Section: Appearance ──────────────────────────────────────────────────────
-function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey }: any) {
+function AppearanceSection({ accentKey, setAccentKey }: any) {
   return (
     <Card style={{ padding: 28 }}>
       <div style={{ display: "grid", gap: 28 }}>
-
-        {/* Theme toggle */}
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Color Mode</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[
-              { label: "Light", icon: <Sun size={15} color={THEME.gold} />, val: false },
-              { label: "Dark",  icon: <Moon size={15} color={THEME.accent} />, val: true },
-            ].map(opt => {
-              const active = darkMode === opt.val;
-              return (
-                <button
-                  key={opt.label}
-                  onClick={() => toggleDarkMode()}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "10px 20px", borderRadius: 10, cursor: "pointer",
-                    fontFamily: "inherit", fontWeight: active ? 700 : 500, fontSize: 14,
-                    border: `2px solid ${active ? THEME.accent : THEME.line}`,
-                    background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
-                    color: active ? THEME.accent : THEME.muted,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {opt.icon} {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Accent color */}
         <div>
@@ -547,7 +517,6 @@ export function SettingsTab({
       {/* Content */}
       {tab === "appearance" && (
         <AppearanceSection
-          darkMode={darkMode} toggleDarkMode={toggleDarkMode}
           accentKey={accentKey} setAccentKey={setAccentKey}
         />
       )}
