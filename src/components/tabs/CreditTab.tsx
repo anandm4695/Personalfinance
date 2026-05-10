@@ -127,12 +127,15 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, subColor }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-      <Icon size={14} /> {label}
+const Tile = ({ icon: Icon, label, value, subColor, gradient }: any) => (
+  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <Icon size={18} color="#fff" />
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800, color: subColor }}>{value}</div>
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: subColor || THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+    </div>
   </div>
 );
 
@@ -141,6 +144,42 @@ const EmptyHint = ({ text }: { text: string }) => (
     <div style={{ fontSize: 14 }}>{text}</div>
   </div>
 );
+
+function InformalEmptyState({ isBorrowed, onAdd }: any) {
+  const Icon = isBorrowed ? TrendingDown : TrendingUp;
+  const gradient = isBorrowed
+    ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
+    : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)";
+  const dotColor = isBorrowed ? "#dc2626" : "#16a34a";
+  const pills = isBorrowed
+    ? ["Track Borrowed Amount", "Log Repayments", "Multiple Loans Per Person", "Outstanding Balance"]
+    : ["Track Money Lent", "Received Repayments", "Multiple Loans Per Borrower", "Settlement Status"];
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: gradient, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <Icon size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        {isBorrowed ? "No Borrowings Recorded Yet" : "No Personal Loans Given Yet"}
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
+        {isBorrowed
+          ? "Track money you've borrowed from friends or family — log individual loans, record repayments, and monitor your outstanding balance."
+          : "Track money you've lent to friends or family — log individual loans, record received repayments, and see who owes you what."}
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+        {pills.map((t) => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <button style={{ ...btnSolid, display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+        <Plus size={14} /> {isBorrowed ? "Add Lender" : "Add Borrower"}
+      </button>
+    </Card>
+  );
+}
 
 const btnSolid = {
   display: "inline-flex",
@@ -1466,13 +1505,34 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   const fmtD = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <Tile icon={isBorrowed ? TrendingDown : TrendingUp} label={isBorrowed ? "Total Borrowed" : "Total Lent"} value={fmtINRFull(totalBorrowed)} />
-        <Tile icon={ArrowLeftRight} label={isBorrowed ? "Total Repaid" : "Received Back"} value={fmtINRFull(totalPaid)} subColor={THEME.sage} />
-        <Tile icon={IndianRupee} label="Outstanding" value={fmtINRFull(totalOutstanding)} subColor={totalOutstanding > 0 ? accentColor : THEME.sage} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <Tile
+          icon={isBorrowed ? TrendingDown : TrendingUp}
+          label={isBorrowed ? "Total Borrowed" : "Total Lent"}
+          value={fmtINRFull(totalBorrowed)}
+          gradient={isBorrowed ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)" : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)"}
+        />
+        <Tile
+          icon={ArrowLeftRight}
+          label={isBorrowed ? "Total Repaid" : "Received Back"}
+          value={fmtINRFull(totalPaid)}
+          subColor={THEME.sage}
+          gradient="linear-gradient(135deg,#15803d 0%,#4ade80 100%)"
+        />
+        <Tile
+          icon={IndianRupee}
+          label="Outstanding"
+          value={fmtINRFull(totalOutstanding)}
+          subColor={totalOutstanding > 0 ? accentColor : THEME.sage}
+          gradient={totalOutstanding > 0 ? (isBorrowed ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)" : "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)") : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)"}
+        />
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><button style={btnSolid} onClick={() => setAddPersonOpen(true)}><Plus size={14} /> Add {personLabel}</button></div>
-      {items.length === 0 && <EmptyHint text={`No ${isBorrowed ? "informal borrowings" : "personal loans given"} yet`} />}
+      {items.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+          <button style={btnSolid} onClick={() => setAddPersonOpen(true)}><Plus size={14} /> Add {personLabel}</button>
+        </div>
+      )}
+      {items.length === 0 && <InformalEmptyState isBorrowed={isBorrowed} onAdd={() => setAddPersonOpen(true)} />}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {items.map((person: any) => {
           const tranches: any[] = person.tranches || [];
