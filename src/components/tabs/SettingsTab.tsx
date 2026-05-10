@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Sparkles, Database, User, Check, Download, RefreshCw,
+  Database, User, Check, Download, RefreshCw,
   Sun, Moon, X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
 } from "lucide-react";
@@ -13,38 +13,13 @@ import { Field } from "../ui/Form";
 
 // ─── Option arrays ────────────────────────────────────────────────────────────
 const DENSITY_OPTIONS = [
-  { value: "compact",     label: "Compact",      desc: "Tight spacing" },
-  { value: "normal",      label: "Normal",        desc: "Balanced default" },
-  { value: "comfortable", label: "Comfortable",   desc: "Spacious layout" },
-];
-const RADIUS_OPTIONS = [
-  { value: "sharp",  label: "Sharp",   desc: "4px" },
-  { value: "modern", label: "Modern",  desc: "12px" },
-  { value: "round",  label: "Rounded", desc: "24px" },
-];
-const FONT_OPTIONS = [
-  { value: "inter",  label: "Inter",  desc: "Clean & precise" },
-  { value: "outfit", label: "Outfit", desc: "Geometric modern" },
-  { value: "roboto", label: "Roboto", desc: "Material style" },
-];
-const ANIM_OPTIONS = [
-  { value: "snappy",  label: "Snappy",  desc: "0.15s" },
-  { value: "smooth",  label: "Smooth",  desc: "0.4s" },
-  { value: "relaxed", label: "Relaxed", desc: "0.8s" },
-];
-const CHART_OPTIONS = [
-  { value: "monotone", label: "Smooth", desc: "Curved" },
-  { value: "linear",   label: "Linear", desc: "Angular" },
-  { value: "step",     label: "Step",   desc: "Stepped" },
-];
-const BG_OPTIONS = [
-  { value: "plain", label: "Plain", desc: "No pattern" },
-  { value: "dots",  label: "Dots",  desc: "Dot grid" },
-  { value: "mesh",  label: "Mesh",  desc: "Gradient mesh" },
+  { value: "compact",     label: "Compact",     desc: "More on screen" },
+  { value: "normal",      label: "Normal",       desc: "Balanced" },
+  { value: "comfortable", label: "Comfortable",  desc: "Spacious" },
 ];
 const NAV_OPTIONS = [
-  { value: "sidebar", label: "Sidebar",    desc: "Left panel nav" },
-  { value: "bottom",  label: "Bottom Bar", desc: "Tab bar at bottom" },
+  { value: "sidebar", label: "Sidebar",    desc: "Left panel" },
+  { value: "bottom",  label: "Bottom Bar", desc: "Tab bar" },
 ];
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
@@ -156,15 +131,6 @@ const OptionGroup = ({ value, options, onChange }: any) => (
         </button>
       );
     })}
-  </div>
-);
-
-const SectionDivider = ({ label }: { label: string }) => (
-  <div style={{
-    display: "flex", alignItems: "center", gap: 12, margin: "20px 0 16px",
-  }}>
-    <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted, whiteSpace: "nowrap" }}>{label}</div>
-    <div style={{ flex: 1, height: 1, background: THEME.line }} />
   </div>
 );
 
@@ -298,95 +264,88 @@ function EditableList({ listKey, items, onUpdate }: any) {
 }
 
 // ─── Section: Appearance ──────────────────────────────────────────────────────
-function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey, density, setDensity, radiusKey, setRadiusKey, fontKey, setFontKey, bgStyle, setBgStyle, animSpeed, setAnimSpeed, chartStyle, setChartStyle, sidebarNav, setSidebarNav }: any) {
+function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey, density, setDensity, sidebarNav, setSidebarNav }: any) {
   return (
-    <div style={{ display: "grid", gap: 20 }}>
+    <Card style={{ padding: 28 }}>
+      <div style={{ display: "grid", gap: 28 }}>
 
-      <Card style={{ padding: 24 }}>
-        <SectionDivider label="Visual Style" />
-        <div style={{ display: "grid", gap: 20 }}>
-          <Field label="Color Mode" style={{ marginBottom: 0 }}>
-            <button
-              onClick={toggleDarkMode}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 10,
-                padding: "10px 20px", borderRadius: 10,
-                border: `1.5px solid ${THEME.line}`,
-                background: "transparent", color: THEME.ink,
-                fontWeight: 600, fontSize: 14, cursor: "pointer",
-                fontFamily: "inherit", transition: "all 0.15s",
-              }}
-            >
-              {darkMode
-                ? <Sun size={16} color={THEME.gold} />
-                : <Moon size={16} color={THEME.accent} />}
-              {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            </button>
-          </Field>
-
-          <Field label="Accent Color" style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-              {Object.entries(ACCENT_PALETTES).map(([k, p]: [string, any]) => (
-                <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                  <button
-                    onClick={() => setAccentKey(k)}
-                    title={p.label}
-                    style={{
-                      width: 36, height: 36, borderRadius: "50%",
-                      background: p.light, border: "none",
-                      outline: accentKey === k ? `3px solid ${p.light}` : "none",
-                      outlineOffset: 3,
-                      boxShadow: accentKey === k ? `0 0 0 2px var(--t-paper), 0 0 0 4px ${p.light}` : "0 2px 6px rgba(0,0,0,0.15)",
-                      cursor: "pointer", transition: "all 0.2s",
-                      transform: accentKey === k ? "scale(1.15)" : "scale(1)",
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: accentKey === k ? 700 : 400 }}>{p.label}</span>
-                </div>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="Font Family" style={{ marginBottom: 0 }}>
-            <OptionGroup value={fontKey} options={FONT_OPTIONS} onChange={setFontKey} />
-          </Field>
+        {/* Theme toggle */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Color Mode</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[
+              { label: "Light", icon: <Sun size={15} color={THEME.gold} />, val: false },
+              { label: "Dark",  icon: <Moon size={15} color={THEME.accent} />, val: true },
+            ].map(opt => {
+              const active = darkMode === opt.val;
+              return (
+                <button
+                  key={opt.label}
+                  onClick={() => toggleDarkMode()}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 20px", borderRadius: 10, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: active ? 700 : 500, fontSize: 14,
+                    border: `2px solid ${active ? THEME.accent : THEME.line}`,
+                    background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                    color: active ? THEME.accent : THEME.muted,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <SectionDivider label="Layout & Spacing" />
-        <div style={{ display: "grid", gap: 20 }}>
-          <Field label="Navigation Style" style={{ marginBottom: 0 }}>
+        {/* Accent color */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Accent Color</div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+            {Object.entries(ACCENT_PALETTES).map(([k, p]: [string, any]) => {
+              const active = accentKey === k;
+              return (
+                <button
+                  key={k}
+                  onClick={() => setAccentKey(k)}
+                  title={p.label}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                  }}
+                >
+                  <div style={{
+                    width: 38, height: 38, borderRadius: "50%", background: p.light,
+                    boxShadow: active ? `0 0 0 2px var(--t-paper), 0 0 0 4px ${p.light}` : "0 2px 6px rgba(0,0,0,0.15)",
+                    transform: active ? "scale(1.18)" : "scale(1)",
+                    transition: "all 0.2s",
+                  }} />
+                  <span style={{ fontSize: 10, fontWeight: active ? 800 : 400, color: active ? THEME.ink : THEME.muted }}>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Navigation & Density in a row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Navigation</div>
             <OptionGroup
               value={sidebarNav ? "sidebar" : "bottom"}
               options={NAV_OPTIONS}
               onChange={(v: string) => setSidebarNav(v === "sidebar")}
             />
-          </Field>
-
-          <Field label="Density" style={{ marginBottom: 0 }}>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Density</div>
             <OptionGroup value={density} options={DENSITY_OPTIONS} onChange={setDensity} />
-          </Field>
-
-          <Field label="Corner Radius" style={{ marginBottom: 0 }}>
-            <OptionGroup value={radiusKey} options={RADIUS_OPTIONS} onChange={setRadiusKey} />
-          </Field>
+          </div>
         </div>
 
-        <SectionDivider label="Motion & Charts" />
-        <div style={{ display: "grid", gap: 20 }}>
-          <Field label="Animation Speed" style={{ marginBottom: 0 }}>
-            <OptionGroup value={animSpeed} options={ANIM_OPTIONS} onChange={setAnimSpeed} />
-          </Field>
-
-          <Field label="Chart Line Style" style={{ marginBottom: 0 }}>
-            <OptionGroup value={chartStyle} options={CHART_OPTIONS} onChange={setChartStyle} />
-          </Field>
-
-          <Field label="Background Pattern" style={{ marginBottom: 0 }}>
-            <OptionGroup value={bgStyle} options={BG_OPTIONS} onChange={setBgStyle} />
-          </Field>
-        </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   );
 }
 
@@ -641,11 +600,6 @@ export function SettingsTab({
           darkMode={darkMode} toggleDarkMode={toggleDarkMode}
           accentKey={accentKey} setAccentKey={setAccentKey}
           density={density} setDensity={setDensity}
-          radiusKey={radiusKey} setRadiusKey={setRadiusKey}
-          fontKey={fontKey} setFontKey={setFontKey}
-          bgStyle={bgStyle} setBgStyle={setBgStyle}
-          animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
-          chartStyle={chartStyle} setChartStyle={setChartStyle}
           sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
         />
       )}
