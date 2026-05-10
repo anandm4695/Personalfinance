@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Plus, FileUp, Edit3, Trash2, Check, X } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, autoCateg } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
@@ -233,7 +234,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
                 {[...filteredTxns].reverse().map((t: any) => {
                   const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
                   const isEditing = inlineEditId === t.id;
-                  const txnCats = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
+                  const { transactionCategories: txnCats } = useMasterData();
                   if (isEditing && inlineEdit) {
                     return (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>
@@ -291,14 +292,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
 }
 
 function BankModal({ onClose, onSave }: any) {
-  const [f, setF] = useState({ owner: "self", bankName: "", accountNumber: "", type: "Savings", balance: "" });
+  const { bankAccountTypes } = useMasterData();
+  const [f, setF] = useState({ owner: "self", bankName: "", accountNumber: "", type: bankAccountTypes[0] || "Savings", balance: "" });
   return (
     <Modal title="Add Bank Account" onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <Field label="Bank Name"><input style={input} value={f.bankName} onChange={(e) => setF({ ...f, bankName: e.target.value })} placeholder="e.g. HDFC Bank" /></Field>
       <Field label="Account Number (last 4 ok)"><input style={input} value={f.accountNumber} onChange={(e) => setF({ ...f, accountNumber: e.target.value })} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option>Savings</option><option>Current</option><option>Salary</option><option>Joint</option></select></Field>
+        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>{bankAccountTypes.map((t: string) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="Current Balance"><input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} /></Field>
       </div>
       <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />
@@ -307,8 +309,8 @@ function BankModal({ onClose, onSave }: any) {
 }
 
 function TxnModal({ accounts, onClose, onSave }: any) {
-  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: "General", note: "" });
-  const cats = ["General", "Food", "Transport", "Shopping", "Bills", "Salary", "Transfer", "Investment", "Tax", "Medical", "Entertainment", "Other"];
+  const { transactionCategories: cats } = useMasterData();
+  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "" });
   return (
     <Modal title="Record Transaction" onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
@@ -328,7 +330,7 @@ function TxnModal({ accounts, onClose, onSave }: any) {
 }
 
 function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
-  const cats = ["General", "Food", "Transport", "Shopping", "Bills", "Salary", "Transfer", "Investment", "Tax", "Medical", "Entertainment", "Rent", "Utilities", "Other"];
+  const { transactionCategories: cats } = useMasterData();
   const [f, setF] = useState({ owner: txn?.owner || "self", date: txn?.date || today(), accountId: txn?.accountId || accounts[0]?.id || "", type: txn?.type || "debit", amount: txn?.amount || "", category: txn?.category || "General", note: txn?.note || "" });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>

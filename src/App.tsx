@@ -54,6 +54,7 @@ import Auth from "./Auth";
 
 // Modular Imports
 import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PIE_COLORS, PROFILES, STORAGE_KEY } from "./utils/constants";
+import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
 import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, autoCateg, calcCAGR, fdMaturity, rdMaturity, calcTaxNew, calcTaxOld, loadState, saveStateLocal } from "./utils/finance";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
@@ -106,6 +107,7 @@ const DEFAULT_STATE = {
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
   reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
   dismissedAlerts: {},
+  masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
     darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
     radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
@@ -215,6 +217,18 @@ export default function FinanceDashboard() {
     const keys = Object.keys(updates).join(", ");
     logActivity("UPDATE_SETTINGS", `Updated settings: ${keys}`, updates);
   }, [logActivity, session]);
+
+  const updateMasterData = useCallback(async (key: string, newList: string[]) => {
+    let merged: any = null;
+    setState(s => {
+      merged = { ...(s.masterData || DEFAULT_MASTER_DATA), [key]: newList };
+      return { ...s, masterData: merged };
+    });
+    const userId = session?.user?.id;
+    if (userId && userId !== "offline-user" && merged) {
+      await supabase.from("user_settings").upsert({ user_id: userId, master_data: merged });
+    }
+  }, [session]);
 
   // Helper to update profile
   const updateProfile = useCallback(async (updates: Partial<typeof state.profile>) => {
@@ -396,7 +410,10 @@ export default function FinanceDashboard() {
         return {
           ...currentState,
           ...(prof.data ? { profile: snakeToCamel(prof.data) } : {}),
-          ...(sett.data ? { settings: snakeToCamel(sett.data) } : {}),
+          ...(sett.data ? {
+            settings: snakeToCamel({ ...sett.data, master_data: undefined }),
+            ...(sett.data.master_data ? { masterData: { ...DEFAULT_MASTER_DATA, ...sett.data.master_data } } : {}),
+          } : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
           ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
@@ -1461,6 +1478,7 @@ export default function FinanceDashboard() {
   }
 
   return (
+    <MasterDataContext.Provider value={state.masterData || DEFAULT_MASTER_DATA}>
     <div
       className={darkMode ? "dark-theme" : ""}
       style={{
@@ -1900,6 +1918,8 @@ export default function FinanceDashboard() {
                 bgStyle={bgStyle} setBgStyle={(v) => updateSettings({ bgStyle: v })}
                 animSpeed={animSpeed} setAnimSpeed={(v) => updateSettings({ animSpeed: v })}
                 chartStyle={chartStyle} setChartStyle={(v) => updateSettings({ chartStyle: v })}
+                masterData={state.masterData || DEFAULT_MASTER_DATA}
+                updateMasterData={updateMasterData}
               />
             )}
           </div>
@@ -2029,6 +2049,7 @@ export default function FinanceDashboard() {
         </div>
       )}
     </div>
+    </MasterDataContext.Provider>
   );
 }
 

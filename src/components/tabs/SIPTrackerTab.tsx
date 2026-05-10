@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Activity, TrendingUp, Repeat, Sparkles, Plus, Trash2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -174,7 +175,8 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
 }
 
 function SIPModal({ onClose, onSave }: any) {
-  const [f, setF] = useState({ owner: "self", scheme: "", fundType: "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
+  const { mfCategories } = useMasterData();
+  const [f, setF] = useState({ owner: "self", scheme: "", fundType: mfCategories[0] || "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
   return (
     <Modal title="Add SIP" onClose={onClose}>
       <Field label="Owner / Profile">
@@ -188,11 +190,7 @@ function SIPModal({ onClose, onSave }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Fund Type">
           <select style={input} value={f.fundType} onChange={(e) => setF({ ...f, fundType: e.target.value })}>
-            <option>Equity</option>
-            <option>Index</option>
-            <option>Hybrid</option>
-            <option>Debt</option>
-            <option>ELSS</option>
+            {mfCategories.map((c: string) => <option key={c}>{c}</option>)}
           </select>
         </Field>
         <Field label="Frequency">

@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -239,7 +240,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
 }
 
 export function BudgetModal({ existing, onClose, onSave, initialValues = null }: any) {
-  const allCats = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
+  const { transactionCategories: allCats } = useMasterData();
   const [f, setF] = useState(initialValues ? { owner: initialValues.owner || "self", category: initialValues.category || allCats[0], monthly: initialValues.monthly || "" } : { owner: "self", category: allCats[0], monthly: "" });
   return (
     <Modal title={initialValues ? "Edit Budget" : "Add Budget"} onClose={onClose}>

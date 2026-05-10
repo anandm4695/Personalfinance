@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
@@ -533,9 +534,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
 }
 
 function CCTransactionLedger({ card, onClose, onUpdate }: any) {
+  const { ccTransactionCategories: cats } = useMasterData();
   const [txs, setTxs] = useState(card.transactions || []);
   const [showAdd, setShowAdd] = useState(false);
-  const [newTx, setNewTx] = useState({ date: today(), merchant: "", amount: "", category: "General" });
+  const [newTx, setNewTx] = useState({ date: today(), merchant: "", amount: "", category: cats[0] || "General" });
   const [editId, setEditId] = useState<string | null>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [csvText, setCsvText] = useState("");
@@ -546,7 +548,6 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 
   const totalOutstanding = txs.reduce((acc: any, t: any) => acc + Number(t.amount), 0);
   const totalCharges = txs.filter((t: any) => Number(t.amount) > 0).reduce((s: any, t: any) => s + Number(t.amount), 0);
-  const cats = ["General", "Food", "Groceries", "Shopping", "Transport", "Entertainment", "Medical", "Utilities", "Travel", "Payment", "Other"];
 
   const saveTx = () => {
     if (!newTx.merchant || !newTx.amount) return;
@@ -955,10 +956,10 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   const [csvFileName, setCsvFileName] = useState("");
   const [importDone, setImportDone] = useState(false);
 
+  const { prepaidCategories: cats } = useMasterData();
   const totalLoaded = txs.filter(t => t.type === "load").reduce((s, t) => s + Number(t.amount), 0);
   const totalSpent = txs.filter(t => t.type === "spend").reduce((s, t) => s + Number(t.amount), 0);
   const balance = totalLoaded - totalSpent;
-  const cats = ["Food", "Groceries", "Transport", "Shopping", "Entertainment", "Medical", "Utilities", "Other"];
 
   const openAdd = (type: "load" | "spend") => {
     setTxType(type);
@@ -1296,12 +1297,13 @@ function LoanGivenList({ items, onRemove, onEdit }: any) {
 }
 
 function CCModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { issuer: "", network: "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "" });
+  const { ccNetworks } = useMasterData();
+  const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "" });
   const isClosed = f.status === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}><Field label="Issuer"><input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" /></Field><Field label="Network"><select style={input} value={f.network} onChange={(e) => setF({ ...f, network: e.target.value })}><option>Visa</option><option>Mastercard</option><option>Amex</option><option>RuPay</option><option>Diners</option></select></Field></div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}><Field label="Issuer"><input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" /></Field><Field label="Network"><select style={input} value={f.network} onChange={(e) => setF({ ...f, network: e.target.value })}>{ccNetworks.map((n: string) => <option key={n}>{n}</option>)}</select></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}><Field label="Last 4 digits"><input style={input} maxLength={4} value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value })} /></Field><Field label="Credit Limit"><input style={input} type="number" value={f.limit} onChange={(e) => setF({ ...f, limit: e.target.value })} /></Field><Field label="Outstanding"><input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Statement Date (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 20" value={f.billDate} onChange={(e) => setF({ ...f, billDate: e.target.value })} /></Field><Field label="Due Day (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 10" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Annual Fee"><input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} /></Field><Field label="Helpline Number"><input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" /></Field></div>
@@ -1354,7 +1356,8 @@ function CCModal({ onClose, onSave, initial = null }: any) {
 }
 
 function PrepaidModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { owner: "self", cardName: "", cardType: "Meal Card", last4: "", transactions: [] });
+  const { prepaidCardTypes } = useMasterData();
+  const [f, setF] = useState(initial || { owner: "self", cardName: "", cardType: prepaidCardTypes[0] || "Meal Card", last4: "", transactions: [] });
   const [openingBal, setOpeningBal] = useState("");
 
   return (
@@ -1369,13 +1372,8 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Card Type">
-          <select style={input} value={f.cardType || "Prepaid Card"} onChange={e => setF({...f, cardType: e.target.value})}>
-            <option>Meal Card</option>
-            <option>Digital Wallet</option>
-            <option>Travel Card</option>
-            <option>Prepaid Card</option>
-            <option>Gift Card</option>
-            <option>Fuel Card</option>
+          <select style={input} value={f.cardType || prepaidCardTypes[0] || "Prepaid Card"} onChange={e => setF({...f, cardType: e.target.value})}>
+            {prepaidCardTypes.map((t: string) => <option key={t}>{t}</option>)}
           </select>
         </Field>
         <Field label="Last 4 Digits (optional)">
@@ -1501,12 +1499,13 @@ function InformalAmountForm({ label, onSave, onClose }: any) {
 }
 
 function LoanTakenModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { lender: "", type: "Personal", principal: "", outstanding: "", emi: "", rate: "", monthsRemaining: "", owner: "self" });
+  const { loanTypes } = useMasterData();
+  const [f, setF] = useState(initial || { lender: "", type: loanTypes[0] || "Personal", principal: "", outstanding: "", emi: "", rate: "", monthsRemaining: "", owner: "self" });
   return (
     <Modal title={initial ? "Edit Loan Taken" : "Add Loan Taken"} onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <Field label="Lender"><input style={input} value={f.lender} onChange={(e) => setF({ ...f, lender: e.target.value })} /></Field>
-      <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option>Personal</option><option>Home</option><option>Car</option><option>Education</option><option>Gold</option><option>Business</option><option>Other</option></select></Field>
+      <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>{loanTypes.map((t: string) => <option key={t}>{t}</option>)}</select></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Original Principal"><input style={input} type="number" value={f.principal} onChange={(e) => setF({ ...f, principal: e.target.value })} /></Field><Field label="Outstanding"><input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} /></Field><Field label="EMI"><input style={input} type="number" value={f.emi} onChange={(e) => setF({ ...f, emi: e.target.value })} /></Field><Field label="Interest Rate (%)"><input style={input} type="number" step="0.01" value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value })} /></Field><Field label="Months Remaining"><input style={input} type="number" value={f.monthsRemaining} onChange={(e) => setF({ ...f, monthsRemaining: e.target.value })} /></Field></div>
       <ModalActions onSave={() => f.lender && onSave(f)} onClose={onClose} />
     </Modal>

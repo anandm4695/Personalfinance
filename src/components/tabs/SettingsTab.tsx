@@ -1,7 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, Database, User, Check, Download, RefreshCw, Sun, Moon, Layout, Type, Zap, BarChart2, Sliders } from "lucide-react";
+import { Sparkles, Database, User, Check, Download, RefreshCw, Sun, Moon, BookOpen, X as XIcon } from "lucide-react";
 import { THEME, ACCENT_PALETTES } from "../../utils/constants";
+import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
@@ -71,6 +72,52 @@ const OptionGroup = ({ value, options, onChange }: any) => (
   </div>
 );
 
+const chip = {
+  display: "inline-flex", alignItems: "center", gap: 6,
+  padding: "4px 12px", borderRadius: 20,
+  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+  color: THEME.ink, fontSize: 13, fontWeight: 500,
+};
+
+function EditableList({ label, listKey, items, onUpdate }: any) {
+  const [val, setVal] = useState("");
+  const add = () => {
+    const v = val.trim();
+    if (!v || items.includes(v)) return;
+    onUpdate(listKey, [...items, v]);
+    setVal("");
+  };
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        {items.map((item: string) => (
+          <span key={item} style={chip}>
+            {item}
+            <button
+              onClick={() => onUpdate(listKey, items.filter((x: string) => x !== item))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 0, lineHeight: 1, display: "flex", alignItems: "center" }}
+              title={`Remove ${item}`}
+            >
+              <XIcon size={12} />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${THEME.line}`, background: "var(--t-paper)", color: THEME.ink, fontSize: 13, outline: "none" }}
+          value={val}
+          onChange={e => setVal(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && add()}
+          placeholder="Type and press Enter to add…"
+        />
+        <Button variant="secondary" onClick={add} style={{ whiteSpace: "nowrap" }}>+ Add</Button>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsTab({
   state, setState, exportJSON, onRestoreBackup, resetAll, showToast, onSignOut,
   updateProfile,
@@ -83,7 +130,9 @@ export function SettingsTab({
   bgStyle, setBgStyle,
   animSpeed, setAnimSpeed,
   chartStyle, setChartStyle,
+  masterData, updateMasterData,
 }: any) {
+  const md = masterData || DEFAULT_MASTER_DATA;
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -238,6 +287,43 @@ export function SettingsTab({
             <Button onClick={saveProfile} icon={saved ? <Check size={16} /> : undefined}>
               {saved ? "Profile Saved" : "Save Profile"}
             </Button>
+          </div>
+        </Card>
+
+        {/* ── Master Data ── */}
+        <Card style={{ padding: 24 }}>
+          {sectionTitle(<BookOpen size={18} color={THEME.accent} />, "Master Data — Manage Dropdown Values")}
+          <p style={{ fontSize: 13, color: THEME.muted, marginTop: -12, marginBottom: 24 }}>
+            Add or remove values that appear in dropdowns throughout the app. Changes apply immediately everywhere.
+          </p>
+          <div style={{ display: "grid", gap: 28 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: `1px solid ${THEME.line}` }}>Transactions & Budgets</div>
+              <EditableList label="Transaction / Budget Categories" listKey="transactionCategories" items={md.transactionCategories} onUpdate={updateMasterData} />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: `1px solid ${THEME.line}` }}>Cards</div>
+              <div style={{ display: "grid", gap: 20 }}>
+                <EditableList label="Credit Card Transaction Categories" listKey="ccTransactionCategories" items={md.ccTransactionCategories} onUpdate={updateMasterData} />
+                <EditableList label="Prepaid Card Transaction Categories" listKey="prepaidCategories" items={md.prepaidCategories} onUpdate={updateMasterData} />
+                <EditableList label="Credit Card Networks" listKey="ccNetworks" items={md.ccNetworks} onUpdate={updateMasterData} />
+                <EditableList label="Prepaid Card Types" listKey="prepaidCardTypes" items={md.prepaidCardTypes} onUpdate={updateMasterData} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: `1px solid ${THEME.line}` }}>Investments & Banking</div>
+              <div style={{ display: "grid", gap: 20 }}>
+                <EditableList label="Mutual Fund Categories" listKey="mfCategories" items={md.mfCategories} onUpdate={updateMasterData} />
+                <EditableList label="Bank Account Types" listKey="bankAccountTypes" items={md.bankAccountTypes} onUpdate={updateMasterData} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: `1px solid ${THEME.line}` }}>Loans & Goals</div>
+              <div style={{ display: "grid", gap: 20 }}>
+                <EditableList label="Loan Types" listKey="loanTypes" items={md.loanTypes} onUpdate={updateMasterData} />
+                <EditableList label="Goal Categories" listKey="goalCategories" items={md.goalCategories} onUpdate={updateMasterData} />
+              </div>
+            </div>
           </div>
         </Card>
 

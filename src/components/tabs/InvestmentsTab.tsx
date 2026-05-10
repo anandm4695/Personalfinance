@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -58,6 +59,7 @@ const SUBS = [
    ADD INVESTMENT MODAL
 ══════════════════════════════════════════════════════════════════════ */
 const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
+  const { mfCategories } = useMasterData();
   const subMeta = SUBS.find(s => s.id === sub);
 
   // ── FD State ──
@@ -230,13 +232,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
           </Field>
           <Field label="Category">
             <select style={inp} value={mf.category} onChange={e => setMf({ ...mf, category: e.target.value })}>
-              <option>Equity</option>
-              <option>Debt</option>
-              <option>Hybrid</option>
-              <option>ELSS</option>
-              <option>Index</option>
-              <option>Liquid</option>
-              <option>International</option>
+              {mfCategories.map((c: string) => <option key={c}>{c}</option>)}
             </select>
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

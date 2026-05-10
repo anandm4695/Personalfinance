@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { today, autoCateg } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -16,16 +17,15 @@ const input = {
 };
 
 export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
+  const { transactionCategories } = useMasterData();
   const [f, setF] = useState({
     date: today(),
     type: "debit",
     amount: "",
-    category: "Food",
+    category: transactionCategories[0] || "Food",
     note: "",
     accountId: bankAccounts[0]?.id || "",
   });
-  
-  const categories = ["Food", "Rent", "Transport", "Shopping", "Bills", "Salary", "Investment", "Tax", "Medical", "Entertainment", "EMI", "Groceries", "Utilities", "Other"];
   
   return (
     <Modal title="Quick Add Transaction" onClose={onClose}>
@@ -46,7 +46,7 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
         </Field>
         <Field label="Category">
           <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
-            {categories.map((c) => <option key={c}>{c}</option>)}
+            {transactionCategories.map((c: string) => <option key={c}>{c}</option>)}
           </select>
         </Field>
       </div>

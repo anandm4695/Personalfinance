@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { today } from "../../utils/finance";
+import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -16,7 +17,8 @@ const input = {
 };
 
 export function GoalModal({ initial, onClose, onSave }: any) {
-  const [f, setF] = useState(initial ? { ...initial } : { 
+  const { goalCategories } = useMasterData();
+  const [f, setF] = useState(initial ? { ...initial } : {
     owner: "self", 
     name: "", 
     category: "Wealth", 
@@ -49,15 +51,7 @@ export function GoalModal({ initial, onClose, onSave }: any) {
             value={f.category}
             onChange={(e) => setF({ ...f, category: e.target.value })}
           >
-            <option>Wealth</option>
-            <option>Retirement</option>
-            <option>Home</option>
-            <option>Vehicle</option>
-            <option>Education</option>
-            <option>Travel</option>
-            <option>Emergency Fund</option>
-            <option>Wedding</option>
-            <option>Other</option>
+            {goalCategories.map((c: string) => <option key={c}>{c}</option>)}
           </select>
         </Field>
         <Field label="Priority">
