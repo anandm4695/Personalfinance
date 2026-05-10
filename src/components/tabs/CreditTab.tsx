@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
@@ -303,7 +303,12 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Credit & Liabilities</h2>
           <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Manage cards, debts, and personal lending portfolios</div>
         </div>
-        {sub !== "borrowed" && sub !== "lent" && !(sub === "taken" && !state.loansTaken.length) && !(sub === "given" && !state.loansGiven.length) && (
+        {sub !== "borrowed" && sub !== "lent"
+          && !(sub === "taken" && !state.loansTaken.length)
+          && !(sub === "given" && !state.loansGiven.length)
+          && !(sub === "cc" && !state.creditCards.length)
+          && !(sub === "prepaid" && !state.prepaidCards.length)
+          && (
           <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
             Add {activeLabel.split(' ')[0]}
           </Button>
@@ -401,10 +406,10 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                   </div>
                 );
               })()}
-              <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} />
+              <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} onAdd={() => setModal("cc")} />
             </>
           )}
-          {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} />}
+          {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} onAdd={() => setModal("prepaid")} />}
           {sub === "taken" && (
             <>
               <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} onAdd={() => setModal("taken")} />
@@ -465,7 +470,59 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
   );
 }
 
-function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
+function CCEmptyState({ onAdd }: any) {
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <CreditCard size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        No Credit Cards Added Yet
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
+        Add your credit cards to track outstanding balances, monitor credit utilisation, never miss a due date, and review your spending.
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+        {["Credit Limit Tracking", "Utilisation Monitor", "Bill & Due Dates", "Transaction Ledger"].map(t => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <button style={{ ...btnSolid, display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+        <Plus size={14} /> Add Credit Card
+      </button>
+    </Card>
+  );
+}
+
+function PrepaidEmptyState({ onAdd }: any) {
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <Wallet size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        No Prepaid Cards Added Yet
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
+        Track your prepaid cards and digital wallets — Sodexo meal cards, Zeta, ICICI Prepaid, and more. Monitor loads, spends, and current balance.
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+        {["Sodexo / Zeta / ICICI Prepaid", "Load & Spend Tracking", "Balance Monitor", "Transaction History"].map(t => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0891b2", display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <button style={{ ...btnSolid, display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+        <Plus size={14} /> Add Prepaid Card
+      </button>
+    </Card>
+  );
+}
+
+function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -476,7 +533,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const displayCards = viewMode === "active" ? activeCards : closedCards;
   const selectedCard = items.find((c: any) => c.id === selectedLedger);
 
-  if (!items.length) return <EmptyHint text="No credit cards yet" />;
+  if (!items.length) return <CCEmptyState onAdd={onAdd} />;
 
   return (
     <div>
@@ -879,7 +936,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   );
 }
 
-function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
+function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -896,7 +953,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
   const closedCards = items.filter((p: any) => p.status === "closed");
   const displayCards = viewMode === "active" ? activeCards : closedCards;
 
-  if (!items.length) return <EmptyHint text="No prepaid cards or wallets yet. Add Sodexo, Zeta, ICICI Prepaid and more." />;
+  if (!items.length) return <PrepaidEmptyState onAdd={onAdd} />;
 
   return (
     <div>
