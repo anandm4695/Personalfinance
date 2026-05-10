@@ -1065,8 +1065,11 @@ export default function FinanceDashboard() {
         } else {
           // Schema / auth / constraint error — revert immediately and show details
           console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
-          const hint = firstErr.hint ? ` (${firstErr.hint})` : firstErr.details ? ` (${firstErr.details})` : "";
-          showToast(`Sync failed [${firstErr.code}]: ${firstErr.message}${hint}`, "error");
+          let errMsg = `Sync failed [${firstErr.code}]: ${firstErr.message}`;
+          if (firstErr.code === "23514" && firstErr.message?.includes("ppf_nps_type_check")) {
+            errMsg = "DB migration needed: Run database/08_ppf_epf_fix.sql in Supabase SQL Editor to enable EPF support.";
+          }
+          showToast(errMsg, "error");
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         }
       }

@@ -399,7 +399,7 @@ const EmptyState = ({ label, onAdd }: { label: string; onAdd: () => void }) => (
       No {label} yet
     </div>
     <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
-      Add your first {label.toLowerCase()} to start tracking.
+      Add your first {label} to start tracking.
     </div>
     <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
       Add {label}
