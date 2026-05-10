@@ -108,7 +108,6 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         onSave("nps", nps);
         break;
       case "epf":
-        if (!epf.balance) return;
         onSave("epf", epf);
         break;
       case "mf":
