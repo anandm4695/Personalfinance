@@ -135,9 +135,7 @@ export default function Auth({
 
         {/* Logo */}
         <div className="af-logo">
-          <div className="af-logo-mark">
-            <IndianRupee size={20} color="#fff" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" alt="Personal Finance by Anand Mohta" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 12px rgba(197,161,82,0.5))" }} />
           <div>
             <div className="af-logo-name">Personal Finance</div>
             <div className="af-logo-tagline">by Anand Mohta</div>
@@ -234,9 +232,7 @@ export default function Auth({
 
           {/* Mobile-only logo */}
           <div className="af-mobile-logo" aria-hidden="true">
-            <div className="af-logo-mark af-logo-mark-sm">
-              <IndianRupee size={15} color="#fff" strokeWidth={2.5} />
-            </div>
+            <img src="/logo.png" alt="Personal Finance by Anand Mohta" style={{ width: 36, height: 36, objectFit: "contain" }} />
             <div>
               <div className="af-mobile-brand">Personal Finance</div>
               <div style={{ fontSize: 10, color: "#64748B", fontWeight: 500, marginTop: 1 }}>by Anand Mohta</div>

@@ -1444,8 +1444,18 @@ export default function FinanceDashboard() {
 
   if (isAuthChecking) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0F172A" }}>
-        <RefreshCw className="spin" color="#818CF8" size={32} />
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0B0F1A", gap: 20 }}>
+        <img src="/logo.png" alt="Personal Finance by Anand Mohta" style={{ width: 110, height: 110, objectFit: "contain", filter: "drop-shadow(0 0 24px rgba(197,161,82,0.45))", animation: "pulse-logo 2.4s ease-in-out infinite" }} />
+        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(197,161,82,0.7)", fontFamily: "'Inter', sans-serif" }}>
+          Plan &bull; Grow &bull; Secure &bull; Prosper
+        </div>
+        <div style={{ width: 160, height: 3, background: "rgba(128,128,128,0.15)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg, #C5A152, #E8C97A, #C5A152)", backgroundSize: "200%", borderRadius: 2, animation: "shimmer 1.6s linear infinite" }} />
+        </div>
+        <style>{`
+          @keyframes pulse-logo { 0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(197,161,82,0.35))} 50%{transform:scale(1.04);filter:drop-shadow(0 0 36px rgba(197,161,82,0.55))} }
+          @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+        `}</style>
       </div>
     );
   }
@@ -1507,18 +1517,20 @@ export default function FinanceDashboard() {
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <div style={{ padding: "28px 24px 24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 75%, #C4B5FD))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 35%, transparent)" }}>
-                <IndianRupee size={20} color="#fff" />
-              </div>
+          <div style={{ padding: "20px 24px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img
+                src="/logo.png"
+                alt="Personal Finance by Anand Mohta"
+                style={{ width: 48, height: 48, objectFit: "contain", flexShrink: 0, filter: "drop-shadow(0 2px 8px rgba(197,161,82,0.3))" }}
+              />
               <div>
-                <div style={{ fontSize: 10, letterSpacing: "0.2em", color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.01em", color: THEME.ink, lineHeight: 1.2 }}>
                   Personal Finance
                 </div>
-                <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 1 }}>
                   by Anand Mohta
-                </h1>
+                </div>
               </div>
             </div>
           </div>
