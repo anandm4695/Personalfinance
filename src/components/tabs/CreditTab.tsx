@@ -303,7 +303,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Credit & Liabilities</h2>
           <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Manage cards, debts, and personal lending portfolios</div>
         </div>
-        {sub !== "borrowed" && sub !== "lent" && (
+        {sub !== "borrowed" && sub !== "lent" && !(sub === "taken" && !state.loansTaken.length) && !(sub === "given" && !state.loansGiven.length) && (
           <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
             Add {activeLabel.split(' ')[0]}
           </Button>
@@ -407,7 +407,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} />}
           {sub === "taken" && (
             <>
-              <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} />
+              <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} onAdd={() => setModal("taken")} />
               {state.loansTaken.length > 0 && (
                 <div style={{ marginTop: 32 }}>
                   <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Payoff Progress</div>
@@ -447,7 +447,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
               )}
             </>
           )}
-          {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} />}
+          {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} onAdd={() => setModal("given")} />}
           {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
           {sub === "lent" && <InformalLoanView direction="lent" items={state.informalLent || []} onAddPerson={(v: any) => addItem("informalLent", v)} onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)} onRemove={(id: any) => removeItem("informalLent", id)} />}
       </div>
@@ -1343,8 +1343,45 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   );
 }
 
-function LoanTakenList({ items, onRemove, onEdit }: any) {
-  if (!items.length) return <EmptyHint text="No loans taken" />;
+function LoanEmptyState({ type, onAdd }: any) {
+  const isTaken = type === "taken";
+  const Icon = isTaken ? TrendingDown : TrendingUp;
+  const gradient = isTaken
+    ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
+    : "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)";
+  const dotColor = isTaken ? "#dc2626" : "#0ea5e9";
+  const pills = isTaken
+    ? ["Home / Car / Personal Loans", "EMI Tracking", "Payoff Progress", "Interest Remaining"]
+    : ["Loans to Friends & Family", "Due Date Tracking", "Interest Rate", "Outstanding Balance"];
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: gradient, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <Icon size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        {isTaken ? "No Loans Recorded Yet" : "No Loans Given Yet"}
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
+        {isTaken
+          ? "Track your active loans — home, car, personal, or education. Monitor EMIs, payoff progress, and outstanding principal in one place."
+          : "Track money you've lent out to friends, family, or others. Record the principal, interest rate, due date, and repayment status."}
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+        {pills.map((t) => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <button style={{ ...btnSolid, display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+        <Plus size={14} /> {isTaken ? "Add Loan Taken" : "Add Loan Given"}
+      </button>
+    </Card>
+  );
+}
+
+function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
+  if (!items.length) return <LoanEmptyState type="taken" onAdd={onAdd} />;
   return (
     <Grid>
       {items.map((l: any) => (
@@ -1364,8 +1401,8 @@ function LoanTakenList({ items, onRemove, onEdit }: any) {
   );
 }
 
-function LoanGivenList({ items, onRemove, onEdit }: any) {
-  if (!items.length) return <EmptyHint text="No loans given" />;
+function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
+  if (!items.length) return <LoanEmptyState type="given" onAdd={onAdd} />;
   return (
     <Grid>
       {items.map((l: any) => (
