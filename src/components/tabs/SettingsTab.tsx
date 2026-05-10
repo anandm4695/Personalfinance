@@ -4,6 +4,7 @@ import {
   Database, User, Check, Download, RefreshCw,
   X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
+  ArrowUpAZ, ArrowDownAZ,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -104,9 +105,19 @@ const PillNav = ({ tabs, active, onChange }: any) => (
 function EditableList({ listKey, items, onUpdate }: any) {
   const [val, setVal] = useState("");
   const [focused, setFocused] = useState(false);
+  const [sortDir, setSortDir] = useState<"" | "asc" | "desc">("");
   const inputRef = useRef<HTMLInputElement>(null);
   const defaultItems: string[] = DEFAULT_MASTER_DATA[listKey] || [];
   const isDirty = JSON.stringify([...items].sort()) !== JSON.stringify([...defaultItems].sort());
+
+  const sortAZ = () => {
+    onUpdate(listKey, [...items].sort((a: string, b: string) => a.localeCompare(b, "en", { sensitivity: "base" })));
+    setSortDir("asc");
+  };
+  const sortZA = () => {
+    onUpdate(listKey, [...items].sort((a: string, b: string) => b.localeCompare(a, "en", { sensitivity: "base" })));
+    setSortDir("desc");
+  };
 
   const add = () => {
     const v = val.trim();
@@ -125,10 +136,12 @@ function EditableList({ listKey, items, onUpdate }: any) {
     }}>
       {/* Header */}
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
         padding: "12px 16px", borderBottom: `1px solid ${THEME.line}`,
         background: "color-mix(in srgb, var(--t-accent) 4%, var(--t-paper))",
+        flexWrap: "wrap",
       }}>
+        {/* Left: icon + label + count */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>{MD_ICONS[listKey]}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{MD_LABELS[listKey]}</span>
@@ -138,20 +151,65 @@ function EditableList({ listKey, items, onUpdate }: any) {
             color: THEME.accent,
           }}>{items.length}</span>
         </div>
-        {isDirty && (
+
+        {/* Right: sort buttons + reset */}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          {/* Sort A→Z */}
           <button
-            onClick={() => onUpdate(listKey, [...defaultItems])}
-            title="Reset to default values"
+            onClick={sortAZ}
+            title="Sort A to Z"
+            disabled={items.length < 2}
             style={{
               display: "flex", alignItems: "center", gap: 4,
-              background: "none", border: `1px solid ${THEME.line}`, cursor: "pointer",
-              fontSize: 11, color: THEME.muted, padding: "3px 8px", borderRadius: 6,
+              background: sortDir === "asc" ? THEME.accent : "none",
+              border: `1px solid ${sortDir === "asc" ? THEME.accent : THEME.line}`,
+              cursor: items.length < 2 ? "default" : "pointer",
+              color: sortDir === "asc" ? "#fff" : THEME.muted,
+              fontSize: 11, fontWeight: sortDir === "asc" ? 700 : 500,
+              padding: "3px 9px", borderRadius: 6,
               fontFamily: "inherit", transition: "all 0.15s",
+              opacity: items.length < 2 ? 0.4 : 1,
             }}
           >
-            <RotateCcw size={10} /> Reset
+            <ArrowUpAZ size={11} /> A→Z
           </button>
-        )}
+
+          {/* Sort Z→A */}
+          <button
+            onClick={sortZA}
+            title="Sort Z to A"
+            disabled={items.length < 2}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: sortDir === "desc" ? THEME.accent : "none",
+              border: `1px solid ${sortDir === "desc" ? THEME.accent : THEME.line}`,
+              cursor: items.length < 2 ? "default" : "pointer",
+              color: sortDir === "desc" ? "#fff" : THEME.muted,
+              fontSize: 11, fontWeight: sortDir === "desc" ? 700 : 500,
+              padding: "3px 9px", borderRadius: 6,
+              fontFamily: "inherit", transition: "all 0.15s",
+              opacity: items.length < 2 ? 0.4 : 1,
+            }}
+          >
+            <ArrowDownAZ size={11} /> Z→A
+          </button>
+
+          {/* Reset to defaults */}
+          {isDirty && (
+            <button
+              onClick={() => { onUpdate(listKey, [...defaultItems]); setSortDir(""); }}
+              title="Reset to default values"
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                background: "none", border: `1px solid ${THEME.line}`, cursor: "pointer",
+                fontSize: 11, color: THEME.muted, padding: "3px 8px", borderRadius: 6,
+                fontFamily: "inherit", transition: "all 0.15s",
+              }}
+            >
+              <RotateCcw size={10} /> Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Chips */}
