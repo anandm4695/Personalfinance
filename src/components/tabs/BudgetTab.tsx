@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2 } from "lucide-react";
+import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -25,10 +25,23 @@ const Tile = ({ icon: Icon, label, value, sub, subColor, negative }: any) => (
   </div>
 );
 
-const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <Target size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-    <div style={{ fontSize: 14 }}>{text}</div>
+const BudgetEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <BarChart2 size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Budgets Set Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 600, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Create First Budget
+    </button>
   </div>
 );
 
@@ -98,9 +111,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         <SectionTitle sub="Set monthly limits per category and track real spending">
           Budget Planner
         </SectionTitle>
-        <button style={btnSolid} onClick={() => setShow(true)}>
-          <Plus size={14} /> Add Budget
-        </button>
+        {state.budgets.length > 0 && (
+          <button style={btnSolid} onClick={() => setShow(true)}>
+            <Plus size={14} /> Add Budget
+          </button>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
@@ -161,7 +176,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
 
       {state.budgets.length === 0 ? (
         <div style={card}>
-          <EmptyHint text="Add budget limits for categories like Food, Rent, Entertainment…" />
+          <BudgetEmptyState onAdd={() => setShow(true)} />
         </div>
       ) : (
         <div style={{ display: "grid", gap: 16 }}>

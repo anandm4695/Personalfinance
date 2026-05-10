@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, FileUp, Edit3, Trash2, Check, X } from "lucide-react";
+import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, autoCateg } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -29,8 +29,48 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <div style={{ fontSize: 14 }}>{text}</div>
+  <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
+    <div style={{ fontSize: 13 }}>{text}</div>
+  </div>
+);
+
+const BankEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Building2 size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Bank Accounts Added Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Connect your savings, current, and salary accounts to track balances and every rupee that moves in and out.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Savings & Current", "Balance Tracking", "CSV Import", "Auto Categories"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(2,132,199,0.08)", color: "#0284c7", fontWeight: 600, border: "1px solid rgba(2,132,199,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Add Bank Account
+    </button>
+  </div>
+);
+
+const TxnEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <ReceiptText size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Transactions Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Record income and expenses manually or bulk-import from your bank statement CSV. Every transaction is auto-categorised.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Debit & Credit", "Category Tags", "Bulk CSV Import", "Recurring Detection"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(99,102,241,0.08)", color: "#6366f1", fontWeight: 600, border: "1px solid rgba(99,102,241,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Add Transaction
+    </button>
   </div>
 );
 
@@ -169,7 +209,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
         {state.bankAccounts.length === 0 && (
-          <div style={card}><EmptyHint text="Add your first bank account" /></div>
+          <div style={{ ...card, gridColumn: "1 / -1" }}><BankEmptyState onAdd={() => setShowBank(true)} /></div>
         )}
         {state.bankAccounts.map((a: any) => (
           <div key={a.id} style={{ ...card, position: "relative" }}>
@@ -215,7 +255,9 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
         </div>
 
         {filteredTxns.length === 0 ? (
-          <EmptyHint text="No transactions" />
+          state.transactions.length === 0
+            ? <TxnEmptyState onAdd={() => setShowTxn(true)} />
+            : <EmptyHint text="No transactions match your filters" />
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>

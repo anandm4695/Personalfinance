@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, TrendingUp, Target } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingUp, Target, Flag } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
@@ -14,9 +14,28 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <Target size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-    <div style={{ fontSize: 14 }}>{text}</div>
+  <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
+    <div style={{ fontSize: 13 }}>{text}</div>
+  </div>
+);
+
+const GoalEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Flag size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Goals Added Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Set financial goals — a house down payment, retirement corpus, car, education, or emergency fund — and watch your progress every day.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(217,119,6,0.08)", color: "#d97706", fontWeight: 600, border: "1px solid rgba(217,119,6,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Set Your First Goal
+    </button>
   </div>
 );
 
@@ -176,40 +195,42 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {(["all", "High", "Medium", "Low"] as const).map(p => (
+      {state.goals.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(["all", "High", "Medium", "Low"] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setFilterPriority(p)}
+                style={{
+                  ...btnOutline,
+                  fontSize: 11,
+                  padding: "6px 12px",
+                  background: filterPriority === p ? (p === "all" ? THEME.accent : PRIORITY_COLOR[p]) : "transparent",
+                  color: filterPriority === p ? "#fff" : (p === "all" ? THEME.ink : PRIORITY_COLOR[p]),
+                  borderColor: p === "all" ? THEME.line : PRIORITY_COLOR[p],
+                  fontWeight: 700,
+                }}
+              >
+                {p === "all" ? "All" : p}
+              </button>
+            ))}
             <button
-              key={p}
-              onClick={() => setFilterPriority(p)}
-              style={{
-                ...btnOutline,
-                fontSize: 11,
-                padding: "6px 12px",
-                background: filterPriority === p ? (p === "all" ? THEME.accent : PRIORITY_COLOR[p]) : "transparent",
-                color: filterPriority === p ? "#fff" : (p === "all" ? THEME.ink : PRIORITY_COLOR[p]),
-                borderColor: p === "all" ? THEME.line : PRIORITY_COLOR[p],
-                fontWeight: 700,
-              }}
+              onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+              style={{ ...btnOutline, fontSize: 11, padding: "6px 12px" }}
             >
-              {p === "all" ? "All" : p}
+              {sortDir === "desc" ? "High → Low" : "Low → High"}
             </button>
-          ))}
-          <button
-            onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
-            style={{ ...btnOutline, fontSize: 11, padding: "6px 12px" }}
-          >
-            {sortDir === "desc" ? "High → Low" : "Low → High"}
+          </div>
+          <button style={btnSolid} onClick={() => setShow(true)}>
+            <Plus size={14} /> Add Goal
           </button>
         </div>
-        <button style={btnSolid} onClick={() => setShow(true)}>
-          <Plus size={14} /> Add Goal
-        </button>
-      </div>
+      )}
 
       {state.goals.length === 0 ? (
         <div style={card}>
-          <EmptyHint text="Set a goal — retirement, house, car, travel, emergency fund…" />
+          <GoalEmptyState onAdd={() => setShow(true)} />
         </div>
       ) : sortedGoals.length === 0 ? (
         <div style={card}>

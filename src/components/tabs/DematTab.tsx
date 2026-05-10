@@ -26,8 +26,48 @@ const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <div style={{ fontSize: 14 }}>{text}</div>
+  <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
+    <div style={{ fontSize: 13 }}>{text}</div>
+  </div>
+);
+
+const DematEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Briefcase size={24} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Demat Accounts Added</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340 }}>Add your Zerodha, Groww, or Upstox account to start tracking your equity portfolio.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Zerodha / Groww / Upstox", "DP ID & Client ID", "Multi-broker Support", "Portfolio View"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(5,150,105,0.08)", color: "#059669", fontWeight: 600, border: "1px solid rgba(5,150,105,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ padding: "9px 22px", background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={15} /> Add Demat Account
+    </button>
+  </div>
+);
+
+const StockEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <TrendingUp size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Stock Holdings Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Add your equity scrips to track live NSE/BSE prices, unrealised P&L, CAGR, and intraday charts — all in one place.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Live NSE / BSE Prices", "Unrealised P&L", "CAGR Calculator", "Buy / Sell Ledger"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(124,58,237,0.08)", color: "#7c3aed", fontWeight: 600, border: "1px solid rgba(124,58,237,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Add Stock Scrip
+    </button>
   </div>
 );
 
@@ -239,9 +279,11 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
           >
             {fetchingPrices ? "Updating…" : "Live Refresh"}
           </Button>
-          <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
-            Add Scrip
-          </Button>
+          {state.stocks.length > 0 && (
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
+              Add Scrip
+            </Button>
+          )}
         </div>
       </div>
 
@@ -314,7 +356,11 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
             <button style={{ ...btnGhost, fontSize: 12, borderRadius: 8 }} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Account</button>
           </div>
           <Grid>
-            {state.demat.length === 0 && <EmptyHint text="Add your brokerage/demat account" />}
+            {state.demat.length === 0 && (
+              <div style={{ ...card, gridColumn: "1 / -1" }}>
+                <DematEmptyState onAdd={() => setShowDemat(true)} />
+              </div>
+            )}
             {state.demat.map((d: any) => (
               <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
                 <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{d.broker}</div>
@@ -326,7 +372,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
       </div>
 
       {state.stocks.length === 0 ? (
-        <div style={card}><EmptyHint text="No stock holdings yet" /></div>
+        <div style={card}><StockEmptyState onAdd={() => { setStockDefaults(null); setShowStock(true); }} /></div>
       ) : visibleGroups.length === 0 ? (
         <div style={card}><EmptyHint text={`No holdings in ${state.demat.find((d: any) => d.id === selectedDematId)?.broker || "this account"}`} /></div>
       ) : (
