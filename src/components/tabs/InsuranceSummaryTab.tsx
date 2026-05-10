@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from "react";
-import { Shield, Heart, Wallet, Zap } from "lucide-react";
+import { Shield, Heart, Wallet, Zap, Plus } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 
@@ -12,20 +12,50 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-      <Icon size={14} /> {label}
+const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
+  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <Icon size={18} color="#fff" />
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800 }}>{value}</div>
-    {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
+    </div>
   </div>
 );
 
-const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <Shield size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-    <div style={{ fontSize: 14 }}>{text}</div>
+const LICEmptyState = () => (
+  <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Shield size={24} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No LIC Policies Added</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360 }}>Add your LIC policies from the <b>Investments</b> tab → LIC section to see sum assured, premiums, and maturity details here.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Sum Assured", "Annual Premium", "Maturity Dates", "Policy Number"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(220,38,38,0.07)", color: "#dc2626", fontWeight: 600, border: "1px solid rgba(220,38,38,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+  </div>
+);
+
+const TermPlanEmptyState = () => (
+  <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#e11d48 0%,#fb7185 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Heart size={24} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Term Plans Added</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360 }}>Add your term insurance plans from the <b>Investments</b> tab → Term Plans section to track cover adequacy, premiums, and expiry.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Cover Amount", "Annual Premium", "Expiry Date", "15× Cover Rule"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(225,29,72,0.07)", color: "#e11d48", fontWeight: 600, border: "1px solid rgba(225,29,72,0.15)" }}>● {f}</span>
+      ))}
+    </div>
   </div>
 );
 
@@ -60,10 +90,10 @@ export function InsuranceSummaryTab({ state }: any) {
       </SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Shield} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} />
-        <Tile icon={Heart} label="Total Term Cover" value={fmtINRFull(totalTermCover)} />
-        <Tile icon={Wallet} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} />
-        <Tile icon={Zap} label="Cover Ratio" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} sub={adequacyLabel} subColor={adequacyColor} />
+        <Tile icon={Shield} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} gradient="linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)" />
+        <Tile icon={Heart} label="Total Term Cover" value={fmtINRFull(totalTermCover)} gradient="linear-gradient(135deg,#e11d48 0%,#fb7185 100%)" />
+        <Tile icon={Wallet} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)" />
+        <Tile icon={Zap} label="Cover Ratio" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} sub={adequacyLabel} subColor={adequacyColor} gradient={adequacyLevel === "excellent" || adequacyLevel === "adequate" ? "linear-gradient(135deg,#059669 0%,#34d399 100%)" : "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)"} />
       </div>
 
       {annualIncome > 0 && (
@@ -101,7 +131,7 @@ export function InsuranceSummaryTab({ state }: any) {
       <div style={{ ...card, marginBottom: 24 }}>
         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Life Insurance (LIC)</div>
         {state.lic.length === 0 ? (
-          <EmptyHint text="No LIC policies added" />
+          <LICEmptyState />
         ) : (
           <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
@@ -131,7 +161,7 @@ export function InsuranceSummaryTab({ state }: any) {
       <div style={card}>
         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Term Plans</div>
         {state.termPlans.length === 0 ? (
-          <EmptyHint text="No term plans added" />
+          <TermPlanEmptyState />
         ) : (
           <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>

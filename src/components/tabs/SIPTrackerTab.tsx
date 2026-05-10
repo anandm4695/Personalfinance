@@ -15,20 +15,36 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-      <Icon size={14} /> {label}
+const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
+  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <Icon size={18} color="#fff" />
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800 }}>{value}</div>
-    {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
+    </div>
   </div>
 );
 
-const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <Activity size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-    <div style={{ fontSize: 14 }}>{text}</div>
+const SIPEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Repeat size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No SIPs Tracked Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey.</div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["Mutual Fund SIPs", "Corpus Projections", "Installment Progress", "Monthly Tracking"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(13,148,136,0.08)", color: "#0d9488", fontWeight: 600, border: "1px solid rgba(13,148,136,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Add First SIP
+    </button>
   </div>
 );
 
@@ -107,25 +123,27 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
       </SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Activity} label="Monthly SIP" value={fmtINRFull(totalMonthly)} />
-        <Tile icon={TrendingUp} label="Total Invested" value={fmtINRFull(totalInvested)} />
-        <Tile icon={Repeat} label="Active SIPs" value={sipsWithCalc.length} />
-        <Tile icon={Sparkles} label="Projected Corpus" value={fmtINRFull(totalProjected)} sub={`@${sipProjRate}% p.a.`} subColor={THEME.sage} />
+        <Tile icon={Activity} label="Monthly SIP" value={fmtINRFull(totalMonthly)} gradient="linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)" />
+        <Tile icon={TrendingUp} label="Total Invested" value={fmtINRFull(totalInvested)} gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)" />
+        <Tile icon={Repeat} label="Active SIPs" value={sipsWithCalc.length} gradient="linear-gradient(135deg,#0d9488 0%,#5eead4 100%)" />
+        <Tile icon={Sparkles} label="Projected Corpus" value={fmtINRFull(totalProjected)} sub={`@${sipProjRate}% p.a.`} subColor={THEME.sage} gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)" />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 12, color: THEME.muted }}>Projection rate:</span>
-          <input style={{ ...input, width: 64, fontSize: 13, padding: "4px 8px" }} type="number" value={sipProjRate} onChange={(e) => setSipProjRate(e.target.value)} />
-          <span style={{ fontSize: 12, color: THEME.muted }}>% p.a.</span>
+      {sipsWithCalc.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: THEME.muted }}>Projection rate:</span>
+            <input style={{ ...input, width: 64, fontSize: 13, padding: "4px 8px" }} type="number" value={sipProjRate} onChange={(e) => setSipProjRate(e.target.value)} />
+            <span style={{ fontSize: 12, color: THEME.muted }}>% p.a.</span>
+          </div>
+          <button style={btnSolid} onClick={() => setShow(true)}>
+            <Plus size={14} /> Add SIP
+          </button>
         </div>
-        <button style={btnSolid} onClick={() => setShow(true)}>
-          <Plus size={14} /> Add SIP
-        </button>
-      </div>
+      )}
 
       {sipsWithCalc.length === 0 ? (
-        <div style={card}><EmptyHint text="Add your SIPs to track investments" /></div>
+        <div style={card}><SIPEmptyState onAdd={() => setShow(true)} /></div>
       ) : (
         <div style={card}>
           <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>

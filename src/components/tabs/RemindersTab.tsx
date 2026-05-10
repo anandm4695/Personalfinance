@@ -16,10 +16,25 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
-    <Bell size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-    <div style={{ fontSize: 14 }}>{text}</div>
+const RemindersEmptyState = ({ onAdd }: any) => (
+  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Bell size={28} color="#fff" />
+    </div>
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Reminders Yet</div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 400 }}>
+        Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, and loans — just add those with due dates and they appear here automatically.
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+      {["CC Bill Due Dates", "FD & Bond Maturities", "Subscription Renewals", "Custom Alerts"].map(f => (
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(79,70,229,0.08)", color: "#4f46e5", fontWeight: 600, border: "1px solid rgba(79,70,229,0.15)" }}>● {f}</span>
+      ))}
+    </div>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+      <Plus size={16} /> Add Manual Reminder
+    </button>
   </div>
 );
 
@@ -161,7 +176,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
 
       {upcoming.length === 0 && past.length === 0 ? (
         <div style={card}>
-          <EmptyHint text="No reminders yet. Add credit cards, FDs, or subscriptions with due dates to see them here." />
+          <RemindersEmptyState onAdd={() => setShow(true)} />
         </div>
       ) : (
         <>
