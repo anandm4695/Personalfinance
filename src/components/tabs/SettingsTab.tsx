@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Database, User, Check, Download, RefreshCw,
-  X as XIcon, LogOut, Tags,
+  X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES } from "../../utils/constants";

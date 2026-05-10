@@ -284,6 +284,7 @@ export default function FinanceDashboard() {
       return () => subscription.unsubscribe();
     } catch (e) {
       console.warn("Supabase initialization failed", e);
+      setIsAuthChecking(false);
     }
   }, []);
   const [search, setSearch] = useState("");
