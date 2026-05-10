@@ -391,29 +391,47 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   );
 };
 
-/* ── Empty state helper ─────────────────────────────────────────────── */
-const EmptyState = ({ label, onAdd }: { label: string; onAdd: () => void }) => (
-  <Card style={{ padding: 48, textAlign: "center" as const }}>
-    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-      <Plus size={22} color="#818cf8" />
-    </div>
-    <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
-      No {label} yet
-    </div>
-    <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
-      Add your first {label} to start tracking.
-    </div>
-    <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
-      Add {label}
-    </Button>
-  </Card>
-);
+/* ── Investment-specific empty state ────────────────────────────────── */
+function InvestmentEmptyState({ icon: Icon, gradient, dotColor, title, description, pills, buttonLabel, onAdd }: any) {
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: gradient, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <Icon size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 12px", lineHeight: 1.6 }}>
+        {description}
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
+        {pills.map((t: string) => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
+        {buttonLabel}
+      </Button>
+    </Card>
+  );
+}
 
 /* ── FD Section ─────────────────────────────────────────────────────── */
 const FDSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="Fixed Deposit" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={Coins}
+          gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)"
+          dotColor="#f59e0b"
+          title="No Fixed Deposits Added Yet"
+          description="Track all your FD accounts — bank, interest rate, maturity date, and projected returns in one place."
+          pills={["Principal Amount", "Interest Rate", "Maturity Date", "Projected Returns"]}
+          buttonLabel="Add Fixed Deposit"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((f: any) => {
@@ -447,7 +465,16 @@ const FDSection = ({ items, removeItem, onAdd }: any) => (
 const RDSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="Recurring Deposit" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={Repeat}
+          gradient="linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)"
+          dotColor="#0ea5e9"
+          title="No Recurring Deposits Added Yet"
+          description="Track your monthly RD installments, interest rate, tenure, and projected maturity value."
+          pills={["Monthly Installment", "Interest Rate", "Tenure", "Maturity Value"]}
+          buttonLabel="Add Recurring Deposit"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((r: any) => {
@@ -483,7 +510,16 @@ const RDSection = ({ items, removeItem, onAdd }: any) => (
 const BondSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="Bond" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={FileText}
+          gradient="linear-gradient(135deg,#92400e 0%,#d97706 100%)"
+          dotColor="#d97706"
+          title="No Bonds Added Yet"
+          description="Track government bonds, SGBs, and corporate bonds — face value, coupon rate, and maturity date."
+          pills={["Govt / SGB Bonds", "Corporate Bonds", "Coupon Rate", "Maturity Date"]}
+          buttonLabel="Add Bond"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((b: any) => (
@@ -814,7 +850,16 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
 const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="PPF Account" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={Shield}
+          gradient="linear-gradient(135deg,#15803d 0%,#22c55e 100%)"
+          dotColor="#16a34a"
+          title="No PPF Account Added Yet"
+          description="Track your Public Provident Fund — deposits, withdrawals, and full transaction ledger with CSV import."
+          pills={["Annual Deposits", "Partial Withdrawals", "Transaction Ledger", "CSV Import"]}
+          buttonLabel="Add PPF Account"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           {items.map((p: any) => (
@@ -829,7 +874,16 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 const NPSSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="NPS Account" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={Briefcase}
+          gradient="linear-gradient(135deg,#c2410c 0%,#fb923c 100%)"
+          dotColor="#ea580c"
+          title="No NPS Account Added Yet"
+          description="Track your National Pension System corpus — Tier I and Tier II accounts with PRAN details."
+          pills={["Tier I Account", "Tier II Account", "PRAN Number", "Corpus Growth"]}
+          buttonLabel="Add NPS Account"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((n: any) => (
@@ -1215,7 +1269,16 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 const MFSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="Mutual Fund" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={BarChart3}
+          gradient="linear-gradient(135deg,#5b21b6 0%,#8b5cf6 100%)"
+          dotColor="#7c3aed"
+          title="No Mutual Funds Added Yet"
+          description="Track all your MF investments — fund name, category, NAV, units, invested value, and P&L returns."
+          pills={["Invested Value", "Current Value", "P&L Returns", "NAV Tracking"]}
+          buttonLabel="Add Mutual Fund"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((m: any) => {
@@ -1258,7 +1321,16 @@ const MFSection = ({ items, removeItem, onAdd }: any) => (
 const LICSection = ({ items, removeItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="LIC Policy" onAdd={onAdd} />
+      ? <InvestmentEmptyState
+          icon={Shield}
+          gradient="linear-gradient(135deg,#991b1b 0%,#ef4444 100%)"
+          dotColor="#dc2626"
+          title="No LIC Policies Added Yet"
+          description="Track your LIC insurance policies — plan name, policy number, sum assured, and premium history."
+          pills={["Sum Assured", "Annual Premium", "Total Premium Paid", "Policy Number"]}
+          buttonLabel="Add LIC Policy"
+          onAdd={onAdd}
+        />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((l: any) => (
