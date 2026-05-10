@@ -13,6 +13,12 @@ import {
   Building2,
   Landmark,
   Receipt,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Flame,
+  Zap,
+  ShieldAlert,
 } from "lucide-react";
 import {
   AreaChart,
@@ -54,7 +60,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   setState,
 }) => {
   const [sub, setSub] = useState("dashboard");
-  const [drillCat, setDrillCat] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
 
@@ -157,6 +162,61 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     return { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg };
   }, [metrics, state.mutualFunds.length, state.stocks.length, state.fixedDeposits.length, state.ppf.length, state.nps.length, state.creditCards, state.subscriptions, state.transactions]);
 
+  const momNetWorthDelta = useMemo(() => {
+    if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
+    const sorted = [...state.netWorthHistory].sort((a: any, b: any) => a.month.localeCompare(b.month));
+    const latest = sorted[sorted.length - 1];
+    const prev = sorted[sorted.length - 2];
+    const latestVal = latest.netWorth ?? latest.net_worth ?? 0;
+    const prevVal = prev.netWorth ?? prev.net_worth ?? 0;
+    const delta = latestVal - prevVal;
+    const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
+    return { delta, pct };
+  }, [state.netWorthHistory]);
+
+  const fireData = useMemo(() => {
+    const annualExpense = metrics.monthExpense * 12;
+    const fireCorpus = annualExpense * 25;
+    const progress = fireCorpus > 0 ? Math.min((Math.max(metrics.netWorth, 0) / fireCorpus) * 100, 100) : 0;
+    return { fireCorpus, progress, annualExpense };
+  }, [metrics.monthExpense, metrics.netWorth]);
+
+  const smartInsights = useMemo(() => {
+    const insights: any[] = [];
+    const annualIncome = (state.income || []).reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const totalTermCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
+    const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
+    const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+
+    if (metrics.monthIncome > 0 && metrics.savingsRate < 10)
+      insights.push({ icon: AlertTriangle, title: "Low Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% · target 20%+`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+    else if (metrics.savingsRate >= 30)
+      insights.push({ icon: Flame, title: "Strong Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% this month`, color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+
+    if (metrics.monthExpense > 0 && emergencyMonths < 3)
+      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo liquid · need 3+`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+    else if (emergencyMonths >= 6)
+      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo — solid cover`, color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+
+    if (annualIncome > 0 && coverRatio < 10)
+      insights.push({ icon: AlertTriangle, title: "Insurance Gap", value: `${fmtINR(annualIncome * 15 - totalTermCover)} short of 15× cover`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+
+    if (metrics.debtToAssetRatio > 40)
+      insights.push({ icon: AlertTriangle, title: "High Debt Ratio", value: `${metrics.debtToAssetRatio.toFixed(0)}% of total assets`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+
+    const urgentDues = dashboardData.dues.filter((d: any) => d.daysLeft <= 7);
+    if (urgentDues.length > 0)
+      insights.push({ icon: AlertTriangle, title: `${urgentDues.length} Due This Week`, value: urgentDues.slice(0, 2).map((d: any) => d.name).join(", "), color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+
+    if ((state.sips || []).length === 0 && metrics.monthIncome > 0)
+      insights.push({ icon: Zap, title: "No Active SIPs", value: "Consider starting a monthly mutual fund SIP", color: "#6366f1", bg: "rgba(99,102,241,0.07)" });
+
+    if (insights.length === 0 && metrics.netWorth > 0)
+      insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+
+    return insights;
+  }, [metrics, state.income, state.termPlans, state.sips, dashboardData]);
+
   const isPositive = metrics.netWorth >= 0;
 
   return (
@@ -225,7 +285,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       </div>
 
       {sub === "dashboard" && (
-        <div className="animate-fade-in-up bento-grid">
+        <>
+          {smartInsights.length > 0 && (
+            <div style={{ overflowX: "auto", marginBottom: 20 }} className="no-scrollbar">
+              <div style={{ display: "flex", gap: 10, minWidth: "max-content" }}>
+                {smartInsights.map((ins: any, i: number) => {
+                  const Icon = ins.icon;
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 12, background: ins.bg, border: `1px solid ${ins.color}28`, flexShrink: 0 }}>
+                      <Icon size={15} color={ins.color} />
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: ins.color, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{ins.title}</div>
+                        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, fontWeight: 500 }}>{ins.value}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div className="animate-fade-in-up bento-grid">
           <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "var(--t-darkInk)", color: "#fff" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -240,7 +319,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ fontSize: "clamp(42px, 5.5vw, 72px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", color: "#fff" }}>
                 {fmtINRFull(metrics.netWorth)}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#34D399", fontSize: 13, fontWeight: 700 }}>
                   <TrendingUp size={14} />
                   {((metrics.mfValue + metrics.stockValue) / (metrics.totalAssets || 1) * 100).toFixed(1)}% equity ratio
@@ -248,6 +327,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
                   · Total assets {fmtINRFull(metrics.totalAssets)}
                 </div>
+                {momNetWorthDelta && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: momNetWorthDelta.delta >= 0 ? "#34D399" : "#F87171" }}>
+                    · {momNetWorthDelta.delta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {momNetWorthDelta.delta >= 0 ? "+" : ""}{fmtINR(momNetWorthDelta.delta)} MoM ({momNetWorthDelta.pct >= 0 ? "+" : ""}{momNetWorthDelta.pct.toFixed(1)}%)
+                  </div>
+                )}
               </div>
             </div>
 
@@ -259,7 +344,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <HeroStat label="PPF + NPS" value={metrics.ppfValue + metrics.npsValue} />
               <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
               <HeroStat label="Loans Taken" value={metrics.totalLiabilities - metrics.ccOutstanding} negative />
-              <HeroStat label="Subs / Mo" value={metrics.subTotal} />
+              <HeroStat label="Subs / Mo" value={metrics.subTotal} negative />
             </div>
           </Card>
 
@@ -571,10 +656,53 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
           </Card>
 
+          <Card className="bento-col-12" style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 4 }}>FIRE Progress — Financial Independence</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>25× annual expenses rule · the corpus you need to never work again</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: fireData.progress >= 100 ? THEME.sage : THEME.accent, letterSpacing: "-0.02em" }}>{fireData.progress.toFixed(1)}%</div>
+                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>achieved</div>
+              </div>
+            </div>
+            {fireData.fireCorpus > 0 ? (
+              <>
+                <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 20 }}>
+                  <div style={{ height: "100%", width: fireData.progress + "%", background: fireData.progress >= 100 ? THEME.sage : fireData.progress >= 50 ? THEME.gold : THEME.accent, borderRadius: 5, transition: "width 1.2s cubic-bezier(0.4,0,0.2,1)" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+                  {[
+                    { label: "FIRE Corpus Needed", value: fmtINRFull(fireData.fireCorpus), sub: `25 × annual spend`, color: THEME.ink },
+                    { label: "Annual Spend", value: fmtINRFull(fireData.annualExpense), sub: `${fmtINR(metrics.monthExpense)}/mo`, color: THEME.ink },
+                    { label: "Current Net Worth", value: fmtINRFull(metrics.netWorth), sub: "your wealth base", color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
+                    { label: "Remaining to FIRE", value: fireData.fireCorpus > metrics.netWorth ? fmtINRFull(fireData.fireCorpus - Math.max(metrics.netWorth, 0)) : "FI Achieved!", sub: fireData.fireCorpus > metrics.netWorth ? "gap to close" : "congratulations", color: fireData.fireCorpus > metrics.netWorth ? THEME.rust : THEME.sage },
+                  ].map(({ label, value, sub, color }) => (
+                    <div key={label} style={{ padding: "14px 16px", background: "rgba(128,128,128,0.04)", borderRadius: 12 }}>
+                      <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color, letterSpacing: "-0.01em" }}>{value}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: "24px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                Add monthly expenses to calculate your FIRE corpus target
+              </div>
+            )}
+          </Card>
+
           <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div className="section-label" style={{ marginBottom: 0 }}>Recent Transactions</div>
-              <Badge variant="muted">{state.transactions.length} total</Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Badge variant="muted">{state.transactions.length} total</Badge>
+                {state.transactions.length > 5 && (
+                  <span style={{ fontSize: 11, color: THEME.muted }}>showing latest 5</span>
+                )}
+              </div>
             </div>
             {state.transactions.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 0", color: THEME.muted, fontSize: 13 }}>No transactions yet</div>
@@ -609,6 +737,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             )}
           </Card>
         </div>
+        </>
       )}
 
       {sub === "trends" && (
