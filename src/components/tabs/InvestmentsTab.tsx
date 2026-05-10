@@ -11,12 +11,17 @@ import {
   Trash2,
   Pencil,
   TrendingUp,
+  TrendingDown,
   Activity,
   IndianRupee,
   Receipt,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  List,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today, uid } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -316,7 +321,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       case "fd":    return <FDSection   items={state.fixedDeposits}     removeItem={removeItem} onAdd={onAdd} />;
       case "rd":    return <RDSection   items={state.recurringDeposits} removeItem={removeItem} onAdd={onAdd} />;
       case "bond":  return <BondSection items={state.bonds}             removeItem={removeItem} onAdd={onAdd} />;
-      case "ppf":   return <PPFSection  items={state.ppf}               removeItem={removeItem} onAdd={onAdd} />;
+      case "ppf":   return <PPFSection  items={state.ppf}               removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} onAdd={onAdd} />;
       case "mf":    return <MFSection   items={state.mutualFunds}       removeItem={removeItem} onAdd={onAdd} />;
       case "lic":   return <LICSection  items={state.lic}               removeItem={removeItem} onAdd={onAdd} />;
@@ -475,30 +480,320 @@ const BondSection = ({ items, removeItem, onAdd }: any) => (
   </div>
 );
 
+/* ── PPF Transaction Modal ───────────────────────────────────────────── */
+function PPFTransactionModal({ onClose, onSave, initial }: any) {
+  const [form, setForm] = useState(initial || { date: today(), type: "deposit", amount: "", note: "" });
+  const valid = form.amount && Number(form.amount) > 0;
+  return (
+    <Modal title={initial ? "Edit Transaction" : "Add PPF Transaction"} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Date">
+          <input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+        </Field>
+        <Field label="Type">
+          <select style={inp} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+            <option value="deposit">Deposit (Load Money)</option>
+            <option value="withdrawal">Withdrawal</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Amount (₹)">
+        <input style={inp} type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="50000" min="1" />
+      </Field>
+      <Field label="Note (optional)">
+        <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. Annual contribution FY 2025-26" />
+      </Field>
+      <ModalActions onSave={() => valid && onSave(form)} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Transaction"} />
+    </Modal>
+  );
+}
+
+/* ── PPF CSV Import Panel ────────────────────────────────────────────── */
+function PPFCsvPanel({ onImport }: any) {
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+  const [importDone, setImportDone] = useState(false);
+
+  const parseCsvText = (text: string) => {
+    setCsvError(""); setCsvPreview([]); setImportDone(false);
+    try {
+      const lines = text.trim().split("\n").filter(l => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) { setCsvError("No data rows found."); return; }
+      const rows = lines.map((line, i) => {
+        const parts = line.split(",").map(p => p.trim().replace(/^"|"$/g, ""));
+        if (parts.length < 3) throw new Error(`Row ${i + 1}: need date, type, amount (got: "${line}")`);
+        const [date, type, amount, note] = parts;
+        if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
+        const t = type.toLowerCase();
+        if (!["deposit", "withdrawal", "d", "w"].includes(t)) throw new Error(`Row ${i + 1}: type must be deposit or withdrawal`);
+        const amt = Number(amount);
+        if (isNaN(amt) || amt <= 0) throw new Error(`Row ${i + 1}: amount must be a positive number`);
+        return { date, type: t.startsWith("d") ? "deposit" : "withdrawal", amount: amt, note: note || "", id: `ppftx-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}` };
+      });
+      setCsvPreview(rows);
+    } catch (e: any) { setCsvError(e.message); }
+  };
+
+  const handleFile = (e: any) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: any) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0]; if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const downloadTemplate = () => {
+    const content = "# PPF Transaction Import Template\n# Columns: date, type, amount, note\n# type: deposit or withdrawal\n2025-04-05,deposit,150000,Annual contribution FY 2025-26\n2025-10-10,deposit,50000,Mid-year top up\n2026-01-15,withdrawal,25000,Partial withdrawal";
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "ppf_import_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const doImport = () => {
+    if (!csvPreview.length) return;
+    onImport(csvPreview);
+    setImportDone(true);
+    setCsvPreview([]); setCsvText(""); setCsvFileName("");
+  };
+
+  const btnStyle = { padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" };
+
+  return (
+    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+        <button onClick={downloadTemplate} style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8" }}>Download Template</button>
+      </div>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
+        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
+        Deposit: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04-05, deposit, 150000, Annual contribution</code>
+        &nbsp;&nbsp;Withdrawal: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2026-01-15, withdrawal, 25000, Partial</code>
+      </div>
+      <label
+        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+        onDragOver={e => e.preventDefault()} onDrop={handleDrop}
+      >
+        <Upload size={22} color="#818cf8" />
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
+        <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
+      </label>
+      <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
+      <textarea
+        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        value={csvText}
+        onChange={e => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
+        placeholder={"2025-04-05, deposit, 150000, Annual contribution FY 2025-26\n2025-10-10, deposit, 50000, Mid-year top up"}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
+        <button style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+        {csvPreview.length > 0 && !importDone && (
+          <button style={{ ...btnStyle, border: "none", background: "#818cf8", color: "#fff" }} onClick={doImport}>
+            Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+          </button>
+        )}
+        {importDone && <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}><CheckCircle2 size={15} /> Imported!</div>}
+      </div>
+      {csvError && (
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+        </div>
+      )}
+      {csvPreview.length > 0 && (
+        <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready — preview:</div>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+              <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                {["Date","Type","Amount","Note"].map(h => <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {csvPreview.map((r, i) => (
+                  <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "6px 10px" }}>{r.date}</td>
+                    <td style={{ padding: "6px 10px" }}><span style={{ color: r.type === "deposit" ? THEME.sage : THEME.rust, fontWeight: 600, textTransform: "capitalize" as const }}>{r.type}</span></td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700 }}>{fmtINR(r.amount)}</td>
+                    <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── PPF Account Card with Ledger ────────────────────────────────────── */
+function PPFAccountCard({ p, removeItem, updateItem }: any) {
+  const [txs, setTxs] = useState<any[]>(p.transactions || []);
+  const [showLedger, setShowLedger] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
+  const [editTx, setEditTx] = useState<any>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
+  const sorted = [...txs].sort((a, b) => b.date.localeCompare(a.date));
+  const totalDeposits = txs.filter(t => t.type === "deposit").reduce((s, t) => s + Number(t.amount), 0);
+  const totalWithdrawals = txs.filter(t => t.type === "withdrawal").reduce((s, t) => s + Number(t.amount), 0);
+
+  const persist = (updated: any[]) => {
+    setTxs(updated);
+    updateItem("ppf", p.id, { transactions: updated });
+  };
+
+  const saveTx = (form: any) => {
+    const updated = editTx
+      ? txs.map(t => t.id === editTx.id ? { ...form, id: editTx.id } : t)
+      : [...txs, { ...form, id: uid() }];
+    persist(updated);
+    setShowTxModal(false); setEditTx(null);
+  };
+
+  const removeTx = (id: string) => persist(txs.filter(t => t.id !== id));
+  const importRows = (rows: any[]) => { persist([...txs, ...rows]); setShowCsvImport(false); };
+
+  const btnGhost = { background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px" } as const;
+
+  return (
+    <Card style={{ padding: 20 }}>
+      {/* Header row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          <Badge variant="accent">PPF Account</Badge>
+          {(p.institution || p.bank) && (
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+              Bank/Post Office: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.institution || p.bank}</span>
+            </div>
+          )}
+          {p.accountNumber && (
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+              A/C: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.accountNumber}</span>
+            </div>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("ppf", p.id)} />
+      </div>
+
+      {/* Balance */}
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Current Balance</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(p.balance)}</div>
+
+      {/* Stats row */}
+      {txs.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+          {[
+            { label: "Total Deposits", value: totalDeposits, color: THEME.sage, Icon: TrendingUp },
+            { label: "Total Withdrawals", value: totalWithdrawals, color: THEME.rust, Icon: TrendingDown },
+          ].map(({ label, value, color, Icon }) => (
+            <div key={label} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+              <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                <Icon size={10} color={color} /> {label}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color }}>{fmtINR(value)}</div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>{txs.filter(t => (label === "Total Deposits" ? t.type === "deposit" : t.type === "withdrawal")).length} entries</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" as const }}>
+        <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setShowCsvImport(false); }}>
+          <Plus size={13} /> Add Transaction
+        </button>
+        <button style={{ ...btnGhost, color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
+          <Upload size={13} /> Import CSV
+        </button>
+        {txs.length > 0 && (
+          <button style={btnGhost} onClick={() => setShowLedger(v => !v)}>
+            <List size={13} /> {showLedger ? "Hide" : "View"} Ledger ({txs.length})
+          </button>
+        )}
+      </div>
+
+      {/* CSV Import Panel */}
+      {showCsvImport && (
+        <div style={{ marginTop: 16 }}>
+          <PPFCsvPanel onImport={(rows: any[]) => { importRows(rows); setShowCsvImport(false); }} />
+        </div>
+      )}
+
+      {/* Transaction Ledger */}
+      {showLedger && txs.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>Transaction Ledger</div>
+          <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                  {["Date","Type","Amount","Note",""].map((h, i) => (
+                    <th key={i} style={{ padding: "8px 10px", textAlign: i >= 3 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(t => (
+                  <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date}</td>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, fontSize: 11, color: t.type === "deposit" ? THEME.sage : THEME.rust }}>
+                        {t.type === "deposit" ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                        {t.type === "deposit" ? "Deposit" : "Withdrawal"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 10px", fontWeight: 800, color: t.type === "deposit" ? THEME.sage : THEME.rust }}>
+                      {t.type === "withdrawal" ? "-" : "+"}{fmtINR(t.amount)}
+                    </td>
+                    <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.note || "—"}</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right" as const }}>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={12} /></button>
+                        <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={12} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {txs.length === 0 && <div style={{ padding: "20px 0", textAlign: "center" as const, color: THEME.muted, fontSize: 12 }}>No transactions yet — add manually or import CSV above</div>}
+        </div>
+      )}
+
+      {/* Add/Edit Transaction Modal */}
+      {showTxModal && (
+        <PPFTransactionModal
+          initial={editTx ? { date: editTx.date, type: editTx.type, amount: String(editTx.amount), note: editTx.note || "" } : undefined}
+          onClose={() => { setShowTxModal(false); setEditTx(null); }}
+          onSave={saveTx}
+        />
+      )}
+    </Card>
+  );
+}
+
 /* ── PPF Section ────────────────────────────────────────────────────── */
-const PPFSection = ({ items, removeItem, onAdd }: any) => (
+const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
       ? <EmptyState label="PPF Account" onAdd={onAdd} />
       : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           {items.map((p: any) => (
-            <Card key={p.id} style={{ padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <Badge variant="accent">PPF Account</Badge>
-                <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("ppf", p.id)} />
-              </div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Balance</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(p.balance)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>
-                Bank/Post Office: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.institution || "—"}</span>
-              </div>
-              {p.accountNumber && (
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-                  A/C: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.accountNumber}</span>
-                </div>
-              )}
-            </Card>
+            <PPFAccountCard key={p.id} p={p} removeItem={removeItem} updateItem={updateItem} />
           ))}
         </div>
       )}
