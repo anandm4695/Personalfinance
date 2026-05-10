@@ -393,9 +393,11 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
 /* ── Empty state helper ─────────────────────────────────────────────── */
 const EmptyState = ({ label, onAdd }: { label: string; onAdd: () => void }) => (
-  <Card style={{ padding: 48, textAlign: "center" }}>
-    <div style={{ fontSize: 32, marginBottom: 12 }}>📂</div>
-    <div style={{ fontSize: 15, fontWeight: 600, color: THEME.ink, marginBottom: 6 }}>
+  <Card style={{ padding: 48, textAlign: "center" as const }}>
+    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+      <Plus size={22} color="#818cf8" />
+    </div>
+    <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
       No {label} yet
     </div>
     <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
@@ -1167,11 +1169,38 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   );
 }
 
+/* ── EPF Empty State ─────────────────────────────────────────────────── */
+function EPFEmptyState({ onAdd }: any) {
+  return (
+    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#6366f1 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <Shield size={30} color="#fff" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+        No EPF Account Added Yet
+      </div>
+      <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 8, maxWidth: 360, margin: "0 auto 8px", lineHeight: 1.6 }}>
+        Track your Employee Provident Fund — employee &amp; employer contributions, EPFO interest credits, and withdrawals.
+      </div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" as const }}>
+        {["Employee Contribution", "Employer Contribution", "EPFO Interest", "Withdrawals"].map(t => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} /> {t}
+          </span>
+        ))}
+      </div>
+      <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
+        Add EPF Account
+      </Button>
+    </Card>
+  );
+}
+
 /* ── EPF Section ─────────────────────────────────────────────────────── */
 const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
   <div className="animate-fade-in-up">
     {items.length === 0
-      ? <EmptyState label="EPF Account" onAdd={onAdd} />
+      ? <EPFEmptyState onAdd={onAdd} />
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           {items.map((e: any) => (
