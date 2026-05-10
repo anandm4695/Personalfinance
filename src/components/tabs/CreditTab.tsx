@@ -525,17 +525,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
                 </div>
               )}
 
-              {/* Network logo + owner + status badge */}
+              {/* Network logo + owner badge */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <CardNetworkLogo network={c.network} />
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {isClosed && (
-                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", background: "rgba(239,68,68,0.2)", color: "#ff8080", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(239,68,68,0.35)" }}>
-                      CLOSED
-                    </span>
-                  )}
-                  <OwnerBadge owner={c.owner} />
-                </div>
+                {!isClosed && <OwnerBadge owner={c.owner} />}
               </div>
 
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
@@ -948,17 +941,10 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
               )}
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(34,197,94,0.2)", color: "#6ee7b7", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(34,197,94,0.3)" }}>
-                    {p.cardType || "Prepaid"}
-                  </span>
-                  {isClosed && (
-                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", background: "rgba(239,68,68,0.2)", color: "#ff8080", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(239,68,68,0.35)" }}>
-                      CLOSED
-                    </span>
-                  )}
-                </div>
-                <OwnerBadge owner={p.owner} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(34,197,94,0.2)", color: "#6ee7b7", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(34,197,94,0.3)" }}>
+                  {p.cardType || "Prepaid"}
+                </span>
+                {!isClosed && <OwnerBadge owner={p.owner} />}
               </div>
 
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 12 }}>{name}</div>
