@@ -101,7 +101,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
 const DEFAULT_STATE = {
   profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
   bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
-  bonds: [], ppf: [], nps: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
+  bonds: [], ppf: [], nps: [], epf: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
   demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
@@ -427,6 +427,7 @@ export default function FinanceDashboard() {
           ...(!pn.error && pn.data != null ? {
             ppf: snakeToCamel(pn.data.filter(x => x.type === 'PPF')),
             nps: snakeToCamel(pn.data.filter(x => x.type === 'NPS')),
+            epf: snakeToCamel(pn.data.filter(x => x.type === 'EPF')),
           } : {}),
           ...(!ccs.error && ccs.data != null ? { creditCards: snakeToCamel(ccs.data) } : {}),
           ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
@@ -568,11 +569,12 @@ export default function FinanceDashboard() {
         const fd = (s.fixedDeposits || []).reduce((a, x) => a + Number(x.principal || 0), 0);
         const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
+        const epf = (s.epf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const lic = (s.lic || []).reduce((a, x) => a + Number(x.premiumPaid || 0), 0);
         const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
         const cc = (s.creditCards || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
         const loans = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        return cash + mf + stocks + fd + ppf + nps + lic + bonds - cc - loans;
+        return cash + mf + stocks + fd + ppf + nps + epf + lic + bonds - cc - loans;
       })();
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
       const newHistory = [...history, { month: ym, netWorth: nw }].slice(-36);
@@ -597,6 +599,7 @@ export default function FinanceDashboard() {
       bonds: filterByOwner(state.bonds),
       ppf: filterByOwner(state.ppf),
       nps: filterByOwner(state.nps),
+      epf: filterByOwner(state.epf),
       lic: filterByOwner(state.lic),
       termPlans: filterByOwner(state.termPlans),
       mutualFunds: filterByOwner(state.mutualFunds),
@@ -644,6 +647,7 @@ export default function FinanceDashboard() {
     );
     const ppfValue = sState.ppf.reduce((s, p) => s + Number(p.balance || 0), 0);
     const npsValue = sState.nps.reduce((s, n) => s + Number(n.balance || 0), 0);
+    const epfValue = (sState.epf || []).reduce((s, e) => s + Number(e.balance || 0), 0);
     const licValue = sState.lic.reduce(
       (s, l) => s + Number(l.premiumPaid || 0),
       0
@@ -699,6 +703,7 @@ export default function FinanceDashboard() {
       bondValue +
       ppfValue +
       npsValue +
+      epfValue +
       licValue +
       mfValue +
       stockValue +
@@ -738,7 +743,7 @@ export default function FinanceDashboard() {
     }, 0);
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
-    const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + licValue;
+    const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
     
@@ -776,6 +781,7 @@ export default function FinanceDashboard() {
       bondValue,
       ppfValue,
       npsValue,
+      epfValue,
       licValue,
       mfValue,
       mfInvested,
@@ -821,6 +827,7 @@ export default function FinanceDashboard() {
         { name: "Stocks", value: metrics.stockValue },
         { name: "PPF", value: metrics.ppfValue },
         { name: "NPS", value: metrics.npsValue },
+        { name: "EPF", value: metrics.epfValue },
         { name: "Bonds", value: metrics.bondValue },
         { name: "LIC", value: metrics.licValue },
         { name: "Loans Given", value: metrics.loansGivenValue },
@@ -940,7 +947,7 @@ export default function FinanceDashboard() {
   const TABLE_MAP: Record<string, string> = {
     bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
     stocks: "stocks", demat: "demat_accounts", fixedDeposits: "fixed_deposits",
-    recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps",
+    recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps", epf: "ppf_nps",
     creditCards: "credit_cards", prepaidCards: "prepaid_cards", loansTaken: "loans", loansGiven: "loans",
     goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders",
     lic: "lic_policies", termPlans: "term_plans",
@@ -962,7 +969,8 @@ export default function FinanceDashboard() {
     const userId = session?.user?.id;
     let finalItem = camelToSnake(item);
     
-    if (key === "ppf" || key === "nps") finalItem.type = key.toUpperCase();
+    if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
+    if (key === "epf") { finalItem.bank = item.employer || ""; delete finalItem.employer; }
     if (key === "loansTaken") finalItem.is_lent = false;
     if (key === "loansGiven") finalItem.is_lent = true;
     if (key === "budgets") { finalItem.monthly_limit = item.monthly; delete finalItem.monthly; }
@@ -1196,6 +1204,7 @@ export default function FinanceDashboard() {
       ...push("bonds",               data.bonds),
       ...push("ppf_nps",             data.ppf, () => ({ type: "PPF" })),
       ...push("ppf_nps",             data.nps, () => ({ type: "NPS" })),
+      ...push("ppf_nps",             data.epf, () => ({ type: "EPF" })),
       ...push("credit_cards",        data.creditCards, item => ({ card_limit: item.cardLimit ?? item.limit ?? null, limit: undefined })),
       ...push("prepaid_cards",       data.prepaidCards),
       ...push("loans",               data.loansTaken,  () => ({ is_lent: false })),
@@ -1347,6 +1356,7 @@ export default function FinanceDashboard() {
           { id: "bond",   label: "Bonds",              icon: FileText  },
           { id: "ppf",    label: "PPF",                icon: Shield    },
           { id: "nps",    label: "NPS",                icon: Briefcase },
+          { id: "epf",    label: "EPF (EPFO)",          icon: Shield    },
           { id: "mf",     label: "Mutual Funds",       icon: BarChart3 },
           { id: "lic",    label: "LIC",                icon: Shield    },
           { id: "income", label: "Yield Tracker",      icon: Activity  },

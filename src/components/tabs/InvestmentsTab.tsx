@@ -55,6 +55,7 @@ const SUBS = [
   { id: "bond",   label: "Bonds",              icon: FileText,  stateKey: "bonds"             },
   { id: "ppf",    label: "PPF",                icon: Shield,    stateKey: "ppf"               },
   { id: "nps",    label: "NPS",                icon: Briefcase, stateKey: "nps"               },
+  { id: "epf",    label: "EPF (EPFO)",          icon: Shield,    stateKey: "epf"               },
   { id: "mf",     label: "Mutual Funds",       icon: BarChart3, stateKey: "mutualFunds"       },
   { id: "lic",    label: "LIC",                icon: Shield,    stateKey: "lic"               },
   { id: "income", label: "Yield Tracker",      icon: Activity,  stateKey: null                },
@@ -77,6 +78,8 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   const [ppf, setPpf] = useState({ institution: "", balance: "", accountNumber: "" });
   // ── NPS State ──
   const [nps, setNps] = useState({ tier: "I", pran: "", balance: "" });
+  // ── EPF State ──
+  const [epf, setEpf] = useState({ uan: "", employer: "", balance: "" });
   // ── MF State ──
   const [mf, setMf] = useState({ name: "", category: "Equity", investedValue: "", currentValue: "", units: "", currentNav: "" });
   // ── LIC State ──
@@ -103,6 +106,10 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       case "nps":
         if (!nps.balance) return;
         onSave("nps", nps);
+        break;
+      case "epf":
+        if (!epf.balance) return;
+        onSave("epf", epf);
         break;
       case "mf":
         if (!mf.name || !mf.investedValue) return;
@@ -229,6 +236,21 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         </>
       )}
 
+      {/* ── EPF ── */}
+      {sub === "epf" && (
+        <>
+          <Field label="UAN (Universal Account Number)">
+            <input style={inp} value={epf.uan} onChange={e => setEpf({ ...epf, uan: e.target.value })} placeholder="12-digit UAN" maxLength={12} />
+          </Field>
+          <Field label="Employer / Company Name">
+            <input style={inp} value={epf.employer} onChange={e => setEpf({ ...epf, employer: e.target.value })} placeholder="e.g. Infosys, TCS, Your Company Ltd." />
+          </Field>
+          <Field label="Current EPF Corpus (₹)">
+            <input style={inp} type="number" value={epf.balance} onChange={e => setEpf({ ...epf, balance: e.target.value })} placeholder="500000" />
+          </Field>
+        </>
+      )}
+
       {/* ── Mutual Funds ── */}
       {sub === "mf" && (
         <>
@@ -323,6 +345,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       case "bond":  return <BondSection items={state.bonds}             removeItem={removeItem} onAdd={onAdd} />;
       case "ppf":   return <PPFSection  items={state.ppf}               removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} onAdd={onAdd} />;
+      case "epf":   return <EPFSection  items={state.epf || []}         removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "mf":    return <MFSection   items={state.mutualFunds}       removeItem={removeItem} onAdd={onAdd} />;
       case "lic":   return <LICSection  items={state.lic}               removeItem={removeItem} onAdd={onAdd} />;
       case "income":return <YieldTracker state={state} />;
@@ -819,6 +842,340 @@ const NPSSection = ({ items, removeItem, onAdd }: any) => (
                 PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{n.pran || "—"}</span>
               </div>
             </Card>
+          ))}
+        </div>
+      )}
+  </div>
+);
+
+/* ── EPF Account Card ────────────────────────────────────────────────── */
+const EPF_TX_TYPES = [
+  { value: "employee_contribution", label: "Employee Contribution", color: "#6366f1" },
+  { value: "employer_contribution", label: "Employer Contribution", color: "#0ea5e9" },
+  { value: "interest_credit",       label: "Interest Credit (EPFO)", color: "#22c55e" },
+  { value: "withdrawal",            label: "Withdrawal",             color: "#ef4444" },
+];
+
+function EPFTransactionModal({ onClose, onSave, initial }: any) {
+  const [form, setForm] = useState(initial || { date: today(), type: "employee_contribution", amount: "", note: "" });
+  const valid = form.amount && Number(form.amount) > 0;
+  return (
+    <Modal title={initial ? "Edit Transaction" : "Add EPF Transaction"} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Date">
+          <input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+        </Field>
+        <Field label="Type">
+          <select style={inp} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+            {EPF_TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Amount (₹)">
+        <input style={inp} type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="e.g. 5000" min="1" />
+      </Field>
+      <Field label="Note (optional)">
+        <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. April 2025 contribution" />
+      </Field>
+      <ModalActions onSave={() => valid && onSave(form)} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Transaction"} />
+    </Modal>
+  );
+}
+
+function EPFCsvPanel({ onImport }: any) {
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+  const [importDone, setImportDone] = useState(false);
+
+  const TYPE_MAP: Record<string, string> = {
+    employee: "employee_contribution", emp: "employee_contribution", e: "employee_contribution", employee_contribution: "employee_contribution",
+    employer: "employer_contribution", er: "employer_contribution", employer_contribution: "employer_contribution",
+    interest: "interest_credit", i: "interest_credit", interest_credit: "interest_credit",
+    withdrawal: "withdrawal", w: "withdrawal",
+  };
+
+  const parseCsvText = (text: string) => {
+    setCsvError(""); setCsvPreview([]); setImportDone(false);
+    try {
+      const lines = text.trim().split("\n").filter(l => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) { setCsvError("No data rows found."); return; }
+      const rows = lines.map((line, i) => {
+        const parts = line.split(",").map(p => p.trim().replace(/^"|"$/g, ""));
+        if (parts.length < 3) throw new Error(`Row ${i + 1}: need date, type, amount`);
+        const [date, type, amount, note] = parts;
+        if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
+        const mappedType = TYPE_MAP[type.toLowerCase().replace(/\s+/g, "_")];
+        if (!mappedType) throw new Error(`Row ${i + 1}: type must be employee, employer, interest, or withdrawal`);
+        const amt = Number(amount);
+        if (isNaN(amt) || amt <= 0) throw new Error(`Row ${i + 1}: amount must be a positive number`);
+        return { date, type: mappedType, amount: amt, note: note || "", id: `epftx-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}` };
+      });
+      setCsvPreview(rows);
+    } catch (e: any) { setCsvError(e.message); }
+  };
+
+  const handleFile = (e: any) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: any) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0]; if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const downloadTemplate = () => {
+    const content = "# EPF Transaction Import Template\n# Columns: date, type, amount, note\n# type: employee | employer | interest | withdrawal\n2025-04-30,employee,5000,April 2025 employee share\n2025-04-30,employer,5000,April 2025 employer share\n2026-03-31,interest,41250,EPFO interest FY 2025-26 @ 8.25%\n2026-02-15,withdrawal,50000,Partial withdrawal";
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "epf_import_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const doImport = () => {
+    if (!csvPreview.length) return;
+    onImport(csvPreview); setImportDone(true);
+    setCsvPreview([]); setCsvText(""); setCsvFileName("");
+  };
+
+  const btnStyle = { padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" };
+  const typeInfo = (t: string) => EPF_TX_TYPES.find(x => x.value === t) || { label: t, color: THEME.muted };
+
+  return (
+    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+        <button onClick={downloadTemplate} style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8" }}>Download Template</button>
+      </div>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
+        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
+        Type values: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>employee</code> &nbsp;
+        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>employer</code> &nbsp;
+        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>interest</code> &nbsp;
+        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>withdrawal</code>
+      </div>
+      <label
+        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+        onDragOver={e => e.preventDefault()} onDrop={handleDrop}
+      >
+        <Upload size={22} color="#818cf8" />
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
+        <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
+      </label>
+      <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
+      <textarea
+        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        value={csvText}
+        onChange={e => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
+        placeholder={"2025-04-30, employee, 5000, April 2025\n2025-04-30, employer, 5000, April 2025\n2026-03-31, interest, 41250, EPFO FY 2025-26"}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
+        <button style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+        {csvPreview.length > 0 && !importDone && (
+          <button style={{ ...btnStyle, border: "none", background: "#818cf8", color: "#fff" }} onClick={doImport}>Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}</button>
+        )}
+        {importDone && <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}><CheckCircle2 size={15} /> Imported!</div>}
+      </div>
+      {csvError && (
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+        </div>
+      )}
+      {csvPreview.length > 0 && (
+        <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready — preview:</div>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+              <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                {["Date","Type","Amount","Note"].map(h => <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {csvPreview.map((r, i) => {
+                  const ti = typeInfo(r.type);
+                  return (
+                    <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                      <td style={{ padding: "6px 10px" }}>{r.date}</td>
+                      <td style={{ padding: "6px 10px" }}><span style={{ color: ti.color, fontWeight: 600, fontSize: 11 }}>{ti.label}</span></td>
+                      <td style={{ padding: "6px 10px", fontWeight: 700 }}>{fmtINR(r.amount)}</td>
+                      <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EPFAccountCard({ p, removeItem, updateItem }: any) {
+  const [txs, setTxs] = useState<any[]>(p.transactions || []);
+  const [showLedger, setShowLedger] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
+  const [editTx, setEditTx] = useState<any>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
+  const sorted = [...txs].sort((a, b) => b.date.localeCompare(a.date));
+
+  const byType = (t: string) => txs.filter(x => x.type === t).reduce((s, x) => s + Number(x.amount), 0);
+  const totalEmployee = byType("employee_contribution");
+  const totalEmployer = byType("employer_contribution");
+  const totalInterest = byType("interest_credit");
+  const totalWithdrawal = byType("withdrawal");
+
+  const persist = (updated: any[]) => { setTxs(updated); updateItem("epf", p.id, { transactions: updated }); };
+  const saveTx = (form: any) => {
+    const updated = editTx
+      ? txs.map(t => t.id === editTx.id ? { ...form, id: editTx.id } : t)
+      : [...txs, { ...form, id: uid() }];
+    persist(updated); setShowTxModal(false); setEditTx(null);
+  };
+  const removeTx = (id: string) => persist(txs.filter(t => t.id !== id));
+  const importRows = (rows: any[]) => { persist([...txs, ...rows]); setShowCsvImport(false); };
+
+  const typeInfo = (t: string) => EPF_TX_TYPES.find(x => x.value === t) || { label: t, color: THEME.muted };
+  const btnGhost = { background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px" } as const;
+
+  const stats = [
+    { label: "Employee", value: totalEmployee, color: "#6366f1" },
+    { label: "Employer", value: totalEmployer, color: "#0ea5e9" },
+    { label: "Interest (EPFO)", value: totalInterest, color: THEME.sage },
+    { label: "Withdrawn", value: totalWithdrawal, color: THEME.rust },
+  ].filter(s => s.value > 0);
+
+  return (
+    <Card style={{ padding: 20 }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          <Badge variant="accent">EPF Account</Badge>
+          {(p.employer || p.bank) && (
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+              Employer: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span>
+            </div>
+          )}
+          {p.uan && (
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+              UAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan}</span>
+            </div>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("epf", p.id)} />
+      </div>
+
+      {/* Balance */}
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Corpus</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em" }}>{fmtINRFull(p.balance)}</div>
+
+      {/* Stats from transactions */}
+      {stats.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 16 }}>
+          {stats.map(s => (
+            <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+              <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{fmtINR(s.value)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" as const }}>
+        <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setShowCsvImport(false); }}>
+          <Plus size={13} /> Add Transaction
+        </button>
+        <button style={{ ...btnGhost, color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
+          <Upload size={13} /> Import CSV
+        </button>
+        {txs.length > 0 && (
+          <button style={btnGhost} onClick={() => setShowLedger(v => !v)}>
+            <List size={13} /> {showLedger ? "Hide" : "View"} Ledger ({txs.length})
+          </button>
+        )}
+      </div>
+
+      {/* CSV Panel */}
+      {showCsvImport && (
+        <div style={{ marginTop: 16 }}>
+          <EPFCsvPanel onImport={(rows: any[]) => { importRows(rows); setShowCsvImport(false); }} />
+        </div>
+      )}
+
+      {/* Ledger */}
+      {showLedger && txs.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>Transaction Ledger</div>
+          <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                  {["Date","Type","Amount","Note",""].map((h, i) => (
+                    <th key={i} style={{ padding: "8px 10px", textAlign: i >= 3 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(t => {
+                  const ti = typeInfo(t.type);
+                  const isOut = t.type === "withdrawal";
+                  return (
+                    <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                      <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date}</td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <span style={{ fontWeight: 700, fontSize: 11, color: ti.color }}>{ti.label}</span>
+                      </td>
+                      <td style={{ padding: "8px 10px", fontWeight: 800, color: isOut ? THEME.rust : ti.color }}>
+                        {isOut ? "-" : "+"}{fmtINR(t.amount)}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.note || "—"}</td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" as const }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                          <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={12} /></button>
+                          <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={12} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showTxModal && (
+        <EPFTransactionModal
+          initial={editTx ? { date: editTx.date, type: editTx.type, amount: String(editTx.amount), note: editTx.note || "" } : undefined}
+          onClose={() => { setShowTxModal(false); setEditTx(null); }}
+          onSave={saveTx}
+        />
+      )}
+    </Card>
+  );
+}
+
+/* ── EPF Section ─────────────────────────────────────────────────────── */
+const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
+  <div className="animate-fade-in-up">
+    {items.length === 0
+      ? <EmptyState label="EPF Account" onAdd={onAdd} />
+      : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+          {items.map((e: any) => (
+            <EPFAccountCard key={e.id} p={e} removeItem={removeItem} updateItem={updateItem} />
           ))}
         </div>
       )}
