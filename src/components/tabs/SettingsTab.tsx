@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Database, User, Check, Download, RefreshCw,
-  Sun, Moon, X as XIcon, LogOut, Tags, Palette,
+  Sun, Moon, X as XIcon, LogOut, Tags,
   RotateCcw, Plus, AlertTriangle, Settings,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES } from "../../utils/constants";
@@ -10,17 +10,6 @@ import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
-
-// ─── Option arrays ────────────────────────────────────────────────────────────
-const DENSITY_OPTIONS = [
-  { value: "compact",     label: "Compact",     desc: "More on screen" },
-  { value: "normal",      label: "Normal",       desc: "Balanced" },
-  { value: "comfortable", label: "Comfortable",  desc: "Spacious" },
-];
-const NAV_OPTIONS = [
-  { value: "sidebar", label: "Sidebar",    desc: "Left panel" },
-  { value: "bottom",  label: "Bottom Bar", desc: "Tab bar" },
-];
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
@@ -109,30 +98,7 @@ const PillNav = ({ tabs, active, onChange }: any) => (
   </div>
 );
 
-const OptionGroup = ({ value, options, onChange }: any) => (
-  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-    {options.map((opt: any) => {
-      const active = value === opt.value;
-      return (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          title={opt.desc}
-          style={{
-            padding: "7px 14px", borderRadius: 10, fontFamily: "inherit",
-            border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
-            background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
-            color: active ? THEME.accent : THEME.muted,
-            fontWeight: active ? 700 : 500, fontSize: 13, cursor: "pointer",
-            transition: "all 0.15s",
-          }}
-        >
-          {opt.label}
-        </button>
-      );
-    })}
-  </div>
-);
+
 
 // ─── EditableList ─────────────────────────────────────────────────────────────
 function EditableList({ listKey, items, onUpdate }: any) {
@@ -264,7 +230,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
 }
 
 // ─── Section: Appearance ──────────────────────────────────────────────────────
-function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey, density, setDensity, sidebarNav, setSidebarNav }: any) {
+function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey }: any) {
   return (
     <Card style={{ padding: 28 }}>
       <div style={{ display: "grid", gap: 28 }}>
@@ -325,22 +291,6 @@ function AppearanceSection({ darkMode, toggleDarkMode, accentKey, setAccentKey, 
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Navigation & Density in a row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Navigation</div>
-            <OptionGroup
-              value={sidebarNav ? "sidebar" : "bottom"}
-              options={NAV_OPTIONS}
-              onChange={(v: string) => setSidebarNav(v === "sidebar")}
-            />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Density</div>
-            <OptionGroup value={density} options={DENSITY_OPTIONS} onChange={setDensity} />
           </div>
         </div>
 
@@ -599,8 +549,6 @@ export function SettingsTab({
         <AppearanceSection
           darkMode={darkMode} toggleDarkMode={toggleDarkMode}
           accentKey={accentKey} setAccentKey={setAccentKey}
-          density={density} setDensity={setDensity}
-          sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
         />
       )}
 
