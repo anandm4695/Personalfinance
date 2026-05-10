@@ -280,20 +280,84 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
             <>
               {(() => {
                 const activeCards = state.creditCards.filter((c: any) => c.status !== "closed");
+                const totalLimit = activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0);
+                const totalOutstandingCC = activeCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0);
+                const totalAvailable = totalLimit - totalOutstandingCC;
+                const utilPct = totalLimit > 0 ? Math.round((totalOutstandingCC / totalLimit) * 100) : 0;
+
+                const statCards = [
+                  {
+                    label: "Total Limit",
+                    sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
+                    value: fmtINRFull(totalLimit),
+                    color: THEME.accent,
+                    borderColor: "var(--t-accent)",
+                    iconBg: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+                  },
+                  {
+                    label: "Outstanding",
+                    sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
+                    value: fmtINRFull(totalOutstandingCC),
+                    color: THEME.rust,
+                    borderColor: "var(--t-rust)",
+                    iconBg: "color-mix(in srgb, var(--t-rust) 12%, transparent)",
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+                  },
+                  {
+                    label: "Available",
+                    sub: totalLimit > 0 ? `${100 - utilPct}% of limit free` : "No cards yet",
+                    value: fmtINRFull(totalAvailable),
+                    color: THEME.sage,
+                    borderColor: "var(--t-sage)",
+                    iconBg: "color-mix(in srgb, var(--t-sage) 12%, transparent)",
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+                  },
+                ];
+
                 return (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
-                    <Card style={{ background: "rgba(79, 70, 229, 0.05)", border: `1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
-                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total Limit <span style={{ fontWeight: 400 }}>(active)</span></div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.accent, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0))}</div>
-                    </Card>
-                    <Card style={{ background: "rgba(239, 68, 68, 0.05)", border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)` }}>
-                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Outstanding <span style={{ fontWeight: 400 }}>(active)</span></div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0))}</div>
-                    </Card>
-                    <Card style={{ background: "rgba(34, 197, 94, 0.05)", border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
-                      <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Available <span style={{ fontWeight: 400 }}>(active)</span></div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>{fmtINRFull(activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0) - (Number(c.outstanding) || 0), 0))}</div>
-                    </Card>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+                    {statCards.map((s) => (
+                      <div
+                        key={s.label}
+                        style={{
+                          background: "var(--t-paper)",
+                          border: `1px solid ${THEME.line}`,
+                          borderTop: `3px solid ${s.borderColor}`,
+                          borderRadius: 12,
+                          padding: "16px 18px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        {/* Icon + label row */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{
+                            width: 30, height: 30, borderRadius: 8,
+                            background: s.iconBg,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: s.color, flexShrink: 0,
+                          }}>
+                            {s.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                              {s.label}
+                            </div>
+                            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 400, marginTop: 1 }}>Active cards</div>
+                          </div>
+                        </div>
+                        {/* Value */}
+                        <div style={{ fontSize: 26, fontWeight: 900, color: s.color, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                          {s.value}
+                        </div>
+                        {/* Sub-label */}
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                          {s.sub}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               })()}
