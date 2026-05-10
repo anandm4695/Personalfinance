@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
+import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -481,7 +482,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard }: any) {
                 position: "relative",
                 background: isClosed
                   ? `linear-gradient(135deg, #3a3a42 0%, #2a2a32 100%)`
-                  : `linear-gradient(135deg, ${THEME.ink} 0%, #1A2A42 100%)`,
+                  : getCardGradient(c.issuer),
                 paddingBottom: isClosed ? 20 : 60,
                 opacity: isClosed ? 0.8 : 1,
                 filter: isClosed ? "grayscale(35%)" : "none",
@@ -896,7 +897,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard }: any) {
             <div key={p.id} style={{
               background: isClosed
                 ? "linear-gradient(135deg, #2a2a1a 0%, #1a1a0d 100%)"
-                : "linear-gradient(135deg, #1a3a2a 0%, #0d1f17 100%)",
+                : getCardGradient(name),
               color: "#fff", borderRadius: 12, padding: 20,
               paddingBottom: isClosed ? 20 : 56,
               position: "relative",
