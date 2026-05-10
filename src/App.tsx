@@ -967,8 +967,14 @@ export default function FinanceDashboard() {
 
   const addItem = async (key, item) => {
     const userId = session?.user?.id;
-    let finalItem = camelToSnake(item);
-    
+    // Auto-assign owner so items satisfy the DB NOT NULL constraint on ppf_nps
+    // and other tables, and appear correctly under the active profile filter.
+    // Forms that already pass owner (e.g. bank accounts) take precedence.
+    const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
+    const itemWithOwner = { ...item, owner: ownerVal };
+
+    let finalItem = camelToSnake(itemWithOwner);
+
     if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
     if (key === "ppf") { finalItem.bank = item.institution || ""; delete finalItem.institution; }
     if (key === "epf") { finalItem.bank = item.employer || ""; delete finalItem.employer; finalItem.account_number = item.uan || ""; delete finalItem.uan; }
@@ -982,7 +988,7 @@ export default function FinanceDashboard() {
     if (key === "rentedProperties") finalItem.property_type = "in";
 
     const newId = uid();
-    setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...item }] }));
+    setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...itemWithOwner }] }));
     
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
@@ -1067,7 +1073,10 @@ export default function FinanceDashboard() {
           console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
           let errMsg = `Sync failed [${firstErr.code}]: ${firstErr.message}`;
           if (firstErr.code === "23514" && firstErr.message?.includes("ppf_nps_type_check")) {
-            errMsg = "DB migration needed: Run database/08_ppf_epf_fix.sql in Supabase SQL Editor to enable EPF support.";
+            errMsg = "DB migration needed: Run database/10_epf_final_fix.sql in Supabase SQL Editor to enable EPF support.";
+          }
+          if (firstErr.code === "23502" && firstErr.message?.includes("owner")) {
+            errMsg = "Save failed: owner field missing — please reload the page and try again.";
           }
           showToast(errMsg, "error");
           setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
