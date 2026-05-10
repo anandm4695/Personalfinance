@@ -970,7 +970,8 @@ export default function FinanceDashboard() {
     let finalItem = camelToSnake(item);
     
     if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
-    if (key === "epf") { finalItem.bank = item.employer || ""; delete finalItem.employer; }
+    if (key === "ppf") { finalItem.bank = item.institution || ""; delete finalItem.institution; }
+    if (key === "epf") { finalItem.bank = item.employer || ""; delete finalItem.employer; finalItem.account_number = item.uan || ""; delete finalItem.uan; }
     if (key === "loansTaken") finalItem.is_lent = false;
     if (key === "loansGiven") finalItem.is_lent = true;
     if (key === "budgets") { finalItem.monthly_limit = item.monthly; delete finalItem.monthly; }
@@ -1110,6 +1111,8 @@ export default function FinanceDashboard() {
         if (key === "bankAccounts") { delete finalPatch.type; }
         if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
+        if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
+        if (key === "epf") { if (patch.employer !== undefined) { finalPatch.bank = patch.employer || ""; delete finalPatch.employer; } if (patch.uan !== undefined) { finalPatch.account_number = patch.uan || ""; delete finalPatch.uan; } }
 
         const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
         for (const k in finalPatch) {

@@ -1066,9 +1066,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               Employer: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span>
             </div>
           )}
-          {p.uan && (
+          {(p.uan || p.accountNumber) && (
             <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
-              UAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan}</span>
+              UAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span>
             </div>
           )}
         </div>
