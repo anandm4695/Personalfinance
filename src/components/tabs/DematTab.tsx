@@ -83,17 +83,24 @@ function brokerInitials(broker: string): string {
 const _logoCache: Record<string, string | null> = {};
 
 const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
-  const [logoUrl, setLogoUrl] = React.useState<string | null>(_logoCache[yfSym] ?? null);
-  const [imgErr, setImgErr] = React.useState(false);
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
+  const [primaryErr, setPrimaryErr] = React.useState(false);
+  const [faviconErr, setFaviconErr] = React.useState(false);
 
   React.useEffect(() => {
-    if (yfSym in _logoCache) { setLogoUrl(_logoCache[yfSym]); return; }
+    if (yfSym in _logoCache) {
+      const c = _logoCache[yfSym] as any;
+      setLogoUrl(c?.logoUrl ?? null);
+      setFaviconUrl(c?.faviconUrl ?? null);
+      return;
+    }
     let cancelled = false;
     fetch(`/api/stock-logo?symbol=${encodeURIComponent(yfSym)}`)
       .then(r => r.json())
       .then(d => {
-        _logoCache[yfSym] = d.logoUrl ?? null;
-        if (!cancelled) setLogoUrl(d.logoUrl ?? null);
+        _logoCache[yfSym] = d;
+        if (!cancelled) { setLogoUrl(d.logoUrl ?? null); setFaviconUrl(d.faviconUrl ?? null); }
       })
       .catch(() => { _logoCache[yfSym] = null; });
     return () => { cancelled = true; };
@@ -102,11 +109,23 @@ const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
   const base = yfSym.replace(/\.(NS|BO)$/i, "");
   const hue = Array.from(base).reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   const br = Math.round(size * 0.28);
+  const imgSz = Math.round(size * 0.78);
 
-  if (logoUrl && !imgErr) {
+  const imgStyle: React.CSSProperties = { width: imgSz, height: imgSz, objectFit: "contain" };
+  const wrapStyle: React.CSSProperties = { width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 };
+
+  if (logoUrl && !primaryErr) {
     return (
-      <div style={{ width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-        <img src={logoUrl} alt={base} onError={() => setImgErr(true)} style={{ width: Math.round(size * 0.78), height: Math.round(size * 0.78), objectFit: "contain" }} />
+      <div style={wrapStyle}>
+        <img src={logoUrl} alt={base} onError={() => setPrimaryErr(true)} style={imgStyle} />
+      </div>
+    );
+  }
+
+  if (faviconUrl && !faviconErr) {
+    return (
+      <div style={wrapStyle}>
+        <img src={faviconUrl} alt={base} onError={() => setFaviconErr(true)} style={imgStyle} />
       </div>
     );
   }
