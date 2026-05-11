@@ -174,8 +174,8 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const InvestCard = ({ children, onRemove, onEdit }: any) => (
-  <Card style={{ position: "relative" }}>
+const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
+  <Card style={{ position: "relative", overflow: "hidden", ...extraStyle }}>
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
       <button onClick={onEdit} style={iconBtn}><Edit3 size={14} /></button>
       <button onClick={onRemove} style={iconBtn}><Trash2 size={14} /></button>
@@ -410,25 +410,38 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
               const theme = getBrokerTheme(d.broker || "");
               const initials = brokerInitials(d.broker || "?");
               return (
-                <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14, borderLeft: `3px solid ${theme.color}`, paddingLeft: 14, marginLeft: -2 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 13, background: theme.gradient, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: `0 4px 12px ${theme.color}33` }}>
-                      <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>{initials}</span>
+                <InvestCard
+                  key={d.id}
+                  onRemove={() => removeItem("demat", d.id)}
+                  onEdit={() => setEditDematId(d.id)}
+                  style={{ borderLeft: `4px solid ${theme.color}` }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{
+                      width: 46, height: 46, borderRadius: 13,
+                      background: theme.gradient,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: `0 4px 14px ${theme.color}40`,
+                    }}>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>{initials}</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 5 }}>{d.broker || "Broker"}</div>
-                      {d.dpId && (
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: `${theme.color}15`, color: theme.color, fontWeight: 700, letterSpacing: "0.05em" }}>DP</span>
-                          <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12 }}>{d.dpId}</span>
-                        </div>
-                      )}
-                      {d.clientId && (
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                          <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: `${theme.color}15`, color: theme.color, fontWeight: 700, letterSpacing: "0.05em" }}>ID</span>
-                          <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12 }}>{d.clientId}</span>
-                        </div>
-                      )}
+                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>{d.broker || "Broker"}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {d.dpId && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: `${theme.color}18`, color: theme.color, fontWeight: 700, letterSpacing: "0.06em", lineHeight: 1.2 }}>DP</span>
+                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>{d.dpId}</span>
+                          </div>
+                        )}
+                        {d.clientId && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: `${theme.color}18`, color: theme.color, fontWeight: 700, letterSpacing: "0.06em", lineHeight: 1.2 }}>ID</span>
+                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>{d.clientId}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </InvestCard>
