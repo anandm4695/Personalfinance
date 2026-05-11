@@ -8,6 +8,44 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 
+// Broker brand colors — covers all major Indian brokers
+const BROKER_THEMES: Record<string, { gradient: string; color: string }> = {
+  zerodha:   { gradient: "linear-gradient(135deg,#387ed1 0%,#60a5fa 100%)", color: "#387ed1" },
+  kite:      { gradient: "linear-gradient(135deg,#387ed1 0%,#60a5fa 100%)", color: "#387ed1" },
+  groww:     { gradient: "linear-gradient(135deg,#00b899 0%,#34d399 100%)", color: "#00b899" },
+  kotak:     { gradient: "linear-gradient(135deg,#dc2626 0%,#f87171 100%)", color: "#dc2626" },
+  upstox:    { gradient: "linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)", color: "#7c3aed" },
+  hdfc:      { gradient: "linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)", color: "#1e40af" },
+  icici:     { gradient: "linear-gradient(135deg,#f47920 0%,#fb923c 100%)", color: "#f47920" },
+  angel:     { gradient: "linear-gradient(135deg,#1e40af 0%,#60a5fa 100%)", color: "#1e40af" },
+  motilal:   { gradient: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", color: "#d97706" },
+  "5paisa":  { gradient: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)", color: "#0891b2" },
+  paytm:     { gradient: "linear-gradient(135deg,#2563eb 0%,#60a5fa 100%)", color: "#2563eb" },
+  sharekhan: { gradient: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#059669" },
+  fyers:     { gradient: "linear-gradient(135deg,#0f172a 0%,#334155 100%)", color: "#334155" },
+  dhan:      { gradient: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", color: "#7c3aed" },
+  iifl:      { gradient: "linear-gradient(135deg,#b45309 0%,#f59e0b 100%)", color: "#b45309" },
+  sbi:       { gradient: "linear-gradient(135deg,#1d4ed8 0%,#60a5fa 100%)", color: "#1d4ed8" },
+  axis:      { gradient: "linear-gradient(135deg,#7c2d12 0%,#f97316 100%)", color: "#ea580c" },
+};
+
+function getBrokerTheme(broker: string) {
+  const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
+  for (const [k, v] of Object.entries(BROKER_THEMES)) {
+    if (key.includes(k)) return v;
+  }
+  // Deterministic color from broker name so it's stable across renders
+  const hue = Array.from(broker || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  const color = `hsl(${hue},55%,42%)`;
+  return { gradient: `linear-gradient(135deg,hsl(${hue},55%,42%) 0%,hsl(${hue},70%,62%) 100%)`, color };
+}
+
+function brokerInitials(broker: string): string {
+  const words = (broker || "?").trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
   <div style={{ marginBottom: 32 }}>
     <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
@@ -318,6 +356,8 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
           </button>
           {state.demat.map((d: any) => {
             const active = selectedDematId === d.id;
+            const theme = getBrokerTheme(d.broker || "");
+            const initials = brokerInitials(d.broker || "?");
             return (
               <button
                 key={d.id}
@@ -325,21 +365,23 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "12px 16px",
+                  gap: 10,
+                  padding: "10px 12px",
                   borderRadius: 12,
                   border: "none",
-                  background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
-                  color: active ? THEME.accent : THEME.muted,
+                  background: active ? `${theme.color}18` : "transparent",
+                  color: active ? theme.color : THEME.muted,
                   fontWeight: active ? 800 : 600,
                   cursor: "pointer",
                   transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                   textAlign: "left",
-                  fontSize: 14,
+                  fontSize: 13,
                   width: "100%",
                 }}
               >
-                <Briefcase size={16} strokeWidth={active ? 2.5 : 2} />
+                <div style={{ width: 26, height: 26, borderRadius: 7, background: active ? theme.gradient : `${theme.color}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                  <span style={{ fontSize: 9, fontWeight: 900, color: active ? "#fff" : theme.color, letterSpacing: "-0.01em" }}>{initials}</span>
+                </div>
                 {d.broker || "Broker"}
               </button>
             );
@@ -364,20 +406,34 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                 <DematEmptyState onAdd={() => setShowDemat(true)} />
               </div>
             )}
-            {state.demat.map((d: any) => (
-              <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Briefcase size={18} color="#fff" />
+            {state.demat.map((d: any) => {
+              const theme = getBrokerTheme(d.broker || "");
+              const initials = brokerInitials(d.broker || "?");
+              return (
+                <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14, borderLeft: `3px solid ${theme.color}`, paddingLeft: 14, marginLeft: -2 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 13, background: theme.gradient, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: `0 4px 12px ${theme.color}33` }}>
+                      <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>{initials}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 5 }}>{d.broker || "Broker"}</div>
+                      {d.dpId && (
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: `${theme.color}15`, color: theme.color, fontWeight: 700, letterSpacing: "0.05em" }}>DP</span>
+                          <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12 }}>{d.dpId}</span>
+                        </div>
+                      )}
+                      {d.clientId && (
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                          <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: `${theme.color}15`, color: theme.color, fontWeight: 700, letterSpacing: "0.05em" }}>ID</span>
+                          <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12 }}>{d.clientId}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>{d.broker || "Broker"}</div>
-                    {d.dpId && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>DP ID: <span style={{ color: THEME.ink, fontFamily: "monospace" }}>{d.dpId}</span></div>}
-                    {d.clientId && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>Client ID: <span style={{ color: THEME.ink, fontFamily: "monospace" }}>{d.clientId}</span></div>}
-                  </div>
-                </div>
-              </InvestCard>
-            ))}
+                </InvestCard>
+              );
+            })}
           </Grid>
         </div>
       </div>
