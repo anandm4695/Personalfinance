@@ -13,7 +13,7 @@ const BROKER_LOGO_DOMAINS: Record<string, string> = {
   zerodha:   "zerodha.com",
   kite:      "zerodha.com",
   groww:     "groww.in",
-  kotak:     "kotaksecurities.com",
+  kotak:     "kotakneo.com",
   upstox:    "upstox.com",
   hdfc:      "hdfcsec.com",
   icici:     "icicidirect.com",
