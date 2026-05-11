@@ -79,6 +79,45 @@ function brokerInitials(broker: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// Module-level cache so logos persist across re-renders without extra fetches
+const _logoCache: Record<string, string | null> = {};
+
+const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(_logoCache[yfSym] ?? null);
+  const [imgErr, setImgErr] = React.useState(false);
+
+  React.useEffect(() => {
+    if (yfSym in _logoCache) { setLogoUrl(_logoCache[yfSym]); return; }
+    let cancelled = false;
+    fetch(`/api/stock-logo?symbol=${encodeURIComponent(yfSym)}`)
+      .then(r => r.json())
+      .then(d => {
+        _logoCache[yfSym] = d.logoUrl ?? null;
+        if (!cancelled) setLogoUrl(d.logoUrl ?? null);
+      })
+      .catch(() => { _logoCache[yfSym] = null; });
+    return () => { cancelled = true; };
+  }, [yfSym]);
+
+  const base = yfSym.replace(/\.(NS|BO)$/i, "");
+  const hue = Array.from(base).reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  const br = Math.round(size * 0.28);
+
+  if (logoUrl && !imgErr) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+        <img src={logoUrl} alt={base} onError={() => setImgErr(true)} style={{ width: Math.round(size * 0.78), height: Math.round(size * 0.78), objectFit: "contain" }} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: size, height: size, borderRadius: br, background: `linear-gradient(135deg,hsl(${hue},55%,42%) 0%,hsl(${hue},70%,62%) 100%)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ fontSize: Math.round(size * 0.3), fontWeight: 900, color: "#fff", letterSpacing: "-0.01em" }}>{base.slice(0, 2)}</span>
+    </div>
+  );
+};
+
 const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; theme: { gradient: string; color: string }; size: number; borderRadius: number }) => {
   const [imgErr, setImgErr] = React.useState(false);
   const logoUrl = getBrokerLogoUrl(broker);
@@ -538,6 +577,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
               <div key={yfSym} style={{ ...card, padding: 0, overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", flexWrap: "wrap", gap: 12, padding: "14px 18px", cursor: "pointer", borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" }} onClick={() => toggleExpand(yfSym)}>
                   <div style={{ paddingTop: 3, color: THEME.muted, flexShrink: 0 }}>{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
+                  <StockLogo yfSym={yfSym} size={40} />
                   <div style={{ flexShrink: 0, minWidth: 160 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 700, fontSize: 15 }}>{base}</span>
