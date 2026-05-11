@@ -15,14 +15,17 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
-  <Card style={{ padding: 20 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-      <Icon size={14} /> {label}
+const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
+  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <Icon size={18} color="#fff" />
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800 }}>{value}</div>
-    {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
-  </Card>
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
+    </div>
+  </div>
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
@@ -289,7 +292,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
 
       <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
         {/* ── VERTICAL SIDEBAR NAV ── */}
-        <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100 }}>
+        <div style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100, paddingRight: 20, borderRight: `1px solid ${THEME.line}` }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Portfolios</div>
           <button
             onClick={() => setSelectedDematId(null)}
@@ -345,10 +348,10 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
 
         {/* ── CONTENT AREA ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
-            <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} />
-            <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : ""} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
-            <Tile icon={Percent} label="Net Return" value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"} subColor={pnl >= 0 ? THEME.sage : THEME.rust} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+            <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)" />
+            <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : undefined} subColor={pnl >= 0 ? THEME.sage : THEME.rust} gradient="linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)" />
+            <Tile icon={Percent} label="Net Return" value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"} subColor={pnl >= 0 ? THEME.sage : THEME.rust} gradient="linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)" />
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -363,8 +366,16 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
             )}
             {state.demat.map((d: any) => (
               <InvestCard key={d.id} onRemove={() => removeItem("demat", d.id)} onEdit={() => setEditDematId(d.id)}>
-                <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{d.broker}</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>ID: {d.dpId || d.clientId || "—"}</div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Briefcase size={18} color="#fff" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>{d.broker || "Broker"}</div>
+                    {d.dpId && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>DP ID: <span style={{ color: THEME.ink, fontFamily: "monospace" }}>{d.dpId}</span></div>}
+                    {d.clientId && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>Client ID: <span style={{ color: THEME.ink, fontFamily: "monospace" }}>{d.clientId}</span></div>}
+                  </div>
+                </div>
               </InvestCard>
             ))}
           </Grid>
