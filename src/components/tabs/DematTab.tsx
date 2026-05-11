@@ -8,6 +8,27 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 
+// Broker logo domains for Clearbit
+const BROKER_LOGO_DOMAINS: Record<string, string> = {
+  zerodha:   "zerodha.com",
+  kite:      "zerodha.com",
+  groww:     "groww.in",
+  kotak:     "kotaksecurities.com",
+  upstox:    "upstox.com",
+  hdfc:      "hdfcsec.com",
+  icici:     "icicidirect.com",
+  angel:     "angelbroking.com",
+  motilal:   "motilaloswal.com",
+  "5paisa":  "5paisa.com",
+  paytm:     "paytmmoney.com",
+  sharekhan: "sharekhan.com",
+  fyers:     "fyers.in",
+  dhan:      "dhan.co",
+  iifl:      "iiflsecurities.com",
+  sbi:       "sbisec.co.in",
+  axis:      "axissecurities.in",
+};
+
 // Broker brand colors — covers all major Indian brokers
 const BROKER_THEMES: Record<string, { gradient: string; color: string }> = {
   zerodha:   { gradient: "linear-gradient(135deg,#387ed1 0%,#60a5fa 100%)", color: "#387ed1" },
@@ -40,11 +61,59 @@ function getBrokerTheme(broker: string) {
   return { gradient: `linear-gradient(135deg,hsl(${hue},55%,42%) 0%,hsl(${hue},70%,62%) 100%)`, color };
 }
 
+function getBrokerLogoUrl(broker: string): string | null {
+  const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
+  for (const [k, domain] of Object.entries(BROKER_LOGO_DOMAINS)) {
+    if (key.includes(k)) return `https://logo.clearbit.com/${domain}`;
+  }
+  return null;
+}
+
 function brokerInitials(broker: string): string {
   const words = (broker || "?").trim().split(/\s+/);
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
+
+const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; theme: { gradient: string; color: string }; size: number; borderRadius: number }) => {
+  const [imgErr, setImgErr] = React.useState(false);
+  const logoUrl = getBrokerLogoUrl(broker);
+  const initials = brokerInitials(broker || "?");
+  const fontSize = Math.round(size * 0.3);
+
+  if (logoUrl && !imgErr) {
+    return (
+      <div style={{
+        width: size, height: size, borderRadius,
+        background: "#fff",
+        border: `1.5px solid ${theme.color}30`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+        boxShadow: `0 4px 14px ${theme.color}30`,
+        overflow: "hidden",
+      }}>
+        <img
+          src={logoUrl}
+          alt={broker}
+          onError={() => setImgErr(true)}
+          style={{ width: Math.round(size * 0.68), height: Math.round(size * 0.68), objectFit: "contain" }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius,
+      background: theme.gradient,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0,
+      boxShadow: `0 4px 14px ${theme.color}40`,
+    }}>
+      <span style={{ fontSize, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>{initials}</span>
+    </div>
+  );
+};
 
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
   <div style={{ marginBottom: 32 }}>
@@ -357,7 +426,6 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
           {state.demat.map((d: any) => {
             const active = selectedDematId === d.id;
             const theme = getBrokerTheme(d.broker || "");
-            const initials = brokerInitials(d.broker || "?");
             return (
               <button
                 key={d.id}
@@ -379,9 +447,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                   width: "100%",
                 }}
               >
-                <div style={{ width: 26, height: 26, borderRadius: 7, background: active ? theme.gradient : `${theme.color}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, color: active ? "#fff" : theme.color, letterSpacing: "-0.01em" }}>{initials}</span>
-                </div>
+                <BrokerLogo broker={d.broker || "?"} theme={theme} size={26} borderRadius={7} />
                 {d.broker || "Broker"}
               </button>
             );
@@ -408,7 +474,6 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
             )}
             {state.demat.map((d: any) => {
               const theme = getBrokerTheme(d.broker || "");
-              const initials = brokerInitials(d.broker || "?");
               return (
                 <InvestCard
                   key={d.id}
@@ -417,15 +482,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                   style={{ borderLeft: `4px solid ${theme.color}` }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{
-                      width: 46, height: 46, borderRadius: 13,
-                      background: theme.gradient,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0,
-                      boxShadow: `0 4px 14px ${theme.color}40`,
-                    }}>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>{initials}</span>
-                    </div>
+                    <BrokerLogo broker={d.broker || "?"} theme={theme} size={46} borderRadius={13} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>{d.broker || "Broker"}</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
