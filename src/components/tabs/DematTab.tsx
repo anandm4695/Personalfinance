@@ -109,10 +109,10 @@ const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
   const base = yfSym.replace(/\.(NS|BO)$/i, "");
   const hue = Array.from(base).reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   const br = Math.round(size * 0.28);
-  const imgSz = Math.round(size * 0.78);
+  const pad = Math.round(size * 0.1);
 
-  const imgStyle: React.CSSProperties = { width: imgSz, height: imgSz, objectFit: "contain" };
-  const wrapStyle: React.CSSProperties = { width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 };
+  const imgStyle: React.CSSProperties = { width: "100%", height: "100%", objectFit: "contain" };
+  const wrapStyle: React.CSSProperties = { width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, padding: pad, boxSizing: "border-box" };
 
   if (logoUrl && !primaryErr) {
     return (
