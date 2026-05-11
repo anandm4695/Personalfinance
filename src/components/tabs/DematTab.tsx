@@ -64,7 +64,7 @@ function getBrokerTheme(broker: string) {
 function getBrokerLogoUrl(broker: string): string | null {
   const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
   for (const [k, domain] of Object.entries(BROKER_LOGO_DOMAINS)) {
-    if (key.includes(k)) return `https://logo.clearbit.com/${domain}`;
+    if (key.includes(k)) return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
   }
   return null;
 }
@@ -96,7 +96,7 @@ const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; the
           src={logoUrl}
           alt={broker}
           onError={() => setImgErr(true)}
-          style={{ width: Math.round(size * 0.68), height: Math.round(size * 0.68), objectFit: "contain" }}
+          style={{ width: Math.round(size * 0.75), height: Math.round(size * 0.75), objectFit: "contain" }}
         />
       </div>
     );
