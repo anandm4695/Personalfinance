@@ -19,6 +19,9 @@ import {
   Flame,
   Zap,
   ShieldAlert,
+  BarChart2,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -216,6 +219,69 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     return insights;
   }, [metrics, state.income, state.termPlans, state.sips, dashboardData]);
+
+  const ytdData = useMemo(() => {
+    const now = new Date();
+    const yearStr = `${now.getFullYear()}`;
+    const ytdTxns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(yearStr));
+    const ytdIncome = ytdTxns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ytdExpense = ytdTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ytdSavings = ytdIncome - ytdExpense;
+    const ytdSavingsRate = ytdIncome > 0 ? (ytdSavings / ytdIncome) * 100 : 0;
+    const monthsElapsed = now.getMonth() + 1;
+    const monthName = now.toLocaleString("en-IN", { month: "short" });
+    return { ytdIncome, ytdExpense, ytdSavings, ytdSavingsRate, monthsElapsed, monthName };
+  }, [state.transactions]);
+
+  const passiveIncomeData = useMemo(() => {
+    const rentalMonthly = (state.rentalProperties || [])
+      .filter((r: any) => Number(r.rent || 0) > 0)
+      .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+    const fdMonthly = (state.fixedDeposits || [])
+      .reduce((s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12, 0);
+    const totalPassive = rentalMonthly + fdMonthly;
+    const passiveRatio = metrics.monthIncome > 0 ? (totalPassive / metrics.monthIncome) * 100 : 0;
+    return { rentalMonthly, fdMonthly, totalPassive, passiveRatio };
+  }, [state.rentalProperties, state.fixedDeposits, metrics.monthIncome]);
+
+  const taxData80C = useMemo(() => {
+    const limit = 150000;
+    const now = new Date();
+    const yearStr = `${now.getFullYear()}`;
+    const elss = (state.mutualFunds || [])
+      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
+      .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+    const ppfThisYear = (state.ppfLedger || [])
+      .filter((t: any) => t.date && t.date.startsWith(yearStr) && t.type !== "withdrawal")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ppfAnnual = ppfThisYear > 0 ? ppfThisYear :
+      (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const total = Math.min(elss + ppfAnnual + licPremium, limit);
+    const remaining = Math.max(0, limit - total);
+    return { elss, ppfAnnual, licPremium, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic]);
+
+  const goalHealth = useMemo(() => {
+    const now = new Date();
+    const monthlySavings = Math.max(0, metrics.monthIncome - metrics.monthExpense);
+    return (state.goals || []).map((g: any) => {
+      const targetAmount = Number(g.targetAmount || g.target || 0);
+      const savedAmount = Number(g.savedAmount || g.currentAmount || g.saved || 0);
+      const gap = Math.max(0, targetAmount - savedAmount);
+      const progress = targetAmount > 0 ? Math.min((savedAmount / targetAmount) * 100, 100) : 0;
+      const targetDate = g.targetDate || g.deadline;
+      let monthsLeft = 0, monthlyNeeded = 0, onTrack = false;
+      if (targetDate) {
+        const td = new Date(targetDate);
+        monthsLeft = Math.max(0, Math.ceil((td.getTime() - now.getTime()) / (30 * 86400000)));
+        monthlyNeeded = monthsLeft > 0 ? gap / monthsLeft : gap;
+        onTrack = monthlySavings >= monthlyNeeded && gap > 0 && monthsLeft > 0;
+      }
+      const achieved = gap === 0;
+      return { ...g, gap, monthsLeft, monthlyNeeded, onTrack, progress, targetAmount, savedAmount, achieved };
+    });
+  }, [state.goals, metrics.monthIncome, metrics.monthExpense]);
 
   const isPositive = metrics.netWorth >= 0;
 
@@ -420,6 +486,30 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </Card>
           </div>
+
+          <Card className="bento-col-12" style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>Year-to-Date Performance</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Jan – {ytdData.monthName} {new Date().getFullYear()} · {ytdData.monthsElapsed} month{ytdData.monthsElapsed > 1 ? "s" : ""}</div>
+              </div>
+              <BarChart2 size={18} color={THEME.muted} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
+              {[
+                { label: "YTD Income", value: fmtINRFull(ytdData.ytdIncome), color: THEME.sage },
+                { label: "YTD Expense", value: fmtINRFull(ytdData.ytdExpense), color: THEME.rust },
+                { label: "YTD Savings", value: fmtINRFull(ytdData.ytdSavings), color: ytdData.ytdSavings >= 0 ? THEME.sage : THEME.rust },
+                { label: "YTD Savings Rate", value: ytdData.ytdSavingsRate.toFixed(1) + "%", color: ytdData.ytdSavingsRate >= 20 ? THEME.sage : ytdData.ytdSavingsRate >= 10 ? THEME.gold : THEME.rust },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ padding: 16, background: "rgba(128,128,128,0.04)", borderRadius: 12, borderLeft: `3px solid ${color}` }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
           <Card className="bento-col-4 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
             <div className="section-label">Financial Health</div>
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
@@ -471,6 +561,80 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ fontSize: 56, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>{dashboardData.streak}</div>
               <div style={{ fontSize: 13, color: THEME.muted, marginTop: 8, fontWeight: 600 }}>Months Saved</div>
               <Badge variant="sage" style={{ marginTop: 16, padding: "6px 12px", fontSize: 12 }}>{dashboardData.streakMsg}</Badge>
+            </div>
+          </Card>
+
+          <Card className="bento-col-5" style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>80C Utilization</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Annual ₹1.5L deduction limit</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: taxData80C.progress >= 100 ? THEME.sage : THEME.accent, letterSpacing: "-0.02em" }}>{taxData80C.progress.toFixed(0)}%</div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" as const }}>used</div>
+              </div>
+            </div>
+            <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden", marginBottom: 20 }}>
+              <div style={{ height: "100%", width: taxData80C.progress + "%", background: taxData80C.progress >= 100 ? THEME.sage : taxData80C.progress >= 60 ? THEME.gold : THEME.accent, borderRadius: 4, transition: "width 1s ease" }} />
+            </div>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[
+                { label: "ELSS Invested", value: taxData80C.elss, color: "#6366f1" },
+                { label: "PPF Contribution", value: taxData80C.ppfAnnual, color: THEME.sage },
+                { label: "LIC Premium", value: taxData80C.licPremium, color: THEME.gold },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                    <span style={{ color: THEME.muted, fontWeight: 500 }}>{label}</span>
+                  </div>
+                  <span style={{ fontWeight: 700 }}>{fmtINRFull(value)}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, borderTop: `1px solid ${THEME.line}`, fontSize: 13 }}>
+                <span style={{ fontWeight: 700 }}>Remaining</span>
+                <span style={{ fontWeight: 800, color: taxData80C.remaining > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(taxData80C.remaining)}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bento-col-7" style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>Passive Income Ratio</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Rent + FD interest vs active income</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: passiveIncomeData.passiveRatio >= 50 ? THEME.sage : passiveIncomeData.passiveRatio >= 20 ? THEME.gold : THEME.accent, letterSpacing: "-0.02em" }}>{passiveIncomeData.passiveRatio.toFixed(1)}%</div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" as const }}>of income</div>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              {[
+                { label: "Rental / Mo", value: passiveIncomeData.rentalMonthly, icon: Building2, color: "#059669", bg: "rgba(5,150,105,0.08)" },
+                { label: "FD Interest / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "rgba(217,119,6,0.08)" },
+              ].map(({ label, value, icon: Icon, color, bg }) => (
+                <div key={label} style={{ padding: 16, background: bg, borderRadius: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon size={14} color="#fff" />
+                    </div>
+                    <span style={{ fontSize: 11, color, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>{label}</span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>{fmtINRFull(value)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: "14px 16px", background: "rgba(128,128,128,0.04)", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 6 }}>Total Passive / Month</div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(passiveIncomeData.totalPassive)}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6 }}>50%+ → Semi-FI</div>
+                <div style={{ fontSize: 11, color: THEME.muted }}>100% → Full FI</div>
+              </div>
             </div>
           </Card>
 
@@ -654,6 +818,47 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
               })()}
             </div>
+          </Card>
+
+          <Card className="bento-col-12" style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>Goal Health Check</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Monthly savings pace vs what each goal needs</div>
+              </div>
+            </div>
+            {goalHealth.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13 }}>Add goals in the Goals tab to see your progress and pacing here</div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {goalHealth.map((g: any) => (
+                  <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${g.achieved ? "rgba(52,211,153,0.2)" : g.onTrack ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.2)"}` }}>
+                    {g.achieved || g.onTrack
+                      ? <CheckCircle2 size={18} color={THEME.sage} style={{ flexShrink: 0 }} />
+                      : <XCircle size={18} color={THEME.rust} style={{ flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{g.name || g.title}</span>
+                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                          {g.achieved ? "✓ Achieved" : g.monthsLeft > 0 ? `${g.monthsLeft}mo left` : g.targetDate ? "Overdue" : "No deadline"}
+                        </span>
+                      </div>
+                      <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden", marginBottom: 6 }}>
+                        <div style={{ height: "100%", width: g.progress + "%", background: g.achieved ? THEME.sage : g.onTrack ? THEME.accent : THEME.gold, borderRadius: 3, transition: "width 1s ease" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, flexWrap: "wrap", gap: 4 }}>
+                        <span>{fmtINRFull(g.savedAmount)} of {fmtINRFull(g.targetAmount)}</span>
+                        {!g.achieved && g.monthsLeft > 0 && (
+                          <span style={{ color: g.onTrack ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                            Need {fmtINR(g.monthlyNeeded)}/mo · {g.onTrack ? "On track ✓" : "Behind ✗"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card className="bento-col-12" style={{ padding: 24 }}>
