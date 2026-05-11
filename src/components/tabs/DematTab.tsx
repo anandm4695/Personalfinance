@@ -27,6 +27,8 @@ const BROKER_LOGO_DOMAINS: Record<string, string> = {
   iifl:      "iiflsecurities.com",
   sbi:       "sbisec.co.in",
   axis:      "axissecurities.in",
+  ninestar:  "9star.in",
+  "9star":   "9star.in",
 };
 
 // Broker brand colors — covers all major Indian brokers
@@ -48,6 +50,8 @@ const BROKER_THEMES: Record<string, { gradient: string; color: string }> = {
   iifl:      { gradient: "linear-gradient(135deg,#b45309 0%,#f59e0b 100%)", color: "#b45309" },
   sbi:       { gradient: "linear-gradient(135deg,#1d4ed8 0%,#60a5fa 100%)", color: "#1d4ed8" },
   axis:      { gradient: "linear-gradient(135deg,#7c2d12 0%,#f97316 100%)", color: "#ea580c" },
+  ninestar:  { gradient: "linear-gradient(135deg,#b45309 0%,#fbbf24 100%)", color: "#b45309" },
+  "9star":   { gradient: "linear-gradient(135deg,#b45309 0%,#fbbf24 100%)", color: "#b45309" },
 };
 
 function getBrokerTheme(broker: string) {
