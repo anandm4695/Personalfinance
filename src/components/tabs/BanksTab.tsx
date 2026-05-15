@@ -11,6 +11,90 @@ import { Badge } from "../ui/Badge";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 
+// Bank logo domains for Clearbit / Google Favicon API
+const BANK_LOGO_DOMAINS: Record<string, string> = {
+  hdfc:      "hdfcbank.com",
+  icici:     "icicibank.com",
+  sbi:       "sbi.co.in",
+  axis:      "axisbank.com",
+  kotak:     "kotak.com",
+  idfc:      "idfcfirstbank.com",
+  indusind:  "indusind.com",
+  yesbank:   "yesbank.in",
+  "yes bank": "yesbank.in",
+  sc:        "sc.com",
+  citi:      "citi.com",
+  hsbc:      "hsbc.co.in",
+  dbs:       "dbs.com",
+  bob:       "bankofbaroda.in",
+  baroda:    "bankofbaroda.in",
+  pnb:       "pnbindia.in",
+  canara:    "canarabank.com",
+  idbi:      "idbibank.in",
+  union:     "unionbankofindia.co.in",
+  federal:   "federalbank.co.in",
+  equitas:   "equitasbank.com",
+  au:        "aubank.in",
+  rbl:       "rblbank.com",
+  bandhan:   "bandhanbank.com",
+  jupiter:   "jupiter.money",
+  fi:        "fi.money",
+  slice:     "sliceit.com",
+  onecard:   "getonecard.com",
+  airtel:    "airtel.in",
+  paytm:     "paytmbank.com",
+  amazon:    "amazon.in",
+};
+
+// Account type visual themes
+const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: string }> = {
+  savings: { color: "#0284c7", bg: "rgba(2,132,199,0.08)", icon: "💰" },
+  current: { color: "#059669", bg: "rgba(5,150,105,0.08)", icon: "💼" },
+  salary:  { color: "#7c3aed", bg: "rgba(124,58,237,0.08)", icon: "💎" },
+  joint:   { color: "#d97706", bg: "rgba(217,119,6,0.08)", icon: "🤝" },
+  fd:      { color: "#ea580c", bg: "rgba(234,88,12,0.08)", icon: "🔒" },
+  other:   { color: THEME.muted, bg: "rgba(128,128,128,0.08)", icon: "🏦" },
+};
+
+function getAccountTheme(type: string) {
+  const t = (type || "savings").toLowerCase();
+  if (t.includes("salary")) return ACCOUNT_TYPE_THEMES.salary;
+  if (t.includes("joint"))  return ACCOUNT_TYPE_THEMES.joint;
+  if (t.includes("current")) return ACCOUNT_TYPE_THEMES.current;
+  if (t.includes("fd") || t.includes("fixed")) return ACCOUNT_TYPE_THEMES.fd;
+  return ACCOUNT_TYPE_THEMES.savings;
+}
+
+const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
+  const name = (bankName || "").toLowerCase();
+  let domain = "";
+  for (const [k, d] of Object.entries(BANK_LOGO_DOMAINS)) {
+    if (name.includes(k)) {
+      domain = d;
+      break;
+    }
+  }
+
+  if (domain) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 10, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+        <img 
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
+          alt={bankName} 
+          style={{ width: "70%", height: "70%", objectFit: "contain" }}
+          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: ${size/2.5}px; font-weight: 800; color: ${THEME.muted}">${bankName.slice(0, 2).toUpperCase()}</span>`; }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: size, height: size, borderRadius: 10, background: "rgba(128,128,128,0.1)", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ fontSize: size/2.5, fontWeight: 800, color: THEME.muted }}>{bankName.slice(0, 2).toUpperCase()}</span>
+    </div>
+  );
+};
+
 const OwnerBadge = ({ owner }: { owner?: string }) => {
   if (!owner) return null;
   const p = PROFILES.find(x => x.id === owner);
@@ -213,21 +297,55 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
         {state.bankAccounts.length === 0 && (
           <div style={{ ...card, gridColumn: "1 / -1" }}><BankEmptyState onAdd={() => setShowBank(true)} /></div>
         )}
-        {state.bankAccounts.map((a: any) => (
-          <div key={a.id} style={{ ...card, position: "relative" }}>
-            <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-              <button onClick={() => setEditBankId(a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Edit3 size={14} /></button>
-              <button onClick={() => removeItem("bankAccounts", a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Trash2 size={14} /></button>
+        {state.bankAccounts.map((a: any) => {
+          const theme = getAccountTheme(a.type);
+          return (
+            <div key={a.id} style={{ ...card, position: "relative", overflow: "hidden" }}>
+              {/* Type indicator strip */}
+              <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 4, background: theme.color }} />
+              
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
+                <button onClick={() => setEditBankId(a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Edit3 size={14} /></button>
+                <button onClick={() => removeItem("bankAccounts", a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Trash2 size={14} /></button>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <BankLogo bankName={a.bankName} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ 
+                      fontSize: 10, 
+                      fontWeight: 700, 
+                      letterSpacing: "0.05em", 
+                      textTransform: "uppercase", 
+                      color: theme.color,
+                      background: theme.bg,
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}>
+                      <span>{theme.icon}</span> {a.type || "Savings"}
+                    </div>
+                    <OwnerBadge owner={a.owner} />
+                  </div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>{a.bankName}</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Account Balance</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
+                  •••• {(a.accountNumber || "").slice(-4)}
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.muted }}>{a.type || "Savings"}</div>
-              <OwnerBadge owner={a.owner} />
-            </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{a.bankName}</div>
-            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>••••{(a.accountNumber || "").slice(-4)}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 28, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={card}>
