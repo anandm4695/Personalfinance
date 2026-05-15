@@ -1071,6 +1071,7 @@ function FinanceDashboard() {
           }
           if (!currentErr) {
             console.warn(`[Supabase] Saved without missing cols: ${stripped.join(", ")} — run SQL migration to sync all fields`);
+            showToast(`⚠️ Saved but ${stripped.join(", ")} was not stored — DB column missing. Run SQL migration.`, "warn");
           } else if (isNetworkError(currentErr.message)) {
             showToast("Saved locally — syncing in background…", "warn");
           } else {
@@ -1158,15 +1159,20 @@ function FinanceDashboard() {
             // Column missing in DB schema — strip bad column(s) and retry
             let retryPatch: any = { ...finalPatch };
             let currentErr: any = error;
+            const strippedU: string[] = [];
             while (currentErr?.code === "PGRST204") {
               const match = currentErr.message?.match(/Could not find the '(\w+)' column/);
               const badCol = match ? match[1] : null;
               if (!badCol || retryPatch[badCol] === undefined) break;
               delete retryPatch[badCol];
+              strippedU.push(badCol);
               const { error: retryErr } = await doUpdate(retryPatch);
               currentErr = retryErr || null;
             }
-            if (currentErr) {
+            if (!currentErr && strippedU.length > 0) {
+              console.warn(`[Supabase] Updated without missing cols: ${strippedU.join(", ")} — run SQL migration`);
+              showToast(`⚠️ Updated but ${strippedU.join(", ")} was not stored — DB column missing. Run SQL migration.`, "warn");
+            } else if (currentErr) {
               console.error(`Supabase Update Error (${table}):`, currentErr.message);
               showToast(`Update sync failed: ${currentErr.message}`, "error");
             }
