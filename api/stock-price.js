@@ -42,7 +42,9 @@ module.exports = async function handler(req, res) {
             volume: data?.regularMarketVolume ?? null,
           };
         }
-      } catch (_) {}
+      } catch (err) {
+        console.error(`[stock-price] Failed to fetch ${sym}:`, err?.message || err);
+      }
     })
   );
 

@@ -42,7 +42,9 @@ async function resolveWithYahoo(symbol) {
       const domain = new URL(website).hostname.replace(/^www\./, "");
       return `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
     }
-  } catch (_) {}
+  } catch (err) {
+    console.error(`[stock-logo] Yahoo lookup failed for ${symbol}:`, err?.message || err);
+  }
   return null;
 }
 

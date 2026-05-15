@@ -624,7 +624,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                     {isLive && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 20, padding: "10px 18px", background: "rgba(128,128,128,0.06)", borderBottom: `1px solid ${THEME.line}`, fontSize: 12 }}>
                         {md.prevClose != null && <span><span style={{ color: THEME.muted }}>Prev Close </span><b>₹{md.prevClose.toFixed(2)}</b></span>}
-                        {md.dayHigh != null && <span><span style={{ color: THEME.muted }}>Day H/L </span><b style={{ color: THEME.sage }}>{md.dayHigh.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>{md.dayLow.toFixed(2)}</b></span>}
+                        {md.dayHigh != null && <span><span style={{ color: THEME.muted }}>Day H/L </span><b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b></span>}
                         {md.weekHigh52 != null && <span><span style={{ color: THEME.muted }}>52W H/L </span><b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b></span>}
                         {md.volume != null && <span><span style={{ color: THEME.muted }}>Vol </span><b>{fmtVol(md.volume)}</b></span>}
                       </div>
