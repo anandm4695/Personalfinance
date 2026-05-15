@@ -445,11 +445,29 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
 }
 
 // ─── Section: Data & Account ──────────────────────────────────────────────────
-function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut }: any) {
+function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanupOrphaned }: any) {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
+      {/* Cleanup */}
+      <Card style={{ padding: 24, border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <RotateCcw size={16} color={THEME.gold} /> Cleanup & Maintenance
+        </div>
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, marginTop: 4 }}>
+          Scan and remove historical data records (like corporate actions) that no longer have a matching stock or sale history.
+        </p>
+        <Button 
+          variant="secondary" 
+          onClick={async () => { setCleaning(true); await cleanupOrphaned(); setCleaning(false); }} 
+          icon={<RefreshCw size={14} className={cleaning ? "animate-spin" : ""} />}
+        >
+          {cleaning ? "Cleaning up..." : "Cleanup Orphaned Portfolio Data"}
+        </Button>
+      </Card>
+
       {/* Backup */}
       <Card style={{ padding: 24 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
@@ -541,6 +559,7 @@ const TOP_TABS = [
 
 export function SettingsTab({
   state, exportJSON, onRestoreBackup, resetAll, onSignOut,
+  cleanupOrphaned,
   updateProfile,
   darkMode, toggleDarkMode,
   accentKey, setAccentKey,
@@ -593,6 +612,7 @@ export function SettingsTab({
           onRestoreBackup={onRestoreBackup}
           resetAll={resetAll}
           onSignOut={onSignOut}
+          cleanupOrphaned={cleanupOrphaned}
         />
       )}
     </div>

@@ -475,12 +475,7 @@ function FinanceDashboard() {
             corporateActions: snakeToCamel(corpAct.data).filter((ca: any) => {
               const st = (!stks.error && stks.data != null) ? snakeToCamel(stks.data) : currentState.stocks;
               const sts = (!stSells.error && stSells.data != null) ? snakeToCamel(stSells.data) : currentState.stockSells;
-              const hasActiveOrSold = st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange) || sts.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
-              if (!hasActiveOrSold) {
-                supabase.from("corporate_actions").delete().eq("id", ca.id).then();
-                return false;
-              }
-              return true;
+              return st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange) || sts.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
             }) 
           } : {}),
         };
@@ -1133,6 +1128,8 @@ function FinanceDashboard() {
 
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
+    const itemToDelete = key === "stocks" ? state.stocks.find((x: any) => x.id === id) : null;
+
     setState((s) => ({ ...s, [key]: s[key].filter((x) => x.id !== id) }));
     
     if (userId && userId !== "offline-user") {
@@ -1142,12 +1139,44 @@ function FinanceDashboard() {
         if (error) {
           console.error(`Supabase Delete Error (${table}):`, error.message);
           showToast(`Delete sync failed: ${error.message}`, "error");
-          // Revert optimistic remove — re-fetch to restore
           fetchAllData();
+        } else if (key === "stocks" && itemToDelete) {
+          // Check if any lots of this stock remain in active portfolio OR if it's in sales history
+          const stillHasLots = state.stocks.some((x: any) => x.id !== id && x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
+          const hasInSales = state.stockSells.some((x: any) => x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
+          
+          if (!stillHasLots && !hasInSales) {
+            await supabase.from("corporate_actions").delete().eq("symbol", itemToDelete.symbol).eq("exchange", itemToDelete.exchange);
+            setState((s: any) => ({ ...s, corporateActions: s.corporateActions.filter((ca: any) => !(ca.symbol === itemToDelete.symbol && ca.exchange === itemToDelete.exchange)) }));
+          }
         }
       }
     }
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
+  };
+
+  const cleanupOrphanedCorporateActions = async () => {
+    const orphaned = state.corporateActions.filter((ca: any) => {
+      const hasActive = state.stocks.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
+      const hasSold = state.stockSells.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
+      return !hasActive && !hasSold;
+    });
+
+    if (orphaned.length === 0) {
+      showToast("No orphaned corporate action records found.", "info");
+      return;
+    }
+
+    const count = orphaned.length;
+    const ids = orphaned.map((ca: any) => ca.id);
+    
+    const { error } = await supabase.from("corporate_actions").delete().in("id", ids);
+    if (!error) {
+      setState((s: any) => ({ ...s, corporateActions: s.corporateActions.filter((ca: any) => !ids.includes(ca.id)) }));
+      showToast(`Successfully purged ${count} orphaned records from Supabase.`, "success");
+    } else {
+      showToast("Cleanup failed: " + error.message, "error");
+    }
   };
 
   const updateItem = async (key, id, patch) => {
@@ -2010,6 +2039,7 @@ function FinanceDashboard() {
                 resetAll={resetAll}
                 showToast={showToast}
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
+                cleanupOrphaned={cleanupOrphanedCorporateActions}
                 updateProfile={updateProfile}
                 darkMode={darkMode} toggleDarkMode={() => updateSettings({ darkMode: !darkMode })}
                 accentKey={accentKey} setAccentKey={(v) => updateSettings({ accentKey: v })}
