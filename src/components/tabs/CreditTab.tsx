@@ -4,6 +4,7 @@ import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRu
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -134,7 +135,7 @@ const Tile = ({ icon: Icon, label, value, subColor, gradient }: any) => (
     </div>
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: subColor || THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: subColor || THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
     </div>
   </div>
 );

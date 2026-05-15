@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { SubModal } from "../modals/SubModal";
 
 // Internal helper components
@@ -20,7 +21,7 @@ const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
     </div>
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
       {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
     </div>
   </div>

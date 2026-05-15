@@ -3,6 +3,7 @@ import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "rec
 import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, IndianRupee, PieChart as PieIcon, Activity, Calculator, Receipt, Target, Heart, Wallet, Building2, Repeat, Bell, Hash, Settings, LogOut, Sun, Moon, Download, Clock } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -191,7 +192,7 @@ const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
     </div>
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
       {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
     </div>
   </div>

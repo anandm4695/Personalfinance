@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today, uid } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -441,7 +442,7 @@ const FDSection = ({ items, removeItem, onAdd }: any) => (
                   <Badge variant="muted">{f.bank}</Badge>
                   <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("fixedDeposits", f.id)} />
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 16 }}>{fmtINRFull(f.principal)}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 16 }}><Prv>{fmtINRFull(f.principal)}</Prv></div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div style={{ fontSize: 11, color: THEME.muted }}>Rate: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.rate}%</span></div>
                   <div style={{ fontSize: 11, color: THEME.muted }}>Tenure: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.years} yrs</span></div>
@@ -749,7 +750,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
 
       {/* Balance */}
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Current Balance</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>{fmtINRFull(p.balance)}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}><Prv>{fmtINRFull(p.balance)}</Prv></div>
 
       {/* Stats row */}
       {txs.length > 0 && (

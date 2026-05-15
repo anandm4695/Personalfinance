@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, autoCateg } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -224,7 +225,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
             </div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{a.bankName}</div>
             <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>••••{(a.accountNumber || "").slice(-4)}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 28, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(a.balance)}</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 28, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
           </div>
         ))}
       </div>

@@ -59,6 +59,7 @@ import {
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
+import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 
 // Modular Imports
 import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PIE_COLORS, PROFILES, STORAGE_KEY } from "./utils/constants";
@@ -127,14 +128,14 @@ const EMPTY_DATA = DEFAULT_STATE;
 
 
 // ================== MAIN APP ==================
-export default function FinanceDashboard() {
+function FinanceDashboard() {
   const [session, setSession] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
-  const [privacyMode, setPrivacyMode] = useState(true);
+  const { privacyMode, setPrivacyMode } = usePrivacy();
 
   const [state, setState] = useState(() => {
     // 1. If we just reset, start with default state
@@ -1939,10 +1940,8 @@ export default function FinanceDashboard() {
             padding: "40px",
             position: "relative",
             zIndex: 1,
-            filter: privacyMode ? "blur(7px)" : "none",
+            filter: privacyMode ? "blur(16px)" : "none",
             transition: "filter 0.3s ease",
-            userSelect: privacyMode ? "none" : "auto",
-            pointerEvents: privacyMode ? "none" : "auto",
           }}
         >
           <div key={tab} className="tab-content-enter">
@@ -2201,4 +2200,12 @@ const label = {
   letterSpacing: "0.03em",
   textTransform: "uppercase" as const,
 };
+
+export default function App() {
+  return (
+    <PrivacyProvider>
+      <FinanceDashboard />
+    </PrivacyProvider>
+  );
+}
 

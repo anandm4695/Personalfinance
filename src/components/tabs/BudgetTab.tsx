@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -20,7 +21,7 @@ const Tile = ({ icon: Icon, label, value, sub, subColor, negative }: any) => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--t-muted)", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
       <Icon size={14} /> {label}
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800, color: negative ? "var(--t-rust)" : "var(--t-ink)" }}>{value}</div>
+    <div style={{ fontSize: 20, fontWeight: 800, color: negative ? "var(--t-rust)" : "var(--t-ink)" }}><Prv>{value}</Prv></div>
     {sub && <div style={{ fontSize: 11, color: subColor || "var(--t-muted)", marginTop: 4, fontWeight: 600 }}>{sub}</div>}
   </div>
 );

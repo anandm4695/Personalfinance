@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { Trash2, BarChart3, ArrowLeftRight, Layers, Coins } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { Prv } from "../../context/PrivacyContext";
 
 // Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -16,7 +17,7 @@ const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: THEME.muted, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
       <Icon size={14} /> {label}
     </div>
-    <div style={{ fontSize: 20, fontWeight: 800 }}>{value}</div>
+    <div style={{ fontSize: 20, fontWeight: 800 }}><Prv>{value}</Prv></div>
     {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}>{sub}</div>}
   </div>
 );
