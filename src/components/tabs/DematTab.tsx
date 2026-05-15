@@ -891,7 +891,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
-  const [actionDate, setActionDate] = useState(today()); // pre-fill with today so Apply is never blocked by missing date
+  const [actionDate, setActionDate] = useState(""); // user must pick the actual corporate action date
   const n = Number(ratioN) || 0;
   const m = Number(ratioM) || 0;
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
@@ -930,12 +930,12 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: actionDate ? THEME.sage : THEME.rust, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
           Action Date — when did this corporate action happen? {!actionDate && "★ Required"}
         </label>
-        <input style={{ ...input, borderColor: actionDate ? THEME.sage : THEME.rust }} type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} max={today()} />
+        <input style={{ ...input, borderColor: actionDate ? THEME.sage : THEME.rust }} type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} />
         {!actionDate && <div style={{ fontSize: 12, color: THEME.rust, marginTop: 6, fontWeight: 600 }}>Enter the actual date (e.g. 15 Jan 2025) — this is saved in the history log</div>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}><Field label={type === "split" ? "New Shares" : "Bonus Shares"}><input style={input} type="number" min="1" value={ratioN} onChange={(e) => setRatioN(e.target.value)} /></Field><div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div><Field label="Existing Shares"><input style={input} type="number" min="1" value={ratioM} onChange={(e) => setRatioM(e.target.value)} /></Field></div>
       {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{Math.round(newTotalQty)}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
-      <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" />
+      <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" disabled={!isValid} />
     </Modal>
   );
 }

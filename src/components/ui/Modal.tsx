@@ -45,7 +45,8 @@ export const ModalActions: React.FC<{
   onClose: () => void;
   saveLabel?: string;
   cancelLabel?: string;
-}> = ({ onSave, onClose, saveLabel = "Save", cancelLabel = "Cancel" }) => (
+  disabled?: boolean;
+}> = ({ onSave, onClose, saveLabel = "Save", cancelLabel = "Cancel", disabled = false }) => (
   <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
     <button
       onClick={onClose}
@@ -62,16 +63,19 @@ export const ModalActions: React.FC<{
       {cancelLabel}
     </button>
     <button
-      onClick={onSave}
+      onClick={disabled ? undefined : onSave}
+      disabled={disabled}
       style={{
         padding: "10px 24px",
         borderRadius: "var(--radius-md)",
-        background: "var(--t-accent)",
+        background: disabled ? "var(--t-muted)" : "var(--t-accent)",
         border: "none",
         color: "#fff",
         fontWeight: 700,
-        cursor: "pointer",
-        boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 40%, transparent)",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
+        boxShadow: disabled ? "none" : "0 4px 14px color-mix(in srgb, var(--t-accent) 40%, transparent)",
+        transition: "opacity 0.2s, background 0.2s",
       }}
     >
       {saveLabel}
