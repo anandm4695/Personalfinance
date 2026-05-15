@@ -4,6 +4,8 @@ import { THEME } from "../../utils/constants";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
+import { useMasterData } from "../../utils/masterData";
+
 const input = {
   width: "100%",
   padding: "10px 12px",
@@ -15,10 +17,11 @@ const input = {
 };
 
 export function BankEditModal({ account, onClose, onSave }: any) {
+  const { bankAccountTypes } = useMasterData();
   const [f, setF] = useState({
     bankName: account?.bankName || "",
     accountNumber: account?.accountNumber || "",
-    type: account?.type || "Savings",
+    type: account?.type || bankAccountTypes[0] || "Savings",
     balance: account?.balance || "",
   });
   return (
@@ -32,10 +35,7 @@ export function BankEditModal({ account, onClose, onSave }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type">
           <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
-            <option>Savings</option>
-            <option>Current</option>
-            <option>Salary</option>
-            <option>Joint</option>
+            {bankAccountTypes.map((t: string) => <option key={t} value={t}>{t}</option>)}
           </select>
         </Field>
         <Field label="Current Balance">

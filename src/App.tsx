@@ -6,8 +6,7 @@
 // The TS 4.4 → 5.x upgrade is done; supabaseClient.ts is clean.
 // Next step: define AppState interface + per-entity types, then remove this pragma.
 import "./styles.css";
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import ReactDOM from "react-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   PieChart as PieIcon,
   TrendingUp,
@@ -26,19 +25,14 @@ import {
   Moon,
   LogOut,
   RefreshCw,
-  Check,
   CheckCheck,
   Clock,
-  AlertCircle,
   Download,
   IndianRupee,
   History,
   CreditCard,
   Plus,
   Trash2,
-  Edit2,
-  ChevronRight,
-  ExternalLink,
   ChevronDown,
   ArrowRight,
   ArrowLeft,
@@ -46,11 +40,7 @@ import {
   BarChart3,
   Repeat,
   Activity,
-  Sparkles,
-  Database,
   User,
-  Layout as LayoutIcon,
-  Upload,
   Coins,
   Shield,
   Briefcase,
@@ -62,14 +52,10 @@ import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 
 // Modular Imports
-import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PIE_COLORS, PROFILES, STORAGE_KEY } from "./utils/constants";
+import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PROFILES } from "./utils/constants";
 import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
-import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, autoCateg, calcCAGR, fdMaturity, rdMaturity, calcTaxNew, calcTaxOld, loadState, saveStateLocal } from "./utils/finance";
-import { Button } from "./components/ui/Button";
-import { Card } from "./components/ui/Card";
+import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal } from "./utils/finance";
 import { Badge } from "./components/ui/Badge";
-import { Modal, ModalActions } from "./components/ui/Modal";
-import { Field, Input, Select } from "./components/ui/Form";
 
 // Tab Imports
 import { AnalyticsTab } from "./components/tabs/AnalyticsTab";
@@ -1194,7 +1180,6 @@ function FinanceDashboard() {
         if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
         
         // Specific field mapping for updates
-        if (key === "bankAccounts") { delete finalPatch.type; }
         if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
         if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
