@@ -471,7 +471,17 @@ function FinanceDashboard() {
           ...(!stSells.error && stSells.data != null ? { stockSells: snakeToCamel(stSells.data) } : {}),
           ...(!mfSells.error && mfSells.data != null ? { mfSells: snakeToCamel(mfSells.data) } : {}),
           ...(!nwh.error && nwh.data != null ? { netWorthHistory: snakeToCamel(nwh.data).map((r: any) => ({ month: r.month, netWorth: r.netWorth })) } : {}),
-          ...(!corpAct.error && corpAct.data != null ? { corporateActions: snakeToCamel(corpAct.data) } : {}),
+          ...(!corpAct.error && corpAct.data != null ? { 
+            corporateActions: snakeToCamel(corpAct.data).filter((ca: any) => {
+              const st = (!stocks.error && stocks.data != null) ? snakeToCamel(stocks.data) : prev.stocks;
+              const hasActive = st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
+              if (!hasActive) {
+                supabase.from("corporate_actions").delete().eq("id", ca.id).then();
+                return false;
+              }
+              return true;
+            }) 
+          } : {}),
         };
       });
     } catch (e) {
