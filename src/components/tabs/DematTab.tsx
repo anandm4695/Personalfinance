@@ -891,7 +891,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
-  const [actionDate, setActionDate] = useState("");
+  const [actionDate, setActionDate] = useState(today()); // pre-fill with today so Apply is never blocked by missing date
   const n = Number(ratioN) || 0;
   const m = Number(ratioM) || 0;
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
