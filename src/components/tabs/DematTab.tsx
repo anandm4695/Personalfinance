@@ -791,7 +791,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
-  const [actionDate, setActionDate] = useState(today());
+  const [actionDate, setActionDate] = useState("");
   const n = Number(ratioN) || 0;
   const m = Number(ratioM) || 0;
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
@@ -799,7 +799,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   let newTotalQty = 0;
   if (n > 0 && m > 0) newTotalQty = type === "split" ? totalQty * n / m : totalQty * (m + n) / m;
   const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
-  const isValid = n > 0 && m > 0 && (type === "split" ? n > m : true);
+  const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n > m : true);
   const handleApply = () => {
     if (!isValid) return;
     const updates = group.lots.map((lot: any) => {
@@ -827,7 +827,10 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
     <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
       <Field label="Action Type"><div style={{ display: "flex", gap: 10 }}>{(["split", "bonus"] as const).map((t) => <button key={t} style={{ ...btnGhost, flex: 1, justifyContent: "center", background: type === t ? THEME.accent : undefined, color: type === t ? "#fff" : undefined, border: type === t ? `1px solid ${THEME.accent}` : undefined }} onClick={() => setType(t)}>{t === "split" ? "Stock Split" : "Bonus Shares"}</button>)}</div></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}><Field label={type === "split" ? "New Shares" : "Bonus Shares"}><input style={input} type="number" min="1" value={ratioN} onChange={(e) => setRatioN(e.target.value)} /></Field><div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div><Field label="Existing Shares"><input style={input} type="number" min="1" value={ratioM} onChange={(e) => setRatioM(e.target.value)} /></Field></div>
-      <Field label="Action Date"><input style={input} type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} /></Field>
+      <Field label="Action Date — when did this split / bonus happen?">
+        <input style={input} type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} max={today()} />
+        {!actionDate && <div style={{ fontSize: 11, color: THEME.rust, marginTop: 4, fontWeight: 600 }}>Required — enter the actual date of the corporate action (e.g. 15 Jan 2025)</div>}
+      </Field>
       {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{Math.round(newTotalQty)}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
       <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" />
     </Modal>
