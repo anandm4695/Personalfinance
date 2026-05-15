@@ -1,12 +1,11 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check } from "lucide-react";
+import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, getCCDueDate } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
-import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components usually found in App.tsx or similar
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -171,7 +170,31 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
           <button style={btnSolid} onClick={() => setShow(true)}>
             <Plus size={14} /> Add Reminder
           </button>
-        </div>
+      </div>
+    </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard 
+          icon={<Bell />} 
+          label="Upcoming Alerts" 
+          value={upcoming.length} 
+          color={THEME.accent}
+          sub="Reminders for next 365 days"
+        />
+        <StatCard 
+          icon={<AlertCircle size={20} />} 
+          label="Due Soon (7d)" 
+          value={upcoming.filter(r => daysLeft(r.date) <= 7).length} 
+          color={upcoming.filter(r => daysLeft(r.date) <= 7).length > 0 ? THEME.rust : THEME.sage}
+          sub="Critical window alerts"
+        />
+        <StatCard 
+          icon={<Trash2 size={20} />} 
+          label="Past Due" 
+          value={past.length} 
+          color={past.length > 0 ? THEME.rust : THEME.muted}
+          sub="Unresolved past alerts"
+        />
       </div>
 
       {upcoming.length === 0 && past.length === 0 ? (

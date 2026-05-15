@@ -3,10 +3,10 @@ import React, { useState, useMemo } from "react";
 import { Activity, TrendingUp, Repeat, Sparkles, Plus, Trash2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -16,18 +16,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <Icon size={18} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
-      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  </div>
-);
+
 
 const SIPEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
@@ -123,11 +112,35 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
         SIP Tracker
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Activity} label="Monthly SIP" value={fmtINRFull(totalMonthly)} gradient="linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)" />
-        <Tile icon={TrendingUp} label="Total Invested" value={fmtINRFull(totalInvested)} gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)" />
-        <Tile icon={Repeat} label="Active SIPs" value={sipsWithCalc.length} gradient="linear-gradient(135deg,#0d9488 0%,#5eead4 100%)" />
-        <Tile icon={Sparkles} label="Projected Corpus" value={fmtINRFull(totalProjected)} sub={`@${sipProjRate}% p.a.`} subColor={THEME.sage} gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard 
+          icon={<Activity />} 
+          label="Monthly SIP" 
+          value={fmtINRFull(totalMonthly)} 
+          color={THEME.accent}
+          sub="Total monthly commitment"
+        />
+        <StatCard 
+          icon={<TrendingUp />} 
+          label="Total Invested" 
+          value={fmtINRFull(totalInvested)} 
+          color={THEME.sage}
+          sub="Cumulative capital put in"
+        />
+        <StatCard 
+          icon={<Repeat />} 
+          label="Active SIPs" 
+          value={sipsWithCalc.length} 
+          color={THEME.muted}
+          sub="Running investment plans"
+        />
+        <StatCard 
+          icon={<Sparkles />} 
+          label="Projected Corpus" 
+          value={fmtINRFull(totalProjected)} 
+          color={THEME.gold}
+          sub={`@${sipProjRate}% p.a. estimation`}
+        />
       </div>
 
       {sipsWithCalc.length > 0 && (

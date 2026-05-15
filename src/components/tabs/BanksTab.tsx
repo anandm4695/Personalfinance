@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText } from "lucide-react";
+import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText, TrendingUp, TrendingDown, IndianRupee } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, autoCateg } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
@@ -8,6 +8,7 @@ import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 
@@ -273,6 +274,14 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
       (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.category || "").toLowerCase().includes(search.toLowerCase())
     );
+    
+  const totalBalance = state.bankAccounts.reduce((acc: any, a: any) => acc + (Number(a.balance) || 0), 0);
+  const now = new Date();
+  const startOfMonth = now.toISOString().slice(0, 7) + "-01";
+  const monthlyTxns = state.transactions.filter((t: any) => t.date >= startOfMonth);
+  const monthlyIncome = monthlyTxns.filter((t: any) => t.type === "credit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
+  const monthlyExpense = monthlyTxns.filter((t: any) => t.type === "debit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
+
 
   return (
     <div>
@@ -291,6 +300,30 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
             <Plus size={14} /> Transaction
           </button>
         </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+        <StatCard 
+          label="Total Balance" 
+          value={fmtINRFull(totalBalance)} 
+          icon={<IndianRupee />} 
+          color={THEME.accent}
+          sub={`${state.bankAccounts.length} Connected Accounts`}
+        />
+        <StatCard 
+          label="Monthly Income" 
+          value={fmtINRFull(monthlyIncome)} 
+          icon={<TrendingUp />} 
+          color={THEME.sage}
+          sub="Current month credits"
+        />
+        <StatCard 
+          label="Monthly Spends" 
+          value={fmtINRFull(monthlyExpense)} 
+          icon={<TrendingDown />} 
+          color={THEME.rust}
+          sub="Current month debits"
+        />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>

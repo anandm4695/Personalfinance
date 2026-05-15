@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React from "react";
-import { Shield, Heart, Wallet, Zap, Plus } from "lucide-react";
+import { Shield, Heart, Wallet, Zap } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -13,18 +13,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <Icon size={18} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
-      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  </div>
-);
+
 
 const LICEmptyState = () => (
   <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
@@ -90,11 +79,35 @@ export function InsuranceSummaryTab({ state }: any) {
         Insurance Summary
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Shield} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} gradient="linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)" />
-        <Tile icon={Heart} label="Total Term Cover" value={fmtINRFull(totalTermCover)} gradient="linear-gradient(135deg,#e11d48 0%,#fb7185 100%)" />
-        <Tile icon={Wallet} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)" />
-        <Tile icon={Zap} label="Cover Ratio" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} sub={adequacyLabel} subColor={adequacyColor} gradient={adequacyLevel === "excellent" || adequacyLevel === "adequate" ? "linear-gradient(135deg,#059669 0%,#34d399 100%)" : "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard 
+          icon={<Shield />} 
+          label="Total LIC Sum Assured" 
+          value={fmtINRFull(totalLICAssured)} 
+          color={THEME.rust}
+          sub="Life Insurance Corp policies"
+        />
+        <StatCard 
+          icon={<Heart />} 
+          label="Total Term Cover" 
+          value={fmtINRFull(totalTermCover)} 
+          color={THEME.rust}
+          sub="Pure protection cover"
+        />
+        <StatCard 
+          icon={<Wallet />} 
+          label="Total Annual Premium" 
+          value={fmtINRFull(totalAnnualPremium)} 
+          color={THEME.gold}
+          sub="Combined insurance cost"
+        />
+        <StatCard 
+          icon={<Zap />} 
+          label="Cover Ratio" 
+          value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} 
+          color={adequacyColor}
+          sub={adequacyLabel}
+        />
       </div>
 
       {annualIncome > 0 && (

@@ -7,7 +7,6 @@ import {
   Calendar,
   PieChart as PieIcon,
   Printer,
-  IndianRupee,
   ChevronDown,
   ChevronUp,
   Building2,
@@ -39,7 +38,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, monthsBetween, today, getCCDueDate } from "../../utils/finance";
+import { fmtINR, fmtINRFull, getCCDueDate } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";

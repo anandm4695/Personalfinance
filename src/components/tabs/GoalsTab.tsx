@@ -1,9 +1,10 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, TrendingUp, Target, Flag } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Pencil, Trash2, Flag, TrendingUp, Sparkles } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -131,24 +132,41 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
       </SectionTitle>
 
       {state.goals.length > 0 && (
-        <div style={{ ...card, marginBottom: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 16, marginBottom: 18 }}>
-            {[
-              { label: "Total Goals", value: String(state.goals.length), color: THEME.ink },
-              { label: "Total Target", value: fmtINRFull(totalTarget), color: THEME.ink },
-              { label: "Saved So Far", value: fmtINRFull(totalSaved), color: THEME.sage },
-              { label: "Balance Left", value: fmtINRFull(totalRemaining), color: THEME.rust },
-              { label: "Overall Achieved", value: `${overallPct.toFixed(1)}%`, color: ringColor(overallPct) },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ padding: "12px 0" }}>
-                <div style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "'Inter', sans-serif" }}>{value}</div>
-              </div>
-            ))}
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 18 }}>
+            <StatCard 
+              icon={<Flag />} 
+              label="Total Target" 
+              value={fmtINRFull(totalTarget)} 
+              color={THEME.accent}
+              sub={`${state.goals.length} active goals`}
+            />
+            <StatCard 
+              icon={<TrendingUp />} 
+              label="Saved So Far" 
+              value={fmtINRFull(totalSaved)} 
+              color={THEME.sage}
+              sub={`${overallPct.toFixed(1)}% of global target`}
+            />
+            <StatCard 
+              icon={<Flag />} 
+              label="Balance Left" 
+              value={fmtINRFull(totalRemaining)} 
+              color={THEME.rust}
+              sub="Required capital to finish"
+            />
+            <StatCard 
+              icon={<Sparkles />} 
+              label="Status" 
+              value={onTrackCount + completedCount} 
+              color={ringColor(overallPct)}
+              sub={`${onTrackCount} on track, ${completedCount} done`}
+            />
           </div>
 
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ height: 10, background: THEME.line, borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ ...card, marginBottom: 24 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Portfolio Completion — {overallPct.toFixed(1)}% achieved</div>
+            <div style={{ height: 10, background: THEME.line, borderRadius: 6, overflow: "hidden", marginBottom: 12 }}>
               <div style={{
                 height: "100%",
                 width: `${Math.min(overallPct, 100)}%`,
@@ -157,42 +175,42 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
                 transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
               }} />
             </div>
-            <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
               <span style={{ fontSize: 12, color: THEME.sage, fontWeight: 600 }}>✓ {completedCount} completed</span>
               <span style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>↑ {onTrackCount} on track</span>
               {behindCount > 0 && <span style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>⚠ {behindCount} behind</span>}
             </div>
-          </div>
 
-          <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}>
-            <div style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 10 }}>Breakdown by Priority</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              {priBreakdown.map(p => {
-                const pPct = p.target > 0 ? (p.saved / p.target) * 100 : 0;
-                return (
-                  <div key={p.priority} style={{
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${PRIORITY_COLOR[p.priority]}22`,
-                    background: `${PRIORITY_COLOR[p.priority]}0a`,
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
-                      <span style={{ fontSize: 11, color: THEME.muted }}>{p.count} goal{p.count !== 1 ? "s" : ""}</span>
+            <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 20 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Breakdown by Priority</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+                {priBreakdown.map(p => {
+                  const pPct = p.target > 0 ? (p.saved / p.target) * 100 : 0;
+                  return (
+                    <div key={p.priority} style={{
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.line}`,
+                      background: "var(--surface-0)",
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
+                        <span style={{ fontSize: 11, color: THEME.muted }}>{p.count} goal{p.count !== 1 ? "s" : ""}</span>
+                      </div>
+                      <div style={{ height: 4, background: THEME.line, borderRadius: 3, marginBottom: 8, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(pPct, 100)}%`, background: PRIORITY_COLOR[p.priority], borderRadius: 3, transition: "width 0.6s ease" }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>
+                        <span style={{ color: THEME.sage, fontWeight: 700 }}>{fmtINRFull(p.saved)}</span>
+                        <span> / {fmtINRFull(p.target)}</span>
+                      </div>
                     </div>
-                    <div style={{ height: 4, background: THEME.line, borderRadius: 3, marginBottom: 6, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min(pPct, 100)}%`, background: PRIORITY_COLOR[p.priority], borderRadius: 3, transition: "width 0.6s ease" }} />
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>
-                      <span style={{ color: THEME.sage, fontWeight: 600 }}>{fmtINRFull(p.saved)}</span>
-                      <span> / {fmtINRFull(p.target)}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {state.goals.length > 0 && (

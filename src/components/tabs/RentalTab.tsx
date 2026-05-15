@@ -1,11 +1,12 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
-import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useState } from "react";
+import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 import { RentalPropertyModal, RentedInPropertyModal } from "../modals/RentalModals";
 
 interface RentalTabProps {
@@ -93,31 +94,35 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {sub === "out" ? (
         <div className="animate-fade-in-up">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
-            <Card variant="tile">
-              <div className="tile-icon"><Building2 size={18} /></div>
-              <div className="tile-label">Monthly Rent</div>
-              <div className="tile-value">{fmtINRFull(outMonthlyRent)}</div>
-              <div className="tile-sub">Active agreements</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><TrendingUp size={18} /></div>
-              <div className="tile-label">Received (FY)</div>
-              <div className="tile-value">{fmtINRFull(outThisFY)}</div>
-              <div className="tile-sub">of {fmtINRFull(outMonthlyRent * 12)} expected</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><Landmark size={18} /></div>
-              <div className="tile-label">Deposit Held</div>
-              <div className="tile-value">{fmtINRFull(outDepositHeld)}</div>
-              <div className="tile-sub">Total liability</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><Receipt size={18} /></div>
-              <div className="tile-label">Taxable IHP</div>
-              <div className="tile-value">{fmtINRFull(outThisFY * 0.7)}</div>
-              <div className="tile-sub">Post 30% deduction</div>
-            </Card>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+            <StatCard
+              icon={<Building2 />}
+              label="Monthly Rent"
+              value={fmtINRFull(outMonthlyRent)}
+              color={THEME.accent}
+              sub="Active agreements"
+            />
+            <StatCard
+              icon={<TrendingUp />}
+              label="Received (FY)"
+              value={fmtINRFull(outThisFY)}
+              color={THEME.sage}
+              sub={`of ${fmtINRFull(outMonthlyRent * 12)} expected`}
+            />
+            <StatCard
+              icon={<Landmark />}
+              label="Deposit Held"
+              value={fmtINRFull(outDepositHeld)}
+              color={THEME.gold}
+              sub="Total liability"
+            />
+            <StatCard
+              icon={<Receipt />}
+              label="Taxable IHP"
+              value={fmtINRFull(outThisFY * 0.7)}
+              color={THEME.ink}
+              sub="Post 30% deduction"
+            />
           </div>
 
           {propertiesOut.length === 0 ? (
@@ -171,31 +176,35 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       ) : (
         <div className="animate-fade-in-up">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
-            <Card variant="tile">
-              <div className="tile-icon"><Building2 size={18} /></div>
-              <div className="tile-label">Monthly Rent</div>
-              <div className="tile-value">{fmtINRFull(inMonthlyRent)}</div>
-              <div className="tile-sub">Active agreements</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><TrendingDown size={18} /></div>
-              <div className="tile-label">Paid (FY)</div>
-              <div className="tile-value">{fmtINRFull(inThisFY)}</div>
-              <div className="tile-sub">of {fmtINRFull(inMonthlyRent * 12)} expected</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><Shield size={18} /></div>
-              <div className="tile-label">Deposit Paid</div>
-              <div className="tile-value">{fmtINRFull(inDepositPaid)}</div>
-              <div className="tile-sub">Recoverable asset</div>
-            </Card>
-            <Card variant="tile">
-              <div className="tile-icon"><Percent size={18} /></div>
-              <div className="tile-label">HRA Eligible</div>
-              <div className="tile-value">{fmtINRFull(inThisFY)}</div>
-              <div className="tile-sub">Annual rent paid</div>
-            </Card>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+            <StatCard
+              icon={<Building2 />}
+              label="Monthly Rent"
+              value={fmtINRFull(inMonthlyRent)}
+              color={THEME.rust}
+              sub="Active agreements"
+            />
+            <StatCard
+              icon={<TrendingDown />}
+              label="Paid (FY)"
+              value={fmtINRFull(inThisFY)}
+              color={THEME.rust}
+              sub={`of ${fmtINRFull(inMonthlyRent * 12)} expected`}
+            />
+            <StatCard
+              icon={<Shield />}
+              label="Deposit Paid"
+              value={fmtINRFull(inDepositPaid)}
+              color={THEME.sage}
+              sub="Recoverable asset"
+            />
+            <StatCard
+              icon={<Percent />}
+              label="HRA Eligible"
+              value={fmtINRFull(inThisFY)}
+              color={THEME.accent}
+              sub="Annual rent paid"
+            />
           </div>
 
           {propertiesIn.length === 0 ? (

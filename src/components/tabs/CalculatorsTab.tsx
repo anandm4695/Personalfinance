@@ -3,13 +3,8 @@ import React, { useState, useMemo } from "react";
 import {
   Calculator,
   TrendingUp,
-  Percent,
-  Calendar,
   Clock,
   Briefcase,
-  TrendingDown,
-  ArrowRight,
-  Info,
 } from "lucide-react";
 import {
   AreaChart,
@@ -23,7 +18,6 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
 
 interface CalculatorsTabProps {
   metrics: any;

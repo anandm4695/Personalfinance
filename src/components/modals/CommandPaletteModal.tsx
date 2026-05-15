@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Modal } from "../ui/Modal";
 import { Search, Plus, Home, PieChart, Landmark, Target, RefreshCw } from "lucide-react";
-import { THEME } from "../../utils/constants";
 
 export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: { isOpen: boolean, onClose: () => void, onNavigate: (tab: string) => void, onAction: (action: string) => void }) => {
   const [query, setQuery] = useState("");

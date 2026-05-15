@@ -29,6 +29,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { StatCard } from "../ui/StatCard";
 
 interface InvestmentsTabProps {
   state: any;
@@ -337,6 +338,31 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
   const canAdd = sub !== "income";
 
+  // Portfolio Calculations
+  const totalPrincipal = 
+    (state.fixedDeposits?.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0) || 0) +
+    (state.recurringDeposits?.reduce((s: number, x: any) => s + (Number(x.monthly) * (Number(x.tenureMonths) || 0)), 0) || 0) +
+    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.faceValue) || 0), 0) || 0) +
+    (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.mutualFunds?.reduce((s: number, x: any) => s + (Number(x.investedValue) || 0), 0) || 0) +
+    (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
+
+  const totalCurrent = 
+    (state.fixedDeposits?.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0) || 0) + // Approximating principal as current for now
+    (state.recurringDeposits?.reduce((s: number, x: any) => s + (Number(x.monthly) * (Number(x.tenureMonths) || 0)), 0) || 0) +
+    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.faceValue) || 0), 0) || 0) +
+    (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.mutualFunds?.reduce((s: number, x: any) => s + (Number(x.currentValue) || Number(x.investedValue) || 0), 0) || 0) +
+    (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
+
+  const netGain = totalCurrent - totalPrincipal;
+  const gainPct = totalPrincipal > 0 ? (netGain / totalPrincipal) * 100 : 0;
+
+
   const renderContent = () => {
     const onAdd = () => setShowModal(true);
     switch (sub) {
@@ -368,6 +394,30 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             Add {subs.find(s => s.id === sub)?.label || "Investment"}
           </Button>
         )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+        <StatCard 
+          label="Total Invested" 
+          value={fmtINRFull(totalPrincipal)} 
+          icon={<Briefcase />} 
+          color={THEME.accent}
+          sub="Principal contributions"
+        />
+        <StatCard 
+          label="Current Value" 
+          value={fmtINRFull(totalCurrent)} 
+          icon={<Activity />} 
+          color={THEME.sage}
+          sub="Estimated portfolio value"
+        />
+        <StatCard 
+          label="Net Returns" 
+          value={fmtINRFull(netGain)} 
+          icon={<TrendingUp />} 
+          color={netGain >= 0 ? THEME.sage : THEME.rust}
+          sub={netGain >= 0 ? `${gainPct.toFixed(1)}% overall gain` : `${Math.abs(gainPct).toFixed(1)}% overall loss`}
+        />
       </div>
 
       <div>

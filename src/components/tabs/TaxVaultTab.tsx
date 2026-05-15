@@ -1,12 +1,12 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Calculator, Shield, Receipt, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Calculator } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcTaxNew, calcTaxOld } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-import { Field, Input, Select } from "../ui/Form";
+import { Field, Input } from "../ui/Form";
 
 interface TaxVaultTabProps {
   state: any;

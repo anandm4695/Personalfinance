@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, IndianRupee, PieChart as PieIcon, Activity, Calculator, Receipt, Target, Heart, Wallet, Building2, Repeat, Bell, Hash, Settings, LogOut, Sun, Moon, Download, Clock } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, PieChart as PieIcon } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 
 // Broker logo domains for Clearbit
 const BROKER_LOGO_DOMAINS: Record<string, string> = {
@@ -185,18 +185,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <Icon size={18} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
-      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  </div>
-);
+
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
@@ -553,10 +542,28 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
         {/* ── CONTENT AREA ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-            <Tile icon={BarChart3} label="Portfolio Value" value={fmtINRFull(totalValue)} gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)" />
-            <Tile icon={TrendingUp} label="Unrealized P&L" value={fmtINRFull(pnl)} sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}%` : undefined} subColor={pnl >= 0 ? THEME.sage : THEME.rust} gradient="linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)" />
-            <Tile icon={Percent} label="Net Return" value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"} subColor={pnl >= 0 ? THEME.sage : THEME.rust} gradient="linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+            <StatCard
+              icon={<BarChart3 />}
+              label="Portfolio Value"
+              value={fmtINRFull(totalValue)}
+              color={THEME.accent}
+              sub={`Invested ${fmtINRFull(totalInvested)}`}
+            />
+            <StatCard
+              icon={<TrendingUp />}
+              label="Unrealized P&L"
+              value={fmtINRFull(pnl)}
+              color={pnl >= 0 ? THEME.sage : THEME.rust}
+              sub={totalInvested ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return` : undefined}
+            />
+            <StatCard
+              icon={<Percent />}
+              label="Net Return"
+              value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
+              color={pnl >= 0 ? THEME.sage : THEME.rust}
+              sub="Combined portfolio performance"
+            />
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>

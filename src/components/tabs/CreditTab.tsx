@@ -4,13 +4,13 @@ import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRu
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { StatCard } from "../ui/StatCard";
 
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {
@@ -128,17 +128,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, subColor, gradient }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <Icon size={18} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: subColor || THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
-    </div>
-  </div>
-);
+// Standardized Tile component replaced by StatCard in UI folder
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted }}>
@@ -362,47 +352,18 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                 ];
 
                 return (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
                     {statCards.map((s) => (
-                      <div
+                      <StatCard
                         key={s.label}
-                        style={{
-                          background: "var(--t-paper)",
-                          border: `1px solid ${THEME.line}`,
-                          borderTop: `3px solid ${s.borderColor}`,
-                          borderRadius: 12,
-                          padding: "16px 18px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 10,
-                        }}
-                      >
-                        {/* Icon + label row */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: 8,
-                            background: s.iconBg,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: s.color, flexShrink: 0,
-                          }}>
-                            {s.icon}
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                              {s.label}
-                            </div>
-                            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 400, marginTop: 1 }}>Active cards</div>
-                          </div>
-                        </div>
-                        {/* Value */}
-                        <div style={{ fontSize: 26, fontWeight: 900, color: s.color, letterSpacing: "-0.03em", lineHeight: 1 }}>
-                          {s.value}
-                        </div>
-                        {/* Sub-label */}
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-                          {s.sub}
-                        </div>
-                      </div>
+                        label={s.label}
+                        value={s.value}
+                        sub={s.sub}
+                        icon={s.icon}
+                        color={s.color}
+                        borderColor={s.borderColor}
+                        iconBg={s.iconBg}
+                      />
                     ))}
                   </div>
                 );
@@ -1600,26 +1561,27 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   const fmtD = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <Tile
-          icon={isBorrowed ? TrendingDown : TrendingUp}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard
+          icon={<TrendingUp />}
           label={isBorrowed ? "Total Borrowed" : "Total Lent"}
           value={fmtINRFull(totalBorrowed)}
-          gradient={isBorrowed ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)" : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)"}
+          color={isBorrowed ? THEME.rust : THEME.sage}
+          sub="Principal amount"
         />
-        <Tile
-          icon={ArrowLeftRight}
+        <StatCard
+          icon={<ArrowLeftRight />}
           label={isBorrowed ? "Total Repaid" : "Received Back"}
           value={fmtINRFull(totalPaid)}
-          subColor={THEME.sage}
-          gradient="linear-gradient(135deg,#15803d 0%,#4ade80 100%)"
+          color={THEME.sage}
+          sub="Payment history"
         />
-        <Tile
-          icon={IndianRupee}
+        <StatCard
+          icon={<IndianRupee />}
           label="Outstanding"
           value={fmtINRFull(totalOutstanding)}
-          subColor={totalOutstanding > 0 ? accentColor : THEME.sage}
-          gradient={totalOutstanding > 0 ? (isBorrowed ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)" : "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)") : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)"}
+          color={totalOutstanding > 0 ? accentColor : THEME.sage}
+          sub={totalOutstanding > 0 ? "Pending settlement" : "Fully settled"}
         />
       </div>
       {items.length > 0 && (

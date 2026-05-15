@@ -3,10 +3,10 @@ import React, { useState, useMemo } from "react";
 import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { StatCard } from "../ui/StatCard";
 
 // Internal helper components
 const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
@@ -16,15 +16,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor, negative }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid var(--t-line)` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--t-muted)", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-      <Icon size={14} /> {label}
-    </div>
-    <div style={{ fontSize: 20, fontWeight: 800, color: negative ? "var(--t-rust)" : "var(--t-ink)" }}><Prv>{value}</Prv></div>
-    {sub && <div style={{ fontSize: 11, color: subColor || "var(--t-muted)", marginTop: 4, fontWeight: 600 }}>{sub}</div>}
-  </div>
-);
+
 
 const BudgetEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
@@ -119,11 +111,35 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Wallet} label="Total Budgeted" value={fmtINRFull(totalBudget)} />
-        <Tile icon={Receipt} label="Spent This Month" value={fmtINRFull(totalSpent)} negative={totalSpent > totalBudget} />
-        <Tile icon={TrendingUp} label="Remaining" value={fmtINRFull(Math.max(0, totalBudget - totalSpent))} />
-        <Tile icon={Target} label="Categories" value={state.budgets.length} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard 
+          icon={<Wallet />} 
+          label="Total Budgeted" 
+          value={fmtINRFull(totalBudget)} 
+          color={THEME.accent}
+          sub="Planned monthly limits"
+        />
+        <StatCard 
+          icon={<Receipt />} 
+          label="Spent This Month" 
+          value={fmtINRFull(totalSpent)} 
+          color={totalSpent > totalBudget ? THEME.rust : THEME.ink}
+          sub={`Used ${((totalSpent / (totalBudget || 1)) * 100).toFixed(0)}% of total`}
+        />
+        <StatCard 
+          icon={<TrendingUp />} 
+          label="Remaining" 
+          value={fmtINRFull(Math.max(0, totalBudget - totalSpent))} 
+          color={totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust}
+          sub="Balance to spend"
+        />
+        <StatCard 
+          icon={<Target />} 
+          label="Categories" 
+          value={state.budgets.length} 
+          color={THEME.muted}
+          sub="Active budget buckets"
+        />
       </div>
 
       {totalBudget > 0 && (() => {

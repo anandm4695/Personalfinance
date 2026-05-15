@@ -3,8 +3,7 @@ import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
 import {
   Eye, EyeOff, ArrowRight, Shield, Lock, Loader2,
-  CheckCircle2, IndianRupee, TrendingUp, AlertCircle,
-  Target, BarChart3, Zap, CreditCard, Calendar, Wallet,
+  CheckCircle2, IndianRupee, TrendingUp, AlertCircle, BarChart3, Zap, CreditCard, Calendar, Wallet,
 } from "lucide-react";
 
 /* ─── Main Component ─────────────────────────────────────────────────── */

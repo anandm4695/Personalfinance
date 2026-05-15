@@ -2,7 +2,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { X } from "lucide-react";
-import { THEME } from "../../utils/constants";
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void; btnGhost?: any }) {
   React.useEffect(() => {

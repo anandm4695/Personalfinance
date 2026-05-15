@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
-import { Prv } from "../../context/PrivacyContext";
+import { StatCard } from "../ui/StatCard";
 import { SubModal } from "../modals/SubModal";
 
 // Internal helper components
@@ -14,18 +14,7 @@ const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: stri
   </div>
 );
 
-const Tile = ({ icon: Icon, label, value, sub, subColor, gradient }: any) => (
-  <div style={{ background: "var(--surface-0)", padding: "18px 20px", borderRadius: 14, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 14 }}>
-    <div style={{ width: 42, height: 42, borderRadius: 12, background: gradient || "linear-gradient(135deg,#94a3b8 0%,#64748b 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <Icon size={18} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}><Prv>{value}</Prv></div>
-      {sub && <div style={{ fontSize: 11, color: subColor || THEME.muted, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-    </div>
-  </div>
-);
+
 
 const SubEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
@@ -108,10 +97,28 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <Tile icon={Repeat} label="Active Subscriptions" value={activeSubs.length} gradient="linear-gradient(135deg,#ea580c 0%,#fb923c 100%)" />
-        <Tile icon={Wallet} label="Monthly Equivalent" value={fmtINRFull(totalMonthly)} gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)" />
-        <Tile icon={Repeat} label="Total Tracked" value={state.subscriptions.length} gradient="linear-gradient(135deg,#94a3b8 0%,#64748b 100%)" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard 
+          icon={<Repeat />} 
+          label="Active Subscriptions" 
+          value={activeSubs.length} 
+          color={THEME.accent}
+          sub="Monthly/Annual recurring"
+        />
+        <StatCard 
+          icon={<Wallet />} 
+          label="Monthly Equivalent" 
+          value={fmtINRFull(totalMonthly)} 
+          color={THEME.gold}
+          sub="Projected monthly spend"
+        />
+        <StatCard 
+          icon={<Repeat />} 
+          label="Total Tracked" 
+          value={state.subscriptions.length} 
+          color={THEME.muted}
+          sub="Including paused services"
+        />
       </div>
 
       {state.subscriptions.length === 0 ? (
