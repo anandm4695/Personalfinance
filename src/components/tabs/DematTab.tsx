@@ -764,60 +764,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      {/* ── CORPORATE ACTION HISTORY — standalone section, always visible ── */}
-      {(state.corporateActions || []).length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Scissors size={14} color="#fff" />
-            </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>Corporate Action History</div>
-              <div style={{ fontSize: 12, color: THEME.muted }}>All stock splits and bonus shares recorded</div>
-            </div>
-          </div>
-          <div style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${THEME.line}`, background: "rgba(128,128,128,0.04)" }}>
-                    <th style={th}>Symbol</th>
-                    <th style={th}>Exchange</th>
-                    <th style={th}>Type</th>
-                    <th style={th}>Ratio</th>
-                    <th style={th}>Action Date</th>
-                    <th style={{ ...th, textAlign: "right" }}>Old Qty</th>
-                    <th style={{ ...th, textAlign: "right" }}>New Qty</th>
-                    <th style={{ ...th, textAlign: "right" }}>Old Avg Price</th>
-                    <th style={{ ...th, textAlign: "right" }}>New Avg Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...(state.corporateActions || [])]
-                    .sort((a: any, b: any) => new Date(b.actionDate || b.createdAt || 0).getTime() - new Date(a.actionDate || a.createdAt || 0).getTime())
-                    .map((a: any) => (
-                      <tr key={a.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                        <td style={{ ...td, fontWeight: 700 }}>{a.symbol}</td>
-                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{a.exchange}</td>
-                        <td style={td}>
-                          <span style={{ padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: 11, background: a.actionType === "split" ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.12)", color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
-                            {a.actionType === "split" ? "SPLIT" : "BONUS"}
-                          </span>
-                        </td>
-                        <td style={{ ...td, fontWeight: 600 }}>{a.ratioN}:{a.ratioM}</td>
-                        <td style={{ ...td, color: THEME.muted }}>{a.actionDate ? new Date(a.actionDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{a.oldQty}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: a.actionType === "split" ? THEME.gold : THEME.sage }}>{a.newQty}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₹{Number(a.oldAvgPrice).toFixed(2)}</td>
-                        <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: a.actionType === "split" ? THEME.gold : THEME.sage }}>₹{Number(a.newAvgPrice).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showDemat && <DematModal onClose={() => setShowDemat(false)} onSave={(v: any) => { addItem("demat", v); setShowDemat(false); }} />}
       {editDematId && <DematModal initial={state.demat.find((d: any) => d.id === editDematId)} onClose={() => setEditDematId(null)} onSave={(v: any) => { updateItem("demat", editDematId, v); setEditDematId(null); }} />}
