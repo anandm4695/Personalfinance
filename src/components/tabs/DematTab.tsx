@@ -684,6 +684,29 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                         </tbody>
                       </table>
                     </div>
+                    {(() => {
+                      const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
+                      if (caHistory.length === 0) return null;
+                      return (
+                        <div style={{ padding: "10px 18px 12px", borderTop: `1px solid ${THEME.line}`, background: "rgba(128,128,128,0.03)" }}>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 8 }}>Corporate Action History</div>
+                          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                            {caHistory.map((a: any) => (
+                              <div key={a.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12 }}>
+                                <span style={{ padding: "2px 9px", borderRadius: 20, fontWeight: 700, fontSize: 10, letterSpacing: "0.05em", background: a.actionType === "split" ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.12)", color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
+                                  {a.actionType === "split" ? "SPLIT" : "BONUS"} {a.ratioN}:{a.ratioM}
+                                </span>
+                                <span style={{ color: THEME.muted }}>{a.actionDate ? new Date(a.actionDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
+                                <span style={{ color: THEME.line }}>·</span>
+                                <span style={{ color: THEME.muted }}>Qty <b style={{ color: THEME.ink }}>{a.oldQty}</b> → <b style={{ color: a.actionType === "split" ? THEME.gold : THEME.sage }}>{a.newQty}</b></span>
+                                <span style={{ color: THEME.line }}>·</span>
+                                <span style={{ color: THEME.muted }}>Avg ₹<b style={{ color: THEME.ink }}>{Number(a.oldAvgPrice).toFixed(2)}</b> → ₹<b style={{ color: a.actionType === "split" ? THEME.gold : THEME.sage }}>{Number(a.newAvgPrice).toFixed(2)}</b></span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div style={{ padding: "10px 18px", borderTop: `1px solid ${THEME.line}`, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button style={{ ...btnGhost, fontSize: 12 }} onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}><Plus size={12} /> Add Lot to {base}</button>
                       <button style={{ ...btnGhost, fontSize: 12, color: THEME.gold }} onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}><Scissors size={12} /> Split / Bonus</button>
@@ -701,7 +724,7 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
       {showStock && <StockModal demats={state.demat} defaults={stockDefaults} onClose={() => { setShowStock(false); setStockDefaults(null); }} onSave={(v: any) => { addItem("stocks", v); setShowStock(false); setStockDefaults(null); }} />}
       {editStockId && <StockModal demats={state.demat} initial={state.stocks.find((x: any) => x.id === editStockId)} onClose={() => setEditStockId(null)} onSave={(v: any) => { updateItem("stocks", editStockId, v); setEditStockId(null); }} />}
       {sellLot && <SellStockModal lot={sellLot} onClose={() => setSellLot(null)} onSave={(sellRecord: any, remainingQty: number) => { addItem("stockSells", sellRecord); if (remainingQty <= 0) removeItem("stocks", sellLot.id); else updateItem("stocks", sellLot.id, { qty: String(remainingQty) }); setSellLot(null); }} />}
-      {splitBonusGroup && <SplitBonusModal group={splitBonusGroup} onClose={() => setSplitBonusGroup(null)} onApply={(updates: any[]) => { updates.forEach((u: any) => updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice })); setSplitBonusGroup(null); }} />}
+      {splitBonusGroup && <SplitBonusModal group={splitBonusGroup} onClose={() => setSplitBonusGroup(null)} onApply={(updates: any[], actionLog: any) => { updates.forEach((u: any) => updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice })); addItem("corporateActions", actionLog); setSplitBonusGroup(null); }} />}
     </div>
   );
 }
@@ -768,6 +791,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
+  const [actionDate, setActionDate] = useState(today());
   const n = Number(ratioN) || 0;
   const m = Number(ratioM) || 0;
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
@@ -776,11 +800,34 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   if (n > 0 && m > 0) newTotalQty = type === "split" ? totalQty * n / m : totalQty * (m + n) / m;
   const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
   const isValid = n > 0 && m > 0 && (type === "split" ? n > m : true);
-  const handleApply = () => { if (!isValid) return; const updates = group.lots.map((lot: any) => { const oldQty = Number(lot.qty); const oldAvg = Number(lot.avgPrice); const newQty = type === "split" ? Math.round(oldQty * n / m) : Math.round(oldQty * (m + n) / m); const newAvg = newQty > 0 ? (oldQty * oldAvg) / newQty : oldAvg; return { id: lot.id, qty: String(newQty), avgPrice: String(Number(newAvg.toFixed(4))) }; }); onApply(updates); };
+  const handleApply = () => {
+    if (!isValid) return;
+    const updates = group.lots.map((lot: any) => {
+      const oldQty = Number(lot.qty);
+      const oldAvg = Number(lot.avgPrice);
+      const newQty = type === "split" ? Math.round(oldQty * n / m) : Math.round(oldQty * (m + n) / m);
+      const newAvg = newQty > 0 ? (oldQty * oldAvg) / newQty : oldAvg;
+      return { id: lot.id, qty: String(newQty), avgPrice: String(Number(newAvg.toFixed(4))) };
+    });
+    const actionLog = {
+      symbol: group.base,
+      exchange: group.exchange,
+      actionType: type,
+      ratioN: n,
+      ratioM: m,
+      actionDate,
+      oldQty: totalQty,
+      newQty: Math.round(newTotalQty),
+      oldAvgPrice: totalQty > 0 ? Number((totalInv / totalQty).toFixed(2)) : 0,
+      newAvgPrice: Number(newAvgPreview.toFixed(2)),
+    };
+    onApply(updates, actionLog);
+  };
   return (
     <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
       <Field label="Action Type"><div style={{ display: "flex", gap: 10 }}>{(["split", "bonus"] as const).map((t) => <button key={t} style={{ ...btnGhost, flex: 1, justifyContent: "center", background: type === t ? THEME.accent : undefined, color: type === t ? "#fff" : undefined, border: type === t ? `1px solid ${THEME.accent}` : undefined }} onClick={() => setType(t)}>{t === "split" ? "Stock Split" : "Bonus Shares"}</button>)}</div></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}><Field label={type === "split" ? "New Shares" : "Bonus Shares"}><input style={input} type="number" min="1" value={ratioN} onChange={(e) => setRatioN(e.target.value)} /></Field><div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div><Field label="Existing Shares"><input style={input} type="number" min="1" value={ratioM} onChange={(e) => setRatioM(e.target.value)} /></Field></div>
+      <Field label="Action Date"><input style={input} type="date" value={actionDate} onChange={(e) => setActionDate(e.target.value)} /></Field>
       {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{Math.round(newTotalQty)}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
       <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" />
     </Modal>

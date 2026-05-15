@@ -115,6 +115,7 @@ const DEFAULT_STATE = {
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
   reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
+  corporateActions: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
@@ -380,7 +381,7 @@ function FinanceDashboard() {
       console.log("Supabase: Fetching all modules in parallel for user:", userId);
       const [
         prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems,
-        licP, termP, infLns, rentP, sipsQ, stSells, mfSells, nwh
+        licP, termP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -408,9 +409,10 @@ function FinanceDashboard() {
         supabase.from("stock_sells").select("*").eq("user_id", userId),
         supabase.from("mf_sells").select("*").eq("user_id", userId),
         supabase.from("net_worth_history").select("*").eq("user_id", userId),
+        supabase.from("corporate_actions").select("*").eq("user_id", userId),
       ]);
 
-      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, infLns, rentP, sipsQ, stSells, mfSells].some(r => r.data && r.data.length > 0);
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, infLns, rentP, sipsQ, stSells, mfSells, corpAct].some(r => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState(currentState => {
@@ -463,6 +465,7 @@ function FinanceDashboard() {
           ...(!stSells.error && stSells.data != null ? { stockSells: snakeToCamel(stSells.data) } : {}),
           ...(!mfSells.error && mfSells.data != null ? { mfSells: snakeToCamel(mfSells.data) } : {}),
           ...(!nwh.error && nwh.data != null ? { netWorthHistory: snakeToCamel(nwh.data).map((r: any) => ({ month: r.month, netWorth: r.netWorth })) } : {}),
+          ...(!corpAct.error && corpAct.data != null ? { corporateActions: snakeToCamel(corpAct.data) } : {}),
         };
       });
     } catch (e) {
@@ -964,6 +967,7 @@ function FinanceDashboard() {
     informalBorrowed: "informal_loans", informalLent: "informal_loans",
     rentalProperties: "rental_properties", rentedProperties: "rental_properties",
     sips: "sips", stockSells: "stock_sells", mfSells: "mf_sells",
+    corporateActions: "corporate_actions",
   };
 
   const camelToSnake = (obj: any) => {
@@ -1009,7 +1013,7 @@ function FinanceDashboard() {
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
         // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
-        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
+        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","ratio_n","ratio_m","old_qty","new_qty","old_avg_price","new_avg_price"]);
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
