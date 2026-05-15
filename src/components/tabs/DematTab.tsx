@@ -460,6 +460,40 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
         </div>
       </div>
 
+      {/* ── MIGRATION BANNER: shown when corporate_actions table is missing in Supabase ── */}
+      {missingTables.includes("corporate_actions") && (
+        <div style={{ background: "rgba(220,38,38,0.06)", border: `1.5px solid ${THEME.rust}`, borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>!</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.rust, marginBottom: 4 }}>One-time DB setup required — Stock Split / Bonus History won't save to cloud yet</div>
+              <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 12 }}>
+                The <b>corporate_actions</b> table is missing in your Supabase database. Your split/bonus actions are saved <b>locally on this device only</b> until you run this SQL once in Supabase.
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 700 }}>Steps: Go to supabase.com → your project → SQL Editor → paste and run:</div>
+              <pre style={{ fontSize: 11, background: "rgba(0,0,0,0.07)", padding: "10px 14px", borderRadius: 8, color: THEME.ink, margin: 0, overflowX: "auto" as const, whiteSpace: "pre" as const, lineHeight: 1.6 }}>{`CREATE TABLE IF NOT EXISTS public.corporate_actions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  owner text not null default 'self',
+  symbol text not null,
+  exchange text not null default 'NSE',
+  action_type text not null check (action_type in ('split', 'bonus')),
+  ratio_n numeric not null,  ratio_m numeric not null,
+  action_date date, old_qty numeric, new_qty numeric,
+  old_avg_price numeric, new_avg_price numeric,
+  created_at timestamp with time zone default now()
+);
+ALTER TABLE public.corporate_actions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can access own data" ON public.corporate_actions;
+CREATE POLICY "Users can access own data" ON public.corporate_actions
+  FOR ALL USING (auth.uid() = user_id);`}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
         {/* ── VERTICAL SIDEBAR NAV ── */}
         <div style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100, paddingRight: 20, borderRight: `1px solid ${THEME.line}` }}>

@@ -1090,17 +1090,18 @@ function FinanceDashboard() {
             setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
           }
         } else if (firstErr.code === "42P01") {
-          // Table does not exist — show clear migration instruction
+          // Table does not exist — keep item in local state (persists to localStorage) so the
+          // user can see their data immediately. Do NOT revert. Cloud sync will work once the
+          // user runs the SQL migration. Just warn them.
           const migrationMap: Record<string, string> = {
             corporate_actions: "database/12_corporate_actions.sql",
             stock_sells: "database/09_stock_sells.sql",
             net_worth_history: "database/08_net_worth_history.sql",
           };
           const migFile = migrationMap[table] || `SQL migration for table "${table}"`;
-          console.error(`[Supabase] Table "${table}" missing. Run: ${migFile}`);
-          showToast(`⚠️ DB table missing — go to Supabase → SQL Editor and run: ${migFile}`, "error");
+          console.warn(`[Supabase] Table "${table}" missing — saved locally only. Run: ${migFile}`);
+          showToast(`Saved locally — to sync to cloud, run ${migFile} in Supabase SQL Editor`, "warn");
           setMissingTables(prev => prev.includes(table) ? prev : [...prev, table]);
-          setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         } else {
           // Schema / auth / constraint error — revert immediately and show details
           console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
