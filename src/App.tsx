@@ -640,6 +640,7 @@ function FinanceDashboard() {
       sips: filterByOwner(state.sips),
       stockSells: filterByOwner(state.stockSells || []),
       mfSells: filterByOwner(state.mfSells || []),
+      corporateActions: filterByOwner(state.corporateActions || []),
     };
   }, [state, activeProfile]);
 
@@ -1275,6 +1276,7 @@ function FinanceDashboard() {
       ...push("sips",                data.sips),
       ...push("stock_sells",         data.stockSells),
       ...push("mf_sells",            data.mfSells),
+      ...push("corporate_actions",   data.corporateActions),
       ...(data.netWorthHistory || []).map(entry =>
         supabase.from("net_worth_history").upsert(
           { user_id: userId, month: entry.month, net_worth: entry.netWorth ?? entry.net_worth ?? 0 },

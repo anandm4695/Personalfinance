@@ -20,6 +20,7 @@
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "prettier": "^3.8.3",
