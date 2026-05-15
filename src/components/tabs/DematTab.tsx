@@ -319,7 +319,7 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function DematTab({ state, addItem, removeItem, updateItem }: any) {
+export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [] }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
@@ -686,6 +686,17 @@ export function DematTab({ state, addItem, removeItem, updateItem }: any) {
                     </div>
                     {(() => {
                       const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
+                      if (caHistory.length === 0 && missingTables.includes("corporate_actions")) {
+                        return (
+                          <div style={{ padding: "12px 18px", borderTop: `1px solid ${THEME.line}`, background: "rgba(220,38,38,0.04)" }}>
+                            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginBottom: 6 }}>⚠️ Corporate Action History — DB Setup Required</div>
+                            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>The history table is missing in Supabase. Run this SQL once to fix it:</div>
+                            <div style={{ fontFamily: "monospace", fontSize: 11, background: "rgba(0,0,0,0.06)", padding: "8px 12px", borderRadius: 6, color: THEME.ink, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" as const }}>
+                              {`CREATE TABLE IF NOT EXISTS public.corporate_actions (\n  id uuid default gen_random_uuid() primary key,\n  user_id uuid references auth.users not null,\n  owner text not null default 'self',\n  symbol text not null,\n  exchange text not null default 'NSE',\n  action_type text not null check (action_type in ('split', 'bonus')),\n  ratio_n numeric not null,\n  ratio_m numeric not null,\n  action_date date,\n  old_qty numeric,\n  new_qty numeric,\n  old_avg_price numeric,\n  new_avg_price numeric,\n  created_at timestamp with time zone default now()\n);\nALTER TABLE public.corporate_actions ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Users can access own data" ON public.corporate_actions\n  FOR ALL USING (auth.uid() = user_id);`}
+                            </div>
+                          </div>
+                        );
+                      }
                       if (caHistory.length === 0) return null;
                       return (
                         <div style={{ padding: "10px 18px 12px", borderTop: `1px solid ${THEME.line}`, background: "rgba(128,128,128,0.03)" }}>

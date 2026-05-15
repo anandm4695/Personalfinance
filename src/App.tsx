@@ -304,6 +304,7 @@ function FinanceDashboard() {
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [missingTables, setMissingTables] = useState<string[]>([]);
 
   // Apply theme CSS vars whenever darkMode, accentKey, or other UI settings change
   useEffect(() => {
@@ -411,6 +412,11 @@ function FinanceDashboard() {
         supabase.from("net_worth_history").select("*").eq("user_id", userId),
         supabase.from("corporate_actions").select("*").eq("user_id", userId),
       ]);
+
+      // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
+      const missing: string[] = [];
+      if (corpAct.error?.code === "42P01") missing.push("corporate_actions");
+      if (missing.length > 0) setMissingTables(missing);
 
       const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, infLns, rentP, sipsQ, stSells, mfSells, corpAct].some(r => r.data && r.data.length > 0);
 
@@ -1083,6 +1089,18 @@ function FinanceDashboard() {
             showToast(`Sync failed [${currentErr.code}]: ${currentErr.message}`, "error");
             setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
           }
+        } else if (firstErr.code === "42P01") {
+          // Table does not exist — show clear migration instruction
+          const migrationMap: Record<string, string> = {
+            corporate_actions: "database/12_corporate_actions.sql",
+            stock_sells: "database/09_stock_sells.sql",
+            net_worth_history: "database/08_net_worth_history.sql",
+          };
+          const migFile = migrationMap[table] || `SQL migration for table "${table}"`;
+          console.error(`[Supabase] Table "${table}" missing. Run: ${migFile}`);
+          showToast(`⚠️ DB table missing — go to Supabase → SQL Editor and run: ${migFile}`, "error");
+          setMissingTables(prev => prev.includes(table) ? prev : [...prev, table]);
+          setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
         } else {
           // Schema / auth / constraint error — revert immediately and show details
           console.error(`Supabase Upsert Error (${table}):`, { code: firstErr.code, message: firstErr.message, details: firstErr.details, hint: firstErr.hint });
@@ -1960,7 +1978,7 @@ function FinanceDashboard() {
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
