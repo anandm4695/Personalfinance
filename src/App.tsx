@@ -474,8 +474,9 @@ function FinanceDashboard() {
           ...(!corpAct.error && corpAct.data != null ? { 
             corporateActions: snakeToCamel(corpAct.data).filter((ca: any) => {
               const st = (!stocks.error && stocks.data != null) ? snakeToCamel(stocks.data) : prev.stocks;
-              const hasActive = st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
-              if (!hasActive) {
+              const sts = (!stSells.error && stSells.data != null) ? snakeToCamel(stSells.data) : prev.stockSells;
+              const hasActiveOrSold = st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange) || sts.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
+              if (!hasActiveOrSold) {
                 supabase.from("corporate_actions").delete().eq("id", ca.id).then();
                 return false;
               }
