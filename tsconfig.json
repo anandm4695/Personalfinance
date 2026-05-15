@@ -6,13 +6,18 @@
         "strict": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
+        "module": "esnext",
+        "target": "es2020",
         "lib": [
             "dom",
             "dom.iterable",
             "es2020"
         ],
         "jsx": "react-jsx",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true
     }
 }

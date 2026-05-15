@@ -1,4 +1,3 @@
-// @ts-nocheck — supabase-js v2 ships .d.cts/.d.mts types; TS 4.4 needs node16 resolution to find them.
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL ?? "";

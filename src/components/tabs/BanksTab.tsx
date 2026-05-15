@@ -146,6 +146,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
   const [showImport, setShowImport] = useState(false);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
+  const { transactionCategories: txnCats } = useMasterData();
 
   const setQuickRange = (preset: string) => {
     const now = new Date();
@@ -276,7 +277,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
                 {[...filteredTxns].reverse().map((t: any) => {
                   const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
                   const isEditing = inlineEditId === t.id;
-                  const { transactionCategories: txnCats } = useMasterData();
+
                   if (isEditing && inlineEdit) {
                     return (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>

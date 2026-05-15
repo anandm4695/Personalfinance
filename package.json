@@ -20,16 +20,23 @@
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.38",
-    "@types/react-dom": "18.2.15",
-    "typescript": "4.4.4",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "prettier": "^3.8.3",
+    "typescript": "^5.9.3",
     "vercel": "^47.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "test": "react-scripts test --env=jsdom --watchAll=false",
+    "test:watch": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"api/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"api/**/*.js\"",
+    "typecheck": "tsc --noEmit"
   },
   "browserslist": [
     ">0.2%",

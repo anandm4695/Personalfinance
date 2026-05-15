@@ -1,4 +1,10 @@
 // @ts-nocheck
+// Tech debt: 151 type errors, all fixable but require a dedicated refactor pass.
+// Root causes: DEFAULT_STATE arrays inferred as never[] (need explicit interfaces),
+// dynamic string indexing on typed maps (need `as keyof typeof X` casts),
+// and implicit `any` in sort/filter callbacks (need typed parameters).
+// The TS 4.4 → 5.x upgrade is done; supabaseClient.ts is clean.
+// Next step: define AppState interface + per-entity types, then remove this pragma.
 import "./styles.css";
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
