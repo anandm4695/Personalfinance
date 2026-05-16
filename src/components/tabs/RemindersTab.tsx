@@ -136,51 +136,89 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
       ) : (
         <>
           {upcoming.length > 0 && (
-            <div style={{ display: "grid", gap: 12, marginBottom: 40 }}>
-              {upcoming.map((r) => {
-                const days = daysLeft(r.date);
-                const color = urgencyColor(days);
-                const Icon = r.icon;
-                return (
-                  <Card key={r.id} style={{ display: "flex", alignItems: "center", gap: 20, borderLeft: `4px solid ${color}`, padding: "18px 24px" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}11`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Icon size={22} style={{ color }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink }}>{r.title}</div>
-                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>{r.subtitle}{r.subtitle ? " · " : ""}<span style={{ opacity: 0.8 }}>{r.type}</span></div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 900, color, fontSize: 18, letterSpacing: "-0.02em" }}>
-                        {days === 0 ? "Today" : days === 1 ? "Tomorrow" : days + " days"}
+            <>
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
+                Upcoming · {upcoming.length} alert{upcoming.length !== 1 ? "s" : ""}
+              </div>
+              <div style={{ display: "grid", gap: 10, marginBottom: 40 }}>
+                {upcoming.map((r) => {
+                  const days = daysLeft(r.date);
+                  const color = urgencyColor(days);
+                  const Icon = r.icon;
+                  const daysLabel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
+                  const urgencyBg = days <= 7 ? `${THEME.rust}15` : days <= 30 ? `${THEME.gold}15` : `${THEME.sage}15`;
+                  return (
+                    <Card key={r.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        {/* Icon Box */}
+                        <div style={{
+                          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                          display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                          <Icon size={20} color={color} />
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{r.title}</span>
+                            <span style={{
+                              fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
+                              background: "rgba(128,128,128,0.08)", color: THEME.muted,
+                              textTransform: "uppercase", letterSpacing: "0.06em"
+                            }}>{r.type}</span>
+                          </div>
+                          {r.subtitle && (
+                            <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
+                          )}
+                        </div>
+
+                        {/* Days Badge */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                          <div style={{
+                            padding: "4px 12px", borderRadius: 8,
+                            background: urgencyBg,
+                            border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+                          }}>
+                            <span style={{ fontWeight: 900, fontSize: 15, color, letterSpacing: "-0.02em" }}>{daysLabel}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{r.date}</div>
+                        </div>
+
+                        {/* Delete (manual only) */}
+                        {r.manual && (
+                          <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust, flexShrink: 0 }}>
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>{r.date}</div>
-                    </div>
-                    {r.manual && (
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
           {past.length > 0 && (
             <div>
-              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 16 }}>Past Due / Completed</div>
-              <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>Past Due / Completed</div>
+              <div style={{ display: "grid", gap: 8 }}>
                 {past.slice(-5).map((r) => {
                   const days = Math.abs(daysLeft(r.date));
                   const Icon = r.icon;
                   return (
-                    <Card key={r.id} style={{ display: "flex", alignItems: "center", gap: 16, opacity: 0.6, padding: "12px 20px" }}>
-                      <Icon size={18} style={{ color: THEME.muted, flexShrink: 0 }} />
-                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>
-                        {r.title}
-                        <span style={{ color: THEME.muted, fontWeight: 400 }}> · {r.date}</span>
+                    <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.55 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Icon size={15} color={THEME.muted} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{r.title}</div>
+                          <div style={{ fontSize: 11, color: THEME.muted }}>{r.type} · {r.date}</div>
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, flexShrink: 0 }}>{days}d ago</div>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700 }}>{days}d ago</div>
                     </Card>
                   );
                 })}
