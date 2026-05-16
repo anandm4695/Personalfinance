@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2, Check } from "lucide-react";
+import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2, Check, Utensils, ShoppingBag, Car, Home, Zap, Stethoscope, Film, Landmark, ArrowRightLeft, Wrench, HelpCircle, CreditCard } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -11,7 +11,27 @@ import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+const CATEGORY_ICONS: Record<string, any> = {
+  "Food": Utensils,
+  "Groceries": ShoppingBag,
+  "Transport": Car,
+  "Rent": Home,
+  "Bills": Zap,
+  "Salary": Wallet,
+  "Investment": TrendingUp,
+  "EMI": CreditCard,
+  "Shopping": ShoppingBag,
+  "Medical": Stethoscope,
+  "Entertainment": Film,
+  "Tax": Landmark,
+  "Transfer": ArrowRightLeft,
+  "Utilities": Wrench,
+  "Uncategorized": HelpCircle
+};
 
+function getCatIcon(cat: string) {
+  return CATEGORY_ICONS[cat] || HelpCircle;
+}
 
 
 
@@ -152,53 +172,77 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
           onAdd={() => setShow(true)}
         />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
           {state.budgets.map((b: any) => {
             const spent = monthSpending[b.category] || 0;
             const budget = Number(b.monthly || 0);
             const pct = budget > 0 ? (spent / budget) * 100 : 0;
             const over = pct > 100;
-            const barColor = over ? THEME.rust : pct > 95 ? "#F97316" : pct > 80 ? THEME.gold : pct > 50 ? "#A3E635" : THEME.sage;
+            const barColor = over ? THEME.rust : pct > 90 ? THEME.gold : THEME.sage;
+            const Icon = getCatIcon(b.category);
 
             const nowDate = new Date();
             const daysPassed = nowDate.getDate();
             const daysInMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
             const projected = daysPassed > 0 ? (spent / daysPassed) * daysInMonth : 0;
             const projectedPct = budget > 0 ? (projected / budget) * 100 : 0;
-            const dailyAvg = daysPassed > 0 ? spent / daysPassed : 0;
 
             return (
-              <Card key={b.id} style={{ position: "relative", padding: 24, borderLeft: `4px solid ${barColor}` }}>
-                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 4 }}>
-                  <Button variant="ghost" size="sm" onClick={() => setEditBudget(b)} style={{ padding: 6 }}>
-                    <Pencil size={14} />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => removeItem("budgets", b.id)} style={{ padding: 6, color: THEME.rust }}>
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingRight: 40 }}>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{b.category}</div>
-                    <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-                      {fmtINRFull(spent)} <span style={{ fontWeight: 400 }}>of</span> {fmtINRFull(budget)}
+              <Card key={b.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${barColor}`, position: "relative" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  {/* Icon Box */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                    background: `color-mix(in srgb, ${barColor} 12%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${barColor} 25%, transparent)`,
+                    display: "flex", alignItems: "center", justifyContent: "center"
+                  }}>
+                    <Icon size={22} color={barColor} />
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{b.category}</div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 900, color: over ? THEME.rust : THEME.ink, fontSize: 16 }}>{pct.toFixed(0)}%</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      {fmtINRFull(spent)} <span style={{ fontWeight: 400, opacity: 0.7 }}>of</span> {fmtINRFull(budget)}
+                      <span style={{ marginLeft: 8, color: over ? THEME.rust : THEME.sage }}>
+                        {over ? `(${fmtINR(spent - budget)} over)` : `(${fmtINR(budget - spent)} left)`}
+                      </span>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: over ? THEME.rust : THEME.ink, letterSpacing: "-0.04em" }}>{pct.toFixed(0)}%</div>
-                    <div style={{ fontSize: 11, color: over ? THEME.rust : THEME.sage, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>
-                      {over ? fmtINR(spent - budget) + " over" : fmtINR(budget - spent) + " left"}
-                    </div>
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                    <Button variant="ghost" size="sm" onClick={() => setEditBudget(b)} style={{ padding: 6 }}>
+                      <Pencil size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => removeItem("budgets", b.id)} style={{ padding: 6, color: THEME.rust }}>
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
                 </div>
-                <div style={{ height: 10, background: "rgba(128,128,128,0.06)", borderRadius: 5, overflow: "hidden", marginBottom: 16 }}>
-                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: barColor, borderRadius: 5, transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+
+                {/* Progress Bar */}
+                <div style={{ height: 6, background: "rgba(128,128,128,0.06)", borderRadius: 3, overflow: "hidden", marginTop: 16, marginBottom: 12 }}>
+                  <div style={{ 
+                    height: "100%", 
+                    width: Math.min(pct, 100) + "%", 
+                    background: barColor, 
+                    borderRadius: 3, 
+                    transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" 
+                  }} />
                 </div>
+
                 {spent > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                    <span>{fmtINR(dailyAvg)}/day avg · day {daysPassed}/{daysInMonth}</span>
-                    <span style={{ color: projectedPct > 110 ? THEME.rust : projectedPct > 90 ? THEME.gold : THEME.sage, fontWeight: 800 }}>
-                      Projected: {fmtINR(projected)} ({projectedPct.toFixed(0)}%)
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 600, opacity: 0.8 }}>
+                    <span>Day {daysPassed}/{daysInMonth} · Projected {fmtINR(projected)}</span>
+                    <span style={{ color: projectedPct > 105 ? THEME.rust : THEME.sage }}>
+                      {projectedPct.toFixed(0)}% expected
                     </span>
                   </div>
                 )}

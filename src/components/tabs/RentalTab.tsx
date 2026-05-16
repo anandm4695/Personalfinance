@@ -145,22 +145,29 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               onAdd={() => setModalOut({ open: true, editing: null })}
             />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
               {propertiesOut.map((p: any) => (
-                <Card key={p.id} style={{ padding: 24, position: "relative" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(128,128,128,0.04)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${THEME.line}` }}>
-                      <Building2 size={24} color={THEME.accent} />
+                <Card key={p.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${THEME.accent}`, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                    {/* Icon Box */}
+                    <div style={{ 
+                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                      background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+                      display: "flex", alignItems: "center", justifyContent: "center" 
+                    }}>
+                      <Building2 size={22} color={THEME.accent} />
                     </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{p.propertyName}</div>
-                          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
+                          <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
                             {p.tenantName || "Vacant"} · <span style={{ color: THEME.accent }}>{fmtINRFull(p.monthlyRent)}/mo</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 4 }}>
+                        <div style={{ display: "flex", gap: 2 }}>
                           <Button variant="ghost" size="sm" onClick={() => setModalOut({ open: true, editing: p })} style={{ padding: 6 }}>
                             <Pencil size={14} />
                           </Button>
@@ -169,16 +176,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </Button>
                         </div>
                       </div>
-                      <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>FY Received</div>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
+
+                      <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Received</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull((p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
-                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Deposit Held</div>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.gold }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Held</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
                             {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
                           </div>
                         </div>
@@ -235,22 +243,29 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               onAdd={() => setModalIn({ open: true, editing: null })}
             />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
               {propertiesIn.map((p: any) => (
-                <Card key={p.id} style={{ padding: 24, position: "relative" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(128,128,128,0.04)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${THEME.line}` }}>
-                      <Building2 size={24} color={THEME.rust} />
+                <Card key={p.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${THEME.rust}`, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                    {/* Icon Box */}
+                    <div style={{ 
+                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                      background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
+                      display: "flex", alignItems: "center", justifyContent: "center" 
+                    }}>
+                      <Building2 size={22} color={THEME.rust} />
                     </div>
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{p.propertyName}</div>
-                          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
+                          <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
                             {p.landlordName || "Unknown Landlord"} · <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 4 }}>
+                        <div style={{ display: "flex", gap: 2 }}>
                           <Button variant="ghost" size="sm" onClick={() => setModalIn({ open: true, editing: p })} style={{ padding: 6 }}>
                             <Pencil size={14} />
                           </Button>
@@ -259,16 +274,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </Button>
                         </div>
                       </div>
-                      <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>FY Paid</div>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.rust }}>
+
+                      <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Paid</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.rust }}>
                             {fmtINRFull((p.payments || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
-                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Deposit Paid</div>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Paid</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
                           </div>
                         </div>

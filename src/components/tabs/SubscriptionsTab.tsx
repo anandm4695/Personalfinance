@@ -10,11 +10,57 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+const SUB_LOGOS: Record<string, string> = {
+  netflix: "netflix.com",
+  spotify: "spotify.com",
+  amazon: "amazon.in",
+  prime: "primevideo.com",
+  hotstar: "hotstar.com",
+  youtube: "youtube.com",
+  apple: "apple.com",
+  google: "google.com",
+  icloud: "apple.com",
+  swiggy: "swiggy.com",
+  zomato: "zomato.com",
+  "1password": "1password.com",
+  cursor: "cursor.com",
+  openai: "openai.com",
+  claude: "anthropic.com",
+  figma: "figma.com",
+  notion: "notion.so",
+  slack: "slack.com",
+  zoom: "zoom.us",
+  adobe: "adobe.com",
+  canva: "canva.com",
+  linkedin: "linkedin.com",
+};
 
+const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
+  const n = (name || "").toLowerCase();
+  let domain = "";
+  for (const [k, d] of Object.entries(SUB_LOGOS)) {
+    if (n.includes(k)) { domain = d; break; }
+  }
 
+  if (domain) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 10, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+        <img 
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
+          alt={name} 
+          style={{ width: "70%", height: "70%", objectFit: "contain" }}
+          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: ${size/2.5}px; font-weight: 800; color: ${THEME.muted}">${name.slice(0, 2).toUpperCase()}</span>`; }}
+        />
+      </div>
+    );
+  }
 
-const th = { textAlign: "left" as const, padding: "12px 10px", color: THEME.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", borderBottom: `1px solid ${THEME.line}` };
-const td = { padding: "16px 10px", fontSize: 14 };
+  return (
+    <div style={{ width: size, height: size, borderRadius: 10, background: "rgba(128,128,128,0.1)", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ fontSize: size/2.5, fontWeight: 800, color: THEME.muted }}>{name.slice(0, 2).toUpperCase()}</span>
+    </div>
+  );
+};
 
 export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
@@ -79,71 +125,62 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
           onAdd={() => setShow(true)}
         />
       ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "rgba(128,128,128,0.02)" }}>
-                  <th style={th}>Service</th>
-                  <th style={th}>Category</th>
-                  <th style={th}>Cycle</th>
-                  <th style={th}>Next Renewal</th>
-                  <th style={{ ...th, textAlign: "right" }}>Amount</th>
-                  <th style={{ ...th, textAlign: "right" }}>Monthly Equiv</th>
-                  <th style={{ ...th, width: 120 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.subscriptions.map((s: any) => {
-                  const monthly =
-                    s.cycle === "yearly"
-                      ? Number(s.amount) / 12
-                      : s.cycle === "quarterly"
-                      ? Number(s.amount) / 3
-                      : Number(s.amount);
-                  return (
-                    <tr
-                      key={s.id}
-                      style={{ borderBottom: `1px solid ${THEME.line}`, opacity: s.paused ? 0.6 : 1, transition: "background 0.2s" }}
-                      className="table-row-hover"
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+          {state.subscriptions.map((s: any) => {
+            const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
+            const color = s.paused ? THEME.muted : THEME.accent;
+            
+            return (
+              <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}`, opacity: s.paused ? 0.7 : 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  {/* Logo */}
+                  <ServiceLogo name={s.name} />
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{s.name}</span>
+                      {s.paused && <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>}
+                      <Badge variant="muted" style={{ fontSize: 9, opacity: 0.8 }}>{s.category}</Badge>
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      <span style={{ color }}>{fmtINRFull(s.amount)}</span>
+                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                      <span style={{ textTransform: "capitalize" }}>{s.cycle}</span>
+                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                      <span>Next: {s.renewalDate || "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Monthly Equivalent */}
+                  <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthly)}</div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>equiv/mo</div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => updateItem("subscriptions", s.id, { paused: !s.paused })}
+                      style={{ padding: 6, color: s.paused ? THEME.sage : THEME.gold }}
+                      title={s.paused ? "Resume" : "Pause"}
                     >
-                      <td style={{ ...td, fontWeight: 800, color: THEME.ink }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {s.name}
-                          {s.paused && <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>}
-                        </div>
-                      </td>
-                      <td style={td}><Badge variant="muted" style={{ fontSize: 10 }}>{s.category}</Badge></td>
-                      <td style={{ ...td, textTransform: "capitalize", fontWeight: 600 }}>{s.cycle}</td>
-                      <td style={{ ...td, color: THEME.muted }}>{s.renewalDate || "—"}</td>
-                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmtINRFull(s.amount)}</td>
-                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", color: THEME.muted, fontWeight: 600 }}>{fmtINRFull(monthly)}</td>
-                      <td style={td}>
-                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateItem("subscriptions", s.id, { paused: !s.paused })}
-                            style={{ padding: 6, color: s.paused ? THEME.sage : THEME.gold }}
-                            title={s.paused ? "Resume" : "Pause"}
-                          >
-                            {s.paused ? <Play size={14} /> : <Pause size={14} />}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditSub(s)} style={{ padding: 6 }}>
-                            <Pencil size={14} />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => removeItem("subscriptions", s.id)} style={{ padding: 6, color: THEME.rust }}>
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                      {s.paused ? <Play size={14} /> : <Pause size={14} />}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditSub(s)} style={{ padding: 6 }}>
+                      <Pencil size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => removeItem("subscriptions", s.id)} style={{ padding: 6, color: THEME.rust }}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {show && (

@@ -11,6 +11,53 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 
+const INSURER_LOGOS: Record<string, string> = {
+  lic: "licindia.in",
+  hdfc: "hdfclife.com",
+  icici: "iciciprulife.com",
+  sbi: "sbilife.co.in",
+  max: "maxlifeinsurance.com",
+  tata: "tataaia.com",
+  bajaj: "bajajallianzlife.com",
+  kotak: "kotaklife.com",
+  birla: "adityabirlasunlifeinsurance.com",
+  absli: "adityabirlasunlifeinsurance.com",
+  pnb: "pnbmetlife.com",
+  metlife: "pnbmetlife.com",
+  canara: "canarahsbclife.com",
+  hsbc: "canarahsbclife.com",
+  aviva: "avivaindia.com",
+  reliance: "reliancenipponlife.com",
+  exide: "exidelife.in",
+};
+
+const InsurerLogo = ({ name, size = 40, isLic = false }: { name: string; size?: number; isLic?: boolean }) => {
+  const n = isLic ? "lic" : (name || "").toLowerCase();
+  let domain = "";
+  for (const [k, d] of Object.entries(INSURER_LOGOS)) {
+    if (n.includes(k)) { domain = d; break; }
+  }
+
+  if (domain) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 10, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+        <img 
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
+          alt={name} 
+          style={{ width: "70%", height: "70%", objectFit: "contain" }}
+          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: ${size/2.5}px; font-weight: 800; color: ${THEME.muted}">${name.slice(0, 2).toUpperCase()}</span>`; }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: size, height: size, borderRadius: 10, background: "rgba(128,128,128,0.1)", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ fontSize: size/2.5, fontWeight: 800, color: THEME.muted }}>{name.slice(0, 2).toUpperCase()}</span>
+    </div>
+  );
+};
+
 /* ══════════════════════════════════════════════════════════════════════
    HELPERS & MODALS
    ══════════════════════════════════════════════════════════════════════ */
@@ -86,8 +133,7 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
 
 
 
-const th = { textAlign: "left" as const, padding: "12px 8px", color: THEME.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
-const td = { padding: "16px 8px" };
+
 
 /* ══════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -148,39 +194,33 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
             title="No LIC Policies Added Yet"
             description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
             pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
-            buttonLabel="Add LIC Policy"
+            buttonLabel="Add Policy"
             onAdd={() => setModal("lic")}
           />
         ) : (
-          <div style={{ overflowX: "auto", margin: "0 -24px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "rgba(128,128,128,0.02)" }}>
-                  <th style={{ ...th, paddingLeft: 24 }}>Policy No</th>
-                  <th style={th}>Plan Name</th>
-                  <th style={{ ...th, textAlign: "right" }}>Sum Assured</th>
-                  <th style={{ ...th, textAlign: "right" }}>Annual Premium</th>
-                  <th style={th}>Maturity</th>
-                  <th style={{ ...th, width: 60, paddingRight: 24 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.lic.map((l: any) => (
-                  <tr key={l.id} className="row-hover" style={{ borderBottom: `1px solid ${THEME.line}44` }}>
-                    <td style={{ ...td, paddingLeft: 24, fontSize: 13, color: THEME.muted }}>****{String(l.policyNumber || "").slice(-4)}</td>
-                    <td style={{ ...td, fontWeight: 700, fontSize: 14 }}>{l.planName}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(l.sumAssured)}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.gold, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(l.annualPremium)}</td>
-                    <td style={{ ...td, fontSize: 13, color: THEME.muted, fontWeight: 600 }}>{l.maturityDate || "—"}</td>
-                    <td style={{ ...td, textAlign: "right", paddingRight: 24 }}>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("lic", l.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+            {state.lic.map((l: any) => (
+              <Card key={l.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.rust}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <InsurerLogo name="LIC" isLic />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{l.planName}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
+                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                      <span>#{l.policyNumber || "No No."}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(l.annualPremium)}</div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeItem("lic", l.id)} style={{ padding: 6, color: THEME.rust }}>
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </Card>
@@ -194,44 +234,38 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
         {state.termPlans.length === 0 ? (
           <EmptyState
             icon={Heart}
-            gradient="linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
-            dotColor="#dc2626"
-            title="No Term Plans Added Yet"
-            description="Track your pure protection term plans — insurer, cover amount, annual premium, and policy expiry date."
-            pills={["Cover Amount", "Annual Premium", "Policy Expiry", "Insurer Details"]}
+            gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
+            dotColor="#db2777"
+            title="No Term Plans Tracked"
+            description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
+            pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
             buttonLabel="Add Term Plan"
             onAdd={() => setModal("term")}
           />
         ) : (
-          <div style={{ overflowX: "auto", margin: "0 -24px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "rgba(128,128,128,0.02)" }}>
-                  <th style={{ ...th, paddingLeft: 24 }}>Insurer</th>
-                  <th style={th}>Plan Name</th>
-                  <th style={{ ...th, textAlign: "right" }}>Cover Amount</th>
-                  <th style={{ ...th, textAlign: "right" }}>Annual Premium</th>
-                  <th style={th}>Expiry</th>
-                  <th style={{ ...th, width: 60, paddingRight: 24 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.termPlans.map((t: any) => (
-                  <tr key={t.id} className="row-hover" style={{ borderBottom: `1px solid ${THEME.line}44` }}>
-                    <td style={{ ...td, paddingLeft: 24, fontSize: 13, color: THEME.muted, fontWeight: 600 }}>{t.insurer}</td>
-                    <td style={{ ...td, fontWeight: 700, fontSize: 14 }}>{t.planName}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(t.coverAmount)}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.gold, fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(t.annualPremium)}</td>
-                    <td style={{ ...td, fontSize: 13, color: THEME.muted, fontWeight: 600 }}>{t.expiryDate || "—"}</td>
-                    <td style={{ ...td, textAlign: "right", paddingRight: 24 }}>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+            {state.termPlans.map((t: any) => (
+              <Card key={t.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.rust}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <InsurerLogo name={t.insurer} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{t.planName || "Term Plan"}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
+                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                      <span>{t.insurer}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(t.annualPremium)}</div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </Card>

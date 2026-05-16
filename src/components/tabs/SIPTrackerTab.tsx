@@ -15,8 +15,7 @@ import { EmptyState } from "../ui/EmptyState";
 
 
 
-const th = { textAlign: "left" as const, padding: "12px 10px", color: THEME.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", borderBottom: `1px solid ${THEME.line}` };
-const td = { padding: "16px 10px", fontSize: 14 };
+
 
 export function SIPTrackerTab({ state, addItem, removeItem }: any) {
   const [show, setShow] = useState(false);
@@ -113,45 +112,49 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
           onAdd={() => setShow(true)}
         />
       ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "rgba(128,128,128,0.02)" }}>
-                  <th style={th}>Scheme</th>
-                  <th style={th}>Type</th>
-                  <th style={{ ...th, textAlign: "right" }}>Amount/mo</th>
-                  <th style={th}>Started</th>
-                  <th style={{ ...th, textAlign: "right" }}>Paid/Total</th>
-                  <th style={{ ...th, textAlign: "right" }}>Invested</th>
-                  <th style={{ ...th, textAlign: "right" }}>Projected Corpus</th>
-                  <th style={{ ...th, width: 50 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sipsWithCalc.map((sip) => (
-                  <tr key={sip.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
-                    <td style={{ ...td, fontWeight: 800, color: THEME.ink }}>{sip.scheme}</td>
-                    <td style={td}><Badge variant="muted" style={{ fontSize: 10 }}>{sip.fundType}</Badge></td>
-                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmtINRFull(sip.amount)}</td>
-                    <td style={{ ...td, color: THEME.muted }}>{sip.startDate}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{sip.paid} / <span style={{ color: THEME.muted }}>{sip.totalInstallments}</span></td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.ink }}>{fmtINRFull(sip.totalInvested)}</td>
-                    <td style={{ ...td, textAlign: "right" }}>
-                      <div style={{ fontWeight: 900, color: THEME.sage, fontSize: 15 }}>{fmtINRFull(sip.projectedCorpus)}</div>
-                      <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>{sip.remaining > 0 ? `${sip.remaining} mo left` : "Complete"}</div>
-                    </td>
-                    <td style={td}>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("sips", sip.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+          {sipsWithCalc.map((sip) => (
+            <Card key={sip.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${THEME.sage}`, position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                {/* Icon Box */}
+                <div style={{ 
+                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                  display: "flex", alignItems: "center", justifyContent: "center" 
+                }}>
+                  <Activity size={22} color={THEME.sage} />
+                </div>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{sip.scheme}</span>
+                    <Badge variant="muted" style={{ fontSize: 9 }}>{sip.fundType}</Badge>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                    <span style={{ color: THEME.sage }}>{fmtINRFull(sip.amount)}/mo</span>
+                    <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                    <span>Paid {sip.paid}/{sip.totalInstallments}</span>
+                  </div>
+                </div>
+
+                {/* Values */}
+                <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(sip.projectedCorpus)}</div>
+                  <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>projected</div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ flexShrink: 0 }}>
+                  <Button variant="ghost" size="sm" onClick={() => removeItem("sips", sip.id)} style={{ padding: 6, color: THEME.rust }}>
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {show && (
