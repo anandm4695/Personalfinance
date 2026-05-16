@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2 } from "lucide-react";
+import { AlertCircle, Plus, Wallet, Receipt, TrendingUp, Target, Pencil, Trash2, BarChart2, Check } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -10,6 +10,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Badge } from "../ui/Badge";
 
 // Internal helper components
 
@@ -27,7 +28,7 @@ const BudgetEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 700, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
+        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
       ))}
     </div>
     <Button onClick={onAdd} variant="accent" size="lg" icon={<Plus size={18} />}>Create First Budget</Button>
@@ -59,12 +60,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
   }).length;
 
   return (
-    <div>
+    <div className="tab-content-enter">
       {overBudgetCount > 0 && (
-        <div style={{ background: "rgba(217,48,37,0.08)", border: `1px solid ${THEME.rust}`, borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, color: THEME.rust }}>
-          <AlertCircle size={16} />
-          <span style={{ fontWeight: 600, fontSize: 14 }}>⚠ {overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget this month</span>
-        </div>
+        <Card style={{ background: "rgba(217,48,37,0.04)", border: `1px solid ${THEME.rust}44`, padding: "12px 20px", marginBottom: 24, display: "flex", alignItems: "center", gap: 12, color: THEME.rust }}>
+          <AlertCircle size={18} />
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget this month</span>
+        </Card>
       )}
       <SectionTitle 
         sub="Set monthly limits per category and track real spending"
@@ -79,7 +80,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         Budget Planner
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
         <StatCard 
           icon={<Wallet />} 
           label="Total Budgeted" 
@@ -91,7 +92,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
           icon={<Receipt />} 
           label="Spent This Month" 
           value={fmtINRFull(totalSpent)} 
-          color={totalSpent > totalBudget ? THEME.rust : THEME.ink}
+          color={totalSpent > totalBudget ? THEME.rust : THEME.accent}
           sub={`Used ${((totalSpent / (totalBudget || 1)) * 100).toFixed(0)}% of total`}
         />
         <StatCard 
@@ -104,7 +105,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         <StatCard 
           icon={<Target />} 
           label="Categories" 
-          value={state.budgets.length} 
+          value={String(state.budgets.length)} 
           color={THEME.muted}
           sub="Active budget buckets"
         />
@@ -118,40 +119,41 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         const spentPct = (totalSpent / totalBudget) * 100;
         const onTrack = spentPct <= monthElapsedPct + 5;
         const burnColor = spentPct > monthElapsedPct + 10 ? THEME.rust : spentPct > monthElapsedPct - 5 ? THEME.gold : THEME.sage;
-        const r = 44, sz = 104, circ = 2 * Math.PI * r;
+        const r = 44, sz = 110, circ = 2 * Math.PI * r;
         return (
-          <Card style={{ marginBottom: 24, padding: 24 }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Budget Burn Rate — Day {daysPassed} of {daysInMonth}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
+          <Card style={{ marginBottom: 32, padding: "28px 32px" }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 24, fontWeight: 800 }}>Budget Burn Rate — Day {daysPassed} of {daysInMonth}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 48, flexWrap: "wrap" }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
-                <svg width={sz} height={sz}>
-                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.line} strokeWidth="8" />
-                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.muted} strokeWidth="8" opacity="0.3"
+                <svg width={sz} height={sz} style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.05))" }}>
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.line} strokeWidth="10" />
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={THEME.muted} strokeWidth="10" opacity="0.15"
                     strokeDasharray={`${(monthElapsedPct/100)*circ} ${circ}`} strokeDashoffset={circ/4} strokeLinecap="round" />
-                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={burnColor} strokeWidth="8"
+                  <circle cx={sz/2} cy={sz/2} r={r} fill="none" stroke={burnColor} strokeWidth="10"
                     strokeDasharray={`${Math.min(spentPct/100,1)*circ} ${circ}`} strokeDashoffset={circ/4} strokeLinecap="round"
-                    style={{ transition: "stroke-dasharray 0.6s ease" }} />
-                  <text x={sz/2} y={sz/2-4} textAnchor="middle" fontSize="15" fontWeight="800" fill={burnColor}>{spentPct.toFixed(0)}%</text>
-                  <text x={sz/2} y={sz/2+13} textAnchor="middle" fontSize="9" fill={THEME.muted}>spent</text>
+                    style={{ transition: "stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                  <text x={sz/2} y={sz/2-4} textAnchor="middle" fontSize="18" fontWeight="900" fill={THEME.ink}>{spentPct.toFixed(0)}%</text>
+                  <text x={sz/2} y={sz/2+14} textAnchor="middle" fontSize="10" fontWeight="700" fill={THEME.muted} style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>spent</text>
                 </svg>
               </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 280 }}>
+                <div style={{ display: "grid", gap: 14 }}>
                   {[
                     { label: "Month elapsed", val: monthElapsedPct.toFixed(0) + "%", color: THEME.muted },
                     { label: "Budget spent", val: spentPct.toFixed(0) + "%", color: burnColor },
                     { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
-                    { label: "Daily average", val: fmtINR(daysPassed > 0 ? totalSpent / daysPassed : 0) + "/day", color: THEME.muted },
+                    { label: "Daily average", val: fmtINR(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day", color: THEME.muted },
                     { label: "Projected month-end", val: fmtINRFull(daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0), color: burnColor },
                   ].map(({ label, val, color }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <span style={{ color: THEME.muted }}>{label}</span>
-                      <span style={{ fontWeight: 700, color }}>{val}</span>
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 600 }}>{label}</span>
+                      <span style={{ fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{val}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 12, fontSize: 12, padding: "8px 12px", borderRadius: 6, background: onTrack ? "rgba(30,142,62,0.08)" : "rgba(217,48,37,0.08)", color: onTrack ? THEME.sage : THEME.rust, fontWeight: 600 }}>
-                  {onTrack ? "✓ On track — spending in line with the month" : `⚠ Overpacing — spending faster than month progress`}
+                <div style={{ marginTop: 20, fontSize: 13, padding: "12px 16px", borderRadius: 10, background: onTrack ? "rgba(30,142,62,0.06)" : "rgba(217,48,37,0.06)", color: onTrack ? THEME.sage : THEME.rust, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                  {onTrack ? <Check size={16} /> : <AlertCircle size={16} />}
+                  {onTrack ? "Spending is perfectly in line with the month progress." : "You are overpacing — spending faster than month progress."}
                 </div>
               </div>
             </div>
@@ -162,7 +164,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
       {state.budgets.length === 0 ? (
         <BudgetEmptyState onAdd={() => setShow(true)} />
       ) : (
-        <div style={{ display: "grid", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
           {state.budgets.map((b: any) => {
             const spent = monthSpending[b.category] || 0;
             const budget = Number(b.monthly || 0);
@@ -178,32 +180,36 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
             const dailyAvg = daysPassed > 0 ? spent / daysPassed : 0;
 
             return (
-              <Card key={b.id} style={{ position: "relative", padding: 24 }}>
-                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
-                  <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => setEditBudget(b)} />
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} style={{ color: THEME.rust }} onClick={() => removeItem("budgets", b.id)} />
+              <Card key={b.id} style={{ position: "relative", padding: 24, borderLeft: `4px solid ${barColor}` }}>
+                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 4 }}>
+                  <Button variant="ghost" size="sm" onClick={() => setEditBudget(b)} style={{ padding: 6 }}>
+                    <Pencil size={14} />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => removeItem("budgets", b.id)} style={{ padding: 6, color: THEME.rust }}>
+                    <Trash2 size={14} />
+                  </Button>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, paddingRight: 28 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, paddingRight: 40 }}>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>{b.category}</div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                      {fmtINRFull(spent)} spent of {fmtINRFull(budget)} budget
+                    <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{b.category}</div>
+                    <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                      {fmtINRFull(spent)} <span style={{ fontWeight: 400 }}>of</span> {fmtINRFull(budget)}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: over ? THEME.rust : THEME.ink }}>{pct.toFixed(0)}%</div>
-                    <div style={{ fontSize: 11, color: over ? THEME.rust : THEME.sage, fontWeight: 600 }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: over ? THEME.rust : THEME.ink, letterSpacing: "-0.04em" }}>{pct.toFixed(0)}%</div>
+                    <div style={{ fontSize: 11, color: over ? THEME.rust : THEME.sage, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>
                       {over ? fmtINR(spent - budget) + " over" : fmtINR(budget - spent) + " left"}
                     </div>
                   </div>
                 </div>
-                <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
-                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: barColor, borderRadius: 4, transition: "width 0.5s" }} />
+                <div style={{ height: 10, background: "rgba(128,128,128,0.06)", borderRadius: 5, overflow: "hidden", marginBottom: 16 }}>
+                  <div style={{ height: "100%", width: Math.min(pct, 100) + "%", background: barColor, borderRadius: 5, transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                 </div>
                 {spent > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, flexWrap: "wrap", gap: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                     <span>{fmtINR(dailyAvg)}/day avg · day {daysPassed}/{daysInMonth}</span>
-                    <span style={{ fontWeight: 600, color: projectedPct > 110 ? THEME.rust : projectedPct > 90 ? THEME.gold : THEME.sage }}>
+                    <span style={{ color: projectedPct > 110 ? THEME.rust : projectedPct > 90 ? THEME.gold : THEME.sage, fontWeight: 800 }}>
                       Projected: {fmtINR(projected)} ({projectedPct.toFixed(0)}%)
                     </span>
                   </div>
@@ -239,17 +245,17 @@ export function BudgetModal({ onClose, onSave, initialValues = null }: any) {
   return (
     <Modal title={initialValues ? "Edit Budget" : "Add Budget"} onClose={onClose}>
       <Field label="Owner / Profile">
-        <select style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+        <select className="form-input" value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <Field label="Category">
-        <select style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+        <select className="form-input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
           {allCats.map((c) => <option key={c}>{c}</option>)}
         </select>
       </Field>
       <Field label="Monthly Limit (₹)">
-        <input style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
+        <input className="form-input" type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
       </Field>
       <ModalActions onSave={() => f.monthly && onSave(f)} onClose={onClose} />
     </Modal>

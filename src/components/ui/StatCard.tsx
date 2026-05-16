@@ -7,13 +7,14 @@ interface StatCardProps {
   label: string;
   value: string;
   sub?: string;
+  subColor?: string;
   icon: React.ReactNode;
   color: string;
   borderColor?: string;
   iconBg?: string;
 }
 
-export const StatCard = ({ label, value, sub, icon, color, borderColor, iconBg }: StatCardProps) => (
+export const StatCard = ({ label, value, sub, subColor, icon, color, borderColor, iconBg }: StatCardProps) => (
   <div
     style={{
       background: "var(--t-paper)",
@@ -41,10 +42,10 @@ export const StatCard = ({ label, value, sub, icon, color, borderColor, iconBg }
         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
           {label}
         </div>
-        {sub && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 400, marginTop: 2, opacity: 0.8 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 10, color: subColor || THEME.muted, fontWeight: subColor ? 700 : 400, marginTop: 2, opacity: subColor ? 1 : 0.8 }}>{sub}</div>}
       </div>
     </div>
-    <div style={{ fontSize: 28, fontWeight: 900, color: color, letterSpacing: "-0.04em", lineHeight: 1 }}>
+    <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
       <Prv>{value}</Prv>
     </div>
   </div>

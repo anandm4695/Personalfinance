@@ -8,6 +8,9 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Card } from "../ui/Card";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 
 // Internal helper components
 
@@ -15,70 +18,29 @@ import { SectionTitle } from "../ui/SectionTitle";
 
 
 const SIPEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "64px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(13,148,136,0.2)" }}>
       <Repeat size={28} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No SIPs Tracked Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey.</div>
+      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>No SIPs Tracked Yet</h3>
+      <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 420, lineHeight: 1.6, margin: "0 auto" }}>
+        Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey.
+      </p>
     </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
       {["Mutual Fund SIPs", "Corpus Projections", "Installment Progress", "Monthly Tracking"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(13,148,136,0.08)", color: "#0d9488", fontWeight: 600, border: "1px solid rgba(13,148,136,0.15)" }}>● {f}</span>
+        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Add First SIP
-    </button>
-  </div>
+    <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={onAdd} style={{ marginTop: 8 }}>
+      Add First SIP
+    </Button>
+  </Card>
 );
 
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const iconBtn = {
-  padding: 6,
-  background: "transparent",
-  border: "none",
-  color: THEME.muted,
-  cursor: "pointer",
-  borderRadius: 6,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  background: "var(--t-paper)",
-  border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
-  color: THEME.ink,
-  fontSize: 14,
-};
-
-const card = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
-  padding: 20,
-};
-
-const th = { textAlign: "left" as const, padding: "12px 8px", color: THEME.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
-const td = { padding: "16px 8px" };
+const th = { textAlign: "left" as const, padding: "12px 10px", color: THEME.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", borderBottom: `1px solid ${THEME.line}` };
+const td = { padding: "16px 10px", fontSize: 14 };
 
 export function SIPTrackerTab({ state, addItem, removeItem }: any) {
   const [show, setShow] = useState(false);
@@ -103,12 +65,21 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
   const totalProjected = sipsWithCalc.reduce((s: number, sip: any) => s + sip.projectedCorpus, 0);
 
   return (
-    <div>
-      <SectionTitle sub="Track your systematic investment plans across mutual funds">
+    <div className="tab-content-enter">
+      <SectionTitle 
+        sub="Track your systematic investment plans across mutual funds"
+        rightElement={
+          sipsWithCalc.length > 0 && (
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
+              Add SIP
+            </Button>
+          )
+        }
+      >
         SIP Tracker
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
         <StatCard 
           icon={<Activity />} 
           label="Monthly SIP" 
@@ -140,56 +111,62 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
       </div>
 
       {sipsWithCalc.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 12, color: THEME.muted }}>Projection rate:</span>
-            <input style={{ ...input, width: 64, fontSize: 13, padding: "4px 8px" }} type="number" value={sipProjRate} onChange={(e) => setSipProjRate(e.target.value)} />
-            <span style={{ fontSize: 12, color: THEME.muted }}>% p.a.</span>
+        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", marginBottom: 20, gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(128,128,128,0.04)", padding: "4px 14px", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Projection rate:</span>
+            <input 
+              style={{ width: 44, fontSize: 13, background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, padding: 0, textAlign: "center" }} 
+              type="number" 
+              value={sipProjRate} 
+              onChange={(e) => setSipProjRate(e.target.value)} 
+            />
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>% p.a.</span>
           </div>
-          <button style={btnSolid} onClick={() => setShow(true)}>
-            <Plus size={14} /> Add SIP
-          </button>
         </div>
       )}
 
       {sipsWithCalc.length === 0 ? (
-        <div style={card}><SIPEmptyState onAdd={() => setShow(true)} /></div>
+        <SIPEmptyState onAdd={() => setShow(true)} />
       ) : (
-        <div style={card}>
-          <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
-                <th style={th}>Scheme</th>
-                <th style={th}>Type</th>
-                <th style={{ ...th, textAlign: "right" }}>Amount/mo</th>
-                <th style={th}>Started</th>
-                <th style={{ ...th, textAlign: "right" }}>Paid/Total</th>
-                <th style={{ ...th, textAlign: "right" }}>Invested</th>
-                <th style={{ ...th, textAlign: "right" }}>Projected Corpus</th>
-                <th style={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sipsWithCalc.map((sip) => (
-                <tr key={sip.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                  <td style={{ ...td, fontWeight: 600, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sip.scheme}</td>
-                  <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{sip.fundType}</td>
-                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtINRFull(sip.amount)}</td>
-                  <td style={td}>{sip.startDate}</td>
-                  <td style={{ ...td, textAlign: "right" }}>{sip.paid} / {sip.totalInstallments}</td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmtINRFull(sip.totalInvested)}</td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.sage }}>
-                    {fmtINRFull(sip.projectedCorpus)}
-                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 400 }}>{sip.remaining > 0 ? `${sip.remaining} mo left` : "Complete"}</div>
-                  </td>
-                  <td style={td}>
-                    <button onClick={() => removeItem("sips", sip.id)} style={iconBtn}><Trash2 size={13} /></button>
-                  </td>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "rgba(128,128,128,0.02)" }}>
+                  <th style={th}>Scheme</th>
+                  <th style={th}>Type</th>
+                  <th style={{ ...th, textAlign: "right" }}>Amount/mo</th>
+                  <th style={th}>Started</th>
+                  <th style={{ ...th, textAlign: "right" }}>Paid/Total</th>
+                  <th style={{ ...th, textAlign: "right" }}>Invested</th>
+                  <th style={{ ...th, textAlign: "right" }}>Projected Corpus</th>
+                  <th style={{ ...th, width: 50 }}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </div>
+              </thead>
+              <tbody>
+                {sipsWithCalc.map((sip) => (
+                  <tr key={sip.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
+                    <td style={{ ...td, fontWeight: 800, color: THEME.ink }}>{sip.scheme}</td>
+                    <td style={td}><Badge variant="muted" style={{ fontSize: 10 }}>{sip.fundType}</Badge></td>
+                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{fmtINRFull(sip.amount)}</td>
+                    <td style={{ ...td, color: THEME.muted }}>{sip.startDate}</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{sip.paid} / <span style={{ color: THEME.muted }}>{sip.totalInstallments}</span></td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: THEME.ink }}>{fmtINRFull(sip.totalInvested)}</td>
+                    <td style={{ ...td, textAlign: "right" }}>
+                      <div style={{ fontWeight: 900, color: THEME.sage, fontSize: 15 }}>{fmtINRFull(sip.projectedCorpus)}</div>
+                      <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>{sip.remaining > 0 ? `${sip.remaining} mo left` : "Complete"}</div>
+                    </td>
+                    <td style={td}>
+                      <Button variant="ghost" size="sm" onClick={() => removeItem("sips", sip.id)} style={{ padding: 6, color: THEME.rust }}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {show && (
@@ -208,21 +185,21 @@ function SIPModal({ onClose, onSave }: any) {
   return (
     <Modal title="Add SIP" onClose={onClose}>
       <Field label="Owner / Profile">
-        <select style={input} value={f.owner} onChange={e => setF({...f, owner: e.target.value})}>
+        <select className="form-input" value={f.owner} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <Field label="Scheme Name">
-        <input style={input} value={f.scheme} onChange={(e) => setF({ ...f, scheme: e.target.value })} placeholder="e.g. Parag Parikh Flexi Cap" />
+        <input className="form-input" value={f.scheme} onChange={(e) => setF({ ...f, scheme: e.target.value })} placeholder="e.g. Parag Parikh Flexi Cap" />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Fund Type">
-          <select style={input} value={f.fundType} onChange={(e) => setF({ ...f, fundType: e.target.value })}>
+          <select className="form-input" value={f.fundType} onChange={(e) => setF({ ...f, fundType: e.target.value })}>
             {mfCategories.map((c: string) => <option key={c}>{c}</option>)}
           </select>
         </Field>
         <Field label="Frequency">
-          <select style={input} value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value })}>
+          <select className="form-input" value={f.frequency} onChange={(e) => setF({ ...f, frequency: e.target.value })}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
           </select>
@@ -230,13 +207,13 @@ function SIPModal({ onClose, onSave }: any) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         <Field label="Amount (₹)">
-          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+          <input className="form-input" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
         </Field>
         <Field label="Start Date">
-          <input style={input} type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} />
+          <input className="form-input" type="date" value={f.startDate} onChange={(e) => setF({ ...f, startDate: e.target.value })} />
         </Field>
         <Field label="Total Installments">
-          <input style={input} type="number" value={f.totalInstallments} onChange={(e) => setF({ ...f, totalInstallments: e.target.value })} />
+          <input className="form-input" type="number" value={f.totalInstallments} onChange={(e) => setF({ ...f, totalInstallments: e.target.value })} />
         </Field>
       </div>
       <ModalActions onSave={() => f.scheme && f.amount && onSave(f)} onClose={onClose} />

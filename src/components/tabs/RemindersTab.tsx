@@ -7,88 +7,34 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Card } from "../ui/Card";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 
 // Internal helper components usually found in App.tsx or similar
 
 
 const RemindersEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(79, 70, 229, 0.2)" }}>
       <Bell size={28} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Reminders Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 400 }}>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Reminders Yet</div>
+      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>
         Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, and loans — just add those with due dates and they appear here automatically.
       </div>
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["CC Bill Due Dates", "FD & Bond Maturities", "Subscription Renewals", "Custom Alerts"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(79,70,229,0.08)", color: "#4f46e5", fontWeight: 600, border: "1px solid rgba(79,70,229,0.15)" }}>● {f}</span>
+        <Badge key={f} variant="muted" style={{ padding: "5px 12px", fontSize: 11 }}>● {f}</Badge>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Add Manual Reminder
-    </button>
-  </div>
+    <Button onClick={onAdd} variant="accent" size="lg" icon={<Plus size={18} />}>Add Manual Reminder</Button>
+  </Card>
 );
 
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
 
-const btnGhost = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 12px",
-  background: "transparent",
-  color: THEME.muted,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const card = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
-  padding: 20,
-};
-
-const iconBtn = {
-  padding: 6,
-  background: "transparent",
-  border: "none",
-  color: THEME.muted,
-  cursor: "pointer",
-  borderRadius: 6,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  background: "var(--t-paper)",
-  border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
-  color: THEME.ink,
-  fontSize: 14,
-};
 
 export function RemindersTab({ state, addItem, removeItem }: any) {
   const [show, setShow] = useState(false);
@@ -143,31 +89,34 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
   const past = allReminders.filter((r) => daysLeft(r.date) < 0);
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <SectionTitle sub="Upcoming dues, maturities, renewals and custom alerts">
-          Reminders & Alerts
-        </SectionTitle>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {notifPerm !== "unsupported" && notifPerm !== "granted" && (
-            <button
-              style={{ ...btnGhost, fontSize: 12 }}
-              onClick={requestNotifications}
-              title="Get browser notifications for due reminders"
-            >
-              <Bell size={13} /> Enable Notifications
-            </button>
-          )}
-          {notifPerm === "granted" && (
-            <span style={{ fontSize: 12, color: THEME.sage, display: "flex", alignItems: "center", gap: 4 }}>
-              <Check size={13} /> Notifications on
-            </span>
-          )}
-          <button style={btnSolid} onClick={() => setShow(true)}>
-            <Plus size={14} /> Add Reminder
-          </button>
-      </div>
-    </div>
+    <div className="tab-content-enter">
+      <SectionTitle 
+        sub="Upcoming dues, maturities, renewals and custom alerts"
+        rightElement={
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {notifPerm !== "unsupported" && notifPerm !== "granted" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={requestNotifications}
+                icon={<Bell size={14} />}
+              >
+                Enable Notifications
+              </Button>
+            )}
+            {notifPerm === "granted" && (
+              <span style={{ fontSize: 12, color: THEME.sage, display: "flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
+                <Check size={14} /> Notifications on
+              </span>
+            )}
+            <Button variant="accent" onClick={() => setShow(true)} icon={<Plus size={14} />}>
+              Add Reminder
+            </Button>
+          </div>
+        }
+      >
+        Reminders & Alerts
+      </SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
         <StatCard 
@@ -194,56 +143,56 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
       </div>
 
       {upcoming.length === 0 && past.length === 0 ? (
-        <div style={card}>
-          <RemindersEmptyState onAdd={() => setShow(true)} />
-        </div>
+        <RemindersEmptyState onAdd={() => setShow(true)} />
       ) : (
         <>
           {upcoming.length > 0 && (
-            <div style={{ display: "grid", gap: 12, marginBottom: 32 }}>
+            <div style={{ display: "grid", gap: 12, marginBottom: 40 }}>
               {upcoming.map((r) => {
                 const days = daysLeft(r.date);
                 const color = urgencyColor(days);
                 const Icon = r.icon;
                 return (
-                  <div key={r.id} style={{ ...card, display: "flex", alignItems: "center", gap: 16, borderLeft: "4px solid " + color, padding: "16px 20px" }}>
-                    <Icon size={20} style={{ color, flexShrink: 0 }} />
+                  <Card key={r.id} style={{ display: "flex", alignItems: "center", gap: 20, borderLeft: `4px solid ${color}`, padding: "18px 24px" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}11`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon size={22} style={{ color }} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>{r.title}</div>
-                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{r.subtitle}{r.subtitle ? " · " : ""}{r.type}</div>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink }}>{r.title}</div>
+                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>{r.subtitle}{r.subtitle ? " · " : ""}<span style={{ opacity: 0.8 }}>{r.type}</span></div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 700, color, fontSize: 16 }}>
+                      <div style={{ fontWeight: 900, color, fontSize: 18, letterSpacing: "-0.02em" }}>
                         {days === 0 ? "Today" : days === 1 ? "Tomorrow" : days + " days"}
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>{r.date}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>{r.date}</div>
                     </div>
                     {r.manual && (
-                      <button onClick={() => removeItem("reminders", r.id)} style={iconBtn}>
-                        <Trash2 size={13} />
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
+                        <Trash2 size={14} />
+                      </Button>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
           )}
           {past.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Past Due</div>
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 16 }}>Past Due / Completed</div>
+              <div style={{ display: "grid", gap: 10 }}>
                 {past.slice(-5).map((r) => {
                   const days = Math.abs(daysLeft(r.date));
                   const Icon = r.icon;
                   return (
-                    <div key={r.id} style={{ ...card, display: "flex", alignItems: "center", gap: 12, opacity: 0.6, padding: "12px 16px" }}>
-                      <Icon size={16} style={{ color: THEME.muted, flexShrink: 0 }} />
-                      <div style={{ flex: 1, fontSize: 14 }}>
-                        <span style={{ fontWeight: 600 }}>{r.title}</span>
-                        <span style={{ color: THEME.muted }}> · {r.date}</span>
+                    <Card key={r.id} style={{ display: "flex", alignItems: "center", gap: 16, opacity: 0.6, padding: "12px 20px" }}>
+                      <Icon size={18} style={{ color: THEME.muted, flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>
+                        {r.title}
+                        <span style={{ color: THEME.muted, fontWeight: 400 }}> · {r.date}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>{days}d ago</div>
-                    </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700 }}>{days}d ago</div>
+                    </Card>
                   );
                 })}
               </div>
@@ -267,18 +216,18 @@ function ReminderModal({ onClose, onSave }: any) {
   return (
     <Modal title="Add Reminder" onClose={onClose}>
       <Field label="Title">
-        <input style={input} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Car Insurance Renewal" />
+        <input className="form-input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Car Insurance Renewal" />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Due Date">
-          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          <input className="form-input" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
         </Field>
         <Field label="Amount (optional)">
-          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+          <input className="form-input" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
         </Field>
       </div>
       <Field label="Note (optional)">
-        <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+        <input className="form-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
       </Field>
       <ModalActions onSave={() => f.title && f.date && onSave(f)} onClose={onClose} />
     </Modal>

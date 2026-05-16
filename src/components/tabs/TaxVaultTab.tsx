@@ -28,73 +28,82 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics }) => {
       <SectionTitle sub={`FY ${state.profile.fy} · Intelligent tax planning & calculators`}>
         Tax Vault
       </SectionTitle>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 8, background: THEME.line, padding: 4, borderRadius: 12 }}>
-           <button 
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 28 }}>
+        <div style={{ display: "flex", gap: 6, background: "rgba(128,128,128,0.08)", padding: 6, borderRadius: 14, border: `1px solid ${THEME.line}` }}>
+           <Button 
+             size="sm"
+             variant={activeRegime === "new" ? "accent" : "ghost"}
              onClick={() => setActiveRegime("new")}
-             style={{ padding: "6px 16px", borderRadius: 10, border: "none", background: activeRegime === "new" ? THEME.darkInk : "transparent", color: activeRegime === "new" ? THEME.accent : THEME.muted, fontWeight: 700, cursor: "pointer" }}>
+             style={{ padding: "6px 18px", borderRadius: 10 }}
+           >
              New Regime
-           </button>
-           <button 
+           </Button>
+           <Button 
+             size="sm"
+             variant={activeRegime === "old" ? "accent" : "ghost"}
              onClick={() => setActiveRegime("old")}
-             style={{ padding: "6px 16px", borderRadius: 10, border: "none", background: activeRegime === "old" ? THEME.darkInk : "transparent", color: activeRegime === "old" ? THEME.accent : THEME.muted, fontWeight: 700, cursor: "pointer" }}>
+             style={{ padding: "6px 18px", borderRadius: 10 }}
+           >
              Old Regime
-           </button>
+           </Button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-        <Card variant="hero">
-          <div className="section-label" style={{ color: "rgba(255,255,255,0.6)" }}>Estimated Annual Tax</div>
-          <div style={{ fontSize: 48, fontWeight: 900, color: "#fff", marginBottom: 8 }}>{fmtINRFull(activeRegime === "new" ? taxNew.total : taxOld.total)}</div>
-          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24, marginBottom: 32 }}>
+        <Card variant="hero" style={{ padding: 32 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>Estimated Annual Tax</div>
+          <div style={{ fontSize: 56, fontWeight: 900, color: "#fff", marginBottom: 8, letterSpacing: "-0.03em" }}>{fmtINRFull(activeRegime === "new" ? taxNew.total : taxOld.total)}</div>
+          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
             Based on current {activeRegime} regime slabs for FY {state.profile.fy}
           </div>
-          <div style={{ marginTop: 24, display: "flex", gap: 16 }}>
-             <div style={{ flex: 1, padding: "12px", background: "rgba(255,255,255,0.1)", borderRadius: 12 }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>Taxable Income</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{fmtINRFull(income)}</div>
+          <div style={{ marginTop: 32, display: "flex", gap: 20 }}>
+             <div style={{ flex: 1, padding: "16px", background: "rgba(255,255,255,0.1)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ fontSize: 10, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 6, fontWeight: 800, letterSpacing: "0.05em" }}>Taxable Income</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{fmtINRFull(income)}</div>
              </div>
-             <div style={{ flex: 1, padding: "12px", background: "rgba(255,255,255,0.1)", borderRadius: 12 }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>Effective Rate</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{income > 0 ? ((taxNew.total / income) * 100).toFixed(1) : 0}%</div>
+             <div style={{ flex: 1, padding: "16px", background: "rgba(255,255,255,0.1)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ fontSize: 10, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 6, fontWeight: 800, letterSpacing: "0.05em" }}>Effective Rate</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{income > 0 ? ((taxNew.total / income) * 100).toFixed(1) : 0}%</div>
              </div>
           </div>
         </Card>
 
-        <Card style={{ padding: 24 }}>
-          <div className="section-label">Comparison</div>
+        <Card style={{ padding: 32 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, marginBottom: 24 }}>Regime Comparison</div>
           <div style={{ display: "grid", gap: 16 }}>
-             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, background: activeRegime === "new" ? "color-mix(in srgb, var(--t-accent) 8%, transparent)" : "transparent", border: `1.5px solid ${activeRegime === "new" ? THEME.accent : THEME.line}` }}>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderRadius: 16, background: activeRegime === "new" ? "color-mix(in srgb, var(--t-accent) 8%, transparent)" : "rgba(128,128,128,0.02)", border: `1.5px solid ${activeRegime === "new" ? THEME.accent : THEME.line}`, transition: "all 0.2s" }}>
                 <div>
-                   <div style={{ fontWeight: 700 }}>New Regime (FY 25-26)</div>
-                   <div style={{ fontSize: 12, color: THEME.muted }}>Zero tax up to ₹12L income</div>
+                   <div style={{ fontWeight: 800, fontSize: 15 }}>New Regime (FY 25-26)</div>
+                   <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Zero tax up to ₹12L income</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                   <div style={{ fontWeight: 800, fontSize: 18 }}>{fmtINRFull(taxNew.total)}</div>
-                   {taxNew.total < taxOld.total && <Badge variant="sage">Saves {fmtINR(taxOld.total - taxNew.total)}</Badge>}
+                   <div style={{ fontWeight: 900, fontSize: 18 }}>{fmtINRFull(taxNew.total)}</div>
+                   {taxNew.total < taxOld.total && <Badge variant="sage" style={{ marginTop: 6 }}>Saves {fmtINR(taxOld.total - taxNew.total)}</Badge>}
                 </div>
              </div>
-             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, background: activeRegime === "old" ? "color-mix(in srgb, var(--t-accent) 8%, transparent)" : "transparent", border: `1.5px solid ${activeRegime === "old" ? THEME.accent : THEME.line}` }}>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderRadius: 16, background: activeRegime === "old" ? "color-mix(in srgb, var(--t-accent) 8%, transparent)" : "rgba(128,128,128,0.02)", border: `1.5px solid ${activeRegime === "old" ? THEME.accent : THEME.line}`, transition: "all 0.2s" }}>
                 <div>
-                   <div style={{ fontWeight: 700 }}>Old Regime</div>
-                   <div style={{ fontSize: 12, color: THEME.muted }}>With 80C, 80D & HRA deductions</div>
+                   <div style={{ fontWeight: 800, fontSize: 15 }}>Old Regime</div>
+                   <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>With 80C, 80D & HRA deductions</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                   <div style={{ fontWeight: 800, fontSize: 18 }}>{fmtINRFull(taxOld.total)}</div>
-                   {taxOld.total < taxNew.total && <Badge variant="sage">Saves {fmtINR(taxNew.total - taxOld.total)}</Badge>}
+                   <div style={{ fontWeight: 900, fontSize: 18 }}>{fmtINRFull(taxOld.total)}</div>
+                   {taxOld.total < taxNew.total && <Badge variant="sage" style={{ marginTop: 6 }}>Saves {fmtINR(taxNew.total - taxOld.total)}</Badge>}
                 </div>
              </div>
           </div>
         </Card>
       </div>
 
-      <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 20 }}>Detailed Tax Planner</h3>
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Detailed Tax Planner</h3>
+      </div>
       
-      <Card style={{ padding: 28 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-          <div style={{ gridColumn: "1 / -1", borderBottom: `1px solid ${THEME.line}`, paddingBottom: 12, marginBottom: 8 }}>
-            <h4 style={{ margin: 0, fontSize: 14, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.05em" }}>1. Income Details</h4>
+      <Card style={{ padding: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+          <div style={{ gridColumn: "1 / -1", borderBottom: `1.5px solid ${THEME.line}`, paddingBottom: 16, marginBottom: 8 }}>
+            <h4 style={{ margin: 0, fontSize: 12, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 800 }}>1. Income Details</h4>
           </div>
           <Field label="Annual Salary (Gross)">
             <Input type="number" defaultValue={income} />
@@ -106,8 +115,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics }) => {
             <Input type="number" placeholder="0" />
           </Field>
 
-          <div style={{ gridColumn: "1 / -1", borderBottom: `1px solid ${THEME.line}`, paddingBottom: 12, marginBottom: 8, marginTop: 12 }}>
-            <h4 style={{ margin: 0, fontSize: 14, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.05em" }}>2. Deductions (Old Regime)</h4>
+          <div style={{ gridColumn: "1 / -1", borderBottom: `1.5px solid ${THEME.line}`, paddingBottom: 16, marginBottom: 8, marginTop: 12 }}>
+            <h4 style={{ margin: 0, fontSize: 12, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 800 }}>2. Deductions (Old Regime)</h4>
           </div>
           <Field label="Section 80C (LIC, PPF, ELSS)">
             <Input type="number" placeholder="Max 1,50,000" />
@@ -129,12 +138,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics }) => {
           </Field>
         </div>
         
-        <div style={{ marginTop: 32, paddingTop: 24, borderTop: `2px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ marginTop: 40, paddingTop: 32, borderTop: `2px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-             <div style={{ fontSize: 13, color: THEME.muted }}>Total Taxable Income</div>
-             <div style={{ fontSize: 24, fontWeight: 800 }}>{fmtINRFull(income - deductions)}</div>
+             <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Total Taxable Income</div>
+             <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>{fmtINRFull(income - deductions)}</div>
           </div>
-          <Button variant="accent" size="lg" icon={<Calculator size={18} />}>Recalculate Tax</Button>
+          <Button variant="accent" size="lg" icon={<Calculator size={20} />} style={{ padding: "12px 32px" }}>Recalculate Tax</Button>
         </div>
       </Card>
     </div>

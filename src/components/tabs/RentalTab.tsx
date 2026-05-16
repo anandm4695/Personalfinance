@@ -71,7 +71,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         Rental Details
       </SectionTitle>
 
-      <div style={{ display: "inline-flex", background: THEME.line, borderRadius: 12, padding: 4, marginBottom: 24 }}>
+      <div style={{ display: "inline-flex", background: "rgba(128,128,128,0.08)", borderRadius: 12, padding: 4, marginBottom: 24, border: `1px solid ${THEME.line}` }}>
         {[
           { id: "out", label: "Rented Out", count: propertiesOut.length },
           { id: "in",  label: "Rented In",  count: propertiesIn.length },
@@ -83,11 +83,18 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               padding: "8px 20px", borderRadius: 10, border: "none",
               background: sub === s.id ? THEME.darkInk : "transparent",
               color: sub === s.id ? THEME.accent : THEME.muted,
-              fontWeight: 700, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6,
+              fontWeight: 800, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", gap: 8, fontSize: 13
             }}
           >
             {s.label}
-            {s.count > 0 && <Badge variant={s.id === "out" ? "accent" : "muted"} style={{ marginLeft: 2 }}>{s.count}</Badge>}
+            {s.count > 0 && (
+              <Badge 
+                variant={sub === s.id ? "accent" : "muted"} 
+                style={{ fontSize: 10, padding: "2px 6px" }}
+              >
+                {s.count}
+              </Badge>
+            )}
           </button>
         ))}
       </div>
@@ -120,7 +127,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               icon={<Receipt />}
               label="Taxable IHP"
               value={fmtINRFull(outThisFY * 0.7)}
-              color={THEME.ink}
+              color={THEME.accent}
               sub="Post 30% deduction"
             />
           </div>
@@ -144,29 +151,44 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               </Button>
             </Card>
           ) : (
-            <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
               {propertiesOut.map((p: any) => (
-                <Card key={p.id} style={{ padding: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Building2 size={22} color={THEME.accent} />
+                <Card key={p.id} style={{ padding: 24, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(128,128,128,0.04)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${THEME.line}` }}>
+                      <Building2 size={24} color={THEME.accent} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>{p.propertyName}</div>
-                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>{p.tenantName || "No tenant"} · {fmtINRFull(p.monthlyRent)}/mo</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
-                        {fmtINRFull((p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{p.propertyName}</div>
+                          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                            {p.tenantName || "Vacant"} · <span style={{ color: THEME.accent }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <Button variant="ghost" size="sm" onClick={() => setModalOut({ open: true, editing: p })} style={{ padding: 6 }}>
+                            <Pencil size={14} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => removeItem("rentalProperties", p.id)} style={{ padding: 6, color: THEME.rust }}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>Total Received</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button variant="ghost" size="sm" icon={<Pencil size={14} />}
-                        onClick={() => setModalOut({ open: true, editing: p })} />
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={14} />}
-                        style={{ color: THEME.rust }}
-                        onClick={() => removeItem("rentalProperties", p.id)} />
+                      <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>FY Received</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
+                            {fmtINRFull((p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                          </div>
+                        </div>
+                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Deposit Held</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.gold }}>
+                            {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -226,29 +248,44 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               </Button>
             </Card>
           ) : (
-            <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
               {propertiesIn.map((p: any) => (
-                <Card key={p.id} style={{ padding: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Building2 size={22} color={THEME.rust} />
+                <Card key={p.id} style={{ padding: 24, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(128,128,128,0.04)", display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${THEME.line}` }}>
+                      <Building2 size={24} color={THEME.rust} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>{p.propertyName}</div>
-                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>{p.landlordName || "No landlord"} · {fmtINRFull(p.monthlyRent)}/mo</div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: THEME.rust }}>
-                        {fmtINRFull((p.payments || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.02em", color: THEME.ink }}>{p.propertyName}</div>
+                          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                            {p.landlordName || "Unknown Landlord"} · <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <Button variant="ghost" size="sm" onClick={() => setModalIn({ open: true, editing: p })} style={{ padding: 6 }}>
+                            <Pencil size={14} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => removeItem("rentedProperties", p.id)} style={{ padding: 6, color: THEME.rust }}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>Total Paid</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button variant="ghost" size="sm" icon={<Pencil size={14} />}
-                        onClick={() => setModalIn({ open: true, editing: p })} />
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={14} />}
-                        style={{ color: THEME.rust }}
-                        onClick={() => removeItem("rentedProperties", p.id)} />
+                      <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>FY Paid</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.rust }}>
+                            {fmtINRFull((p.payments || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                          </div>
+                        </div>
+                        <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Deposit Paid</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
+                            {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Card>

@@ -6,6 +6,9 @@ import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Card } from "../ui/Card";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 
 // Internal helper components
 
@@ -17,59 +20,26 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const GoalEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "64px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(217,119,6,0.2)" }}>
       <Flag size={28} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Goals Added Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Set financial goals — a house down payment, retirement corpus, car, education, or emergency fund — and watch your progress every day.</div>
+      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>No Goals Added Yet</h3>
+      <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 420, lineHeight: 1.6, margin: "0 auto" }}>
+        Set financial goals — a house down payment, retirement corpus, car, education, or emergency fund — and watch your progress every day.
+      </p>
     </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
       {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(217,119,6,0.08)", color: "#d97706", fontWeight: 600, border: "1px solid rgba(217,119,6,0.15)" }}>● {f}</span>
+        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Set Your First Goal
-    </button>
-  </div>
+    <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={onAdd} style={{ marginTop: 8 }}>
+      Set Your First Goal
+    </Button>
+  </Card>
 );
-
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const btnOutline = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: "transparent",
-  color: THEME.ink,
-  border: `1px solid ${THEME.line}`,
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const card = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
-  padding: 20,
-};
 
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
 const PRIORITY_COLOR: Record<string, string> = { High: "#ef4444", Medium: "#f59e0b", Low: "#22c55e" };
@@ -122,14 +92,23 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
     pct >= 100 ? THEME.sage : pct >= 75 ? THEME.gold : pct >= 40 ? THEME.accent : THEME.rust;
 
   return (
-    <div>
-      <SectionTitle sub="What the money is for — down payments, retirement, freedom">
+    <div className="tab-content-enter">
+      <SectionTitle 
+        sub="What the money is for — down payments, retirement, freedom"
+        rightElement={
+          state.goals.length > 0 && (
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
+              Add Goal
+            </Button>
+          )
+        }
+      >
         Goals & Future Planning
       </SectionTitle>
 
       {state.goals.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
             <StatCard 
               icon={<Flag />} 
               label="Total Target" 
@@ -160,9 +139,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
             />
           </div>
 
-          <div style={{ ...card, marginBottom: 24 }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Portfolio Completion — {overallPct.toFixed(1)}% achieved</div>
-            <div style={{ height: 10, background: THEME.line, borderRadius: 6, overflow: "hidden", marginBottom: 12 }}>
+          <Card style={{ marginBottom: 32, padding: 28 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16, fontWeight: 700 }}>Portfolio Completion — {overallPct.toFixed(1)}% achieved</div>
+            <div style={{ height: 12, background: THEME.line, borderRadius: 6, overflow: "hidden", marginBottom: 16 }}>
               <div style={{
                 height: "100%",
                 width: `${Math.min(overallPct, 100)}%`,
@@ -171,85 +150,83 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
                 transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
               }} />
             </div>
-            <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: THEME.sage, fontWeight: 600 }}>✓ {completedCount} completed</span>
-              <span style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>↑ {onTrackCount} on track</span>
-              {behindCount > 0 && <span style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>⚠ {behindCount} behind</span>}
+            <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
+              <Badge variant="sage">✓ {completedCount} completed</Badge>
+              <Badge variant="accent">↑ {onTrackCount} on track</Badge>
+              {behindCount > 0 && <Badge variant="rust">⚠ {behindCount} behind</Badge>}
             </div>
 
-            <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 20 }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Breakdown by Priority</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 24 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, marginBottom: 20, fontWeight: 700 }}>Breakdown by Priority</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
                 {priBreakdown.map(p => {
                   const pPct = p.target > 0 ? (p.saved / p.target) * 100 : 0;
                   return (
                     <div key={p.priority} style={{
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      border: `1px solid ${THEME.line}`,
-                      background: "var(--surface-0)",
+                      padding: "16px 20px",
+                      borderRadius: 14,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "rgba(128,128,128,0.02)",
                     }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
-                        <span style={{ fontSize: 11, color: THEME.muted }}>{p.count} goal{p.count !== 1 ? "s" : ""}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
+                        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{p.count} goal{p.count !== 1 ? "s" : ""}</span>
                       </div>
-                      <div style={{ height: 4, background: THEME.line, borderRadius: 3, marginBottom: 8, overflow: "hidden" }}>
+                      <div style={{ height: 6, background: THEME.line, borderRadius: 3, marginBottom: 12, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${Math.min(pPct, 100)}%`, background: PRIORITY_COLOR[p.priority], borderRadius: 3, transition: "width 0.6s ease" }} />
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>
-                        <span style={{ color: THEME.sage, fontWeight: 700 }}>{fmtINRFull(p.saved)}</span>
-                        <span> / {fmtINRFull(p.target)}</span>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
+                        <span style={{ color: THEME.ink, fontWeight: 800 }}>{fmtINRFull(p.saved)}</span>
+                        <span style={{ opacity: 0.6 }}> / {fmtINRFull(p.target)}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          </div>
+          </Card>
         </>
       )}
 
       {state.goals.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Filter:</span>
             {(["all", "High", "Medium", "Low"] as const).map(p => (
-              <button
+              <Button
                 key={p}
+                size="sm"
+                variant={filterPriority === p ? "accent" : "ghost"}
                 onClick={() => setFilterPriority(p)}
                 style={{
-                  ...btnOutline,
-                  fontSize: 11,
-                  padding: "6px 12px",
-                  background: filterPriority === p ? (p === "all" ? THEME.accent : PRIORITY_COLOR[p]) : "transparent",
-                  color: filterPriority === p ? "#fff" : (p === "all" ? THEME.ink : PRIORITY_COLOR[p]),
-                  borderColor: p === "all" ? THEME.line : PRIORITY_COLOR[p],
-                  fontWeight: 700,
+                  padding: "4px 14px",
+                  height: 32,
+                  ...(filterPriority !== p && p !== "all" ? { color: PRIORITY_COLOR[p], borderColor: `${PRIORITY_COLOR[p]}33` } : {}),
+                  ...(filterPriority === p && p !== "all" ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p] } : {})
                 }}
               >
                 {p === "all" ? "All" : p}
-              </button>
+              </Button>
             ))}
-            <button
+            <div style={{ width: 1, height: 20, background: THEME.line, margin: "0 4px" }} />
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
-              style={{ ...btnOutline, fontSize: 11, padding: "6px 12px" }}
+              style={{ height: 32 }}
             >
               {sortDir === "desc" ? "High → Low" : "Low → High"}
-            </button>
+            </Button>
           </div>
-          <button style={btnSolid} onClick={() => setShow(true)}>
-            <Plus size={14} /> Add Goal
-          </button>
         </div>
       )}
 
       {state.goals.length === 0 ? (
-        <div style={card}>
-          <GoalEmptyState onAdd={() => setShow(true)} />
-        </div>
+        <GoalEmptyState onAdd={() => setShow(true)} />
       ) : sortedGoals.length === 0 ? (
-        <div style={card}>
+        <Card style={{ padding: 48, textAlign: "center" }}>
           <EmptyHint text={`No ${filterPriority} priority goals yet.`} />
-        </div>
+        </Card>
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
           {sortedGoals.map((g: any) => {
@@ -269,7 +246,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
             const rc = ringColor(progress);
 
             return (
-              <div key={g.id} style={{ ...card, position: "relative", border: isComplete ? `1.5px solid ${THEME.sage}44` : undefined }}>
+              <Card key={g.id} style={{ position: "relative", border: isComplete ? `1.5px solid ${THEME.sage}44` : undefined, padding: 24 }}>
                 <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8, alignItems: "center" }}>
                   {isComplete && (
                     <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.sage}22`, color: THEME.sage, border: `1px solid ${THEME.sage}55`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
@@ -349,7 +326,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
                     )}
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
