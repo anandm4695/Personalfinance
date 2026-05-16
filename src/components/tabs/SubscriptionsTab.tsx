@@ -5,14 +5,10 @@ import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
 import { SubModal } from "../modals/SubModal";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Internal helper components
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 
 
@@ -72,7 +68,7 @@ const card = {
 const th = { textAlign: "left" as const, padding: "12px 8px", color: THEME.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
 const td = { padding: "16px 8px" };
 
-export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
 

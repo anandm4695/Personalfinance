@@ -7,14 +7,10 @@ import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Internal helper components
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 
 
@@ -271,7 +267,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
   );
 }
 
-export function BudgetModal({ existing, onClose, onSave, initialValues = null }: any) {
+export function BudgetModal({ onClose, onSave, initialValues = null }: any) {
   const { transactionCategories: allCats } = useMasterData();
   const [f, setF] = useState(initialValues ? { owner: initialValues.owner || "self", category: initialValues.category || allCats[0], monthly: initialValues.monthly || "" } : { owner: "self", category: allCats[0], monthly: "" });
   return (

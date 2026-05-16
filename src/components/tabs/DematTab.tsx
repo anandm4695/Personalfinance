@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, PieChart as PieIcon } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Building2, Search, PieChart as PieIcon } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -8,6 +8,7 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Broker logo domains for Clearbit
 const BROKER_LOGO_DOMAINS: Record<string, string> = {
@@ -178,12 +179,6 @@ const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; the
   );
 };
 
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
 
 
 
@@ -233,19 +228,6 @@ const StockEmptyState = ({ onAdd }: any) => (
   </div>
 );
 
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
 
 const btnGhost = {
   background: "transparent",
@@ -308,22 +290,27 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [] }: any) {
+export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [], marketData, fetchLivePrices, fetchingPrices }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
   const [stockDefaults, setStockDefaults] = useState<any>(null);
   const [editStockId, setEditStockId] = useState<string | null>(null);
-  const [fetchingPrices, setFetchingPrices] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [marketData, setMarketData] = useState<any>({});
+
   const [chartData, setChartData] = useState<any>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
   const [fetchingChart, setFetchingChart] = useState<string | null>(null);
   const [sellLot, setSellLot] = useState<any>(null);
   const [splitBonusGroup, setSplitBonusGroup] = useState<any>(null);
   const [selectedDematId, setSelectedDematId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = React.useState<"value" | "pnl" | "name" | "change">(() => {
+    return (localStorage.getItem("finance_demat_sort") as any) || "value";
+  });
+  const [search, setSearch] = useState("");
+
+  React.useEffect(() => {
+    localStorage.setItem("finance_demat_sort", sortBy);
+  }, [sortBy]);
 
   const groups: any[] = useMemo(() => Object.values(
     state.stocks.reduce((acc: any, s: any) => {
@@ -336,47 +323,56 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
     }, {})
   ), [state.stocks]);
 
-  const visibleGroups = selectedDematId
-    ? groups.map((g) => ({ ...g, lots: g.lots.filter((l: any) => l.dematId === selectedDematId) })).filter((g) => g.lots.length > 0)
-    : groups;
+  const visibleGroups = useMemo(() => {
+    let baseGroups = selectedDematId
+      ? groups.map((g) => ({ ...g, lots: g.lots.filter((l: any) => l.dematId === selectedDematId) })).filter((g) => g.lots.length > 0)
+      : groups;
+
+    if (search) {
+      const q = search.toLowerCase();
+      baseGroups = baseGroups.filter(g => g.base.toLowerCase().includes(q) || marketData[g.yfSym]?.sector?.toLowerCase().includes(q));
+    }
+
+    return [...baseGroups].sort((a, b) => {
+      const mdA = marketData[a.yfSym];
+      const mdB = marketData[b.yfSym];
+      
+      if (sortBy === "name") return a.base.localeCompare(b.base);
+      
+      if (sortBy === "change") {
+        const cA = mdA?.changePercent || 0;
+        const cB = mdB?.changePercent || 0;
+        return cB - cA;
+      }
+      
+      const priceA = mdA?.price || Number(a.lots[0]?.currentPrice || 0);
+      const priceB = mdB?.price || Number(b.lots[0]?.currentPrice || 0);
+      const valA = a.lots.reduce((s: number, l: any) => s + (Number(l.qty) * priceA), 0);
+      const valB = b.lots.reduce((s: number, l: any) => s + (Number(l.qty) * priceB), 0);
+      
+      if (sortBy === "value") return valB - valA;
+      
+      if (sortBy === "pnl") {
+        const invA = a.lots.reduce((s: number, l: any) => s + (Number(l.qty) * Number(l.avgPrice)), 0);
+        const invB = b.lots.reduce((s: number, l: any) => s + (Number(l.qty) * Number(l.avgPrice)), 0);
+        const pnlPctA = invA ? ((valA - invA) / invA) * 100 : 0;
+        const pnlPctB = invB ? ((valB - invB) / invB) * 100 : 0;
+        return pnlPctB - pnlPctA;
+      }
+      
+      return 0;
+    });
+  }, [groups, selectedDematId, marketData, sortBy, search]);
 
   const filteredStocks = selectedDematId
     ? state.stocks.filter((s: any) => s.dematId === selectedDematId)
     : state.stocks;
-  const filteredSells = selectedDematId
-    ? (state.stockSells || []).filter((s: any) => s.dematId === selectedDematId)
-    : (state.stockSells || []);
 
-  const fetchLivePrices = async () => {
-    if (!groups.length || fetchingPrices) return;
-    setFetchingPrices(true);
-    setFetchError(null);
+  const handleRefresh = async () => {
     try {
-      const symbols = groups.map((g) => g.yfSym);
-      const res = await fetch(`/api/stock-price?symbols=${symbols.join(",")}`);
-      if (!res.ok) throw new Error(`API error ${res.status}`);
-      const data = await res.json();
-      const newMd: any = { ...marketData };
-      let found = 0;
-      for (const g of groups) {
-        const md = data[g.yfSym];
-        if (md?.price != null) {
-          newMd[g.yfSym] = md;
-          for (const lot of g.lots) {
-            updateItem("stocks", lot.id, { currentPrice: String(Number(md.price).toFixed(2)) });
-          }
-          found++;
-        }
-      }
-      setMarketData(newMd);
-      setLastRefreshed(new Date());
-      const missed = groups.length - found;
-      if (missed > 0) setFetchError(`${missed} symbol(s) not found — check ticker names (e.g. RELIANCE, TCS)`);
-      else setFetchError(null);
+      await fetchLivePrices();
     } catch (e: any) {
-      setFetchError(`Failed to fetch: ${e.message}`);
-    } finally {
-      setFetchingPrices(false);
+      console.error(`Failed to fetch: ${e.message}`);
     }
   };
 
@@ -411,11 +407,17 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
     });
   };
 
-  const totalValue = filteredStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.currentPrice), 0);
+  const totalValue = filteredStocks.reduce((s: number, st: any) => {
+    const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+    const exch = st.exchange || "NSE";
+    const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+    const livePrice = marketData[yfSym]?.price;
+    const price = livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
+    return s + (Number(st.qty) * price);
+  }, 0);
+  
   const totalInvested = filteredStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
   const pnl = totalValue - totalInvested;
-  const realizedPnl = filteredSells.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);
-
   const fmtVol = (v: number) => {
     if (!v) return "—";
     if (v >= 1e7) return (v / 1e7).toFixed(2) + "Cr";
@@ -426,28 +428,29 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
 
   return (
     <div className="tab-content-enter">
-      {/* ── HEADER AREA ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <div>
-          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Demat & Stocks</h2>
-          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Live portfolio tracking and brokerage management</div>
-        </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Button 
-            variant="ghost" 
-            icon={<RefreshCw size={13} style={fetchingPrices ? { animation: "spin 1s linear infinite" } : {}} />}
-            onClick={fetchLivePrices} 
-            disabled={fetchingPrices}
-          >
-            {fetchingPrices ? "Updating…" : "Live Refresh"}
-          </Button>
-          {state.stocks.length > 0 && (
-            <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
-              Add Scrip
+      <SectionTitle 
+        sub="Live portfolio tracking and brokerage management"
+        rightElement={
+          <div style={{ display: "flex", gap: 12 }}>
+            <Button 
+              variant="ghost" 
+              icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}
+              onClick={handleRefresh} 
+              disabled={fetchingPrices}
+              style={{ minWidth: 120, justifyContent: "center" }}
+            >
+              {fetchingPrices ? "Updating…" : "Live Refresh"}
             </Button>
-          )}
-        </div>
-      </div>
+            {state.stocks.length > 0 && (
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
+                Add Scrip
+              </Button>
+            )}
+          </div>
+        }
+      >
+        Demat & Stocks
+      </SectionTitle>
 
       {/* ── MIGRATION BANNER: shown when corporate_actions table is missing in Supabase ── */}
       {missingTables.includes("corporate_actions") && (
@@ -494,9 +497,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               alignItems: "center",
               gap: 12,
               padding: "12px 16px",
-              borderRadius: 12,
+              borderRadius: 14,
               border: "none",
-              background: selectedDematId === null ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+              background: selectedDematId === null ? `${THEME.accent}12` : "transparent",
               color: selectedDematId === null ? THEME.accent : THEME.muted,
               fontWeight: selectedDematId === null ? 800 : 600,
               cursor: "pointer",
@@ -516,22 +519,22 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <button
                 key={d.id}
                 onClick={() => setSelectedDematId(d.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: active ? `${theme.color}18` : "transparent",
-                  color: active ? theme.color : THEME.muted,
-                  fontWeight: active ? 800 : 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                  textAlign: "left",
-                  fontSize: 13,
-                  width: "100%",
-                }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 14px",
+                    borderRadius: 14,
+                    border: "none",
+                    background: active ? `${theme.color}15` : "transparent",
+                    color: active ? theme.color : THEME.muted,
+                    fontWeight: active ? 800 : 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                    textAlign: "left",
+                    fontSize: 13,
+                    width: "100%",
+                  }}
               >
                 <BrokerLogo broker={d.broker || "?"} theme={theme} size={26} borderRadius={7} />
                 {d.broker || "Broker"}
@@ -566,9 +569,32 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>Demat Accounts</div>
-            <button style={{ ...btnGhost, fontSize: 12, borderRadius: 8 }} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Account</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 16 }}>
+            <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+              <input 
+                placeholder="Search stocks or sectors..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ ...input, paddingLeft: 40, borderRadius: 14, height: 44, border: `1.5px solid ${THEME.line}` }}
+              />
+              <div style={{ position: "absolute", left: 14, top: 13, color: THEME.muted }}><Search size={18} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(128,128,128,0.04)", padding: "0 12px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 40 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sort by:</span>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer", height: "100%" }}
+                >
+                  <option value="value">Highest Value</option>
+                  <option value="pnl">Best Returns (%)</option>
+                  <option value="change">Day Gainers (%)</option>
+                  <option value="name">Symbol (A-Z)</option>
+                </select>
+              </div>
+              <button style={{ ...btnGhost, height: 40, padding: "0 16px", borderRadius: 12 }} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Account</button>
+            </div>
           </div>
           <Grid>
             {state.demat.length === 0 && (
@@ -635,32 +661,89 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             const changePct = md?.changePercent ?? 0;
 
             return (
-              <div key={yfSym} style={{ ...card, padding: 0, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", flexWrap: "wrap", gap: 12, padding: "14px 18px", cursor: "pointer", borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" }} onClick={() => toggleExpand(yfSym)}>
-                  <div style={{ paddingTop: 3, color: THEME.muted, flexShrink: 0 }}>{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
-                  <StockLogo yfSym={yfSym} size={40} />
-                  <div style={{ flexShrink: 0, minWidth: 160 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 700, fontSize: 15 }}>{base}</span>
-                      <span style={{ fontSize: 10, background: THEME.line, color: THEME.muted, padding: "1px 5px", borderRadius: 3, fontWeight: 600 }}>{exchange}</span>
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>₹{currentPrice.toFixed(2)}{isLive && <span style={{ marginLeft: 5, fontSize: 9, color: THEME.sage, fontWeight: 700, verticalAlign: "middle" }}>●LIVE</span>}</div>
-                    {isLive && <div style={{ fontSize: 12, fontWeight: 600, color: changeAmt >= 0 ? THEME.sage : THEME.rust }}>{changeAmt >= 0 ? "+" : ""}{changeAmt.toFixed(2)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)</div>}
-                  </div>
-                  <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: 20, justifyContent: "flex-end", alignItems: "flex-start" }}>
-                    {[{ label: "Qty", val: String(totalQty) }, { label: "Invested", val: fmtINR(totalInv) }, { label: "Current", val: fmtINR(totalCurr) }].map(({ label, val }) => (
-                      <div key={label} style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" }}>{label}</div>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>{val}</div>
-                      </div>
-                    ))}
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" }}>P&L</div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>{totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}</div>
-                      <div style={{ fontSize: 11, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>{totalPnl >= 0 ? "▲" : "▼"}{Math.abs(totalPnlPct).toFixed(2)}%</div>
-                    </div>
-                  </div>
-                </div>
+               <div key={yfSym} style={{ ...card, padding: 0, overflow: "hidden", transition: "all 0.2s ease", border: isExpanded ? `1px solid ${THEME.accent}40` : `1px solid ${THEME.line}` }}>
+                 <div 
+                   style={{ 
+                     display: "flex", 
+                     alignItems: "center", 
+                     flexWrap: "wrap", 
+                     gap: 16, 
+                     padding: "16px 20px", 
+                     cursor: "pointer", 
+                     background: isExpanded ? `${THEME.accent}05` : "transparent",
+                     borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" 
+                   }} 
+                   onClick={() => toggleExpand(yfSym)}
+                 >
+                   <div style={{ color: isExpanded ? THEME.accent : THEME.muted, flexShrink: 0 }}>{isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>
+                   <StockLogo yfSym={yfSym} size={44} />
+                   
+                   <div style={{ flex: 1, minWidth: 200 }}>
+                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                       <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.01em" }}>{base}</span>
+                       <span style={{ fontSize: 9, background: THEME.line, color: THEME.muted, padding: "2px 6px", borderRadius: 4, fontWeight: 800, textTransform: "uppercase" }}>{exchange}</span>
+                     </div>
+                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        {isLive ? (
+                          <>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                              <Building2 size={11} /> {md.sector || "Sector N/A"}
+                            </div>
+                            <span style={{ color: THEME.line, fontSize: 14 }}>•</span>
+                            <div style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, background: "rgba(128,128,128,0.06)", color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                              {(() => {
+                                const mCap = Number(md.marketCap || 0);
+                                if (!mCap) return "—";
+                                let label = "Micro";
+                                if (mCap >= 200000000000) label = "Large";
+                                else if (mCap >= 50000000000) label = "Mid";
+                                else if (mCap >= 5000000000) label = "Small";
+                                
+                                const cr = mCap / 10000000;
+                                const displayVal = cr >= 100000 ? `${(cr/100000).toFixed(1)}L Cr` : `${cr.toFixed(0)} Cr`;
+                                return `${label} · ₹${displayVal}`;
+                              })()}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>Historical data only</div>
+                        )}
+                     </div>
+                   </div>
+
+                   <div style={{ textAlign: "right", minWidth: 120 }}>
+                     <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.03em", color: THEME.ink }}>
+                       ₹{currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                     </div>
+                     {isLive && (
+                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 2 }}>
+                         <div style={{ fontSize: 12, fontWeight: 700, color: changeAmt >= 0 ? THEME.sage : THEME.rust }}>
+                           {changeAmt >= 0 ? "+" : ""}{changeAmt.toFixed(2)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)
+                         </div>
+                         <div style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.sage, boxShadow: `0 0 8px ${THEME.sage}` }} />
+                       </div>
+                     )}
+                   </div>
+
+                   <div style={{ display: "flex", gap: 24, paddingLeft: 24, borderLeft: `1px solid ${THEME.line}` }}>
+                     {[{ label: "Holdings", val: String(totalQty) }, { label: "Current Value", val: fmtINR(totalCurr), bold: true }].map(({ label, val, bold }) => (
+                       <div key={label} style={{ textAlign: "right" }}>
+                         <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>{label}</div>
+                         <div style={{ fontWeight: bold ? 800 : 600, fontSize: 15, color: THEME.ink }}>{val}</div>
+                       </div>
+                     ))}
+                     <div style={{ textAlign: "right" }}>
+                       <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Total P&L</div>
+                       <div style={{ fontWeight: 800, fontSize: 15, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                         {totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}
+                       </div>
+                       <div style={{ fontSize: 11, fontWeight: 700, color: totalPnl >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
+                         {totalPnl >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                         {Math.abs(totalPnlPct).toFixed(2)}%
+                       </div>
+                     </div>
+                   </div>
+                 </div>
                 {isExpanded && (
                   <div>
                     {isLive && (
@@ -685,19 +768,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </ResponsiveContainer>
                       </div>
                     )}
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <div style={{ overflowX: "auto", padding: "0 20px" }}>
+                      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", fontSize: 13 }}>
                         <thead>
-                          <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
-                            <th style={{ ...th, paddingLeft: 18 }}>Broker</th>
-                            <th style={{ ...th, textAlign: "right" }}>Qty</th>
-                            <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
-                            <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
-                            <th style={{ ...th, textAlign: "right" }}>Invested</th>
-                            {isLive && <th style={{ ...th, textAlign: "right" }}>Day Gain</th>}
-                            <th style={{ ...th, textAlign: "right" }}>Overall Gain</th>
-                            <th style={{ ...th, textAlign: "right" }}>Curr Value</th>
-                            <th style={th}></th>
+                          <tr>
+                            <th style={{ ...th, paddingLeft: 12, borderBottom: "none" }}>Broker / Source</th>
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Quantity</th>
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Buy Price</th>
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Holding Period</th>
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Investment</th>
+                            {isLive && <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Today's Gain</th>}
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Overall Return</th>
+                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Current Value</th>
+                            <th style={{ ...th, borderBottom: "none" }}></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -708,17 +791,62 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
                             const lDayGain = isLive ? Number(lot.qty) * changeAmt : null;
                             const demat = state.demat.find((d: any) => d.id === lot.dematId);
+                            const theme = getBrokerTheme(demat?.broker || "");
+                            
                             return (
-                              <tr key={lot.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                                <td style={{ ...td, paddingLeft: 18, color: THEME.muted, fontSize: 12 }}>{demat?.broker || "—"}</td>
-                                <td style={{ ...td, textAlign: "right" }}>{lot.qty}</td>
-                                <td style={{ ...td, textAlign: "right" }}>₹{Number(lot.avgPrice).toFixed(2)}</td>
-                                <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}</td>
-                                <td style={{ ...td, textAlign: "right" }}>{fmtINR(lInv)}</td>
-                                {isLive && <td style={{ ...td, textAlign: "right", color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust }}>{(lDayGain ?? 0) >= 0 ? "+" : ""}{fmtINR(lDayGain ?? 0)}<br /><span style={{ fontSize: 11 }}>({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)</span></td>}
-                                <td style={{ ...td, textAlign: "right", color: lPnl >= 0 ? THEME.sage : THEME.rust }}>{lPnl >= 0 ? "+" : ""}{fmtINR(lPnl)}<br /><span style={{ fontSize: 11 }}>{lPnl >= 0 ? "▲" : "▼"}{Math.abs(lPnlPct).toFixed(2)}%</span>{lot.buyDate && (() => { const cagr = calcCAGR(lInv, lCurr, lot.buyDate); return cagr !== null ? <span style={{ fontSize: 10, display: "block", color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 700 }}>CAGR {cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}%/yr</span> : null; })()}</td>
-                                <td style={{ ...td, textAlign: "right" }}>{fmtINR(lCurr)}</td>
-                                <td style={td}><div style={{ display: "flex", gap: 2 }}><button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, color: THEME.rust }} title="Sell"><ArrowLeftRight size={13} /></button><button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={iconBtn}><Edit3 size={13} /></button><button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={iconBtn}><Trash2 size={13} /></button></div></td>
+                              <tr key={lot.id} style={{ background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
+                                <td style={{ ...td, paddingLeft: 12, borderBottom: "none", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <BrokerLogo broker={demat?.broker || "?"} theme={theme} size={24} borderRadius={6} />
+                                    <span style={{ fontWeight: 700, color: THEME.ink }}>{demat?.broker || "Direct"}</span>
+                                  </div>
+                                </td>
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 700 }}>{lot.qty}</td>
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 600 }}>₹{Number(lot.avgPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
+                                  <div style={{ fontSize: 12, color: THEME.ink, fontWeight: 600 }}>{lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</div>
+                                  {lot.buyDate && (
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
+                                      {(() => {
+                                        const diff = new Date().getTime() - new Date(lot.buyDate).getTime();
+                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                        if (days > 365) return `Long Term (${(days/365).toFixed(1)}y)`;
+                                        return `Short Term (${days}d)`;
+                                      })()}
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 600 }}>{fmtINR(lInv)}</td>
+                                {isLive && (
+                                  <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
+                                    <div style={{ color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                                      {(lDayGain ?? 0) >= 0 ? "+" : ""}{fmtINR(lDayGain ?? 0)}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                                      {changePct >= 0 ? "▲" : "▼"}{Math.abs(changePct).toFixed(2)}%
+                                    </div>
+                                  </td>
+                                )}
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
+                                  <div style={{ color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
+                                    {lPnl >= 0 ? "+" : ""}{fmtINR(lPnl)}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
+                                    {lPnl >= 0 ? "▲" : "▼"}{Math.abs(lPnlPct).toFixed(2)}%
+                                  </div>
+                                  {lot.buyDate && (() => { 
+                                    const cagr = calcCAGR(lInv, lCurr, lot.buyDate); 
+                                    return cagr !== null ? <div style={{ fontSize: 10, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 800, textTransform: "uppercase", marginTop: 2 }}>{cagr.toFixed(1)}% CAGR</div> : null; 
+                                  })()}
+                                </td>
+                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
+                                <td style={{ ...td, borderBottom: "none", borderTopRightRadius: 10, borderBottomRightRadius: 10 }}>
+                                  <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                    <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, color: THEME.rust, background: "rgba(220,38,38,0.06)" }} title="Sell Shares"><ArrowLeftRight size={14} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={{ ...iconBtn, background: "rgba(128,128,128,0.06)" }}><Edit3 size={14} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={{ ...iconBtn, background: "rgba(128,128,128,0.06)" }}><Trash2 size={14} /></button>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}
@@ -850,7 +978,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
   const totalInv = group.lots.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice), 0);
   let newTotalQty = 0;
-  if (n > 0 && m > 0) newTotalQty = type === "split" ? totalQty * n / m : totalQty * (m + n) / m;
+  if (n > 0 && m > 0) newTotalQty = type === "split" ? Math.floor(totalQty * n / m) : Math.floor(totalQty * (m + n) / m);
   const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
   const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n > m : true);
   const handleApply = () => {
@@ -858,7 +986,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
     const updates = group.lots.map((lot: any) => {
       const oldQty = Number(lot.qty);
       const oldAvg = Number(lot.avgPrice);
-      const newQty = type === "split" ? Math.round(oldQty * n / m) : Math.round(oldQty * (m + n) / m);
+      const newQty = type === "split" ? Math.floor(oldQty * n / m) : Math.floor(oldQty * (m + n) / m);
       const newAvg = newQty > 0 ? (oldQty * oldAvg) / newQty : oldAvg;
       return { id: lot.id, qty: String(newQty), avgPrice: String(Number(newAvg.toFixed(4))) };
     });
@@ -870,7 +998,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
       ratioM: m,
       actionDate,
       oldQty: totalQty,
-      newQty: Math.round(newTotalQty),
+      newQty: newTotalQty,
       oldAvgPrice: totalQty > 0 ? Number((totalInv / totalQty).toFixed(2)) : 0,
       newAvgPrice: Number(newAvgPreview.toFixed(2)),
     };
@@ -887,7 +1015,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         {!actionDate && <div style={{ fontSize: 12, color: THEME.rust, marginTop: 6, fontWeight: 600 }}>Enter the actual date (e.g. 15 Jan 2025) — this is saved in the history log</div>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}><Field label={type === "split" ? "New Shares" : "Bonus Shares"}><input style={input} type="number" min="1" value={ratioN} onChange={(e) => setRatioN(e.target.value)} /></Field><div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div><Field label="Existing Shares"><input style={input} type="number" min="1" value={ratioM} onChange={(e) => setRatioM(e.target.value)} /></Field></div>
-      {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{Math.round(newTotalQty)}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
+      {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{newTotalQty}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
       <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" disabled={!isValid} />
     </Modal>
   );

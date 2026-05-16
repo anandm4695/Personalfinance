@@ -11,6 +11,7 @@ import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // ─── Master data metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
@@ -561,15 +562,7 @@ export function SettingsTab({
   state, exportJSON, onRestoreBackup, resetAll, onSignOut,
   cleanupOrphaned,
   updateProfile,
-  darkMode, toggleDarkMode,
   accentKey, setAccentKey,
-  density, setDensity,
-  sidebarNav, setSidebarNav,
-  radiusKey, setRadiusKey,
-  fontKey, setFontKey,
-  bgStyle, setBgStyle,
-  animSpeed, setAnimSpeed,
-  chartStyle, setChartStyle,
   masterData, updateMasterData,
 }: any) {
   const [tab, setTab] = useState("appearance");
@@ -577,14 +570,9 @@ export function SettingsTab({
   return (
     <div style={{ maxWidth: 900 }} className="animate-fade-in-up">
       {/* Page header */}
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>
-          Settings
-        </h2>
-        <p style={{ color: THEME.muted, fontSize: 14, marginTop: 4 }}>
-          Customize your experience, manage dropdown values, and control your data
-        </p>
-      </div>
+      <SectionTitle sub="Customize your experience, manage dropdown values, and control your data">
+        Settings
+      </SectionTitle>
 
       {/* Top navigation */}
       <div style={{ marginBottom: 24, overflowX: "auto" }}>

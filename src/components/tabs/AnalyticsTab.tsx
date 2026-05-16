@@ -19,6 +19,7 @@ import {
   Zap,
   ShieldAlert,
   BarChart2,
+  Activity,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
@@ -43,13 +44,13 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { MonthlyReportModal } from "../modals/MonthlyReportModal";
+import { SectionTitle } from "../ui/SectionTitle";
 
 interface AnalyticsTabProps {
   metrics: any;
   state: any;
   assetBreakdown: any[];
   trendData: any[];
-  chartStyle: any;
   setState: any;
 }
 
@@ -58,7 +59,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   state,
   assetBreakdown,
   trendData,
-  chartStyle,
   setState,
 }) => {
   const [sub, setSub] = useState("dashboard");
@@ -286,6 +286,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   return (
     <div className="tab-content-enter">
+      <SectionTitle sub="Executive summary, financial health, and smart insights">
+        Financial Analytics
+      </SectionTitle>
       {/* Quick Stats Bar (Moved from App.tsx) */}
       {(() => {
         const items = [
@@ -563,7 +566,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
           </Card>
 
-          <Card className="bento-col-5" style={{ padding: 24 }}>
+          <Card className="bento-col-7" style={{ padding: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div>
                 <div className="section-label" style={{ marginBottom: 2 }}>80C Utilization</div>
@@ -594,6 +597,97 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, borderTop: `1px solid ${THEME.line}`, fontSize: 13 }}>
                 <span style={{ fontWeight: 700 }}>Remaining</span>
                 <span style={{ fontWeight: 800, color: taxData80C.remaining > 0 ? THEME.rust : THEME.sage }}>{fmtINRFull(taxData80C.remaining)}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 4 }}>Equity Insights</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Portfolio diversification by sector and market capitalization</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Badge variant="muted">Live Data</Badge>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+              {/* Sector Breakdown */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Building2 size={16} /> Top 10 Sectors
+                </div>
+                {metrics.stockSectorBreakdown?.length === 0 ? (
+                  <div style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
+                    Add stocks in the Demat tab to see sector analysis
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 14 }}>
+                    {metrics.stockSectorBreakdown.slice(0, 10).map((s: any, i: number) => {
+                      const maxVal = metrics.stockSectorBreakdown[0].value;
+                      const pct = (s.value / maxVal) * 100;
+                      return (
+                        <div key={s.name}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                            <span style={{ fontWeight: 600 }}>{s.name}</span>
+                            <span style={{ fontWeight: 700, color: THEME.muted }}>{fmtINR(s.value)}</span>
+                          </div>
+                          <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Market Cap Breakdown */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Activity size={16} /> Market Cap Allocation
+                </div>
+                {metrics.stockCapBreakdown?.length === 0 ? (
+                  <div style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
+                    No market cap data available
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                    <div style={{ width: "50%" }}>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                          <Pie
+                            data={metrics.stockCapBreakdown}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                          >
+                            {metrics.stockCapBreakdown.map((_: any, i: number) => (
+                              <Cell key={i} fill={["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ width: "50%", display: "grid", gap: 12 }}>
+                      {metrics.stockCapBreakdown.map((c: any, i: number) => (
+                        <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: ["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4] }} />
+                            <span style={{ fontWeight: 600 }}>{c.name}</span>
+                          </div>
+                          <span style={{ color: THEME.muted, fontWeight: 500 }}>{((c.value / metrics.stockValue) * 100).toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </Card>

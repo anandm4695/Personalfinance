@@ -81,7 +81,7 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
               No commands found for "{query}"
             </div>
           ) : (
-            filtered.map((act, i) => (
+            filtered.map((act) => (
               <div
                 key={act.id}
                 onClick={() => {

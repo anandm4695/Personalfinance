@@ -1,16 +1,12 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Trash2, BarChart3, ArrowLeftRight, Layers, Coins } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Prv } from "../../context/PrivacyContext";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Internal helper components
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 const Tile = ({ icon: Icon, label, value, sub, subColor }: any) => (
   <div style={{ background: "var(--surface-0)", padding: 20, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
@@ -85,11 +81,11 @@ export function TxnHistoryTab({ state, removeItem }: any) {
 
   const fyStart = (fy: number) => new Date(`${fy}-04-01`);
   const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
-  const inFY = (dateStr: string) => {
+  const inFY = useCallback((dateStr: string) => {
     if (!dateStr) return false;
     const d = new Date(dateStr);
     return d >= fyStart(selectedFY) && d <= fyEnd(selectedFY);
-  };
+  }, [selectedFY]);
 
   const allFYs = useMemo(() => {
     const fySet = new Set<number>();
@@ -110,23 +106,23 @@ export function TxnHistoryTab({ state, removeItem }: any) {
     (state.stocks || [])
       .filter((s: any) => inFY(s.buyDate) && (!txnDematId || s.dematId === txnDematId))
       .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
-    [state.stocks, selectedFY, txnDematId]
+    [state.stocks, txnDematId, inFY]
   );
   const stocksSoldInFY = useMemo(() =>
     (state.stockSells || [])
       .filter((s: any) => inFY(s.sellDate) && (!txnDematId || s.dematId === txnDematId))
       .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
-    [state.stockSells, selectedFY, txnDematId]
+    [state.stockSells, txnDematId, inFY]
   );
   const mfBoughtInFY = useMemo(() =>
     (state.mutualFunds || []).filter((m: any) => inFY(m.buyDate))
       .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
-    [state.mutualFunds, selectedFY]
+    [state.mutualFunds, inFY]
   );
   const mfSoldInFY = useMemo(() =>
     (state.mfSells || []).filter((m: any) => inFY(m.sellDate))
       .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
-    [state.mfSells, selectedFY]
+    [state.mfSells, inFY]
   );
 
   const stocksRealizedPnl = stocksSoldInFY.reduce((s: number, sl: any) => s + Number(sl.profit || 0), 0);

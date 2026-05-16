@@ -30,6 +30,7 @@ import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 
 interface InvestmentsTabProps {
   state: any;
@@ -59,7 +60,6 @@ const SUBS = [
   { id: "nps",    label: "NPS",                icon: Briefcase, stateKey: "nps"               },
   { id: "epf",    label: "EPF (EPFO)",          icon: Shield,    stateKey: "epf"               },
   { id: "mf",     label: "Mutual Funds",       icon: BarChart3, stateKey: "mutualFunds"       },
-  { id: "lic",    label: "LIC",                icon: Shield,    stateKey: "lic"               },
   { id: "income", label: "Yield Tracker",      icon: Activity,  stateKey: null                },
 ];
 
@@ -82,10 +82,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   const [nps, setNps] = useState({ tier: "I", pran: "", balance: "" });
   // ── EPF State ──
   const [epf, setEpf] = useState({ uan: "", employer: "", balance: "" });
-  // ── MF State ──
   const [mf, setMf] = useState({ name: "", category: "Equity", investedValue: "", currentValue: "", units: "", currentNav: "" });
-  // ── LIC State ──
-  const [lic, setLic] = useState({ planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "" });
 
   const handleSave = () => {
     switch (sub) {
@@ -115,10 +112,6 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       case "mf":
         if (!mf.name || !mf.investedValue) return;
         onSave("mutualFunds", mf);
-        break;
-      case "lic":
-        if (!lic.planName || !lic.policyNumber || !lic.sumAssured) return;
-        onSave("lic", lic);
         break;
       default:
         break;
@@ -280,28 +273,6 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         </>
       )}
 
-      {/* ── LIC ── */}
-      {sub === "lic" && (
-        <>
-          <Field label="Plan Name">
-            <input style={inp} value={lic.planName} onChange={e => setLic({ ...lic, planName: e.target.value })} placeholder="e.g. LIC Jeevan Anand, Money Back" />
-          </Field>
-          <Field label="Policy Number">
-            <input style={inp} value={lic.policyNumber} onChange={e => setLic({ ...lic, policyNumber: e.target.value })} placeholder="Policy number" />
-          </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Sum Assured (₹)">
-              <input style={inp} type="number" value={lic.sumAssured} onChange={e => setLic({ ...lic, sumAssured: e.target.value })} placeholder="1000000" />
-            </Field>
-            <Field label="Annual Premium (₹)">
-              <input style={inp} type="number" value={lic.annualPremium} onChange={e => setLic({ ...lic, annualPremium: e.target.value })} placeholder="30000" />
-            </Field>
-          </div>
-          <Field label="Total Premium Paid So Far (₹)">
-            <input style={inp} type="number" value={lic.premiumPaid} onChange={e => setLic({ ...lic, premiumPaid: e.target.value })} placeholder="90000" />
-          </Field>
-        </>
-      )}
 
       <ModalActions onSave={handleSave} onClose={onClose} saveLabel={`Add ${subMeta?.label || ""}`} />
     </Modal>
@@ -373,7 +344,6 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} onAdd={onAdd} />;
       case "epf":   return <EPFSection  items={state.epf || []}         removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "mf":    return <MFSection   items={state.mutualFunds}       removeItem={removeItem} onAdd={onAdd} />;
-      case "lic":   return <LICSection  items={state.lic}               removeItem={removeItem} onAdd={onAdd} />;
       case "income":return <YieldTracker state={state} />;
       default:      return null;
     }
@@ -382,19 +352,18 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   return (
     <div className="tab-content-enter">
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <div>
-          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Investments Portfolio</h2>
-          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>
-            Growth, preservation, and yield instruments across multiple asset classes
-          </div>
-        </div>
-        {canAdd && (
-          <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowModal(true)}>
-            Add {subs.find(s => s.id === sub)?.label || "Investment"}
-          </Button>
-        )}
-      </div>
+      <SectionTitle 
+        sub="Growth, preservation, and yield instruments across multiple asset classes"
+        rightElement={
+          canAdd && (
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowModal(true)}>
+              Add {subs.find(s => s.id === sub)?.label || "Investment"}
+            </Button>
+          )
+        }
+      >
+        Investments Portfolio
+      </SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
         <StatCard 
@@ -1367,50 +1336,6 @@ const MFSection = ({ items, removeItem, onAdd }: any) => (
   </div>
 );
 
-/* ── LIC Section ────────────────────────────────────────────────────── */
-const LICSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={Shield}
-          gradient="linear-gradient(135deg,#991b1b 0%,#ef4444 100%)"
-          dotColor="#dc2626"
-          title="No LIC Policies Added Yet"
-          description="Track your LIC insurance policies — plan name, policy number, sum assured, and premium history."
-          pills={["Sum Assured", "Annual Premium", "Total Premium Paid", "Policy Number"]}
-          buttonLabel="Add LIC Policy"
-          onAdd={onAdd}
-        />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((l: any) => (
-            <Card key={l.id} style={{ padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                <Badge variant="rust">LIC Policy</Badge>
-                <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("lic", l.id)} />
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{l.planName}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14 }}>Policy: {l.policyNumber}</div>
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: THEME.muted }}>Sum Assured</span>
-                  <span style={{ fontWeight: 700 }}>{fmtINRFull(l.sumAssured)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: THEME.muted }}>Annual Premium</span>
-                  <span style={{ fontWeight: 700 }}>{fmtINRFull(l.annualPremium)}/yr</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: THEME.muted }}>Premium Paid</span>
-                  <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(l.premiumPaid)}</span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-  </div>
-);
 
 /* ── Yield Tracker ──────────────────────────────────────────────────── */
 const YieldTracker = ({ state }: any) => {

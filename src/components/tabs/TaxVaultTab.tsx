@@ -7,6 +7,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Field, Input } from "../ui/Form";
+import { SectionTitle } from "../ui/SectionTitle";
 
 interface TaxVaultTabProps {
   state: any;
@@ -24,11 +25,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics }) => {
 
   return (
     <div className="tab-content-enter">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Tax Vault</h2>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>FY {state.profile.fy} · Intelligent tax planning & calculators</div>
-        </div>
+      <SectionTitle sub={`FY ${state.profile.fy} · Intelligent tax planning & calculators`}>
+        Tax Vault
+      </SectionTitle>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
         <div style={{ display: "flex", gap: 8, background: THEME.line, padding: 4, borderRadius: 12 }}>
            <button 
              onClick={() => setActiveRegime("new")}

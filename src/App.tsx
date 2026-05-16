@@ -6,7 +6,7 @@
 // The TS 4.4 → 5.x upgrade is done; supabaseClient.ts is clean.
 // Next step: define AppState interface + per-entity types, then remove this pragma.
 import "./styles.css";
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   PieChart as PieIcon,
   TrendingUp,
@@ -55,7 +55,7 @@ import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PROFILES } from "./utils/constants";
 import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
 import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal } from "./utils/finance";
-import { Badge } from "./components/ui/Badge";
+
 
 // Tab Imports
 import { AnalyticsTab } from "./components/tabs/AnalyticsTab";
@@ -82,16 +82,6 @@ import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
 
-const OwnerBadge = ({ owner }: { owner?: string }) => {
-  if (!owner) return null;
-  const p = PROFILES.find(x => x.id === owner);
-  if (!p) return null;
-  return (
-    <Badge variant="accent" style={{ fontSize: 10 }}>
-      {p.name}
-    </Badge>
-  );
-};
 
 const DEFAULT_STATE = {
   profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
@@ -110,7 +100,7 @@ const DEFAULT_STATE = {
   }
 };
 
-const EMPTY_DATA = DEFAULT_STATE;
+
 
 
 
@@ -122,6 +112,12 @@ function FinanceDashboard() {
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
+  const [marketData, setMarketData] = useState<any>(() => {
+    const saved = localStorage.getItem("finance_market_data");
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const fetchingRef = useRef(false);
   const { privacyMode, setPrivacyMode } = usePrivacy();
 
   const [state, setState] = useState(() => {
@@ -228,7 +224,7 @@ function FinanceDashboard() {
   }, [session]);
 
   // Helper to update profile
-  const updateProfile = useCallback(async (updates: Partial<typeof state.profile>) => {
+  const updateProfile = useCallback(async (updates: any) => {
     setState(s => ({
       ...s,
       profile: { ...s.profile, ...updates }
@@ -239,7 +235,7 @@ function FinanceDashboard() {
       await supabase.from("profiles").upsert({ user_id: userId, ...updates });
     }
     logActivity("UPDATE_PROFILE", "Updated user profile", updates);
-  }, [logActivity, session]);
+  }, [logActivity, session, state.profile]);
 
   const [activeProfile, setActiveProfile] = useState<string>("all");
   const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
@@ -349,7 +345,7 @@ function FinanceDashboard() {
     saveStateLocal(state);
   }, [state, loaded]);
 
-  const snakeToCamel = (obj: any): any => {
+  const snakeToCamel = useCallback((obj: any): any => {
     if (!obj || typeof obj !== 'object') return obj;
     if (Array.isArray(obj)) return obj.map(snakeToCamel);
     const res: any = {};
@@ -358,7 +354,7 @@ function FinanceDashboard() {
       res[camel] = obj[k] !== null && typeof obj[k] === 'object' ? snakeToCamel(obj[k]) : obj[k];
     }
     return res;
-  };
+  }, []);
 
   const fetchAllData = useCallback(async () => {
     const userId = session?.user?.id;
@@ -469,7 +465,94 @@ function FinanceDashboard() {
     } catch (e) {
       console.error("Supabase load failed", e);
     }
-  }, [session]);
+  }, [session, snakeToCamel]);
+
+  const fetchLivePrices = useCallback(async () => {
+    if (!state.stocks.length || fetchingRef.current) return;
+    
+    // Safety timeout to prevent getting stuck in "Updating..." state
+    const timeout = setTimeout(() => {
+      setFetchingPrices(false);
+      fetchingRef.current = false;
+      console.warn("Live refresh timed out after 30s");
+    }, 30000);
+
+    setFetchingPrices(true);
+    fetchingRef.current = true;
+    try {
+      const groups = Object.values(
+        state.stocks.reduce((acc: any, s: any) => {
+          const exch = s.exchange || "NSE";
+          const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+          acc[yfSym] = yfSym;
+          return acc;
+        }, {})
+      );
+      const res = await fetch(`/api/stock-price?symbols=${groups.join(",")}`);
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      setMarketData((prev: any) => {
+        const next = { ...prev, ...data };
+        localStorage.setItem("finance_market_data", JSON.stringify(next));
+        return next;
+      });
+
+      // Sync metadata back to Supabase if missing or changed
+      const userId = session?.user?.id;
+      if (userId && userId !== "offline-user") {
+        const updates = state.stocks.filter(s => {
+          const exch = s.exchange || "NSE";
+          const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+          const md = data[yfSym];
+          return md && (s.sector !== md.sector || Number(s.marketCap) !== Number(md.marketCap));
+        });
+
+        if (updates.length > 0) {
+          // Senior Dev Refactor: Batch updates into a single efficient query instead of individual loop calls
+          const batchData = updates.map(s => {
+            const exch = s.exchange || "NSE";
+            const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+            const md = data[yfSym];
+            return {
+              id: s.id,
+              user_id: userId,
+              sector: md.sector || null,
+              market_cap: md.marketCap ? Number(md.marketCap) : null
+            };
+          });
+
+          // Perform a single upsert for all modified records
+          const { error } = await supabase.from("stocks").upsert(batchData, { onConflict: "id" });
+          if (error) console.error("Batch metadata sync failed:", error.message);
+          
+          // Update local state in one go
+          setState((s: any) => ({
+            ...s,
+            stocks: s.stocks.map((st: any) => {
+              const up = updates.find(u => u.id === st.id);
+              if (!up) return st;
+              const md = data[`${up.symbol.replace(/\.(NS|BO)$/i, "")}.${(up.exchange || "NSE") === "BSE" ? "BO" : "NS"}`];
+              return { ...st, sector: md.sector || null, marketCap: md.marketCap ? String(md.marketCap) : null };
+            })
+          }));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch live prices", e);
+    } finally {
+      clearTimeout(timeout);
+      setFetchingPrices(false);
+      fetchingRef.current = false;
+    }
+  }, [session?.user?.id, state.stocks]);
+
+  // Initial price fetch
+  useEffect(() => {
+    if (loaded && state.stocks.length > 0) {
+      fetchLivePrices();
+    }
+  }, [loaded, state.stocks.length, fetchLivePrices]);
+
 
   // 1. Initial Load & Sync Refinement
   useEffect(() => {
@@ -493,23 +576,8 @@ function FinanceDashboard() {
         setLoaded(true);
       }
     })();
-  }, [session]);
+  }, [fetchAllData, session, showToast]);
 
-  const migrateLegacyData = async (userId: string, data: any) => {
-    try {
-      // Very simplified migration — just push current state to tables
-      const ops = [
-        supabase.from("profiles").upsert({ user_id: userId, ...data.profile }),
-        supabase.from("user_settings").upsert({ user_id: userId, ...data.settings }),
-        ...data.bankAccounts.map(x => supabase.from("bank_accounts").insert({ user_id: userId, ...x })),
-        ...data.transactions.map(x => supabase.from("transactions").insert({ user_id: userId, ...x })),
-        // ... add other modules as needed
-      ];
-      // Wait for inserts to complete
-      await Promise.all(ops);
-      // Removed window.location.reload() to prevent infinite reload loops if migration partially fails.
-    } catch (e) { console.warn("Migration failed", e); }
-  };
 
   // Global mouse tracker for Spotlight effect
   useEffect(() => {
@@ -566,6 +634,7 @@ function FinanceDashboard() {
     soon.forEach(({ title, body }) => {
       try { new Notification(title, { body, icon: "/favicon.ico" }); } catch {}
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally omit other deps — runs once after initial load
 
   // Record a net-worth snapshot for the current month once per session after data loads
@@ -596,6 +665,7 @@ function FinanceDashboard() {
       }
       return { ...s, netWorthHistory: newHistory };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally omit other deps — runs once after initial load
 
   const filteredState = useMemo(() => {
@@ -785,7 +855,6 @@ function FinanceDashboard() {
     const totalGoalRemaining = Math.max(0, totalGoalTarget - totalGoalSaved);
     const overallGoalPct = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
     const goalsCompleted = sState.goals.filter(g => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)).length;
-
     return {
       cashInBanks,
       fdValue,
@@ -826,8 +895,46 @@ function FinanceDashboard() {
       totalGoalRemaining,
       overallGoalPct,
       goalsCompleted,
+      stockSectorBreakdown: (() => {
+        const sectors: Record<string, number> = {};
+        sState.stocks.forEach((s: any) => {
+          const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+          const md = marketData[yfSym];
+          const sector = md?.sector || "Others";
+          const price = md?.price ?? Number(s.currentPrice || 0);
+          const value = Number(s.qty || 0) * price;
+          sectors[sector] = (sectors[sector] || 0) + value;
+        });
+        return Object.entries(sectors)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value);
+      })(),
+      stockCapBreakdown: (() => {
+        const caps: Record<string, number> = { "Large Cap": 0, "Mid Cap": 0, "Small Cap": 0, "Micro Cap": 0 };
+        sState.stocks.forEach((s: any) => {
+          const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+          const md = marketData[yfSym];
+          const mCap = Number(md?.marketCap || 0);
+          const price = md?.price ?? Number(s.currentPrice || 0);
+          const value = Number(s.qty || 0) * price;
+          
+          // Cap Definitions (INR)
+          // 1 Cr = 10,000,000
+          // Large Cap: > 20,000 Cr = 200,000,000,000
+          // Mid Cap: 5,000 Cr - 20,000 Cr
+          // Small Cap: 500 Cr - 5,000 Cr
+          // Micro Cap: < 500 Cr
+          if (mCap >= 200000000000) caps["Large Cap"] += value;
+          else if (mCap >= 50000000000) caps["Mid Cap"] += value;
+          else if (mCap >= 5000000000) caps["Small Cap"] += value;
+          else caps["Micro Cap"] += value;
+        });
+        return Object.entries(caps)
+          .map(([name, value]) => ({ name, value }))
+          .filter(c => c.value > 0);
+      })(),
     };
-  }, [filteredState]);
+  }, [filteredState, marketData]);
 
   const assetBreakdown = useMemo(
     () =>
@@ -1184,7 +1291,7 @@ function FinanceDashboard() {
         if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
         if (key === "epf") { if (patch.employer !== undefined) { finalPatch.bank = patch.employer || ""; delete finalPatch.employer; } if (patch.uan !== undefined) { finalPatch.account_number = patch.uan || ""; delete finalPatch.uan; } }
 
-        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
+        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","market_cap"]);
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
           else if (NUMERIC_COLS_U.has(k) && typeof finalPatch[k] === "string" && finalPatch[k] !== null) {
@@ -1337,27 +1444,7 @@ function FinanceDashboard() {
     reader.readAsText(file);
   };
 
-  const dismissDemo = useCallback((startFresh = false) => {
-    if (startFresh) setState(prev => ({ ...prev, ...EMPTY_DATA }));
-  }, []);
 
-  const exportCSV = () => {
-    const rows = [["Date", "Account", "Type", "Category", "Amount", "Note"]];
-    state.transactions.forEach((t) => {
-      const bank = state.bankAccounts.find((b) => b.id === t.accountId);
-      rows.push([t.date || "", bank ? bank.bankName : "", t.type || "", t.category || "", t.amount || "", t.note || ""]);
-    });
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transactions-${today()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   const resetAll = () => {
     setConfirmDialog({
@@ -1437,7 +1524,6 @@ function FinanceDashboard() {
           { id: "nps",    label: "NPS",                icon: Briefcase },
           { id: "epf",    label: "EPF (EPFO)",          icon: Shield    },
           { id: "mf",     label: "Mutual Funds",       icon: BarChart3 },
-          { id: "lic",    label: "LIC",                icon: Shield    },
           { id: "income", label: "Yield Tracker",      icon: Activity  },
         ]},
         { id: "goals", label: "Financial Goals", icon: Target },
@@ -1477,7 +1563,7 @@ function FinanceDashboard() {
     }
   ];
 
-  const allTabs = navGroups.flatMap(g => g.items);
+
 
   // Search results
   const searchResults = useMemo(() => {
@@ -2004,12 +2090,12 @@ function FinanceDashboard() {
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} />}
+            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} marketData={marketData} fetchLivePrices={fetchLivePrices} fetchingPrices={fetchingPrices} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
-            {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} />}
+            {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
@@ -2170,69 +2256,6 @@ function FinanceDashboard() {
 }
 
 // ================== SHARED STYLES ==================
-const btnGhost = {
-  background: "transparent",
-  border: `1.5px solid ${THEME.line}`,
-  color: THEME.ink,
-  padding: "8px 14px",
-  fontFamily: "var(--t-font, 'Inter', sans-serif)",
-  fontSize: 13,
-  fontWeight: 500,
-  borderRadius: 10,
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  transition: "all 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
-  letterSpacing: "-0.01em",
-};
-const btnSolid = {
-  background: THEME.ink,
-  color: THEME.darkInk,
-  border: `1.5px solid ${THEME.ink}`,
-  padding: "10px 20px",
-  fontFamily: "var(--t-font, 'Inter', sans-serif)",
-  fontSize: 14,
-  fontWeight: 600,
-  borderRadius: 10,
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  transition: "all 0.2s cubic-bezier(0.22, 1, 0.36, 1)",
-};
-const btnAccent = {
-  ...btnSolid,
-  background: "linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 75%, #C4B5FD))",
-  borderColor: "var(--t-accent)",
-  color: "#FFFFFF",
-  boxShadow: "0 4px 14px color-mix(in srgb, var(--t-accent) 25%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)",
-};
-
-const btnOutline = {
-  ...btnSolid,
-  background: "transparent",
-  color: "var(--t-ink)",
-  border: "1.5px solid var(--t-line)",
-};
-const card = {
-  background: "var(--t-card-bg)",
-  border: "var(--t-card-border)",
-  borderRadius: "var(--t-radius)",
-  padding: "var(--card-pad, 24px)",
-  boxShadow: "var(--t-card-shadow)",
-  transition: "box-shadow 0.25s cubic-bezier(0.22,1,0.36,1), border-color 0.25s cubic-bezier(0.22,1,0.36,1)",
-};
-const cardDark = {
-  background: "linear-gradient(145deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%)",
-  color: "#fff",
-  borderRadius: "var(--radius-xl)",
-  padding: "var(--card-pad, 24px)",
-  boxShadow: "0 20px 60px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  position: "relative",
-  overflow: "hidden",
-};
 
 const input = {
   width: "100%",
@@ -2246,15 +2269,7 @@ const input = {
   transition: "border-color 0.15s ease, box-shadow 0.15s ease",
   outline: "none",
 };
-const label = {
-  display: "block",
-  fontSize: 12,
-  color: THEME.muted,
-  marginBottom: 6,
-  fontWeight: 600,
-  letterSpacing: "0.03em",
-  textTransform: "uppercase" as const,
-};
+
 
 export default function App() {
   return (

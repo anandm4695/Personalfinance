@@ -5,14 +5,10 @@ import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Internal helper components
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>

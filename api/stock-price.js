@@ -24,22 +24,31 @@ module.exports = async function handler(req, res) {
   await Promise.allSettled(
     symList.map(async (sym) => {
       try {
-        const data = await yf.quote(sym, {}, { validateResult: false });
+        // Fetch both quote and quoteSummary to get price, sector, and marketCap
+        const [quote, summary] = await Promise.all([
+          yf.quote(sym, {}, { validateResult: false }),
+          yf.quoteSummary(sym, { modules: ["assetProfile", "summaryDetail", "price"] }).catch(() => null)
+        ]);
+
         const price =
-          data?.regularMarketPrice ??
-          data?.postMarketPrice ??
-          data?.preMarketPrice;
+          quote?.regularMarketPrice ??
+          quote?.postMarketPrice ??
+          quote?.preMarketPrice;
+
         if (price != null) {
           results[sym] = {
             price,
-            change: data?.regularMarketChange ?? 0,
-            changePercent: data?.regularMarketChangePercent ?? 0,
-            dayHigh: data?.regularMarketDayHigh ?? null,
-            dayLow: data?.regularMarketDayLow ?? null,
-            weekHigh52: data?.fiftyTwoWeekHigh ?? null,
-            weekLow52: data?.fiftyTwoWeekLow ?? null,
-            prevClose: data?.regularMarketPreviousClose ?? null,
-            volume: data?.regularMarketVolume ?? null,
+            change: quote?.regularMarketChange ?? 0,
+            changePercent: quote?.regularMarketChangePercent ?? 0,
+            dayHigh: quote?.regularMarketDayHigh ?? null,
+            dayLow: quote?.regularMarketDayLow ?? null,
+            weekHigh52: quote?.fiftyTwoWeekHigh ?? null,
+            weekLow52: quote?.fiftyTwoWeekLow ?? null,
+            prevClose: quote?.regularMarketPreviousClose ?? null,
+            volume: quote?.regularMarketVolume ?? null,
+            // New fields for analysis
+            sector: summary?.assetProfile?.sector ?? "Unknown",
+            marketCap: summary?.price?.marketCap ?? summary?.summaryDetail?.marketCap ?? quote?.marketCap ?? null,
           };
         }
       } catch (err) {

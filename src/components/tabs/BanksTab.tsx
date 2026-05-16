@@ -11,6 +11,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
+import { SectionTitle } from "../ui/SectionTitle";
 
 // Bank logo domains for Clearbit / Google Favicon API
 const BANK_LOGO_DOMAINS: Record<string, string> = {
@@ -107,12 +108,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
   );
 };
 
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>

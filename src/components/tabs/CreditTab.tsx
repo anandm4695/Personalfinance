@@ -11,6 +11,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {
@@ -121,12 +122,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
   );
 };
 
-const SectionTitle = ({ children, sub }: { children: React.ReactNode; sub?: string }) => (
-  <div style={{ marginBottom: 32 }}>
-    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>{children}</h2>
-    {sub && <p style={{ color: THEME.muted, fontSize: 13, marginTop: 4 }}>{sub}</p>}
-  </div>
-);
+
 
 // Standardized Tile component replaced by StatCard in UI folder
 
@@ -288,12 +284,10 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
 
   return (
     <div>
-      {/* ── HEADER AREA ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <div>
-          <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.04em", margin: 0 }}>Credit & Liabilities</h2>
-          <div style={{ fontSize: 14, color: THEME.muted, marginTop: 4 }}>Manage cards, debts, and personal lending portfolios</div>
-        </div>
+        <SectionTitle sub="Manage cards, debts, and personal lending portfolios">
+          Credit & Liabilities
+        </SectionTitle>
         {sub !== "borrowed" && sub !== "lent"
           && !(sub === "taken" && !state.loansTaken.length)
           && !(sub === "given" && !state.loansGiven.length)

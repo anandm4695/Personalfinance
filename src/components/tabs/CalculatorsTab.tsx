@@ -47,23 +47,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
     return { corpus, invested: m * n, gains: corpus - m * n };
   }, [sipAmt, sipYrs, sipRate]);
 
-  // FD / RD Maturity Calculator
-  const [fdP, setFdP] = useState("100000");
-  const [fdR, setFdR] = useState("6.5");
-  const [fdYrs, setFdYrs] = useState("3");
-  const [fdType, setFdType] = useState("fd");
-  const fdResult = useMemo(() => {
-    const p = Number(fdP) || 0, r = (Number(fdR) || 0) / 100, y = Number(fdYrs) || 1;
-    if (fdType === "fd") {
-      const maturity = p * Math.pow(1 + r / 4, 4 * y);
-      return { maturity, interest: maturity - p };
-    } else {
-      const n = y * 12, mr = r / 12;
-      const maturity = mr === 0 ? p * n : p * (Math.pow(1 + mr, n) - 1) / mr * (1 + mr);
-      return { maturity, interest: maturity - p * n, totalDeposited: p * n };
-    }
-  }, [fdP, fdR, fdYrs, fdType]);
-
   // Net Worth Projection
   const [nwpSavings, setNwpSavings] = useState("30000");
   const [nwpReturn, setNwpReturn] = useState("10");

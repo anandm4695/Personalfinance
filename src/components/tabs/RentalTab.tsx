@@ -18,8 +18,6 @@ interface RentalTabProps {
 
 export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem, updateItem }) => {
   const [sub, setSub] = useState("out");
-  const [expandedOut, setExpandedOut] = useState<Record<string, boolean>>({});
-  const [expandedIn, setExpandedIn] = useState<Record<string, boolean>>({});
   const [modalOut, setModalOut] = useState<{ open: boolean; editing: any }>({ open: false, editing: null });
   const [modalIn, setModalIn] = useState<{ open: boolean; editing: any }>({ open: false, editing: null });
 
