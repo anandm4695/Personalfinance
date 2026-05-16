@@ -7,6 +7,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { SectionTitle } from "../ui/SectionTitle";
 import { RentalPropertyModal, RentedInPropertyModal } from "../modals/RentalModals";
 
 interface RentalTabProps {
@@ -55,19 +56,20 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
   return (
     <div className="tab-content-enter">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Rental Details</h2>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Track agreements, receipts & deposits for {fyLabel}</div>
-        </div>
-        <Button
-          variant="accent"
-          icon={<Plus size={14} />}
-          onClick={() => sub === "out" ? setModalOut({ open: true, editing: null }) : setModalIn({ open: true, editing: null })}
-        >
-          {sub === "out" ? "Add Property" : "Add Rented Property"}
-        </Button>
-      </div>
+      <SectionTitle 
+        sub={`Track agreements, receipts & deposits for ${fyLabel}`}
+        rightElement={
+          <Button
+            variant="accent"
+            icon={<Plus size={14} />}
+            onClick={() => sub === "out" ? setModalOut({ open: true, editing: null }) : setModalIn({ open: true, editing: null })}
+          >
+            {sub === "out" ? "Add Property" : "Add Rented Property"}
+          </Button>
+        }
+      >
+        Rental Details
+      </SectionTitle>
 
       <div style={{ display: "inline-flex", background: THEME.line, borderRadius: 12, padding: 4, marginBottom: 24 }}>
         {[
@@ -125,21 +127,21 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
           {propertiesOut.length === 0 ? (
             <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(5, 150, 105, 0.2)" }}>
                 <Building2 size={28} color="#fff" />
               </div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Properties Rented Out</div>
-                <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Add your shop, flat, or commercial space to track monthly rent receipts, security deposits, and taxable income under IHP.</div>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Properties Rented Out</div>
+                <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Add your shop, flat, or commercial space to track monthly rent receipts, security deposits, and taxable income under IHP.</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                 {["Rent Receipt Ledger", "Security Deposit", "Taxable IHP Income", "Tenant Tracking"].map(f => (
-                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(5,150,105,0.08)", color: "#059669", fontWeight: 600, border: "1px solid rgba(5,150,105,0.15)" }}>● {f}</span>
+                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(5,150,105,0.08)", color: "#059669", fontWeight: 700, border: "1px solid rgba(5,150,105,0.15)" }}>● {f}</span>
                 ))}
               </div>
-              <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={() => setModalOut({ open: true, editing: null })}>
-                <Plus size={16} /> Add Property
-              </button>
+              <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={() => setModalOut({ open: true, editing: null })}>
+                Add Property
+              </Button>
             </Card>
           ) : (
             <div style={{ display: "grid", gap: 16 }}>
@@ -150,8 +152,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       <Building2 size={22} color={THEME.accent} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{p.propertyName}</div>
-                      <div style={{ fontSize: 13, color: THEME.muted }}>{p.tenantName || "No tenant"} · {fmtINRFull(p.monthlyRent)}/mo</div>
+                      <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>{p.propertyName}</div>
+                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>{p.tenantName || "No tenant"} · {fmtINRFull(p.monthlyRent)}/mo</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 800, fontSize: 16, color: THEME.sage }}>
@@ -207,21 +209,21 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
           {propertiesIn.length === 0 ? (
             <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(219, 39, 119, 0.2)" }}>
                 <Building2 size={28} color="#fff" />
               </div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Rented Properties Added</div>
-                <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Add the home or office you rent to track your monthly payments, security deposit recovery, and annual rent paid for HRA claims.</div>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Rented Properties Added</div>
+                <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Add the home or office you rent to track your monthly payments, security deposit recovery, and annual rent paid for HRA claims.</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                 {["Rent Payment Log", "HRA Claim Support", "Security Deposit", "Landlord Details"].map(f => (
-                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 600, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
+                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 700, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
                 ))}
               </div>
-              <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={() => setModalIn({ open: true, editing: null })}>
-                <Plus size={16} /> Add Rented Property
-              </button>
+              <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={() => setModalIn({ open: true, editing: null })}>
+                Add Rented Property
+              </Button>
             </Card>
           ) : (
             <div style={{ display: "grid", gap: 16 }}>
@@ -232,8 +234,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       <Building2 size={22} color={THEME.rust} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{p.propertyName}</div>
-                      <div style={{ fontSize: 13, color: THEME.muted }}>{p.landlordName || "No landlord"} · {fmtINRFull(p.monthlyRent)}/mo</div>
+                      <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>{p.propertyName}</div>
+                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>{p.landlordName || "No landlord"} · {fmtINRFull(p.monthlyRent)}/mo</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 800, fontSize: 16, color: THEME.rust }}>

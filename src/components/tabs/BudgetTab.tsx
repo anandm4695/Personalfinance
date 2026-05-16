@@ -6,6 +6,8 @@ import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { Card } from "../ui/Card";
+import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 
@@ -15,55 +17,23 @@ import { SectionTitle } from "../ui/SectionTitle";
 
 
 const BudgetEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(219, 39, 119, 0.2)" }}>
       <BarChart2 size={28} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Budgets Set Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend.</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Budgets Set Yet</div>
+      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend.</div>
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 600, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 700, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Create First Budget
-    </button>
-  </div>
+    <Button onClick={onAdd} variant="accent" size="lg" icon={<Plus size={18} />}>Create First Budget</Button>
+  </Card>
 );
 
-const btnSolid = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 16px",
-  background: THEME.accent,
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  background: "var(--t-paper)",
-  border: `1.5px solid ${THEME.line}`,
-  borderRadius: 10,
-  color: THEME.ink,
-  fontSize: 14,
-};
-
-const card = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: "1px solid var(--t-line)",
-  padding: 20,
-};
 
 export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
@@ -96,16 +66,18 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
           <span style={{ fontWeight: 600, fontSize: 14 }}>⚠ {overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget this month</span>
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <SectionTitle sub="Set monthly limits per category and track real spending">
-          Budget Planner
-        </SectionTitle>
-        {state.budgets.length > 0 && (
-          <button style={btnSolid} onClick={() => setShow(true)}>
-            <Plus size={14} /> Add Budget
-          </button>
-        )}
-      </div>
+      <SectionTitle 
+        sub="Set monthly limits per category and track real spending"
+        rightElement={
+          state.budgets.length > 0 && (
+            <Button onClick={() => setShow(true)} variant="accent" icon={<Plus size={14} />}>
+              Add Budget
+            </Button>
+          )
+        }
+      >
+        Budget Planner
+      </SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
         <StatCard 
@@ -148,7 +120,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
         const burnColor = spentPct > monthElapsedPct + 10 ? THEME.rust : spentPct > monthElapsedPct - 5 ? THEME.gold : THEME.sage;
         const r = 44, sz = 104, circ = 2 * Math.PI * r;
         return (
-          <div style={{ ...card, marginBottom: 24 }}>
+          <Card style={{ marginBottom: 24, padding: 24 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Budget Burn Rate — Day {daysPassed} of {daysInMonth}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
@@ -183,14 +155,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
         );
       })()}
 
       {state.budgets.length === 0 ? (
-        <div style={card}>
-          <BudgetEmptyState onAdd={() => setShow(true)} />
-        </div>
+        <BudgetEmptyState onAdd={() => setShow(true)} />
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
           {state.budgets.map((b: any) => {
@@ -208,18 +178,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
             const dailyAvg = daysPassed > 0 ? spent / daysPassed : 0;
 
             return (
-              <div key={b.id} style={{ ...card, position: "relative" }}>
+              <Card key={b.id} style={{ position: "relative", padding: 24 }}>
                 <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
-                  <button onClick={() => setEditBudget(b)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-                    <Pencil size={14} />
-                  </button>
-                  <button onClick={() => removeItem("budgets", b.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-                    <Trash2 size={14} />
-                  </button>
+                  <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => setEditBudget(b)} />
+                  <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} style={{ color: THEME.rust }} onClick={() => removeItem("budgets", b.id)} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, paddingRight: 28 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 18 }}>{b.category}</div>
+                    <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>{b.category}</div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
                       {fmtINRFull(spent)} spent of {fmtINRFull(budget)} budget
                     </div>
@@ -242,7 +208,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
                     </span>
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -273,17 +239,17 @@ export function BudgetModal({ onClose, onSave, initialValues = null }: any) {
   return (
     <Modal title={initialValues ? "Edit Budget" : "Add Budget"} onClose={onClose}>
       <Field label="Owner / Profile">
-        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
+        <select style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <Field label="Category">
-        <select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+        <select style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
           {allCats.map((c) => <option key={c}>{c}</option>)}
         </select>
       </Field>
       <Field label="Monthly Limit (₹)">
-        <input style={input} type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
+        <input style={{ width: "100%", padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 14 }} type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
       </Field>
       <ModalActions onSave={() => f.monthly && onSave(f)} onClose={onClose} />
     </Modal>
