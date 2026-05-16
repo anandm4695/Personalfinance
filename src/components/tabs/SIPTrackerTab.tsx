@@ -11,33 +11,9 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-
-// Internal helper components
-
+import { EmptyState } from "../ui/EmptyState";
 
 
-
-const SIPEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "64px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#0d9488 0%,#5eead4 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(13,148,136,0.2)" }}>
-      <Repeat size={28} color="#fff" />
-    </div>
-    <div>
-      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>No SIPs Tracked Yet</h3>
-      <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 420, lineHeight: 1.6, margin: "0 auto" }}>
-        Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey.
-      </p>
-    </div>
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Mutual Fund SIPs", "Corpus Projections", "Installment Progress", "Monthly Tracking"].map(f => (
-        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
-      ))}
-    </div>
-    <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={onAdd} style={{ marginTop: 8 }}>
-      Add First SIP
-    </Button>
-  </Card>
-);
 
 const th = { textAlign: "left" as const, padding: "12px 10px", color: THEME.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", borderBottom: `1px solid ${THEME.line}` };
 const td = { padding: "16px 10px", fontSize: 14 };
@@ -126,7 +102,16 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
       )}
 
       {sipsWithCalc.length === 0 ? (
-        <SIPEmptyState onAdd={() => setShow(true)} />
+        <EmptyState
+          icon={Repeat}
+          gradient="linear-gradient(135deg,#0d9488 0%,#5eead4 100%)"
+          dotColor="#0d9488"
+          title="No SIPs Tracked Yet"
+          description="Add your systematic investment plans to project your corpus, track installments paid, and visualise your wealth-building journey."
+          pills={["Mutual Fund SIPs", "Corpus Projections", "Installment Progress", "Monthly Tracking"]}
+          buttonLabel="Add First SIP"
+          onAdd={() => setShow(true)}
+        />
       ) : (
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>

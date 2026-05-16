@@ -8,6 +8,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { EmptyState } from "../ui/EmptyState";
 import { RentalPropertyModal, RentedInPropertyModal } from "../modals/RentalModals";
 
 interface RentalTabProps {
@@ -133,23 +134,16 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           </div>
 
           {propertiesOut.length === 0 ? (
-            <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(5, 150, 105, 0.2)" }}>
-                <Building2 size={28} color="#fff" />
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Properties Rented Out</div>
-                <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Add your shop, flat, or commercial space to track monthly rent receipts, security deposits, and taxable income under IHP.</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                {["Rent Receipt Ledger", "Security Deposit", "Taxable IHP Income", "Tenant Tracking"].map(f => (
-                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(5,150,105,0.08)", color: "#059669", fontWeight: 700, border: "1px solid rgba(5,150,105,0.15)" }}>● {f}</span>
-                ))}
-              </div>
-              <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={() => setModalOut({ open: true, editing: null })}>
-                Add Property
-              </Button>
-            </Card>
+            <EmptyState
+              icon={Building2}
+              gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)"
+              dotColor="#059669"
+              title="No Properties Rented Out"
+              description="Add your shop, flat, or commercial space to track monthly rent receipts, security deposits, and taxable income under IHP."
+              pills={["Rent Receipt Ledger", "Security Deposit", "Taxable IHP Income", "Tenant Tracking"]}
+              buttonLabel="Add Property"
+              onAdd={() => setModalOut({ open: true, editing: null })}
+            />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
               {propertiesOut.map((p: any) => (
@@ -230,23 +224,16 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           </div>
 
           {propertiesIn.length === 0 ? (
-            <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(219, 39, 119, 0.2)" }}>
-                <Building2 size={28} color="#fff" />
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Rented Properties Added</div>
-                <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Add the home or office you rent to track your monthly payments, security deposit recovery, and annual rent paid for HRA claims.</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                {["Rent Payment Log", "HRA Claim Support", "Security Deposit", "Landlord Details"].map(f => (
-                  <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(219,39,119,0.08)", color: "#db2777", fontWeight: 700, border: "1px solid rgba(219,39,119,0.15)" }}>● {f}</span>
-                ))}
-              </div>
-              <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={() => setModalIn({ open: true, editing: null })}>
-                Add Rented Property
-              </Button>
-            </Card>
+            <EmptyState
+              icon={Building2}
+              gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
+              dotColor="#db2777"
+              title="No Rented Properties Added"
+              description="Add the home or office you rent to track your monthly payments, security deposit recovery, and annual rent paid for HRA claims."
+              pills={["Rent Payment Log", "HRA Claim Support", "Security Deposit", "Landlord Details"]}
+              buttonLabel="Add Rented Property"
+              onAdd={() => setModalIn({ open: true, editing: null })}
+            />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
               {propertiesIn.map((p: any) => (

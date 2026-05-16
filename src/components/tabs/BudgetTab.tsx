@@ -10,30 +10,9 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
-import { Badge } from "../ui/Badge";
-
-// Internal helper components
+import { EmptyState } from "../ui/EmptyState";
 
 
-
-
-const BudgetEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#db2777 0%,#f472b6 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(219, 39, 119, 0.2)" }}>
-      <BarChart2 size={28} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Budgets Set Yet</div>
-      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend.</div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"].map(f => (
-        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
-      ))}
-    </div>
-    <Button onClick={onAdd} variant="accent" size="lg" icon={<Plus size={18} />}>Create First Budget</Button>
-  </Card>
-);
 
 
 export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
@@ -162,7 +141,16 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
       })()}
 
       {state.budgets.length === 0 ? (
-        <BudgetEmptyState onAdd={() => setShow(true)} />
+        <EmptyState
+          icon={BarChart2}
+          gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
+          dotColor="#db2777"
+          title="No Budgets Set Yet"
+          description="Set monthly spending limits per category — Food, Rent, Entertainment, Transport — and get real-time alerts before you overspend."
+          pills={["Category Budgets", "Monthly Limits", "Spend vs Budget", "Burn Rate Chart"]}
+          buttonLabel="Create First Budget"
+          onAdd={() => setShow(true)}
+        />
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
           {state.budgets.map((b: any) => {

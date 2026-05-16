@@ -9,30 +9,10 @@ import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-
-// Internal helper components usually found in App.tsx or similar
+import { EmptyState } from "../ui/EmptyState";
 
 
-const RemindersEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(79, 70, 229, 0.2)" }}>
-      <Bell size={28} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.02em" }}>No Reminders Yet</div>
-      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 380, lineHeight: 1.6 }}>
-        Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, and loans — just add those with due dates and they appear here automatically.
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {["CC Bill Due Dates", "FD & Bond Maturities", "Subscription Renewals", "Custom Alerts"].map(f => (
-        <Badge key={f} variant="muted" style={{ padding: "5px 12px", fontSize: 11 }}>● {f}</Badge>
-      ))}
-    </div>
-    <Button onClick={onAdd} variant="accent" size="lg" icon={<Plus size={18} />}>Add Manual Reminder</Button>
-  </Card>
-);
+
 
 
 
@@ -143,7 +123,16 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
       </div>
 
       {upcoming.length === 0 && past.length === 0 ? (
-        <RemindersEmptyState onAdd={() => setShow(true)} />
+        <EmptyState
+          icon={Bell}
+          gradient="linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)"
+          dotColor="#4f46e5"
+          title="No Reminders Yet"
+          description="Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, and loans — just add those with due dates and they appear here automatically."
+          pills={["CC Bill Due Dates", "FD & Bond Maturities", "Subscription Renewals", "Custom Alerts"]}
+          buttonLabel="Add Manual Reminder"
+          onAdd={() => setShow(true)}
+        />
       ) : (
         <>
           {upcoming.length > 0 && (

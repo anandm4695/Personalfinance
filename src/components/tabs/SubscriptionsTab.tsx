@@ -9,33 +9,9 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-
-// Internal helper components
-
+import { EmptyState } from "../ui/EmptyState";
 
 
-
-const SubEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "64px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#ea580c 0%,#fb923c 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(234,88,12,0.2)" }}>
-      <Repeat size={28} color="#fff" />
-    </div>
-    <div>
-      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>No Subscriptions Tracked</h3>
-      <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 420, lineHeight: 1.6, margin: "0 auto" }}>
-        Track Netflix, Spotify, Swiggy One, cloud tools, and any recurring bill — monthly or annual — so nothing slips through unnoticed.
-      </p>
-    </div>
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Streaming & OTT", "Monthly / Annual Cycles", "Renewal Alerts", "Monthly Spend View"].map(f => (
-        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
-      ))}
-    </div>
-    <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={onAdd} style={{ marginTop: 8 }}>
-      Add First Subscription
-    </Button>
-  </Card>
-);
 
 const th = { textAlign: "left" as const, padding: "12px 10px", color: THEME.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", borderBottom: `1px solid ${THEME.line}` };
 const td = { padding: "16px 10px", fontSize: 14 };
@@ -92,7 +68,16 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
       </div>
 
       {state.subscriptions.length === 0 ? (
-        <SubEmptyState onAdd={() => setShow(true)} />
+        <EmptyState
+          icon={Repeat}
+          gradient="linear-gradient(135deg,#ea580c 0%,#fb923c 100%)"
+          dotColor="#ea580c"
+          title="No Subscriptions Tracked"
+          description="Track Netflix, Spotify, Swiggy One, cloud tools, and any recurring bill — monthly or annual — so nothing slips through unnoticed."
+          pills={["Streaming & OTT", "Monthly / Annual Cycles", "Renewal Alerts", "Monthly Spend View"]}
+          buttonLabel="Add First Subscription"
+          onAdd={() => setShow(true)}
+        />
       ) : (
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>

@@ -9,6 +9,7 @@ import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { EmptyState } from "../ui/EmptyState";
 
 /* ══════════════════════════════════════════════════════════════════════
    HELPERS & MODALS
@@ -83,31 +84,6 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
   );
 };
 
-const LICEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(220, 38, 38, 0.2)" }}>
-      <Shield size={24} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6, letterSpacing: "-0.02em" }}>No LIC Policies Added</div>
-      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 360, lineHeight: 1.5 }}>Add your LIC policies to see sum assured, premiums, and maturity details here.</div>
-    </div>
-    <Button onClick={() => onAdd("lic")} variant="accent" icon={<Plus size={16} />}>Add LIC Policy</Button>
-  </Card>
-);
-
-const TermPlanEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#e11d48 0%,#fb7185 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(225, 29, 72, 0.2)" }}>
-      <Heart size={24} color="#fff" />
-    </div>
-    <div>
-      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6, letterSpacing: "-0.02em" }}>No Term Plans Added</div>
-      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 360, lineHeight: 1.5 }}>Add your term insurance plans to track cover adequacy, premiums, and expiry.</div>
-    </div>
-    <Button onClick={() => onAdd("term")} variant="accent" icon={<Plus size={16} />}>Add Term Plan</Button>
-  </Card>
-);
 
 
 const th = { textAlign: "left" as const, padding: "12px 8px", color: THEME.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
@@ -165,7 +141,16 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
           <Button onClick={() => setModal("lic")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Policy</Button>
         </div>
         {state.lic.length === 0 ? (
-          <LICEmptyState onAdd={setModal} />
+          <EmptyState
+            icon={Shield}
+            gradient="linear-gradient(135deg,#b45309 0%,#f59e0b 100%)"
+            dotColor="#f59e0b"
+            title="No LIC Policies Added Yet"
+            description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
+            pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
+            buttonLabel="Add LIC Policy"
+            onAdd={() => setModal("lic")}
+          />
         ) : (
           <div style={{ overflowX: "auto", margin: "0 -24px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -207,7 +192,16 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
           <Button onClick={() => setModal("term")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
         </div>
         {state.termPlans.length === 0 ? (
-          <TermPlanEmptyState onAdd={setModal} />
+          <EmptyState
+            icon={Heart}
+            gradient="linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
+            dotColor="#dc2626"
+            title="No Term Plans Added Yet"
+            description="Track your pure protection term plans — insurer, cover amount, annual premium, and policy expiry date."
+            pills={["Cover Amount", "Annual Premium", "Policy Expiry", "Insurer Details"]}
+            buttonLabel="Add Term Plan"
+            onAdd={() => setModal("term")}
+          />
         ) : (
           <div style={{ overflowX: "auto", margin: "0 -24px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
