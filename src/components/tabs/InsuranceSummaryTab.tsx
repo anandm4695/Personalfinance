@@ -6,6 +6,7 @@ import { fmtINRFull, uid } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 
@@ -93,37 +94,31 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
 };
 
 const LICEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#dc2626 0%,#fca5a5 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(220, 38, 38, 0.2)" }}>
       <Shield size={24} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No LIC Policies Added</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360 }}>Add your LIC policies to see sum assured, premiums, and maturity details here.</div>
+      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6, letterSpacing: "-0.02em" }}>No LIC Policies Added</div>
+      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 360, lineHeight: 1.5 }}>Add your LIC policies to see sum assured, premiums, and maturity details here.</div>
     </div>
-    <Button onClick={() => onAdd("lic")} variant="outline" icon={<Plus size={16} />}>Add LIC Policy</Button>
-  </div>
+    <Button onClick={() => onAdd("lic")} variant="accent" icon={<Plus size={16} />}>Add LIC Policy</Button>
+  </Card>
 );
 
 const TermPlanEmptyState = ({ onAdd }: any) => (
-  <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#e11d48 0%,#fb7185 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <Card style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#e11d48 0%,#fb7185 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(225, 29, 72, 0.2)" }}>
       <Heart size={24} color="#fff" />
     </div>
     <div>
-      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Term Plans Added</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360 }}>Add your term insurance plans to track cover adequacy, premiums, and expiry.</div>
+      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6, letterSpacing: "-0.02em" }}>No Term Plans Added</div>
+      <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 360, lineHeight: 1.5 }}>Add your term insurance plans to track cover adequacy, premiums, and expiry.</div>
     </div>
-    <Button onClick={() => onAdd("term")} variant="outline" icon={<Plus size={16} />}>Add Term Plan</Button>
-  </div>
+    <Button onClick={() => onAdd("term")} variant="accent" icon={<Plus size={16} />}>Add Term Plan</Button>
+  </Card>
 );
 
-const cardStyle = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
-  padding: 24,
-};
 
 const th = { textAlign: "left" as const, padding: "12px 8px", color: THEME.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
 const td = { padding: "16px 8px" };
@@ -158,8 +153,8 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
         sub="Manage your life insurance and term protection cover in one place"
         rightElement={
           <div style={{ display: "flex", gap: 10 }}>
-            <Button onClick={() => setModal("lic")} size="sm" variant="outline" icon={<Plus size={14} />}>Add LIC</Button>
-            <Button onClick={() => setModal("term")} size="sm" variant="outline" icon={<Plus size={14} />}>Add Term Plan</Button>
+            <Button onClick={() => setModal("lic")} size="sm" variant="accent" icon={<Plus size={14} />}>Add LIC</Button>
+            <Button onClick={() => setModal("term")} size="sm" variant="accent" icon={<Plus size={14} />}>Add Term Plan</Button>
           </div>
         }
       >
@@ -174,10 +169,10 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
       </div>
 
       {/* LIC SECTION */}
-      <div style={{ ...cardStyle, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Life Insurance (LIC)</div>
-          <Button onClick={() => setModal("lic")} size="sm" variant="ghost" icon={<Plus size={14} />}>Add Policy</Button>
+      <Card style={{ marginBottom: 24, padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>Life Insurance (LIC)</div>
+          <Button onClick={() => setModal("lic")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Policy</Button>
         </div>
         {state.lic.length === 0 ? (
           <LICEmptyState onAdd={setModal} />
@@ -185,7 +180,7 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <tr style={{ borderBottom: `1.5px solid ${THEME.line}` }}>
                   <th style={th}>Policy No</th>
                   <th style={th}>Plan Name</th>
                   <th style={{ ...th, textAlign: "right" }}>Sum Assured</th>
@@ -213,13 +208,13 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* TERM PLANS SECTION */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Term Insurance Plans</div>
-          <Button onClick={() => setModal("term")} size="sm" variant="ghost" icon={<Plus size={14} />}>Add Plan</Button>
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>Term Insurance Plans</div>
+          <Button onClick={() => setModal("term")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
         </div>
         {state.termPlans.length === 0 ? (
           <TermPlanEmptyState onAdd={setModal} />
@@ -227,7 +222,7 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <tr style={{ borderBottom: `1.5px solid ${THEME.line}` }}>
                   <th style={th}>Insurer</th>
                   <th style={th}>Plan Name</th>
                   <th style={{ ...th, textAlign: "right" }}>Cover Amount</th>
@@ -255,7 +250,7 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {modal && <AddInsuranceModal sub={modal} onClose={() => setModal(null)} onSave={handleSave} />}
     </div>
