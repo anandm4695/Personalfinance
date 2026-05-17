@@ -931,6 +931,21 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
 
+/* ── Form input (shared modal / form fields) ───────────────────── */
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+/* Date inputs should also fill their container */
+input[type="date"].form-input {
+  width: 100%;
+  min-width: 0;
+}
+
 /* ── Form field spacing ────────────────────────────────────────── */
 .form-grid { display: grid; gap: 16px; }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
