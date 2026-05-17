@@ -27,6 +27,40 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const [expandedLedger, setExpandedLedger] = useState<string | null>(null);
   const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction"; property: any } | null>(null);
 
+  // CSV Import state
+  const [showCsvImport, setShowCsvImport] = useState<string | null>(null);
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+
+  const parseCsvText = (text: string, _type: "payment" | "receipt") => {
+    setCsvError("");
+    setCsvPreview([]);
+    try {
+      const lines = text.trim().split("\n").filter(l => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) return;
+      const rows = lines.map((line, i) => {
+        const parts = line.split(",").map(p => p.trim().replace(/^"|"$/g, ""));
+        if (parts.length < 2) throw new Error(`Row ${i + 1}: need at least month, amount`);
+        const [month, amount, date, note] = parts;
+        if (!month.match(/^\d{4}-\d{2}$/)) throw new Error(`Row ${i + 1}: month must be YYYY-MM (got "${month}")`);
+        const amt = Number(amount);
+        if (isNaN(amt) || amt <= 0) throw new Error(`Row ${i + 1}: amount must be a positive number`);
+        const dt = date || `${month}-05`; // default to 5th of the month if date is omitted
+        if (!dt.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD (got "${dt}")`);
+        return { 
+          month, 
+          amount: amt, 
+          date: dt, 
+          note: note || "", 
+          id: `tx-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}` 
+        };
+      });
+      setCsvPreview(rows);
+    } catch (e: any) { setCsvError(e.message); }
+  };
+
   const propertiesOut = state.rentalProperties || [];
   const propertiesIn = state.rentedProperties || [];
 
@@ -253,6 +287,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
                             {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
                           </div>
+                          {p.depositReceivedDate && (
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
+                              Recd: <span style={{ color: THEME.gold }}>{p.depositReceivedDate}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -279,15 +318,126 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Receipts</span>
-                            <Button 
-                              variant="accent" 
-                              size="sm" 
-                              style={{ padding: "4px 10px", fontSize: 11 }}
-                              onClick={() => setShowLogModal({ type: "receipt", property: p })}
-                            >
-                              <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
-                            </Button>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.accent, border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)` }}
+                                onClick={() => {
+                                  if (showCsvImport === p.id) {
+                                    setShowCsvImport(null);
+                                  } else {
+                                    setShowCsvImport(p.id);
+                                    setCsvText("");
+                                    setCsvPreview([]);
+                                    setCsvError("");
+                                    setCsvFileName("");
+                                  }
+                                }}
+                              >
+                                Bulk Import
+                              </Button>
+                              <Button 
+                                variant="accent" 
+                                size="sm" 
+                                style={{ padding: "4px 10px", fontSize: 11 }}
+                                onClick={() => setShowLogModal({ type: "receipt", property: p })}
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
+                              </Button>
+                            </div>
                           </div>
+
+                          {showCsvImport === p.id && (
+                            <div style={{
+                              padding: 14, borderRadius: 10, marginBottom: 14,
+                              background: "rgba(128,128,128,0.02)", border: `1px solid ${THEME.line}`,
+                            }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Bulk Import Receipts</span>
+                                <button 
+                                  onClick={() => {
+                                    const template = "# month, amount, date, note\n# month = YYYY-MM | date = YYYY-MM-DD\n2025-04,25000,2025-04-05,Paid via UPI\n2025-05,25000,2025-05-04,Bank Transfer";
+                                    const blob = new Blob([template], { type: "text/csv" });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a"); a.href = url; a.download = "rent_receipts_template.csv"; a.click();
+                                  }}
+                                  style={{ background: "none", border: "none", fontSize: 10, color: THEME.accent, fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  Download Template
+                                </button>
+                              </div>
+
+                              <label style={{
+                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                                padding: "14px 0", border: `1.5px dashed ${THEME.line}`, borderRadius: 8, cursor: "pointer",
+                                background: "rgba(128,128,128,0.01)", marginBottom: 10
+                              }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                                  {csvFileName || "Click to browse or drop CSV file"}
+                                </span>
+                                <input 
+                                  type="file" 
+                                  accept=".csv,.txt" 
+                                  style={{ display: "none" }} 
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]; if (!file) return;
+                                    setCsvFileName(file.name);
+                                    const r = new FileReader();
+                                    r.onload = (ev) => {
+                                      const text = ev.target?.result as string;
+                                      setCsvText(text);
+                                      parseCsvText(text, "receipt");
+                                    };
+                                    r.readAsText(file);
+                                  }} 
+                                />
+                              </label>
+
+                              <textarea
+                                style={{
+                                  width: "100%", height: 70, padding: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink,
+                                  fontSize: 11, fontFamily: "monospace", resize: "none", boxSizing: "border-box"
+                                }}
+                                value={csvText}
+                                onChange={(e) => {
+                                  setCsvText(e.target.value);
+                                  parseCsvText(e.target.value, "receipt");
+                                }}
+                                placeholder="Or paste CSV rows here: YYYY-MM, amount, YYYY-MM-DD, note"
+                              />
+
+                              {csvError && (
+                                <div style={{ fontSize: 11, color: THEME.rust, marginTop: 8, fontWeight: 600 }}>
+                                  ⚠️ {csvError}
+                                </div>
+                              )}
+
+                              {csvPreview.length > 0 && (
+                                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
+                                    Ready to import {csvPreview.length} rows
+                                  </span>
+                                  <Button
+                                    variant="accent"
+                                    size="sm"
+                                    style={{ padding: "4px 12px", fontSize: 11 }}
+                                    onClick={() => {
+                                      const nextReceipts = [...(p.receipts || []), ...csvPreview];
+                                      updateItem("rentalProperties", p.id, { ...p, receipts: nextReceipts });
+                                      setCsvPreview([]);
+                                      setCsvText("");
+                                      setCsvFileName("");
+                                      setShowCsvImport(null);
+                                    }}
+                                  >
+                                    Import Now
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {(p.receipts || []).length === 0 ? (
                             <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
@@ -490,6 +640,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
                           </div>
+                          {p.depositPaidDate && (
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
+                              Paid: <span style={{ color: THEME.sage }}>{p.depositPaidDate}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -516,15 +671,126 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Payments</span>
-                            <Button 
-                              variant="accent" 
-                              size="sm" 
-                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.rust }}
-                              onClick={() => setShowLogModal({ type: "payment", property: p })}
-                            >
-                              <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
-                            </Button>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.rust, border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)` }}
+                                onClick={() => {
+                                  if (showCsvImport === p.id) {
+                                    setShowCsvImport(null);
+                                  } else {
+                                    setShowCsvImport(p.id);
+                                    setCsvText("");
+                                    setCsvPreview([]);
+                                    setCsvError("");
+                                    setCsvFileName("");
+                                  }
+                                }}
+                              >
+                                Bulk Import
+                              </Button>
+                              <Button 
+                                variant="accent" 
+                                size="sm" 
+                                style={{ padding: "4px 10px", fontSize: 11, background: THEME.rust }}
+                                onClick={() => setShowLogModal({ type: "payment", property: p })}
+                              >
+                                <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
+                              </Button>
+                            </div>
                           </div>
+
+                          {showCsvImport === p.id && (
+                            <div style={{
+                              padding: 14, borderRadius: 10, marginBottom: 14,
+                              background: "rgba(128,128,128,0.02)", border: `1px solid ${THEME.line}`,
+                            }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Bulk Import Payments</span>
+                                <button 
+                                  onClick={() => {
+                                    const template = "# month, amount, date, note\n# month = YYYY-MM | date = YYYY-MM-DD\n2025-04,25000,2025-04-05,Paid via UPI\n2025-05,25000,2025-05-04,Bank Transfer";
+                                    const blob = new Blob([template], { type: "text/csv" });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a"); a.href = url; a.download = "rent_payments_template.csv"; a.click();
+                                  }}
+                                  style={{ background: "none", border: "none", fontSize: 10, color: THEME.rust, fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  Download Template
+                                </button>
+                              </div>
+
+                              <label style={{
+                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                                padding: "14px 0", border: `1.5px dashed ${THEME.line}`, borderRadius: 8, cursor: "pointer",
+                                background: "rgba(128,128,128,0.01)", marginBottom: 10
+                              }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                                  {csvFileName || "Click to browse or drop CSV file"}
+                                </span>
+                                <input 
+                                  type="file" 
+                                  accept=".csv,.txt" 
+                                  style={{ display: "none" }} 
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]; if (!file) return;
+                                    setCsvFileName(file.name);
+                                    const r = new FileReader();
+                                    r.onload = (ev) => {
+                                      const text = ev.target?.result as string;
+                                      setCsvText(text);
+                                      parseCsvText(text, "payment");
+                                    };
+                                    r.readAsText(file);
+                                  }} 
+                                />
+                              </label>
+
+                              <textarea
+                                style={{
+                                  width: "100%", height: 70, padding: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink,
+                                  fontSize: 11, fontFamily: "monospace", resize: "none", boxSizing: "border-box"
+                                }}
+                                value={csvText}
+                                onChange={(e) => {
+                                  setCsvText(e.target.value);
+                                  parseCsvText(e.target.value, "payment");
+                                }}
+                                placeholder="Or paste CSV rows here: YYYY-MM, amount, YYYY-MM-DD, note"
+                              />
+
+                              {csvError && (
+                                <div style={{ fontSize: 11, color: THEME.rust, marginTop: 8, fontWeight: 600 }}>
+                                  ⚠️ {csvError}
+                                </div>
+                              )}
+
+                              {csvPreview.length > 0 && (
+                                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
+                                    Ready to import {csvPreview.length} rows
+                                  </span>
+                                  <Button
+                                    variant="accent"
+                                    size="sm"
+                                    style={{ padding: "4px 12px", fontSize: 11, background: THEME.rust }}
+                                    onClick={() => {
+                                      const nextPayments = [...(p.payments || []), ...csvPreview];
+                                      updateItem("rentedProperties", p.id, { ...p, payments: nextPayments });
+                                      setCsvPreview([]);
+                                      setCsvText("");
+                                      setCsvFileName("");
+                                      setShowCsvImport(null);
+                                    }}
+                                  >
+                                    Import Now
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {(p.payments || []).length === 0 ? (
                             <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>

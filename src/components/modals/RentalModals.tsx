@@ -121,6 +121,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
     propertyName: initial?.propertyName || "",
     propertyType: initial?.propertyType || "shop",
     securityDeposit: initial?.securityDeposit || "",
+    depositReceivedDate: initial?.depositReceivedDate || "",
     agreementStart: initial?.agreementStart || initial?.leaseStart || "",
     agreementEnd: initial?.agreementEnd || initial?.leaseEnd || "",
     isActive: initial?.isActive !== false,
@@ -200,7 +201,10 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
         <Field label="Security Deposit Received (₹)">
           <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
         </Field>
-        <Field label="Annual Municipal Tax paid by you (₹)">
+        <Field label="Deposit Received Date">
+          <input style={input} type="date" value={f.depositReceivedDate} onChange={(e) => setF({ ...f, depositReceivedDate: e.target.value })} />
+        </Field>
+        <Field label="Annual Municipal Tax paid by you (₹)" style={{ gridColumn: "1 / -1" }}>
           <input style={input} type="number" value={f.municipalTax} onChange={(e) => setF({ ...f, municipalTax: e.target.value })} placeholder="0 (deducted before 30% std deduction)" />
         </Field>
         <Field label="Agreement Start">
@@ -511,6 +515,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
     propertyName: initial?.propertyName || "",
     monthlyRent: initial?.monthlyRent || "",
     securityDeposit: initial?.securityDeposit || "",
+    depositPaidDate: initial?.depositPaidDate || "",
     agreementStart: initial?.agreementStart || "",
     agreementEnd: initial?.agreementEnd || "",
     isActive: initial?.isActive !== false,
@@ -599,17 +604,20 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
         <Field label="Security Deposit Paid (₹)">
           <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
         </Field>
+        <Field label="Deposit Paid Date">
+          <input style={input} type="date" value={f.depositPaidDate} onChange={(e) => setF({ ...f, depositPaidDate: e.target.value })} />
+        </Field>
+        <Field label="Status">
+          <select style={input} value={f.isActive ? "active" : "ended"} onChange={(e) => setF({ ...f, isActive: e.target.value === "active" })}>
+            <option value="active">Active</option>
+            <option value="ended">Ended / Vacated</option>
+          </select>
+        </Field>
         <Field label="Agreement Start">
           <input style={input} type="date" value={f.agreementStart} onChange={(e) => setF({ ...f, agreementStart: e.target.value })} />
         </Field>
         <Field label="Agreement End">
           <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
-        </Field>
-        <Field label="Status" style={{ gridColumn: "1 / -1" }}>
-          <select style={input} value={f.isActive ? "active" : "ended"} onChange={(e) => setF({ ...f, isActive: e.target.value === "active" })}>
-            <option value="active">Active</option>
-            <option value="ended">Ended / Vacated</option>
-          </select>
         </Field>
       </div>
 
