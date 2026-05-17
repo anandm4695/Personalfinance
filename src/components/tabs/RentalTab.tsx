@@ -259,13 +259,40 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
-                            {p.landlordName || "Unknown Landlord"} · <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                            {/* Show landlord name(s) */}
+                            {p.landlords && p.landlords.length > 1
+                              ? <span>{p.landlords.length} Landlords</span>
+                              : <span>{p.landlordName || p.landlords?.[0]?.name || "Unknown Landlord"}</span>
+                            }
+                            {" · "}
+                            <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
                           </div>
+                          {/* Multi-landlord split pills */}
+                          {p.landlords && p.landlords.length > 1 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                              {p.landlords.map((ll: any, li: number) => {
+                                const splitColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+                                const col = splitColors[li % 5];
+                                const share = Math.round((Number(ll.splitPct) / 100) * Number(p.monthlyRent));
+                                return (
+                                  <span key={li} style={{
+                                    display: "inline-flex", alignItems: "center", gap: 4,
+                                    padding: "3px 8px", borderRadius: 99,
+                                    background: col + "14", color: col,
+                                    fontSize: 11, fontWeight: 700,
+                                  }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: col, flexShrink: 0 }} />
+                                    {ll.name || `L${li + 1}`}: ₹{share.toLocaleString("en-IN")}/mo ({ll.splitPct}%)
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: 2 }}>
+                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                           <Button variant="ghost" size="sm" onClick={() => setModalIn({ open: true, editing: p })} style={{ padding: 6 }}>
                             <Pencil size={14} />
                           </Button>
