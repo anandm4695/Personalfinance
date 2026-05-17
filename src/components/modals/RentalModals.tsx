@@ -24,41 +24,157 @@ function fmtINR(n: number) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RentalPropertyModal  (Rented Out — unchanged)
+   TenantSplitCard  — per-tenant row inside the modal
 ══════════════════════════════════════════════════════════════════ */
-export function RentalPropertyModal({ initial, onClose, onSave }: any) {
-  const [f, setF] = useState(
-    initial
-      ? {
-          owner: initial.owner || "self",
-          propertyName: initial.propertyName || "",
-          propertyType: initial.propertyType || "shop",
-          tenantName: initial.tenantName || "",
-          tenantPhone: initial.tenantPhone || "",
-          monthlyRent: initial.monthlyRent || "",
-          securityDeposit: initial.securityDeposit || "",
-          agreementStart: initial.agreementStart || "",
-          agreementEnd: initial.agreementEnd || "",
-          isActive: initial.isActive !== false,
-          municipalTax: initial.municipalTax || "",
-        }
-      : {
-          owner: "self",
-          propertyName: "",
-          propertyType: "shop",
-          tenantName: "",
-          tenantPhone: "",
-          monthlyRent: "",
-          securityDeposit: "",
-          agreementStart: "",
-          agreementEnd: "",
-          isActive: true,
-          municipalTax: "",
-        }
-  );
+function TenantSplitCard({
+  t, idx, onChange, canDelete, onDelete,
+}: {
+  t: any; idx: number;
+  onChange: (updated: any) => void;
+  canDelete: boolean; onDelete: () => void;
+}) {
+  const accentColor = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"][idx % 5];
 
   return (
-    <Modal title={initial ? "Edit Property" : "Add Rental Property"} onClose={onClose}>
+    <div style={{
+      border: `1.5px solid ${accentColor}33`,
+      borderRadius: 14,
+      padding: "16px 16px 12px",
+      background: `color-mix(in srgb, ${accentColor} 4%, var(--t-paper))`,
+      position: "relative",
+      transition: "all 0.2s",
+    }}>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8, background: accentColor,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <User size={14} color="#fff" />
+          </div>
+          <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+            Tenant {idx + 1}
+          </span>
+        </div>
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4, borderRadius: 6, display: "flex" }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Fields */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <Field label="Tenant Name" style={{ marginBottom: 0 }}>
+          <input
+            style={input}
+            value={t.name}
+            onChange={(e) => onChange({ ...t, name: e.target.value })}
+            placeholder={`e.g. Ramesh Kumar`}
+          />
+        </Field>
+        <Field label="Phone" style={{ marginBottom: 0 }}>
+          <input
+            style={input}
+            value={t.phone}
+            onChange={(e) => onChange({ ...t, phone: e.target.value })}
+            placeholder="9876543210"
+          />
+        </Field>
+        <Field label="Monthly Rent (₹)" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+          <input
+            style={input}
+            type="number"
+            value={t.monthlyRent}
+            onChange={(e) => onChange({ ...t, monthlyRent: e.target.value })}
+            placeholder="15000"
+          />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RentalPropertyModal  (Rented Out)
+══════════════════════════════════════════════════════════════════ */
+export function RentalPropertyModal({ initial, onClose, onSave }: any) {
+  // Initialise tenants from saved data or default single tenant
+  const initTenants = (): any[] => {
+    if (initial?.tenants?.length > 0) return initial.tenants;
+    if (initial?.tenantName) {
+      return [{
+        name: initial.tenantName,
+        phone: initial.tenantPhone || "",
+        monthlyRent: initial.monthlyRent || "",
+      }];
+    }
+    return [{ name: "", phone: "", monthlyRent: "" }];
+  };
+
+  const [f, setF] = useState({
+    owner: initial?.owner || "self",
+    propertyName: initial?.propertyName || "",
+    propertyType: initial?.propertyType || "shop",
+    securityDeposit: initial?.securityDeposit || "",
+    agreementStart: initial?.agreementStart || initial?.leaseStart || "",
+    agreementEnd: initial?.agreementEnd || initial?.leaseEnd || "",
+    isActive: initial?.isActive !== false,
+    municipalTax: initial?.municipalTax || "",
+  });
+
+  const [tenants, setTenants] = useState<any[]>(initTenants);
+  const [tenantCount, setTenantCount] = useState(initTenants().length);
+
+  const isMulti = tenantCount > 1;
+
+  // Sync tenant count changes
+  useEffect(() => {
+    setTenants((prev) => {
+      const next = Array.from({ length: tenantCount }, (_, i) => ({
+        name: prev[i]?.name || "",
+        phone: prev[i]?.phone || "",
+        monthlyRent: prev[i]?.monthlyRent || "",
+      }));
+      return next;
+    });
+  }, [tenantCount]);
+
+  const updateTenant = (idx: number, updated: any) => {
+    setTenants((prev) => prev.map((t, i) => (i === idx ? updated : t)));
+  };
+
+  const deleteTenant = (idx: number) => {
+    const next = tenants.filter((_, i) => i !== idx);
+    setTenants(next);
+    setTenantCount(next.length);
+  };
+
+  // Calculate total monthly rent as sum of all tenants
+  const totalMonthlyRent = tenants.reduce((s, t) => s + (Number(t.monthlyRent) || 0), 0);
+
+  const handleSave = () => {
+    if (!f.propertyName) return;
+
+    // Legacy fields for single tenant compatibility
+    const primaryTenant = tenants[0] || {};
+    onSave({
+      ...f,
+      tenants,
+      monthlyRent: totalMonthlyRent,
+      tenantName: isMulti
+        ? tenants.map((t) => t.name || "Unknown").join(", ")
+        : primaryTenant.name || "",
+      tenantPhone: isMulti ? "" : primaryTenant.phone || "",
+    });
+  };
+
+  return (
+    <Modal title={initial ? "Edit Property" : "Add Rental Property"} onClose={onClose} maxWidth={620}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Owner / Profile" style={{ gridColumn: "1 / -1" }}>
           <select style={input} value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })}>
@@ -81,17 +197,11 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
             <option value="ended">Ended</option>
           </select>
         </Field>
-        <Field label="Tenant Name">
-          <input style={input} value={f.tenantName} onChange={(e) => setF({ ...f, tenantName: e.target.value })} placeholder="e.g. Ramesh Traders" />
-        </Field>
-        <Field label="Tenant Phone">
-          <input style={input} value={f.tenantPhone} onChange={(e) => setF({ ...f, tenantPhone: e.target.value })} placeholder="9876543210" />
-        </Field>
-        <Field label="Monthly Rent (₹)">
-          <input style={input} type="number" value={f.monthlyRent} onChange={(e) => setF({ ...f, monthlyRent: e.target.value })} placeholder="25000" />
-        </Field>
         <Field label="Security Deposit Received (₹)">
           <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
+        </Field>
+        <Field label="Annual Municipal Tax paid by you (₹)">
+          <input style={input} type="number" value={f.municipalTax} onChange={(e) => setF({ ...f, municipalTax: e.target.value })} placeholder="0 (deducted before 30% std deduction)" />
         </Field>
         <Field label="Agreement Start">
           <input style={input} type="date" value={f.agreementStart} onChange={(e) => setF({ ...f, agreementStart: e.target.value })} />
@@ -99,11 +209,97 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
         <Field label="Agreement End">
           <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
         </Field>
-        <Field label="Annual Municipal Tax paid by you (₹)" style={{ gridColumn: "1 / -1" }}>
-          <input style={input} type="number" value={f.municipalTax} onChange={(e) => setF({ ...f, municipalTax: e.target.value })} placeholder="0 (deducted before 30% std deduction)" />
-        </Field>
       </div>
-      <ModalActions onSave={() => f.propertyName && onSave(f)} onClose={onClose} saveLabel={initial ? "Update" : "Add Property"} />
+
+      {/* ── Divider ── */}
+      <div style={{ height: 1, background: THEME.line, margin: "20px 0" }} />
+
+      {/* ── Tenants Section ── */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 8,
+              background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Users size={15} color={THEME.accent} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>Tenant Details</div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                How many tenants share this property?
+              </div>
+            </div>
+          </div>
+
+          {/* Count buttons */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => setTenantCount(n)}
+                style={{
+                  width: 34, height: 34, borderRadius: 8, border: "none",
+                  background: tenantCount === n ? THEME.accent : `color-mix(in srgb, ${THEME.muted} 10%, transparent)`,
+                  color: tenantCount === n ? "#fff" : THEME.muted,
+                  fontWeight: 800, fontSize: 13, cursor: "pointer",
+                  transition: "all 0.18s",
+                  boxShadow: tenantCount === n ? `0 4px 12px color-mix(in srgb, ${THEME.accent} 35%, transparent)` : "none",
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Visual total rent banner */}
+        <div style={{
+          padding: "12px 16px", borderRadius: 10, marginBottom: 14,
+          background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+          border: `1px solid ${THEME.accent}33`,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CheckCircle2 size={16} color={THEME.accent} />
+            <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+              Total Monthly Rent: {fmtINR(totalMonthlyRent)}/mo
+            </span>
+          </div>
+        </div>
+
+        {/* Tenant cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {tenants.map((t, i) => (
+            <TenantSplitCard
+              key={i}
+              t={t}
+              idx={i}
+              onChange={(updated) => updateTenant(i, updated)}
+              canDelete={tenants.length > 1}
+              onDelete={() => deleteTenant(i)}
+            />
+          ))}
+        </div>
+
+        {/* Add tenant button (up to 5) */}
+        {tenants.length < 5 && (
+          <button
+            onClick={() => setTenantCount((c) => c + 1)}
+            style={{
+              marginTop: 10, width: "100%", padding: "10px", border: `1.5px dashed ${THEME.accent}55`,
+              borderRadius: 10, background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+              color: THEME.accent, fontWeight: 700, fontSize: 13, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            <Plus size={14} /> Add Another Tenant
+          </button>
+        )}
+      </div>
+
+      <ModalActions onSave={handleSave} onClose={onClose} saveLabel={initial ? "Update" : "Add Property"} />
     </Modal>
   );
 }

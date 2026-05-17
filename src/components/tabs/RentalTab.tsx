@@ -161,13 +161,39 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
-                            {p.tenantName || "Vacant"} · <span style={{ color: THEME.accent }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                            {/* Show tenant name(s) */}
+                            {p.tenants && p.tenants.length > 1
+                              ? <span>{p.tenants.length} Tenants</span>
+                              : <span>{p.tenantName || p.tenants?.[0]?.name || "Vacant"}</span>
+                            }
+                            {" · "}
+                            <span style={{ color: THEME.accent }}>{fmtINRFull(p.monthlyRent)}/mo</span>
                           </div>
+                          {/* Multi-tenant split pills */}
+                          {p.tenants && p.tenants.length > 1 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                              {p.tenants.map((t: any, ti: number) => {
+                                const splitColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+                                const col = splitColors[ti % 5];
+                                return (
+                                  <span key={ti} style={{
+                                    display: "inline-flex", alignItems: "center", gap: 4,
+                                    padding: "3px 8px", borderRadius: 99,
+                                    background: col + "14", color: col,
+                                    fontSize: 11, fontWeight: 700,
+                                  }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: col, flexShrink: 0 }} />
+                                    {t.name || `T${ti + 1}`}: {fmtINRFull(t.monthlyRent)}/mo
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: 2 }}>
+                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                           <Button variant="ghost" size="sm" onClick={() => setModalOut({ open: true, editing: p })} style={{ padding: 6 }}>
                             <Pencil size={14} />
                           </Button>
