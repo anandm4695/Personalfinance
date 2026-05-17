@@ -9,7 +9,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { RentalPropertyModal, RentedInPropertyModal } from "../modals/RentalModals";
+import { RentalPropertyModal, RentedInPropertyModal, RentalReceiptModal, RentalDeductionModal } from "../modals/RentalModals";
 
 interface RentalTabProps {
   state: any;
@@ -22,6 +22,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const [sub, setSub] = useState("out");
   const [modalOut, setModalOut] = useState<{ open: boolean; editing: any }>({ open: false, editing: null });
   const [modalIn, setModalIn] = useState<{ open: boolean; editing: any }>({ open: false, editing: null });
+
+  // Ledger state
+  const [expandedLedger, setExpandedLedger] = useState<string | null>(null);
+  const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction"; property: any } | null>(null);
 
   const propertiesOut = state.rentalProperties || [];
   const propertiesIn = state.rentedProperties || [];
@@ -53,6 +57,40 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const handleEditIn = (data: any) => {
     if (modalIn.editing) updateItem("rentedProperties", modalIn.editing.id, data);
     setModalIn({ open: false, editing: null });
+  };
+
+  // Payment, Receipt, and Deduction Handlers
+  const handleAddPayment = (p: any, paymentData: any) => {
+    const updatedPayments = [...(p.payments || []), { ...paymentData, id: Math.random().toString(36).substr(2, 9) }];
+    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+    setShowLogModal(null);
+  };
+
+  const handleRemovePayment = (p: any, paymentId: string) => {
+    const updatedPayments = (p.payments || []).filter((pay: any) => pay.id !== paymentId);
+    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+  };
+
+  const handleAddReceipt = (p: any, receiptData: any) => {
+    const updatedReceipts = [...(p.receipts || []), { ...receiptData, id: Math.random().toString(36).substr(2, 9) }];
+    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+    setShowLogModal(null);
+  };
+
+  const handleRemoveReceipt = (p: any, receiptId: string) => {
+    const updatedReceipts = (p.receipts || []).filter((rec: any) => rec.id !== receiptId);
+    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+  };
+
+  const handleAddDeduction = (p: any, deductionData: any) => {
+    const updatedDeductions = [...(p.depositDeductions || []), { ...deductionData, id: Math.random().toString(36).substr(2, 9) }];
+    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
+    setShowLogModal(null);
+  };
+
+  const handleRemoveDeduction = (p: any, deductionId: string) => {
+    const updatedDeductions = (p.depositDeductions || []).filter((dec: any) => dec.id !== deductionId);
+    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
   };
 
   return (
@@ -217,6 +255,118 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </div>
                         </div>
                       </div>
+
+                      {/* Expansion trigger */}
+                      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <button
+                          onClick={() => setExpandedLedger(expandedLedger === p.id ? null : p.id)}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer",
+                            fontSize: 12, fontWeight: 800, color: THEME.accent,
+                            display: "inline-flex", alignItems: "center", gap: 6, padding: 0
+                          }}
+                        >
+                          <Receipt size={14} />
+                          {expandedLedger === p.id ? "Hide Receipt Ledger" : "View Receipt Ledger"}
+                        </button>
+                      </div>
+
+                      {/* Expanded Ledger Section */}
+                      {expandedLedger === p.id && (
+                        <div style={{ 
+                          marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 14,
+                          animation: "fade-in 0.25s ease"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Receipts</span>
+                            <Button 
+                              variant="accent" 
+                              size="sm" 
+                              style={{ padding: "4px 10px", fontSize: 11 }}
+                              onClick={() => setShowLogModal({ type: "receipt", property: p })}
+                            >
+                              <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
+                            </Button>
+                          </div>
+
+                          {(p.receipts || []).length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                              No rent receipts logged yet.
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {(p.receipts || []).map((r: any) => (
+                                <div key={r.id} style={{
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`
+                                }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
+                                      {r.month} {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Received: {r.date}</div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>+{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => handleRemoveReceipt(p, r.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* ── Divider between Receipts & Deductions ── */}
+                          <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />
+
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Deposit Deductions</span>
+                            <Button 
+                              variant="accent" 
+                              size="sm" 
+                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.gold }}
+                              onClick={() => setShowLogModal({ type: "deduction", property: p })}
+                            >
+                              <Plus size={10} style={{ marginRight: 4 }} /> Add Deduction
+                            </Button>
+                          </div>
+
+                          {(p.depositDeductions || []).length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                              No deposit deductions logged.
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {(p.depositDeductions || []).map((r: any) => (
+                                <div key={r.id} style={{
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`
+                                }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{r.reason}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => handleRemoveDeduction(p, r.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -342,6 +492,73 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </div>
                         </div>
                       </div>
+
+                      {/* Expansion trigger */}
+                      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <button
+                          onClick={() => setExpandedLedger(expandedLedger === p.id ? null : p.id)}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer",
+                            fontSize: 12, fontWeight: 800, color: THEME.rust,
+                            display: "inline-flex", alignItems: "center", gap: 6, padding: 0
+                          }}
+                        >
+                          <Receipt size={14} />
+                          {expandedLedger === p.id ? "Hide Payment Ledger" : "View Payment Ledger"}
+                        </button>
+                      </div>
+
+                      {/* Expanded Ledger Section */}
+                      {expandedLedger === p.id && (
+                        <div style={{ 
+                          marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 14,
+                          animation: "fade-in 0.25s ease"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Payments</span>
+                            <Button 
+                              variant="accent" 
+                              size="sm" 
+                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.rust }}
+                              onClick={() => setShowLogModal({ type: "payment", property: p })}
+                            >
+                              <Plus size={10} style={{ marginRight: 4 }} /> Log Rent
+                            </Button>
+                          </div>
+
+                          {(p.payments || []).length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                              No rent payments logged yet.
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {(p.payments || []).map((r: any) => (
+                                <div key={r.id} style={{
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`
+                                }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
+                                      {r.month} {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Paid: {r.date}</div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => handleRemovePayment(p, r.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -363,6 +580,36 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           initial={modalIn.editing}
           onClose={() => setModalIn({ open: false, editing: null })}
           onSave={modalIn.editing ? handleEditIn : handleAddIn}
+        />
+      )}
+
+      {/* Log Payment Modal (Rented In) */}
+      {showLogModal && showLogModal.type === "payment" && (
+        <RentalReceiptModal
+          title="Log Rent Payment"
+          amountLabel="Amount Paid (₹)"
+          saveLabel="Log Payment"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data) => handleAddPayment(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Receipt Modal (Rented Out) */}
+      {showLogModal && showLogModal.type === "receipt" && (
+        <RentalReceiptModal
+          title="Log Rent Receipt"
+          amountLabel="Amount Received (₹)"
+          saveLabel="Log Receipt"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data) => handleAddReceipt(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Deduction Modal (Rented Out) */}
+      {showLogModal && showLogModal.type === "deduction" && (
+        <RentalDeductionModal
+          onClose={() => setShowLogModal(null)}
+          onSave={(data) => handleAddDeduction(showLogModal.property, data)}
         />
       )}
     </div>
