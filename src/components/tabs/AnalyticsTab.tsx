@@ -130,7 +130,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const todayMs = new Date().getTime();
     const plus30Ms = todayMs + 30 * 86400000;
     const dues: any[] = [];
-    state.creditCards.forEach((c: any) => {
+    state.creditCards.filter((c: any) => c.status !== "closed").forEach((c: any) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) {
         const ms = new Date(dueDate).getTime();
@@ -1291,8 +1291,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               
               const dueDays: Record<number, any[]> = {};
 
-              // 1. CREDIT CARDS: recurring or one-off dues
-              (state.creditCards || []).forEach((c: any) => {
+              // 1. CREDIT CARDS: recurring or one-off dues (excluding closed cards)
+              (state.creditCards || []).filter((c: any) => c.status !== "closed").forEach((c: any) => {
                 if (c.dueDate) {
                   const d = new Date(c.dueDate);
                   if (d.getFullYear() === year && d.getMonth() === month) {
