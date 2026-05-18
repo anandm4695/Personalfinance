@@ -9,6 +9,8 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Building2,
   Landmark,
   Receipt,
@@ -64,6 +66,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [sub, setSub] = useState("dashboard");
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
 
   const subs = [
     { id: "dashboard", label: "Dashboard", icon: PieIcon },
@@ -1239,34 +1242,98 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "calendar" && (
         <div className="animate-fade-in-up">
           <Card style={{ padding: 24, marginBottom: 32 }}>
-            <div className="section-label">Bill Calendar · {new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div className="section-label" style={{ marginBottom: 0 }}>
+                Bill Calendar · {calendarDate.toLocaleString("en-IN", { month: "long", year: "numeric" })}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+                  }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setCalendarDate(new Date());
+                  }}
+                  style={{ fontSize: 11, fontWeight: 700, height: 32 }}
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+                  }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </div>
+
             {(() => {
               const now = new Date();
-              const year = now.getFullYear(), month = now.getMonth();
+              const year = calendarDate.getFullYear(), month = calendarDate.getMonth();
               const firstDay = new Date(year, month, 1).getDay();
               const daysInMonth = new Date(year, month + 1, 0).getDate();
-              const today2 = now.getDate();
+              
+              // Only highlight today if the viewed month and year match today's real date
+              const today2 = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : null;
+              
               const dueDays: Record<number, any[]> = {};
 
+              // 1. CREDIT CARDS: recurring or one-off dues
               (state.creditCards || []).forEach((c: any) => {
-                const dueDate = getCCDueDate(c);
-                if (dueDate) {
-                  const d = new Date(dueDate);
+                if (c.dueDate) {
+                  const d = new Date(c.dueDate);
                   if (d.getFullYear() === year && d.getMonth() === month) {
                     dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: c.issuer || "Card", color: THEME.rust });
                   }
-                }
-              });
-
-              (state.subscriptions || []).filter((s: any) => !s.paused).forEach((s: any) => {
-                if (s.renewalDate) {
-                  const d = new Date(s.renewalDate);
-                  if (d.getFullYear() === year && d.getMonth() === month) {
-                    dueDays[d.getDate()] = (dueDays[d.getDate()] || []).concat({ label: s.name, color: THEME.gold });
+                } else if (c.dueDay) {
+                  const day = parseInt(c.dueDay, 10);
+                  if (!isNaN(day) && day >= 1 && day <= 31) {
+                    const targetDay = Math.min(day, daysInMonth);
+                    dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: (c.issuer || "Card") + " Bill", color: THEME.rust });
                   }
                 }
               });
 
+              // 2. SUBSCRIPTIONS: recurrent logic by cycle
+              (state.subscriptions || []).filter((s: any) => !s.paused).forEach((s: any) => {
+                if (s.renewalDate) {
+                  const subDate = new Date(s.renewalDate);
+                  const subDay = subDate.getDate();
+                  
+                  let isDueThisMonth = false;
+                  if (s.billingCycle === "monthly") {
+                    isDueThisMonth = true;
+                  } else if (s.billingCycle === "quarterly") {
+                    const diffMonths = (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
+                    isDueThisMonth = diffMonths >= 0 && diffMonths % 3 === 0;
+                  } else if (s.billingCycle === "yearly") {
+                    const diffMonths = (year - subDate.getFullYear()) * 12 + (month - subDate.getMonth());
+                    isDueThisMonth = diffMonths >= 0 && diffMonths % 12 === 0;
+                  } else {
+                    isDueThisMonth = subDate.getFullYear() === year && subDate.getMonth() === month;
+                  }
+
+                  if (isDueThisMonth) {
+                    const targetDay = Math.min(subDay, daysInMonth);
+                    dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: s.name, color: THEME.gold });
+                  }
+                }
+              });
+
+              // 3. ADVANCE TAX (dynamic based on month number)
               [15].forEach((day) => { if (month === 5) dueDays[day] = (dueDays[day] || []).concat({ label: "Adv. Tax", color: THEME.accent }); });
               if (month === 8 || month === 11 || month === 2) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
 
@@ -1281,7 +1348,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
                     ))}
                     {cells.map((d, i) => (
-                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: d === today2 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : dueDays[d!] ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
+                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: d === today2 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : (d && dueDays[d]) ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
                         {d && <>
                           <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
                           {(dueDays[d] || []).slice(0, 3).map((due: any, j: number) => (
