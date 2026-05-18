@@ -644,17 +644,59 @@ function FinanceDashboard() {
     setState((s) => {
       const nw = (() => {
         const cash = (s.bankAccounts || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const mf = (s.mutualFunds || []).reduce((a, x) => a + Number(x.units || 0) * Number(x.currentNav || 0), 0);
-        const stocks = (s.stocks || []).reduce((a, x) => a + Number(x.qty || 0) * Number(x.currentPrice || 0), 0);
         const fd = (s.fixedDeposits || []).reduce((a, x) => a + Number(x.principal || 0), 0);
+        const rd = (s.recurringDeposits || []).reduce((a, r) => {
+          const m = monthsBetween(r.startDate, today());
+          return a + Math.min(m, Number(r.tenureMonths || 0)) * Number(r.monthly || 0);
+        }, 0);
+        const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
         const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const epf = (s.epf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const lic = (s.lic || []).reduce((a, x) => a + Number(x.premiumPaid || 0), 0);
-        const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
-        const cc = (s.creditCards || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        const loans = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        return cash + mf + stocks + fd + ppf + nps + epf + lic + bonds - cc - loans;
+        const mf = (s.mutualFunds || []).reduce((a, x) => a + Number(x.units || 0) * Number(x.currentNav || 0), 0);
+        const stocks = (s.stocks || []).reduce((a, x) => a + Number(x.qty || 0) * Number(x.currentPrice || 0), 0);
+        const loansGiven = (s.loansGiven || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
+        const prepaid = (s.prepaidCards || [])
+          .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
+          .reduce((a, p) => {
+            const txns = p.transactions || [];
+            const loaded = txns.filter((t: any) => t.type === "load").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+            const spent = txns.filter((t: any) => t.type === "spend").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+            return a + (loaded - spent);
+          }, 0);
+        const rentedDepositAsset = (s.rentedProperties || []).reduce((a, p) => {
+          const returned = Number(p.depositReturned || 0);
+          return a + Math.max(0, Number(p.securityDeposit || 0) - returned);
+        }, 0);
+        const informalLent = (s.informalLent || []).reduce((a, person) => {
+          const tranches = person.tranches || [];
+          const payments = person.payments || [];
+          const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+          return a + Math.max(0, totalT - totalP);
+        }, 0);
+
+        const cc = (s.creditCards || [])
+          .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+          .reduce((a, x) => a + Number(x.outstanding || 0), 0);
+        const loansTaken = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
+        const rentalDepositLiability = (s.rentalProperties || []).reduce((a, p) => {
+          const deducted = (p.depositDeductions || []).reduce((ad, d) => ad + Number(d.amount || 0), 0);
+          const returned = Number(p.depositReturned || 0);
+          return a + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+        }, 0);
+        const informalBorrowed = (s.informalBorrowed || []).reduce((a, person) => {
+          const tranches = person.tranches || [];
+          const payments = person.payments || [];
+          const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+          return a + Math.max(0, totalT - totalP);
+        }, 0);
+
+        const assets = cash + fd + rd + bonds + ppf + nps + epf + lic + mf + stocks + loansGiven + prepaid + rentedDepositAsset + informalLent;
+        const liabilities = cc + loansTaken + rentalDepositLiability + informalBorrowed;
+        return assets - liabilities;
       })();
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
       const newHistory = [...history, { month: ym, netWorth: nw }].slice(-36);
@@ -755,17 +797,18 @@ function FinanceDashboard() {
       (s, l) => s + Number(l.outstanding || 0),
       0
     );
-    const prepaidValue = sState.prepaidCards.reduce((s, p) => {
-      const txns = p.transactions || [];
-      const loaded = txns.filter((t: any) => t.type === "load").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const spent = txns.filter((t: any) => t.type === "spend").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      return s + (loaded - spent);
-    }, 0);
+    const prepaidValue = sState.prepaidCards
+      .filter((p) => (p.status || "").toLowerCase() !== "closed")
+      .reduce((s, p) => {
+        const txns = p.transactions || [];
+        const loaded = txns.filter((t: any) => t.type === "load").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const spent = txns.filter((t: any) => t.type === "spend").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return s + (loaded - spent);
+      }, 0);
 
-    const ccOutstanding = sState.creditCards.reduce(
-      (s, c) => s + Number(c.outstanding || 0),
-      0
-    );
+    const ccOutstanding = sState.creditCards
+      .filter((c) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((s, c) => s + Number(c.outstanding || 0), 0);
     const loansTakenValue = sState.loansTaken.reduce(
       (s, l) => s + Number(l.outstanding || 0),
       0
