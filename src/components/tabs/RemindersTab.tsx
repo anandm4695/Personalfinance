@@ -34,7 +34,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
 
   const allReminders = useMemo(() => {
     const list: any[] = [];
-    state.creditCards.forEach((c: any) => {
+    state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) list.push({ id: "cc-" + c.id, title: (c.issuer || "Card") + " — Bill Due", subtitle: "Outstanding: " + fmtINRFull(c.outstanding), date: dueDate, type: "Credit Card", icon: CreditCard });
     });

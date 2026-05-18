@@ -235,7 +235,7 @@ function FinanceDashboard() {
       await supabase.from("profiles").upsert({ user_id: userId, ...updates });
     }
     logActivity("UPDATE_PROFILE", "Updated user profile", updates);
-  }, [logActivity, session, state.profile]);
+  }, [logActivity, session]);
 
   const [activeProfile, setActiveProfile] = useState<string>("all");
   const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
@@ -621,7 +621,7 @@ function FinanceDashboard() {
       const d = daysLeft(r.date);
       if (d >= 0 && d <= 3) soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}` });
     });
-    state.creditCards.forEach((c) => {
+    state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (!dueDate) return;
       const d = daysLeft(dueDate);
@@ -1041,7 +1041,7 @@ function FinanceDashboard() {
       }
     });
     // CC due in ≤10 days
-    state.creditCards.forEach((c) => {
+    state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) {
         const days = Math.ceil((new Date(dueDate).getTime() - now.getTime()) / 86400000);

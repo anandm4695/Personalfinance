@@ -1,6 +1,6 @@
 // @ts-nocheck
-import React from "react";
-import { Printer } from "lucide-react";
+import React, { useState } from "react";
+import { Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate } from "../../utils/finance";
 import { Modal } from "../ui/Modal";
@@ -33,10 +33,11 @@ const btnSolid = {
   cursor: "pointer",
 };
 
-export function MonthlyReportModal({ metrics, state, onClose }: any) {
-  const now = new Date();
-  const monthLabel = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
-  const ym = now.toISOString().slice(0, 7);
+export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: any) {
+  const [reportDate, setReportDate] = useState(() => selectedDate || new Date());
+  
+  const monthLabel = reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
+  const ym = reportDate.toISOString().slice(0, 7);
   const txns = state.transactions.filter((t: any) => t.date?.startsWith(ym));
   const income = txns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const expense = txns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -51,21 +52,56 @@ export function MonthlyReportModal({ metrics, state, onClose }: any) {
   const topCats = Object.entries(catMap).sort(([, a], [, b]) => b - a).slice(0, 6);
   
   const upcoming: { label: string; amount: number; date: string }[] = [];
-  state.creditCards.forEach((c: any) => {
-    const due = getCCDueDate(c);
+  state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
+    const due = getCCDueDate(c, reportDate);
     if (due) upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
   });
   state.loansTaken.forEach((l: any) => {
     upcoming.push({ label: `${l.lender} ${l.type} Loan`, amount: Number(l.emi || 0), date: "Monthly EMI" });
   });
 
+  // Dynamic historical net worth lookup for selected month
+  const historicalNW = (state.netWorthHistory || []).find((h: any) => h.month === ym);
+  const displayNetWorth = historicalNW ? (historicalNW.netWorth ?? historicalNW.net_worth ?? 0) : metrics.netWorth;
+
   return (
     <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
       <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } .print-scroll { max-height: none !important; overflow: visible !important; } }`}</style>
       <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
+        
+        {/* Month Selector Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(128,128,128,0.06)", borderRadius: 10, marginBottom: 16, border: `1px solid ${THEME.line}` }} className="no-print">
+          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Select Report Month</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() - 1, 1))}
+              style={{ ...btnGhost, padding: "5px 8px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              title="Previous Month"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 100, textAlign: "center", color: THEME.accent }}>
+              {reportDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}
+            </span>
+            <button
+              onClick={() => setReportDate(new Date(reportDate.getFullYear(), reportDate.getMonth() + 1, 1))}
+              style={{ ...btnGhost, padding: "5px 8px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              title="Next Month"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => setReportDate(selectedDate || new Date())}
+              style={{ ...btnGhost, padding: "5px 12px", fontSize: 11, fontWeight: 700, color: THEME.muted, border: `1px solid ${THEME.line}` }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
         <div style={{ background: "#0f172a", borderRadius: 10, padding: "16px 20px", marginBottom: 16, textAlign: "center" }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Net Worth Snapshot</div>
-          <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{fmtINRFull(metrics.netWorth)}</div>
+          <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{fmtINRFull(displayNetWorth)}</div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
             Assets {fmtINRFull(metrics.totalAssets)} · Liabilities {fmtINRFull(metrics.totalLiabilities)}
           </div>

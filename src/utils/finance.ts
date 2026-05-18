@@ -52,10 +52,10 @@ export const monthsBetween = (d1: string, d2: string) => {
   );
 };
 
-export const getCCDueDate = (c: any) => {
+export const getCCDueDate = (c: any, referenceDate?: Date) => {
   if (c.dueDate) return c.dueDate;
   if (!c.dueDay) return null;
-  const now = new Date();
+  const now = referenceDate || new Date();
   const day = parseInt(c.dueDay, 10);
   let d = new Date(now.getFullYear(), now.getMonth(), day);
   if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
