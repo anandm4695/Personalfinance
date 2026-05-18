@@ -22,6 +22,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
     amount: initialValues.amount || "",
     cycle: initialValues.cycle || "monthly",
     renewalDate: initialValues.renewalDate || "",
+    remark: initialValues.remark || "",
   } : {
     owner: "self",
     name: "",
@@ -29,6 +30,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
     amount: "",
     cycle: "monthly",
     renewalDate: "",
+    remark: "",
   });
   return (
     <Modal title={initialValues ? "Edit Subscription" : "Add Subscription"} onClose={onClose}>
@@ -90,6 +92,14 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           />
         </Field>
       </div>
+      <Field label="Remark (Optional)">
+        <input
+          style={input}
+          value={f.remark}
+          onChange={(e) => setF({ ...f, remark: e.target.value })}
+          placeholder="e.g., Shared with family, billed to credit card"
+        />
+      </Field>
       <ModalActions
         onSave={() => f.name && f.amount && onSave(f)}
         onClose={onClose}

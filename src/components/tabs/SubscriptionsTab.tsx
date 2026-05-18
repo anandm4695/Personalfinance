@@ -150,6 +150,31 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
                       <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
                       <span>Next: {s.renewalDate || "—"}</span>
                     </div>
+                    {s.remark && (
+                      <div 
+                        style={{ 
+                          fontSize: 11, 
+                          color: THEME.muted, 
+                          marginTop: 5, 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: 4,
+                          fontWeight: 500,
+                          opacity: 0.9,
+                        }}
+                        title={s.remark}
+                      >
+                        <span style={{ opacity: 0.7 }}>💬</span>
+                        <span style={{ 
+                          fontStyle: "italic",
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis", 
+                          whiteSpace: "nowrap" 
+                        }}>
+                          {s.remark}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Monthly Equivalent */}
