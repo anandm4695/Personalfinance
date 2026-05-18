@@ -1131,46 +1131,58 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
             <Card style={{ padding: 24 }}>
               <div className="section-label">Expense Breakup (This Month)</div>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={70} paddingAngle={4}>
-                      {metrics.expenseBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ display: "grid", gap: 10, minWidth: 200 }}>
-                  {metrics.expenseBreakdown.slice(0, 6).map((cat: any, i: number) => (
-                    <div key={cat.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span style={{ fontWeight: 600 }}>{cat.name}</span>
-                      </div>
-                      <span style={{ color: THEME.muted }}>{fmtINR(cat.value)}</span>
-                    </div>
-                  ))}
+              {metrics.expenseBreakdown?.length === 0 ? (
+                <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
+                  No expenses recorded this month. Add debit transactions to see your spending breakup.
                 </div>
-              </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={70} paddingAngle={4}>
+                        {metrics.expenseBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: "grid", gap: 10, minWidth: 200 }}>
+                    {metrics.expenseBreakdown.slice(0, 6).map((cat: any, i: number) => (
+                      <div key={cat.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                        </div>
+                        <span style={{ color: THEME.muted }}>{fmtINR(cat.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
 
             <Card style={{ padding: 24 }}>
               <div className="section-label">Top Expenses</div>
-              <div style={{ display: "grid", gap: 16 }}>
-                {metrics.expenseBreakdown.slice(0, 5).map((cat: any, i: number) => {
-                  const maxVal = metrics.expenseBreakdown[0].value;
-                  const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
-                  return (
-                    <div key={cat.name}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700 }}>{cat.name}</span>
-                        <span style={{ fontSize: 14, fontWeight: 800 }}>{fmtINRFull(cat.value)}</span>
+              {metrics.expenseBreakdown?.length === 0 ? (
+                <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
+                  No spending details available
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 16 }}>
+                  {metrics.expenseBreakdown.slice(0, 5).map((cat: any, i: number) => {
+                    const maxVal = metrics.expenseBreakdown[0].value;
+                    const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
+                    return (
+                      <div key={cat.name}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700 }}>{cat.name}</span>
+                          <span style={{ fontSize: 14, fontWeight: 800 }}>{fmtINRFull(cat.value)}</span>
+                        </div>
+                        <div className="progress-track"><div className="progress-fill" style={{ width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length] }} /></div>
                       </div>
-                      <div className="progress-track"><div className="progress-fill" style={{ width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length] }} /></div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         </div>
@@ -1181,15 +1193,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <Card style={{ padding: 24 }}>
               <div className="section-label">Asset Allocation</div>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={assetBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={0} paddingAngle={0}>
-                    {assetBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {assetBreakdown?.length === 0 ? (
+                <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
+                  Add assets in Bank Accounts, Demat, or Fixed Income to see allocation.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={assetBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={0} paddingAngle={0}>
+                      {assetBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </Card>
 
             <Card style={{ padding: 24 }}>
