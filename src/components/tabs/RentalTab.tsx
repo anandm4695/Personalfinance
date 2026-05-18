@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, FileText, Upload, AlertCircle } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -350,32 +350,56 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                           {showCsvImport === p.id && (
                             <div style={{
-                              padding: 14, borderRadius: 10, marginBottom: 14,
-                              background: "rgba(128,128,128,0.02)", border: `1px solid ${THEME.line}`,
+                              padding: 18, borderRadius: 12, marginBottom: 16,
+                              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
                             }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Bulk Import Receipts</span>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}>
+                                  <FileText size={15} /> Bulk Import Receipts
+                                </div>
                                 <button 
                                   onClick={() => {
                                     const template = "# month, amount, date, note\n# month = YYYY-MM | date = YYYY-MM-DD\n2025-04,25000,2025-04-05,Paid via UPI\n2025-05,25000,2025-05-04,Bank Transfer";
                                     const blob = new Blob([template], { type: "text/csv" });
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement("a"); a.href = url; a.download = "rent_receipts_template.csv"; a.click();
+                                    URL.revokeObjectURL(url);
                                   }}
-                                  style={{ background: "none", border: "none", fontSize: 10, color: THEME.accent, fontWeight: 700, cursor: "pointer" }}
+                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`, background: "transparent", color: THEME.accent, cursor: "pointer", fontWeight: 600 }}
                                 >
                                   Download Template
                                 </button>
                               </div>
 
-                              <label style={{
-                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                                padding: "14px 0", border: `1.5px dashed ${THEME.line}`, borderRadius: 8, cursor: "pointer",
-                                background: "rgba(128,128,128,0.01)", marginBottom: 10
-                              }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
-                                  {csvFileName || "Click to browse or drop CSV file"}
-                                </span>
+                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
+                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
+                                Example: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
+                              </div>
+
+                              <label
+                                style={{
+                                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                                  padding: "20px 0", border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`, borderRadius: 10, cursor: "pointer",
+                                  marginBottom: 12, background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`
+                                }}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={e => {
+                                  e.preventDefault();
+                                  const file = e.dataTransfer.files?.[0]; if (!file) return;
+                                  setCsvFileName(file.name);
+                                  const r = new FileReader();
+                                  r.onload = (ev) => {
+                                    const text = ev.target?.result as string;
+                                    setCsvText(text);
+                                    parseCsvText(text, "receipt");
+                                  };
+                                  r.readAsText(file);
+                                }}
+                              >
+                                <Upload size={22} color={THEME.accent} />
+                                <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
                                 <input 
                                   type="file" 
                                   accept=".csv,.txt" 
@@ -394,35 +418,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 />
                               </label>
 
+                              <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" }}>— or paste CSV text below —</div>
                               <textarea
                                 style={{
-                                  width: "100%", height: 70, padding: 8, background: "rgba(128,128,128,0.03)",
-                                  border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink,
-                                  fontSize: 11, fontFamily: "monospace", resize: "none", boxSizing: "border-box"
+                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)",
+                                  border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink,
+                                  fontSize: 12, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box"
                                 }}
                                 value={csvText}
                                 onChange={(e) => {
                                   setCsvText(e.target.value);
-                                  parseCsvText(e.target.value, "receipt");
+                                  setCsvPreview([]);
+                                  setCsvError("");
                                 }}
-                                placeholder="Or paste CSV rows here: YYYY-MM, amount, YYYY-MM-DD, note"
+                                placeholder="2025-04, 25000, 2025-04-05, Paid via UPI&#10;2025-05, 25000, 2025-05-04, Bank Transfer"
                               />
 
-                              {csvError && (
-                                <div style={{ fontSize: 11, color: THEME.rust, marginTop: 8, fontWeight: 600 }}>
-                                  ⚠️ {csvError}
-                                </div>
-                              )}
-
-                              {csvPreview.length > 0 && (
-                                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
-                                    Ready to import {csvPreview.length} rows
-                                  </span>
-                                  <Button
-                                    variant="accent"
-                                    size="sm"
-                                    style={{ padding: "4px 12px", fontSize: 11 }}
+                              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                                <button 
+                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`, background: "transparent", color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
+                                  onClick={() => parseCsvText(csvText, "receipt")}
+                                >
+                                  Preview Data
+                                </button>
+                                {csvPreview.length > 0 && (
+                                  <button 
+                                    style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: THEME.accent, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
                                     onClick={() => {
                                       const nextReceipts = [...(p.receipts || []), ...csvPreview];
                                       updateItem("rentalProperties", p.id, { ...p, receipts: nextReceipts });
@@ -432,8 +453,41 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       setShowCsvImport(null);
                                     }}
                                   >
-                                    Import Now
-                                  </Button>
+                                    Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+                                  </button>
+                                )}
+                              </div>
+
+                              {csvError && (
+                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+                                  <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+                                </div>
+                              )}
+
+                              {csvPreview.length > 0 && (
+                                <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+                                  <div style={{ padding: "8px 12px", background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
+                                  <div style={{ maxHeight: 160, overflowY: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                      <thead>
+                                        <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                                          {["Month","Date","Amount","Note"].map(h => (
+                                            <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {csvPreview.map((r, i) => (
+                                          <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                                            <td style={{ padding: "6px 10px" }}>{r.month}</td>
+                                            <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.date}</td>
+                                            <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.sage }}>+{fmtINRFull(r.amount)}</td>
+                                            <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -703,32 +757,56 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                           {showCsvImport === p.id && (
                             <div style={{
-                              padding: 14, borderRadius: 10, marginBottom: 14,
-                              background: "rgba(128,128,128,0.02)", border: `1px solid ${THEME.line}`,
+                              padding: 18, borderRadius: 12, marginBottom: 16,
+                              background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.rust} 22%, transparent)`,
                             }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Bulk Import Payments</span>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, display: "flex", alignItems: "center", gap: 8 }}>
+                                  <FileText size={15} /> Bulk Import Payments
+                                </div>
                                 <button 
                                   onClick={() => {
                                     const template = "# month, amount, date, note\n# month = YYYY-MM | date = YYYY-MM-DD\n2025-04,25000,2025-04-05,Paid via UPI\n2025-05,25000,2025-05-04,Bank Transfer";
                                     const blob = new Blob([template], { type: "text/csv" });
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement("a"); a.href = url; a.download = "rent_payments_template.csv"; a.click();
+                                    URL.revokeObjectURL(url);
                                   }}
-                                  style={{ background: "none", border: "none", fontSize: 10, color: THEME.rust, fontWeight: 700, cursor: "pointer" }}
+                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`, background: "transparent", color: THEME.rust, cursor: "pointer", fontWeight: 600 }}
                                 >
                                   Download Template
                                 </button>
                               </div>
 
-                              <label style={{
-                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                                padding: "14px 0", border: `1.5px dashed ${THEME.line}`, borderRadius: 8, cursor: "pointer",
-                                background: "rgba(128,128,128,0.01)", marginBottom: 10
-                              }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
-                                  {csvFileName || "Click to browse or drop CSV file"}
-                                </span>
+                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
+                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
+                                Example: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
+                              </div>
+
+                              <label
+                                style={{
+                                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                                  padding: "20px 0", border: `1.5px dashed color-mix(in srgb, ${THEME.rust} 40%, transparent)`, borderRadius: 10, cursor: "pointer",
+                                  marginBottom: 12, background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`
+                                }}
+                                onDragOver={e => e.preventDefault()}
+                                onDrop={e => {
+                                  e.preventDefault();
+                                  const file = e.dataTransfer.files?.[0]; if (!file) return;
+                                  setCsvFileName(file.name);
+                                  const r = new FileReader();
+                                  r.onload = (ev) => {
+                                    const text = ev.target?.result as string;
+                                    setCsvText(text);
+                                    parseCsvText(text, "payment");
+                                  };
+                                  r.readAsText(file);
+                                }}
+                              >
+                                <Upload size={22} color={THEME.rust} />
+                                <div style={{ fontSize: 13, fontWeight: 600, color: THEME.rust }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
                                 <input 
                                   type="file" 
                                   accept=".csv,.txt" 
@@ -747,35 +825,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 />
                               </label>
 
+                              <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" }}>— or paste CSV text below —</div>
                               <textarea
                                 style={{
-                                  width: "100%", height: 70, padding: 8, background: "rgba(128,128,128,0.03)",
-                                  border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink,
-                                  fontSize: 11, fontFamily: "monospace", resize: "none", boxSizing: "border-box"
+                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)",
+                                  border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink,
+                                  fontSize: 12, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box"
                                 }}
                                 value={csvText}
                                 onChange={(e) => {
                                   setCsvText(e.target.value);
-                                  parseCsvText(e.target.value, "payment");
+                                  setCsvPreview([]);
+                                  setCsvError("");
                                 }}
-                                placeholder="Or paste CSV rows here: YYYY-MM, amount, YYYY-MM-DD, note"
+                                placeholder="2025-04, 25000, 2025-04-05, Paid via UPI&#10;2025-05, 25000, 2025-05-04, Bank Transfer"
                               />
 
-                              {csvError && (
-                                <div style={{ fontSize: 11, color: THEME.rust, marginTop: 8, fontWeight: 600 }}>
-                                  ⚠️ {csvError}
-                                </div>
-                              )}
-
-                              {csvPreview.length > 0 && (
-                                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
-                                    Ready to import {csvPreview.length} rows
-                                  </span>
-                                  <Button
-                                    variant="accent"
-                                    size="sm"
-                                    style={{ padding: "4px 12px", fontSize: 11, background: THEME.rust }}
+                              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                                <button 
+                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid color-mix(in srgb, ${THEME.rust} 40%, transparent)`, background: "transparent", color: THEME.rust, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
+                                  onClick={() => parseCsvText(csvText, "payment")}
+                                >
+                                  Preview Data
+                                </button>
+                                {csvPreview.length > 0 && (
+                                  <button 
+                                    style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: THEME.rust, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
                                     onClick={() => {
                                       const nextPayments = [...(p.payments || []), ...csvPreview];
                                       updateItem("rentedProperties", p.id, { ...p, payments: nextPayments });
@@ -785,8 +860,41 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       setShowCsvImport(null);
                                     }}
                                   >
-                                    Import Now
-                                  </Button>
+                                    Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+                                  </button>
+                                )}
+                              </div>
+
+                              {csvError && (
+                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+                                  <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+                                </div>
+                              )}
+
+                              {csvPreview.length > 0 && (
+                                <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+                                  <div style={{ padding: "8px 12px", background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`, fontSize: 11, fontWeight: 700, color: THEME.rust }}>{csvPreview.length} rows ready — preview:</div>
+                                  <div style={{ maxHeight: 160, overflowY: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                      <thead>
+                                        <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                                          {["Month","Date","Amount","Note"].map(h => (
+                                            <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {csvPreview.map((r, i) => (
+                                          <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                                            <td style={{ padding: "6px 10px" }}>{r.month}</td>
+                                            <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.date}</td>
+                                            <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.rust }}>-{fmtINRFull(r.amount)}</td>
+                                            <td style={{ padding: "6px 10px", color: THEME.muted }}>{r.note || "—"}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
                               )}
                             </div>

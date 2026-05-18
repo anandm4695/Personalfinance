@@ -1679,7 +1679,16 @@ function FinanceDashboard() {
         </div>
       );
     }
-    return <Auth onLogin={setSession} />;
+    return (
+      <Auth 
+        onLogin={setSession} 
+        onOffline={() => {
+          setSession({
+            user: { id: "offline-user", email: "demo@example.com" }
+          });
+        }}
+      />
+    );
   }
 
   return (
