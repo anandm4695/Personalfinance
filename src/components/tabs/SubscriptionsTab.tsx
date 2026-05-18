@@ -143,12 +143,12 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
                       {s.paused && <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>}
                       <Badge variant="muted" style={{ fontSize: 9, opacity: 0.8 }}>{s.category}</Badge>
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                      <span style={{ color }}>{fmtINRFull(s.amount)}</span>
-                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                      <span style={{ textTransform: "capitalize" }}>{s.cycle}</span>
-                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                      <span>Next: {s.renewalDate || "—"}</span>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 6, rowGap: 2 }}>
+                      <span style={{ color, whiteSpace: "nowrap" }}>{fmtINRFull(s.amount)}</span>
+                      <span style={{ opacity: 0.4 }}>·</span>
+                      <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>{s.cycle}</span>
+                      <span style={{ opacity: 0.4 }}>·</span>
+                      <span style={{ whiteSpace: "nowrap" }}>Next: {s.renewalDate || "—"}</span>
                     </div>
                     {s.remark && (
                       <div 
@@ -177,10 +177,28 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
                     )}
                   </div>
 
-                  {/* Monthly Equivalent */}
+                  {/* Monthly Equivalent & Renewal Amount */}
                   <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthly)}</div>
                     <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>equiv/mo</div>
+                    {s.cycle !== "monthly" && (
+                      <div 
+                        style={{ 
+                          fontSize: 10.5, 
+                          color: THEME.muted, 
+                          fontWeight: 700, 
+                          marginTop: 4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                          gap: 3,
+                        }}
+                        title={`Actual renewal payment of ${fmtINRFull(s.amount)} charged every ${s.cycle}`}
+                      >
+                        <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>RENEWAL:</span>
+                        <span style={{ color: color }}>{fmtINRFull(s.amount)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
