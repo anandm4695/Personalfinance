@@ -246,38 +246,42 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
             const rc = ringColor(progress);
 
             return (
-              <Card key={g.id} style={{ position: "relative", border: isComplete ? `1.5px solid ${THEME.sage}44` : undefined, padding: 24 }}>
-                <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8, alignItems: "center" }}>
-                  {isComplete && (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.sage}22`, color: THEME.sage, border: `1px solid ${THEME.sage}55`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
-                      COMPLETED
-                    </span>
-                  )}
-                  {isBehind && (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.rust}15`, color: THEME.rust, border: `1px solid ${THEME.rust}44`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
-                      BEHIND
-                    </span>
-                  )}
-                  <button onClick={() => setEditGoal(g)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-                    <Pencil size={14} />
-                  </button>
-                  <button onClick={() => removeItem("goals", g.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}>
-                    <Trash2 size={14} />
-                  </button>
+              <Card key={g.id} style={{ border: isComplete ? `1.5px solid ${THEME.sage}44` : undefined, padding: 24 }}>
+                {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted }}>{g.category}</div>
+                    {g.priority && (
+                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: PRIORITY_COLOR[g.priority] || THEME.muted, border: `1px solid ${PRIORITY_COLOR[g.priority] || THEME.muted}`, borderRadius: 4, padding: "1px 6px" }}>
+                        {g.priority}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    {isComplete && (
+                      <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.sage}22`, color: THEME.sage, border: `1px solid ${THEME.sage}55`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
+                        COMPLETED
+                      </span>
+                    )}
+                    {isBehind && (
+                      <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.rust}15`, color: THEME.rust, border: `1px solid ${THEME.rust}44`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
+                        BEHIND
+                      </span>
+                    )}
+                    <button onClick={() => setEditGoal(g)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, display: "inline-flex", alignItems: "center", padding: 4, borderRadius: 6 }} title="Edit Goal">
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => removeItem("goals", g.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, display: "inline-flex", alignItems: "center", padding: 4, borderRadius: 6 }} title="Delete Goal">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+                {/* Content Row: Goal Name, Start/Target Dates, Current/Target Amounts */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
                   <div style={{ flex: 1, minWidth: 240 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted }}>{g.category}</div>
-                      {g.priority && (
-                        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: PRIORITY_COLOR[g.priority] || THEME.muted, border: `1px solid ${PRIORITY_COLOR[g.priority] || THEME.muted}`, borderRadius: 4, padding: "1px 6px" }}>
-                          {g.priority}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800, marginTop: 4 }}>{g.name}</div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800 }}>{g.name}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 6, display: "flex", gap: 12, flexWrap: "wrap" }}>
                       {g.startDate && <span>Started: {g.startDate}</span>}
                       {g.targetDate && <span>Target: {g.targetDate} · {monthsLeft}m left</span>}
                     </div>
@@ -287,11 +291,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
                       {fmtINRFull(g.currentAmount)}{" "}
                       <span style={{ color: THEME.muted, fontSize: 15 }}>/ {fmtINRFull(g.targetAmount)}</span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: rc }}>{progress.toFixed(1)}% reached</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: rc, marginTop: 4 }}>{progress.toFixed(1)}% reached</div>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 16 }}>
+                {/* Progress Details Row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                   {(() => {
                     const r = 36, sz = 88, cx = sz / 2;
                     const circ = 2 * Math.PI * r;
