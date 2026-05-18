@@ -755,10 +755,12 @@ function FinanceDashboard() {
       (s, l) => s + Number(l.outstanding || 0),
       0
     );
-    const prepaidValue = sState.prepaidCards.reduce(
-      (s, p) => s + Number(p.balance || 0),
-      0
-    );
+    const prepaidValue = sState.prepaidCards.reduce((s, p) => {
+      const txns = p.transactions || [];
+      const loaded = txns.filter((t: any) => t.type === "load").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const spent = txns.filter((t: any) => t.type === "spend").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + (loaded - spent);
+    }, 0);
 
     const ccOutstanding = sState.creditCards.reduce(
       (s, c) => s + Number(c.outstanding || 0),
@@ -778,6 +780,22 @@ function FinanceDashboard() {
       return s + Math.max(0, Number(p.securityDeposit || 0) - returned);
     }, 0);
 
+    const informalLentValue = (sState.informalLent || []).reduce((s, person) => {
+      const tranches = person.tranches || [];
+      const payments = person.payments || [];
+      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      return s + Math.max(0, totalT - totalP);
+    }, 0);
+
+    const informalBorrowedValue = (sState.informalBorrowed || []).reduce((s, person) => {
+      const tranches = person.tranches || [];
+      const payments = person.payments || [];
+      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      return s + Math.max(0, totalT - totalP);
+    }, 0);
+
     const totalAssets =
       cashInBanks +
       fdValue +
@@ -791,8 +809,9 @@ function FinanceDashboard() {
       stockValue +
       loansGivenValue +
       prepaidValue +
-      rentedDepositAsset;
-    const totalLiabilities = ccOutstanding + loansTakenValue + rentalDepositLiability;
+      rentedDepositAsset +
+      informalLentValue;
+    const totalLiabilities = ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue;
     const netWorth = totalAssets - totalLiabilities;
 
     // Income/Expense current month
