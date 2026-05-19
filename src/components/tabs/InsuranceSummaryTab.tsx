@@ -76,11 +76,31 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         premiumPaid: policy.premiumPaid || "",
         commencementDate: policy.commencementDate || "",
         maturityDate: policy.maturityDate || "",
+        policyTerm: policy.policyTerm || "",
         transactions: policy.transactions || []
       };
     }
-    return { planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", transactions: [] };
+    return { planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", policyTerm: "", transactions: [] };
   });
+
+  const handleFieldChange = (field: string, val: any) => {
+    setLic(prev => {
+      let nextLic = { ...prev, [field]: val };
+      if ((field === "commencementDate" || field === "policyTerm") && nextLic.commencementDate && nextLic.policyTerm) {
+        const commDate = new Date(nextLic.commencementDate);
+        const termYears = parseInt(nextLic.policyTerm, 10);
+        if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
+          const matDate = new Date(commDate);
+          matDate.setFullYear(matDate.getFullYear() + termYears);
+          const yStr = matDate.getFullYear();
+          const mStr = String(matDate.getMonth() + 1).padStart(2, "0");
+          const dStr = String(matDate.getDate()).padStart(2, "0");
+          nextLic.maturityDate = `${yStr}-${mStr}-${dStr}`;
+        }
+      }
+      return nextLic;
+    });
+  };
 
   const [term, setTerm] = useState(() => {
     if (policy) {
@@ -166,26 +186,29 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       {sub === "lic" ? (
         <>
           <Field label="Plan Name">
-            <input className={inp} value={lic.planName} onChange={e => setLic({ ...lic, planName: e.target.value })} placeholder="e.g. LIC Jeevan Anand, Money Back" />
+            <input className={inp} value={lic.planName} onChange={e => handleFieldChange("planName", e.target.value)} placeholder="e.g. LIC Jeevan Anand, Money Back" />
           </Field>
           <Field label="Policy Number">
-            <input className={inp} value={lic.policyNumber} onChange={e => setLic({ ...lic, policyNumber: e.target.value })} placeholder="Policy number" />
+            <input className={inp} value={lic.policyNumber} onChange={e => handleFieldChange("policyNumber", e.target.value)} placeholder="Policy number" />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Sum Assured (₹)">
-              <input className={inp} type="number" value={lic.sumAssured} onChange={e => setLic({ ...lic, sumAssured: e.target.value })} placeholder="1000000" />
+              <input className={inp} type="number" value={lic.sumAssured} onChange={e => handleFieldChange("sumAssured", e.target.value)} placeholder="1000000" />
             </Field>
             <Field label="Annual Premium (₹)">
-              <input className={inp} type="number" value={lic.annualPremium} onChange={e => setLic({ ...lic, annualPremium: e.target.value })} placeholder="30000" />
+              <input className={inp} type="number" value={lic.annualPremium} onChange={e => handleFieldChange("annualPremium", e.target.value)} placeholder="30000" />
             </Field>
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <Field label="Policy Term (Years)">
+              <input className={inp} type="number" placeholder="20" value={lic.policyTerm} onChange={e => handleFieldChange("policyTerm", e.target.value)} />
+            </Field>
             <Field label="Commencement Date">
-              <input className={inp} type="date" value={lic.commencementDate} onChange={e => setLic({ ...lic, commencementDate: e.target.value })} />
+              <input className={inp} type="date" value={lic.commencementDate} onChange={e => handleFieldChange("commencementDate", e.target.value)} />
             </Field>
             <Field label="Maturity Date">
-              <input className={inp} type="date" value={lic.maturityDate} onChange={e => setLic({ ...lic, maturityDate: e.target.value })} />
+              <input className={inp} type="date" value={lic.maturityDate} onChange={e => handleFieldChange("maturityDate", e.target.value)} />
             </Field>
           </div>
 
@@ -376,9 +399,13 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
                     <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement Date</div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Policy Term</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.policyTerm ? `${l.policyTerm} Yrs` : "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
                       <div style={{ fontWeight: 700, color: THEME.ink }}>{l.commencementDate || "—"}</div>
                     </div>
                     <div>
