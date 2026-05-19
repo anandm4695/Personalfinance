@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles } from "lucide-react";
-import { THEME } from "../../utils/constants";
+import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -10,6 +10,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { Badge } from "../ui/Badge";
 
 const INSURER_LOGOS: Record<string, string> = {
   lic: "licindia.in",
@@ -64,11 +65,23 @@ const InsurerLogo = ({ name, size = 40, isLic = false }: { name: string; size?: 
 
 
 
+const OwnerBadge = ({ owner }: { owner?: string }) => {
+  if (!owner) return null;
+  const p = PROFILES.find(x => x.id === owner);
+  if (!p) return null;
+  return (
+    <Badge variant="accent" style={{ fontSize: 10 }}>
+      {p.name}
+    </Badge>
+  );
+};
+
 const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
   const [lic, setLic] = useState(() => {
     if (policy) {
       return {
         id: policy.id,
+        owner: policy.owner || "self",
         planName: policy.planName || "",
         policyNumber: policy.policyNumber || "",
         sumAssured: policy.sumAssured || "",
@@ -80,7 +93,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         transactions: policy.transactions || []
       };
     }
-    return { planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", policyTerm: "", transactions: [] };
+    return { owner: "self", planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", policyTerm: "", transactions: [] };
   });
 
   const handleFieldChange = (field: string, val: any) => {
@@ -106,6 +119,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
     if (policy) {
       return {
         id: policy.id,
+        owner: policy.owner || "self",
         insurer: policy.insurer || "",
         planName: policy.planName || "",
         coverAmount: policy.coverAmount || "",
@@ -113,7 +127,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         expiryDate: policy.expiryDate || ""
       };
     }
-    return { insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "" };
+    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "" };
   });
 
   const [newTxDate, setNewTxDate] = useState("");
@@ -185,6 +199,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
     <Modal title={`${isEdit ? "Edit" : "Add"} ${sub === "lic" ? "LIC Policy" : "Term Plan"}`} onClose={onClose}>
       {sub === "lic" ? (
         <>
+          <Field label="Owner / Profile">
+            <select className={inp} value={lic.owner || "self"} onChange={e => handleFieldChange("owner", e.target.value)}>
+              {PROFILES.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="Plan Name">
             <input className={inp} value={lic.planName} onChange={e => handleFieldChange("planName", e.target.value)} placeholder="e.g. LIC Jeevan Anand, Money Back" />
           </Field>
@@ -281,6 +302,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         </>
       ) : (
         <>
+          <Field label="Owner / Profile">
+            <select className={inp} value={term.owner || "self"} onChange={e => setTerm({ ...term, owner: e.target.value })}>
+              {PROFILES.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="Insurer / Company">
             <input className={inp} value={term.insurer} onChange={e => setTerm({ ...term, insurer: e.target.value })} placeholder="e.g. HDFC Ergo, Max Life, ICICI Pru" />
           </Field>
@@ -386,7 +414,10 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <InsurerLogo name="LIC" isLic />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</span>
+                        <OwnerBadge owner={l.owner} />
+                      </div>
                       <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
                         <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
@@ -458,7 +489,10 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <InsurerLogo name={t.insurer} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
+                      <OwnerBadge owner={t.owner} />
+                    </div>
                     <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                       <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
                       <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
