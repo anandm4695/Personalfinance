@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Shield, Heart, Wallet, Zap, Plus, Trash2 } from "lucide-react";
+import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
@@ -64,24 +64,105 @@ const InsurerLogo = ({ name, size = 40, isLic = false }: { name: string; size?: 
 
 
 
-const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
-  const [lic, setLic] = useState({ planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", maturityDate: "" });
-  const [term, setTerm] = useState({ insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "" });
+const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
+  const [lic, setLic] = useState(() => {
+    if (policy) {
+      return {
+        id: policy.id,
+        planName: policy.planName || "",
+        policyNumber: policy.policyNumber || "",
+        sumAssured: policy.sumAssured || "",
+        annualPremium: policy.annualPremium || "",
+        premiumPaid: policy.premiumPaid || "",
+        commencementDate: policy.commencementDate || "",
+        maturityDate: policy.maturityDate || "",
+        transactions: policy.transactions || []
+      };
+    }
+    return { planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", transactions: [] };
+  });
+
+  const [term, setTerm] = useState(() => {
+    if (policy) {
+      return {
+        id: policy.id,
+        insurer: policy.insurer || "",
+        planName: policy.planName || "",
+        coverAmount: policy.coverAmount || "",
+        annualPremium: policy.annualPremium || "",
+        expiryDate: policy.expiryDate || ""
+      };
+    }
+    return { insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "" };
+  });
+
+  const [newTxDate, setNewTxDate] = useState("");
+  const [newTxAmount, setNewTxAmount] = useState("");
 
   const inp = "form-input";
+
+  const handleAddTransaction = () => {
+    if (!newTxDate || !newTxAmount) return;
+    const newTx = {
+      id: uid(),
+      date: newTxDate,
+      amount: Number(newTxAmount)
+    };
+    const updatedTxns = [...(lic.transactions || []), newTx].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    setLic({ ...lic, transactions: updatedTxns });
+    setNewTxDate("");
+    setNewTxAmount("");
+  };
+
+  const handleRemoveTransaction = (txId: string) => {
+    const updatedTxns = (lic.transactions || []).filter((t: any) => t.id !== txId);
+    setLic({ ...lic, transactions: updatedTxns });
+  };
+
+  const handleAutoGenerateTransactions = () => {
+    if (!lic.commencementDate || !lic.annualPremium) {
+      alert("Please select a Commencement Date and enter an Annual Premium first.");
+      return;
+    }
+    const commDate = new Date(lic.commencementDate);
+    const premium = Number(lic.annualPremium);
+    const todayDate = new Date();
+    const generated: any[] = [];
+    
+    let current = new Date(commDate);
+    while (current <= todayDate) {
+      const yearStr = current.getFullYear();
+      const monthStr = String(current.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(current.getDate()).padStart(2, "0");
+      const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+      
+      generated.push({
+        id: uid(),
+        date: dateStr,
+        amount: premium
+      });
+      
+      current.setFullYear(current.getFullYear() + 1);
+    }
+    
+    setLic({ ...lic, transactions: generated });
+  };
 
   const handleSave = () => {
     if (sub === "lic") {
       if (!lic.planName || !lic.sumAssured) return;
-      onSave("lic", { ...lic, id: uid() });
+      const calculatedPremiumPaid = (lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      onSave("lic", { ...lic, premiumPaid: calculatedPremiumPaid, id: lic.id || uid() }, !!policy);
     } else {
       if (!term.insurer || !term.coverAmount) return;
-      onSave("termPlans", { ...term, id: uid() });
+      onSave("termPlans", { ...term, id: term.id || uid() }, !!policy);
     }
   };
 
+  const isEdit = !!policy;
+
   return (
-    <Modal title={`Add ${sub === "lic" ? "LIC Policy" : "Term Plan"}`} onClose={onClose}>
+    <Modal title={`${isEdit ? "Edit" : "Add"} ${sub === "lic" ? "LIC Policy" : "Term Plan"}`} onClose={onClose}>
       {sub === "lic" ? (
         <>
           <Field label="Plan Name">
@@ -98,12 +179,82 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
               <input className={inp} type="number" value={lic.annualPremium} onChange={e => setLic({ ...lic, annualPremium: e.target.value })} placeholder="30000" />
             </Field>
           </div>
-          <Field label="Total Premium Paid So Far (₹)">
-            <input className={inp} type="number" value={lic.premiumPaid} onChange={e => setLic({ ...lic, premiumPaid: e.target.value })} placeholder="90000" />
-          </Field>
-          <Field label="Maturity Date">
-            <input className={inp} type="date" value={lic.maturityDate} onChange={e => setLic({ ...lic, maturityDate: e.target.value })} />
-          </Field>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Commencement Date">
+              <input className={inp} type="date" value={lic.commencementDate} onChange={e => setLic({ ...lic, commencementDate: e.target.value })} />
+            </Field>
+            <Field label="Maturity Date">
+              <input className={inp} type="date" value={lic.maturityDate} onChange={e => setLic({ ...lic, maturityDate: e.target.value })} />
+            </Field>
+          </div>
+
+          {/* Premium Payments Ledger */}
+          <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Premium Payments Ledger</div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleAutoGenerateTransactions}
+                style={{ fontSize: 11, padding: "4px 8px", color: THEME.accent }}
+              >
+                <Sparkles size={12} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} /> Auto-Generate
+              </Button>
+            </div>
+
+            {/* List of Payments */}
+            <div style={{ maxHeight: 150, overflowY: "auto", border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "8px 12px", background: "rgba(128,128,128,0.02)", marginBottom: 12 }}>
+              {(lic.transactions || []).length === 0 ? (
+                <div style={{ textAlign: "center", fontSize: 11, color: THEME.muted, padding: "16px 0" }}>No transaction history entered. Use the auto-generator or add below.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {(lic.transactions || []).map((t: any) => (
+                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, paddingBottom: 6, borderBottom: `1px solid ${THEME.line}40` }}>
+                      <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 800, color: THEME.sage }}>{fmtINRFull(t.amount)}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveTransaction(t.id)} 
+                          style={{ padding: 2, color: THEME.rust }}
+                        >
+                          <Trash2 size={11} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add New Payment Entry Form */}
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "rgba(128,128,128,0.04)", padding: 10, borderRadius: 8 }}>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>Payment Date</label>
+                <input className={inp} type="date" value={newTxDate} onChange={e => setNewTxDate(e.target.value)} style={{ padding: "6px 8px", fontSize: 12 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>Amount (₹)</label>
+                <input className={inp} type="number" placeholder="30000" value={newTxAmount} onChange={e => setNewTxAmount(e.target.value)} style={{ padding: "6px 8px", fontSize: 12 }} />
+              </div>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleAddTransaction}
+                style={{ padding: "6px 12px", height: 32, fontSize: 12 }}
+              >
+                Add Row
+              </Button>
+            </div>
+
+            <div style={{ textAlign: "right", fontSize: 12, fontWeight: 700, color: THEME.muted, marginTop: 10 }}>
+              Calculated Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>
+                {fmtINRFull((lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0))}
+              </span>
+            </div>
+          </div>
         </>
       ) : (
         <>
@@ -126,7 +277,7 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
           </Field>
         </>
       )}
-      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Add Policy" />
+      <ModalActions onSave={handleSave} onClose={onClose} saveLabel={isEdit ? "Update Policy" : "Add Policy"} />
     </Modal>
   );
 };
@@ -139,8 +290,9 @@ const AddInsuranceModal = ({ sub, onClose, onSave }: any) => {
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════════ */
 
-export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
+export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: any) {
   const [modal, setModal] = useState<null | "lic" | "term">(null);
+  const [editPolicy, setEditPolicy] = useState<any>(null);
 
   const totalLICAssured = state.lic.reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
   const totalTermCover = state.termPlans.reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
@@ -154,9 +306,14 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
   const adequacyColor = { excellent: THEME.sage, adequate: THEME.gold, low: THEME.gold, critical: THEME.rust }[adequacyLevel];
   const adequacyLabel = { excellent: "Excellent Protection (≥15×)", adequate: "Adequate Protection (10–15×)", low: "Low Coverage (5–10×)", critical: "Critical Underinsurance (<5×)" }[adequacyLevel];
 
-  const handleSave = (key: string, data: any) => {
-    addItem(key, data);
+  const handleSave = (key: string, data: any, isEdit: boolean = false) => {
+    if (isEdit) {
+      updateItem(key, data.id, data);
+    } else {
+      addItem(key, data);
+    }
     setModal(null);
+    setEditPolicy(null);
   };
 
   return (
@@ -199,28 +356,53 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
           />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
-            {state.lic.map((l: any) => (
-              <Card key={l.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.rust}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <InsurerLogo name="LIC" isLic />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{l.planName}</div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                      <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
-                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                      <span>#{l.policyNumber || "No No."}</span>
+            {state.lic.map((l: any) => {
+              const paid = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0) || Number(l.premiumPaid || 0);
+              return (
+                <Card key={l.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <InsurerLogo name="LIC" isLic />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</div>
+                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                        <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
+                        <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                        <span>#{l.policyNumber || "No No."}</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(l.annualPremium)}</div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(l.annualPremium)}</div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement Date</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.commencementDate || "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Maturity Date</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.maturityDate || "—"}</div>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeItem("lic", l.id)} style={{ padding: 6, color: THEME.rust }}>
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>
+                      Total Paid So Far: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <Button variant="ghost" size="sm" onClick={() => setEditPolicy(l)} style={{ padding: 6, color: THEME.accent }}>
+                        <Pencil size={14} />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => removeItem("lic", l.id)} style={{ padding: 6, color: THEME.rust }}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </Card>
@@ -245,11 +427,11 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.termPlans.map((t: any) => (
-              <Card key={t.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.rust}` }}>
+              <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <InsurerLogo name={t.insurer} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{t.planName || "Term Plan"}</div>
+                    <div style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</div>
                     <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                       <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
                       <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
@@ -257,12 +439,27 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(t.annualPremium)}</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(t.annualPremium)}</div>
                     <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
-                    <Trash2 size={14} />
-                  </Button>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Policy Expiry Date</div>
+                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.expiryDate || "—"}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <Button variant="ghost" size="sm" onClick={() => setEditPolicy(t)} style={{ padding: 6, color: THEME.accent }}>
+                      <Pencil size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -270,7 +467,14 @@ export function InsuranceSummaryTab({ state, addItem, removeItem }: any) {
         )}
       </Card>
 
-      {modal && <AddInsuranceModal sub={modal} onClose={() => setModal(null)} onSave={handleSave} />}
+      {(modal || editPolicy) && (
+        <AddInsuranceModal 
+          sub={modal || (editPolicy.insurer ? "term" : "lic")} 
+          policy={editPolicy}
+          onClose={() => { setModal(null); setEditPolicy(null); }} 
+          onSave={handleSave} 
+        />
+      )}
     </div>
   );
 }

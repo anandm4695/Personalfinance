@@ -1433,6 +1433,35 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               [15].forEach((day) => { if (month === 5) dueDays[day] = (dueDays[day] || []).concat({ label: "Adv. Tax", color: THEME.accent }); });
               if (month === 8 || month === 11 || month === 2) dueDays[15] = (dueDays[15] || []).concat({ label: "Adv. Tax", color: THEME.accent });
 
+              // 4. LIC PREMIUMS: recurring logic by anniversary month and active range
+              (state.lic || []).forEach((l: any) => {
+                if (l.commencementDate) {
+                  const commDate = new Date(l.commencementDate);
+                  if (!isNaN(commDate.getTime())) {
+                    const commYear = commDate.getFullYear();
+                    const commMonth = commDate.getMonth();
+                    
+                    // Viewed year/month must be >= commencement year/month
+                    if (year > commYear || (year === commYear && month >= commMonth)) {
+                      let isMatured = false;
+                      if (l.maturityDate) {
+                        const matDate = new Date(l.maturityDate);
+                        if (!isNaN(matDate.getTime())) {
+                          if (year > matDate.getFullYear() || (year === matDate.getFullYear() && month > matDate.getMonth())) {
+                            isMatured = true;
+                          }
+                        }
+                      }
+                      
+                      if (!isMatured && month === commMonth) {
+                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
+                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({ label: `LIC: ${l.planName}`, color: THEME.sage });
+                      }
+                    }
+                  }
+                }
+              });
+
               const cells: (number | null)[] = [];
               for (let i = 0; i < firstDay; i++) cells.push(null);
               for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -1458,6 +1487,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
                     <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions</span>
                     <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
+                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> LIC Premium</span>
                   </div>
                 </>
               );

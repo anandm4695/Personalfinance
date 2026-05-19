@@ -49,6 +49,36 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
     });
     state.lic.forEach((l: any) => {
       if (l.maturityDate) list.push({ id: "lic-" + l.id, title: "LIC Maturity — " + l.planName, subtitle: "Annual Premium: " + fmtINRFull(l.annualPremium), date: l.maturityDate, type: "LIC", icon: Shield });
+      if (l.commencementDate) {
+        const comm = new Date(l.commencementDate);
+        if (!isNaN(comm.getTime())) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const currentYear = today.getFullYear();
+          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
+          if (anniversary < today) {
+            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
+          }
+          let isMatured = false;
+          if (l.maturityDate) {
+            const mat = new Date(l.maturityDate);
+            if (!isNaN(mat.getTime()) && anniversary > mat) {
+              isMatured = true;
+            }
+          }
+          if (!isMatured) {
+            const dateStr = anniversary.toISOString().slice(0, 10);
+            list.push({
+              id: "lic-prem-" + l.id,
+              title: `LIC Premium — ${l.planName}`,
+              subtitle: `Policy: ${l.policyNumber || "N/A"} · Premium: ${fmtINRFull(l.annualPremium)}`,
+              date: dateStr,
+              type: "LIC Premium",
+              icon: Shield
+            });
+          }
+        }
+      }
     });
     state.termPlans.forEach((t: any) => {
       if (t.expiryDate) list.push({ id: "term-" + t.id, title: "Term Plan Expiry — " + t.planName, subtitle: "Cover: " + fmtINRFull(t.coverAmount), date: t.expiryDate, type: "Term Plan", icon: Shield });

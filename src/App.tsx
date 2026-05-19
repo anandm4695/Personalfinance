@@ -653,7 +653,10 @@ function FinanceDashboard() {
         const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const epf = (s.epf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const lic = (s.lic || []).reduce((a, x) => a + Number(x.premiumPaid || 0), 0);
+        const lic = (s.lic || []).reduce((a, x) => {
+          const txTotal = (x.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          return a + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+        }, 0);
         const mf = (s.mutualFunds || []).reduce((a, x) => a + Number(x.units || 0) * Number(x.currentNav || 0), 0);
         const stocks = (s.stocks || []).reduce((a, x) => a + Number(x.qty || 0) * Number(x.currentPrice || 0), 0);
         const loansGiven = (s.loansGiven || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
@@ -773,7 +776,10 @@ function FinanceDashboard() {
     const npsValue = sState.nps.reduce((s, n) => s + Number(n.balance || 0), 0);
     const epfValue = (sState.epf || []).reduce((s, e) => s + Number(e.balance || 0), 0);
     const licValue = sState.lic.reduce(
-      (s, l) => s + Number(l.premiumPaid || 0),
+      (s, l) => {
+        const txTotal = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
+      },
       0
     );
     const mfValue = sState.mutualFunds.reduce(
