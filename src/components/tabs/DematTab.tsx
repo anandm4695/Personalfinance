@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Building2, Search, PieChart as PieIcon } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Building2, Search, PieChart as PieIcon, Activity } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -418,6 +418,20 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
   
   const totalInvested = filteredStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
   const pnl = totalValue - totalInvested;
+
+  const totalDaysPnL = filteredStocks.reduce((s: number, st: any) => {
+    const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+    const exch = st.exchange || "NSE";
+    const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+    const md = marketData[yfSym];
+    if (!md) return s;
+    const change = md.change ?? 0;
+    return s + (Number(st.qty) * change);
+  }, 0);
+
+  const prevCloseValue = totalValue - totalDaysPnL;
+  const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
+
   const fmtVol = (v: number) => {
     if (!v) return "—";
     if (v >= 1e7) return (v / 1e7).toFixed(2) + "Cr";
@@ -545,13 +559,20 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
         {/* ── CONTENT AREA ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 32 }}>
             <StatCard
               icon={<BarChart3 />}
               label="Portfolio Value"
               value={fmtINRFull(totalValue)}
               color={THEME.accent}
               sub={`Invested ${fmtINRFull(totalInvested)}`}
+            />
+            <StatCard
+              icon={<Activity />}
+              label="Day's P&L"
+              value={fmtINRFull(totalDaysPnL)}
+              color={totalDaysPnL >= 0 ? THEME.sage : THEME.rust}
+              sub={totalDaysPnL !== 0 ? `${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}% today` : "No change today"}
             />
             <StatCard
               icon={<TrendingUp />}
@@ -732,16 +753,33 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                          <div style={{ fontWeight: bold ? 800 : 600, fontSize: 15, color: THEME.ink }}>{val}</div>
                        </div>
                      ))}
-                     <div style={{ textAlign: "right" }}>
-                       <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Total P&L</div>
-                       <div style={{ fontWeight: 800, fontSize: 15, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
-                         {totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}
-                       </div>
-                       <div style={{ fontSize: 11, fontWeight: 700, color: totalPnl >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
-                         {totalPnl >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                         {Math.abs(totalPnlPct).toFixed(2)}%
-                       </div>
-                     </div>
+                     <div style={{ textAlign: "right", minWidth: 90 }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Day's P&L</div>
+                        {isLive ? (
+                          <>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust }}>
+                              {(totalQty * changeAmt) >= 0 ? "+" : ""}{fmtINR(totalQty * changeAmt)}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
+                              {(totalQty * changeAmt) >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                              {Math.abs(changePct).toFixed(2)}%
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontWeight: 600, fontSize: 15, color: THEME.muted }}>—</div>
+                        )}
+                      </div>
+
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Total P&L</div>
+                        <div style={{ fontWeight: 800, fontSize: 15, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                          {totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: totalPnl >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
+                          {totalPnl >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                          {Math.abs(totalPnlPct).toFixed(2)}%
+                        </div>
+                      </div>
                    </div>
                  </div>
                 {isExpanded && (
