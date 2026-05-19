@@ -84,7 +84,7 @@ function brokerInitials(broker: string): string {
 // Module-level cache so logos persist across re-renders without extra fetches
 const _logoCache: Record<string, string | null> = {};
 
-const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
+export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
   const [primaryErr, setPrimaryErr] = React.useState(false);

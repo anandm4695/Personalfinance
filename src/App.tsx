@@ -2156,7 +2156,7 @@ function FinanceDashboard() {
           }}
         >
           <div key={tab} className="tab-content-enter">
-            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} setState={setState} />}
+            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} setState={setState} marketData={marketData} />}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}

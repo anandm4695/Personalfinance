@@ -47,6 +47,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { MonthlyReportModal } from "../modals/MonthlyReportModal";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StockLogo } from "./DematTab";
 
 interface AnalyticsTabProps {
   metrics: any;
@@ -54,6 +55,7 @@ interface AnalyticsTabProps {
   assetBreakdown: any[];
   trendData: any[];
   setState: any;
+  marketData?: any;
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
@@ -62,11 +64,41 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   assetBreakdown,
   trendData,
   setState,
+  marketData,
 }) => {
   const [sub, setSub] = useState("dashboard");
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
+
+  const topHoldings = useMemo(() => {
+    const map: Record<string, { base: string; exchange: string; yfSym: string; totalValue: number; qty: number }> = {};
+    
+    (state.stocks || []).forEach((s: any) => {
+      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const exch = s.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      const md = marketData?.[yfSym];
+      const price = md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
+      const qty = Number(s.qty || 0);
+      
+      if (!map[yfSym]) {
+        map[yfSym] = { base, exchange: exch, yfSym, totalValue: 0, qty: 0 };
+      }
+      map[yfSym].totalValue += qty * price;
+      map[yfSym].qty += qty;
+    });
+
+    const totalPortfolioValue = Object.values(map).reduce((sum, item) => sum + item.totalValue, 0);
+
+    return Object.values(map)
+      .sort((a, b) => b.totalValue - a.totalValue)
+      .slice(0, 10)
+      .map(item => ({
+        ...item,
+        percentage: totalPortfolioValue > 0 ? (item.totalValue / totalPortfolioValue) * 100 : 0
+      }));
+  }, [state.stocks, marketData]);
 
   const subs = [
     { id: "dashboard", label: "Dashboard", icon: PieIcon },
@@ -555,7 +587,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </Card>
 
             {/* Recent Transactions */}
-            <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
+            <Card className="bento-col-6" style={{ padding: 24, marginTop: 4 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div className="section-label" style={{ marginBottom: 0 }}>Recent Ledger Activity</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -566,7 +598,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
               {state.transactions.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: THEME.muted, fontSize: 13 }}>No transactions yet</div>
+                <div style={{ textAlign: "center", padding: "32px 0", color: THEME.muted, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 180 }}>No transactions yet</div>
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {state.transactions
@@ -575,16 +607,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     .slice(0, 5)
                     .map((t: any) => (
                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {t.type === "credit" ? <TrendingUp size={18} /> : <Receipt size={18} />}
                           </div>
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{t.note || t.category}</div>
-                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{t.date} · {t.category}</div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{t.note || t.category}</div>
+                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{t.date}</div>
                           </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 15, fontWeight: 800, color: t.type === "credit" ? THEME.sage : THEME.ink }}>
                             {t.type === "credit" ? "+" : "-"}{fmtINR(t.amount)}
                           </div>
@@ -594,6 +626,41 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                       </div>
                     ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Top 10 Holdings */}
+            <Card className="bento-col-6" style={{ padding: 24, marginTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div className="section-label" style={{ marginBottom: 0 }}>Top 10 Holdings</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Badge variant="muted">{topHoldings.length} stocks</Badge>
+                </div>
+              </div>
+              {topHoldings.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: THEME.muted, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 180 }}>
+                  No stock holdings in portfolio yet
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {topHoldings.map((h: any) => (
+                    <div key={h.yfSym} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                      <StockLogo yfSym={h.yfSym} size={36} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{h.base}</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{fmtINR(h.totalValue)}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div className="progress-track" style={{ flex: 1, height: 6, margin: 0, background: THEME.line }}>
+                            <div className="progress-fill" style={{ width: `${h.percentage}%`, height: 6, background: THEME.accent }} />
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, minWidth: 35, textAlign: "right" }}>{h.percentage.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </Card>
