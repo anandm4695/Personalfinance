@@ -86,7 +86,7 @@ import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
 const DEFAULT_STATE = {
   profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
   bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
-  bonds: [], ppf: [], nps: [], epf: [], lic: [], termPlans: [], mutualFunds: [], stocks: [],
+  bonds: [], ppf: [], nps: [], epf: [], lic: [], termPlans: [], investmentPlans: [], mutualFunds: [], stocks: [],
   demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
   subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
@@ -364,7 +364,7 @@ function FinanceDashboard() {
       console.log("Supabase: Fetching all modules in parallel for user:", userId);
       const [
         prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems,
-        licP, termP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct
+        licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -386,6 +386,7 @@ function FinanceDashboard() {
         supabase.from("reminders").select("*").eq("user_id", userId),
         supabase.from("lic_policies").select("*").eq("user_id", userId),
         supabase.from("term_plans").select("*").eq("user_id", userId),
+        supabase.from("investment_plans").select("*").eq("user_id", userId),
         supabase.from("informal_loans").select("*").eq("user_id", userId),
         supabase.from("rental_properties").select("*").eq("user_id", userId),
         supabase.from("sips").select("*").eq("user_id", userId),
@@ -400,7 +401,7 @@ function FinanceDashboard() {
       if (corpAct.error?.code === "42P01") missing.push("corporate_actions");
       setMissingTables(missing); // always set (clears when table is found)
 
-      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, infLns, rentP, sipsQ, stSells, mfSells, corpAct].some(r => r.data && r.data.length > 0);
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, corpAct].some(r => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState(currentState => {
@@ -441,6 +442,7 @@ function FinanceDashboard() {
           ...(!rems.error && rems.data != null ? { reminders: snakeToCamel(rems.data).map((r: any) => ({ ...r, date: r.reminderDate })) } : {}),
           ...(!licP.error && licP.data != null ? { lic: snakeToCamel(licP.data) } : {}),
           ...(!termP.error && termP.data != null ? { termPlans: snakeToCamel(termP.data) } : {}),
+          ...(!investP.error && investP.data != null ? { investmentPlans: snakeToCamel(investP.data) } : {}),
           ...(!infLns.error && infLns.data != null ? {
             informalBorrowed: snakeToCamel(infLns.data.filter(x => x.direction === 'borrowed')),
             informalLent: snakeToCamel(infLns.data.filter(x => x.direction === 'lent')),
@@ -728,6 +730,7 @@ function FinanceDashboard() {
       epf: filterByOwner(state.epf),
       lic: filterByOwner(state.lic),
       termPlans: filterByOwner(state.termPlans),
+      investmentPlans: filterByOwner(state.investmentPlans),
       mutualFunds: filterByOwner(state.mutualFunds),
       stocks: filterByOwner(state.stocks),
       demat: filterByOwner(state.demat),
@@ -779,6 +782,13 @@ function FinanceDashboard() {
       (s, l) => {
         const txTotal = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
         return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
+      },
+      0
+    );
+    const investmentValue = sState.investmentPlans.reduce(
+      (s, ip) => {
+        const txTotal = (ip.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
       },
       0
     );
@@ -854,6 +864,7 @@ function FinanceDashboard() {
       npsValue +
       epfValue +
       licValue +
+      investmentValue +
       mfValue +
       stockValue +
       loansGivenValue +
@@ -878,9 +889,14 @@ function FinanceDashboard() {
 
     // Annual income from income ledger
     const fyStart = new Date(`${sState.profile.fy.split("-")[0]}-04-01`);
-    const annualIncome = sState.income
+    const explicitIncome = sState.income
       .filter((i) => new Date(i.date) >= fyStart)
       .reduce((s, i) => s + Number(i.amount || 0), 0);
+    const txnIncome = sState.transactions
+      .filter((t) => t.type === "credit" && t.date && new Date(t.date) >= fyStart)
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const annualizedCurrentMonth = (monthIncome || 0) * 12;
+    const annualIncome = explicitIncome || annualizedCurrentMonth || txnIncome || 0;
 
     const subTotal = sState.subscriptions.filter(sub => !sub.paused).reduce((s, sub) => {
       const m =
@@ -893,7 +909,7 @@ function FinanceDashboard() {
     }, 0);
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
-    const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue;
+    const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
     
@@ -932,6 +948,7 @@ function FinanceDashboard() {
       npsValue,
       epfValue,
       licValue,
+      investmentValue,
       mfValue,
       mfInvested,
       stockValue,
@@ -1017,6 +1034,7 @@ function FinanceDashboard() {
         { name: "EPF", value: metrics.epfValue },
         { name: "Bonds", value: metrics.bondValue },
         { name: "LIC", value: metrics.licValue },
+        { name: "Investment Plans", value: metrics.investmentValue },
         { name: "Loans Given", value: metrics.loansGivenValue },
       ].filter((x) => x.value > 0),
     [metrics]
@@ -1137,7 +1155,7 @@ function FinanceDashboard() {
     recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps", epf: "ppf_nps",
     creditCards: "credit_cards", prepaidCards: "prepaid_cards", loansTaken: "loans", loansGiven: "loans",
     goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders",
-    lic: "lic_policies", termPlans: "term_plans",
+    lic: "lic_policies", termPlans: "term_plans", investmentPlans: "investment_plans",
     informalBorrowed: "informal_loans", informalLent: "informal_loans",
     rentalProperties: "rental_properties", rentedProperties: "rental_properties",
     sips: "sips", stockSells: "stock_sells", mfSells: "mf_sells",
@@ -1186,7 +1204,7 @@ function FinanceDashboard() {
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
         // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
-        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","ratio_n","ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term"]);
+        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","ratio_n","ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term","expected_maturity_amount","policy_term"]);
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
@@ -1359,7 +1377,7 @@ function FinanceDashboard() {
         if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
         if (key === "epf") { if (patch.employer !== undefined) { finalPatch.bank = patch.employer || ""; delete finalPatch.employer; } if (patch.uan !== undefined) { finalPatch.account_number = patch.uan || ""; delete finalPatch.uan; } }
 
-        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","market_cap","term","premium_paying_term"]);
+        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","market_cap","term","premium_paying_term","expected_maturity_amount","policy_term"]);
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
           else if (NUMERIC_COLS_U.has(k) && typeof finalPatch[k] === "string" && finalPatch[k] !== null) {
@@ -1424,7 +1442,7 @@ function FinanceDashboard() {
     const userId = session?.user?.id;
     if (!userId || userId === "offline-user") return;
 
-    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth"]);
+    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","expected_maturity_amount","policy_term","premium_paying_term"]);
 
     const cleanItem = (obj: any) => {
       const r: any = {};
@@ -1468,6 +1486,7 @@ function FinanceDashboard() {
       ...push("reminders",           data.reminders,    item => ({ reminder_date: item.reminderDate ?? item.date ?? null, date: undefined })),
       ...push("lic_policies",        data.lic),
       ...push("term_plans",          data.termPlans),
+      ...push("investment_plans",    data.investmentPlans),
       ...push("informal_loans",      data.informalBorrowed, () => ({ direction: "borrowed" })),
       ...push("informal_loans",      data.informalLent,     () => ({ direction: "lent" })),
       ...push("rental_properties",   data.rentalProperties, () => ({ property_type: "out" })),

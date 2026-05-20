@@ -221,7 +221,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const smartInsights = useMemo(() => {
     const insights: any[] = [];
-    const annualIncome = (state.income || []).reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const explicitIncome = (state.income || []).reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const txnIncome = (state.transactions || [])
+      .filter((t: any) => t.type === "credit")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const annualizedCurrentMonth = (metrics?.monthIncome || 0) * 12;
+    const annualIncome = explicitIncome || annualizedCurrentMonth || txnIncome || 0;
+    
     const totalTermCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
     const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
     const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
@@ -253,7 +259,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
 
     return insights;
-  }, [metrics, state.income, state.termPlans, state.sips, dashboardData]);
+  }, [metrics, state.income, state.transactions, state.termPlans, state.sips, dashboardData]);
 
   const ytdData = useMemo(() => {
     const now = new Date();
