@@ -145,7 +145,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {([
               ["Bank Cash", metrics.cashInBanks],
-              ["Fixed Deposits", state.bankAccounts.reduce((s: number, b: any) => s + Number(b.balance || 0), 0)], // Note: Adjust if needed
+              ["Fixed Deposits", metrics.fdValue],
               ["Mutual Funds", metrics.mfValue],
               ["Stocks", metrics.stockValue],
               ["PPF", metrics.ppfValue],

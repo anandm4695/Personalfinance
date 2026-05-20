@@ -659,8 +659,16 @@ function FinanceDashboard() {
           const txTotal = (x.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
           return a + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
         }, 0);
-        const mf = (s.mutualFunds || []).reduce((a, x) => a + Number(x.units || 0) * Number(x.currentNav || 0), 0);
-        const stocks = (s.stocks || []).reduce((a, x) => a + Number(x.qty || 0) * Number(x.currentPrice || 0), 0);
+        const mf = (s.mutualFunds || []).reduce((a, x) => {
+          const liveNav = Number(x.currentNav || 0);
+          const fallbackNav = liveNav || Number(x.buyNav || 0) || (Number(x.units || 1) > 0 ? Number(x.invested || 0) / Number(x.units || 1) : 0);
+          return a + Number(x.units || 0) * fallbackNav;
+        }, 0);
+        const stocks = (s.stocks || []).reduce((a, x) => {
+          const livePrice = Number(x.currentPrice || 0);
+          const fallbackPrice = livePrice || Number(x.avgPrice || 0);
+          return a + Number(x.qty || 0) * fallbackPrice;
+        }, 0);
         const loansGiven = (s.loansGiven || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
         const prepaid = (s.prepaidCards || [])
           .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
@@ -798,18 +806,22 @@ function FinanceDashboard() {
       },
       0
     );
-    const mfValue = sState.mutualFunds.reduce(
-      (s, m) => s + Number(m.units || 0) * Number(m.currentNav || 0),
-      0
-    );
+    const mfValue = sState.mutualFunds.reduce((s, m) => {
+      const liveNav = Number(m.currentNav || 0);
+      const fallbackNav = liveNav || Number(m.buyNav || 0) || (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
+      return s + Number(m.units || 0) * fallbackNav;
+    }, 0);
     const mfInvested = sState.mutualFunds.reduce(
       (s, m) => s + (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : Number(m.invested || 0)),
       0
     );
-    const stockValue = sState.stocks.reduce(
-      (s, st) => s + Number(st.qty || 0) * Number(st.currentPrice || 0),
-      0
-    );
+    const stockValue = sState.stocks.reduce((s, st) => {
+      const yfSym = `${st.symbol.replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+      const md = marketData[yfSym];
+      const livePrice = md?.price ?? Number(st.currentPrice || 0);
+      const fallbackPrice = livePrice || Number(st.avgPrice || 0);
+      return s + Number(st.qty || 0) * fallbackPrice;
+    }, 0);
     const stockInvested = sState.stocks.reduce(
       (s, st) => s + Number(st.qty || 0) * Number(st.avgPrice || 0),
       0
