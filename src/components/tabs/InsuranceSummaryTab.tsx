@@ -115,6 +115,25 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
     });
   };
 
+  const handleTermFieldChange = (field: string, val: any) => {
+    setTerm(prev => {
+      let nextTerm = { ...prev, [field]: val };
+      if ((field === "startDate" || field === "term") && nextTerm.startDate && nextTerm.term) {
+        const commDate = new Date(nextTerm.startDate);
+        const termYears = parseInt(nextTerm.term, 10);
+        if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
+          const expDate = new Date(commDate);
+          expDate.setFullYear(expDate.getFullYear() + termYears);
+          const yStr = expDate.getFullYear();
+          const mStr = String(expDate.getMonth() + 1).padStart(2, "0");
+          const dStr = String(expDate.getDate()).padStart(2, "0");
+          nextTerm.expiryDate = `${yStr}-${mStr}-${dStr}`;
+        }
+      }
+      return nextTerm;
+    });
+  };
+
   const [term, setTerm] = useState(() => {
     if (policy) {
       return {
@@ -124,10 +143,13 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         planName: policy.planName || "",
         coverAmount: policy.coverAmount || "",
         annualPremium: policy.annualPremium || "",
-        expiryDate: policy.expiryDate || ""
+        expiryDate: policy.expiryDate || "",
+        startDate: policy.startDate || "",
+        term: policy.term || "",
+        premiumPayingTerm: policy.premiumPayingTerm || ""
       };
     }
-    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "" };
+    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "", startDate: "", term: "", premiumPayingTerm: "" };
   });
 
   const [newTxDate, setNewTxDate] = useState("");
@@ -303,28 +325,39 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       ) : (
         <>
           <Field label="Owner / Profile">
-            <select className={inp} value={term.owner || "self"} onChange={e => setTerm({ ...term, owner: e.target.value })}>
+            <select className={inp} value={term.owner || "self"} onChange={e => handleTermFieldChange("owner", e.target.value)}>
               {PROFILES.map((p: any) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </Field>
           <Field label="Insurer / Company">
-            <input className={inp} value={term.insurer} onChange={e => setTerm({ ...term, insurer: e.target.value })} placeholder="e.g. HDFC Ergo, Max Life, ICICI Pru" />
+            <input className={inp} value={term.insurer} onChange={e => handleTermFieldChange("insurer", e.target.value)} placeholder="e.g. HDFC Ergo, Max Life, ICICI Pru" />
           </Field>
           <Field label="Plan Name">
-            <input className={inp} value={term.planName} onChange={e => setTerm({ ...term, planName: e.target.value })} placeholder="e.g. Click 2 Protect, iProtect Smart" />
+            <input className={inp} value={term.planName} onChange={e => handleTermFieldChange("planName", e.target.value)} placeholder="e.g. Click 2 Protect, iProtect Smart" />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Cover Amount (₹)">
-              <input className={inp} type="number" value={term.coverAmount} onChange={e => setTerm({ ...term, coverAmount: e.target.value })} placeholder="10000000" />
+              <input className={inp} type="number" value={term.coverAmount} onChange={e => handleTermFieldChange("coverAmount", e.target.value)} placeholder="10000000" />
             </Field>
             <Field label="Annual Premium (₹)">
-              <input className={inp} type="number" value={term.annualPremium} onChange={e => setTerm({ ...term, annualPremium: e.target.value })} placeholder="12000" />
+              <input className={inp} type="number" value={term.annualPremium} onChange={e => handleTermFieldChange("annualPremium", e.target.value)} placeholder="12000" />
+            </Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <Field label="Plan Cover (Years)">
+              <input className={inp} type="number" placeholder="20" value={term.term} onChange={e => handleTermFieldChange("term", e.target.value)} />
+            </Field>
+            <Field label="Installment Payable (Years)">
+              <input className={inp} type="number" placeholder="20" value={term.premiumPayingTerm} onChange={e => handleTermFieldChange("premiumPayingTerm", e.target.value)} />
+            </Field>
+            <Field label="Commencement Date">
+              <input className={inp} type="date" value={term.startDate} onChange={e => handleTermFieldChange("startDate", e.target.value)} />
             </Field>
           </div>
           <Field label="Policy Expiry Date">
-            <input className={inp} type="date" value={term.expiryDate} onChange={e => setTerm({ ...term, expiryDate: e.target.value })} />
+            <input className={inp} type="date" value={term.expiryDate} onChange={e => handleTermFieldChange("expiryDate", e.target.value)} />
           </Field>
         </>
       )}
@@ -505,9 +538,21 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Policy Expiry Date</div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Plan Cover</div>
+                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.term ? `${t.term} Yrs` : "—"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Payable For</div>
+                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
+                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.startDate || "—"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Expiry Date</div>
                     <div style={{ fontWeight: 700, color: THEME.ink }}>{t.expiryDate || "—"}</div>
                   </div>
                 </div>
