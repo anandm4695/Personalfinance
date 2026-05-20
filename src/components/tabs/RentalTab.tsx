@@ -321,7 +321,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 setShowLogModal({ type: "deposit_out", property: p });
                               }}
                               style={{
-                                background: "none", border: "none", cursor: "pointer", color: THEME.gold,
+                                border: "none", cursor: "pointer", color: THEME.gold,
                                 display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
                                 background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`, fontSize: 9, fontWeight: 800
                               }}
@@ -795,7 +795,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 setShowLogModal({ type: "deposit_in", property: p });
                               }}
                               style={{
-                                background: "none", border: "none", cursor: "pointer", color: THEME.sage,
+                                border: "none", cursor: "pointer", color: THEME.sage,
                                 display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
                                 background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`, fontSize: 9, fontWeight: 800
                               }}
