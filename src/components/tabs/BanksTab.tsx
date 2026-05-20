@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText, TrendingUp, TrendingDown, IndianRupee } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, today, autoCateg } from "../../utils/finance";
+import { fmtINRFull, today, autoCateg, getLocalDateString } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -232,22 +232,23 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
 
   const setQuickRange = (preset: string) => {
     const now = new Date();
+    const nowLocal = getLocalDateString(now);
     if (preset === "thisMonth") {
-      setDateFrom(now.toISOString().slice(0, 7) + "-01");
-      setDateTo(now.toISOString().slice(0, 10));
+      setDateFrom(nowLocal.slice(0, 7) + "-01");
+      setDateTo(nowLocal);
     } else if (preset === "lastMonth") {
       const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const last = new Date(now.getFullYear(), now.getMonth(), 0);
-      setDateFrom(prev.toISOString().slice(0, 10));
-      setDateTo(last.toISOString().slice(0, 10));
+      setDateFrom(getLocalDateString(prev));
+      setDateTo(getLocalDateString(last));
     } else if (preset === "3months") {
       const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-      setDateFrom(from.toISOString().slice(0, 10));
-      setDateTo(now.toISOString().slice(0, 10));
+      setDateFrom(getLocalDateString(from));
+      setDateTo(nowLocal);
     } else if (preset === "thisFY") {
       const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
       setDateFrom(`${fyYear}-04-01`);
-      setDateTo(now.toISOString().slice(0, 10));
+      setDateTo(nowLocal);
     }
   };
 

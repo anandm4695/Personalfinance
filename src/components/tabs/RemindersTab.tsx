@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today, getCCDueDate } from "../../utils/finance";
+import { fmtINRFull, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
@@ -34,20 +34,20 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
 
   const allReminders = useMemo(() => {
     const list: any[] = [];
-    state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
+    (state.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) list.push({ id: "cc-" + c.id, title: (c.issuer || "Card") + " — Bill Due", subtitle: "Outstanding: " + fmtINRFull(c.outstanding), date: dueDate, type: "Credit Card", icon: CreditCard });
     });
-    state.subscriptions.forEach((s: any) => {
+    (state.subscriptions || []).filter((s: any) => !s.paused).forEach((s: any) => {
       if (s.renewalDate) list.push({ id: "sub-" + s.id, title: s.name + " Renewal", subtitle: s.cycle + " · " + fmtINRFull(s.amount), date: s.renewalDate, type: "Subscription", icon: Repeat });
     });
-    state.fixedDeposits.forEach((f: any) => {
+    (state.fixedDeposits || []).forEach((f: any) => {
       if (f.maturityDate) list.push({ id: "fd-" + f.id, title: "FD Maturity — " + (f.bank || f.bankName || "Bank"), subtitle: "Principal: " + fmtINRFull(f.principal), date: f.maturityDate, type: "Fixed Deposit", icon: Coins });
     });
-    state.bonds.forEach((b: any) => {
+    (state.bonds || []).forEach((b: any) => {
       if (b.maturityDate) list.push({ id: "bond-" + b.id, title: "Bond Maturity — " + b.name, subtitle: "Face Value: " + fmtINRFull(b.faceValue), date: b.maturityDate, type: "Bond", icon: FileText });
     });
-    state.lic.forEach((l: any) => {
+    (state.lic || []).forEach((l: any) => {
       if (l.maturityDate) list.push({ id: "lic-" + l.id, title: "LIC Maturity — " + l.planName, subtitle: "Annual Premium: " + fmtINRFull(l.annualPremium), date: l.maturityDate, type: "LIC", icon: Shield });
       if (l.commencementDate) {
         const comm = new Date(l.commencementDate);
@@ -66,8 +66,15 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               isMatured = true;
             }
           }
+          const policyTerm = l.policyTerm ? parseInt(l.policyTerm, 10) : null;
+          if (policyTerm && !isNaN(policyTerm)) {
+            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
+            if (yearsElapsed >= policyTerm) {
+              isMatured = true;
+            }
+          }
           if (!isMatured) {
-            const dateStr = anniversary.toISOString().slice(0, 10);
+            const dateStr = getLocalDateString(anniversary);
             list.push({
               id: "lic-prem-" + l.id,
               title: `LIC Premium — ${l.planName}`,
@@ -80,13 +87,99 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         }
       }
     });
-    state.termPlans.forEach((t: any) => {
+    (state.termPlans || []).forEach((t: any) => {
       if (t.expiryDate) list.push({ id: "term-" + t.id, title: "Term Plan Expiry — " + t.planName, subtitle: "Cover: " + fmtINRFull(t.coverAmount), date: t.expiryDate, type: "Term Plan", icon: Shield });
+      if (t.startDate) {
+        const comm = new Date(t.startDate);
+        if (!isNaN(comm.getTime())) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const currentYear = today.getFullYear();
+          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
+          if (anniversary < today) {
+            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
+          }
+          let isExpired = false;
+          if (t.expiryDate) {
+            const exp = new Date(t.expiryDate);
+            if (!isNaN(exp.getTime()) && anniversary > exp) {
+              isExpired = true;
+            }
+          }
+          const payTerm = t.premiumPayingTerm ? parseInt(t.premiumPayingTerm, 10) : (t.term ? parseInt(t.term, 10) : null);
+          if (payTerm && !isNaN(payTerm)) {
+            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
+            if (yearsElapsed >= payTerm) {
+              isExpired = true;
+            }
+          }
+          if (!isExpired) {
+            const dateStr = getLocalDateString(anniversary);
+            list.push({
+              id: "term-prem-" + t.id,
+              title: `Term Premium — ${t.planName || "Plan"}`,
+              subtitle: `Insurer: ${t.insurer} · Premium: ${fmtINRFull(t.annualPremium)}`,
+              date: dateStr,
+              type: "Term Premium",
+              icon: Shield
+            });
+          }
+        }
+      }
     });
-    state.loansGiven.forEach((l: any) => {
+    (state.investmentPlans || []).forEach((ip: any) => {
+      if (ip.maturityDate) {
+        list.push({
+          id: "invest-" + ip.id,
+          title: "Investment Maturity — " + ip.planName,
+          subtitle: "Expected Maturity: " + fmtINRFull(ip.expectedMaturityAmount),
+          date: ip.maturityDate,
+          type: "Investment Plan",
+          icon: Shield
+        });
+      }
+      if (ip.commencementDate) {
+        const comm = new Date(ip.commencementDate);
+        if (!isNaN(comm.getTime())) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const currentYear = today.getFullYear();
+          let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
+          if (anniversary < today) {
+            anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
+          }
+          let isMatured = false;
+          if (ip.maturityDate) {
+            const mat = new Date(ip.maturityDate);
+            if (!isNaN(mat.getTime()) && anniversary > mat) {
+              isMatured = true;
+            }
+          }
+          const payTerm = ip.premiumPayingTerm ? parseInt(ip.premiumPayingTerm, 10) : (ip.policyTerm ? parseInt(ip.policyTerm, 10) : null);
+          if (payTerm && !isNaN(payTerm)) {
+            const yearsElapsed = anniversary.getFullYear() - comm.getFullYear();
+            if (yearsElapsed >= payTerm) {
+              isMatured = true;
+            }
+          }
+          if (!isMatured) {
+            const dateStr = getLocalDateString(anniversary);
+            list.push({
+              id: "invest-prem-" + ip.id,
+              title: `Investment Premium — ${ip.planName || "Plan"}`,
+              subtitle: `Insurer: ${ip.insurer} · Premium: ${fmtINRFull(ip.annualPremium)}`,
+              date: dateStr,
+              type: "Investment Premium",
+              icon: Shield
+            });
+          }
+        }
+      }
+    });
+    (state.loansGiven || []).forEach((l: any) => {
       if (l.dueDate) list.push({ id: "loan-" + l.id, title: "Loan Recovery — " + l.borrower, subtitle: "Outstanding: " + fmtINRFull(l.outstanding), date: l.dueDate, type: "Loan Given", icon: HandCoins });
     });
-    state.reminders.forEach((r: any) => {
+    (state.reminders || []).forEach((r: any) => {
       list.push({ id: r.id, title: r.title, subtitle: r.note || "", date: r.date, type: "Reminder", icon: Bell, manual: true });
     });
     return list.filter((r) => r.date).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

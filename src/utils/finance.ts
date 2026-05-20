@@ -42,7 +42,14 @@ export const uid = () => {
   });
 };
 
-export const today = () => new Date().toISOString().slice(0, 10);
+export const getLocalDateString = (d: Date) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+export const today = () => getLocalDateString(new Date());
 
 export const monthsBetween = (d1: string, d2: string) => {
   const a = new Date(d1),
@@ -59,7 +66,7 @@ export const getCCDueDate = (c: any, referenceDate?: Date) => {
   const day = parseInt(c.dueDay, 10);
   let d = new Date(now.getFullYear(), now.getMonth(), day);
   if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
-  return d.toISOString().slice(0, 10);
+  return getLocalDateString(d);
 };
 
 export const autoCateg = (note: string): string | null => {
