@@ -70,6 +70,130 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [activeAssetIndex, setActiveAssetIndex] = useState<number | null>(null);
+  const [selectedAssetClass, setSelectedAssetClass] = useState<string | null>(null);
+
+  const getSubAssets = (categoryName: string) => {
+    switch (categoryName) {
+      case "Bank Cash":
+        return (state.bankAccounts || []).map((a: any) => ({
+          name: a.bankName || "Unknown Bank",
+          sub: a.accountType || "Savings",
+          value: Number(a.balance || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "Fixed Deposits":
+        return (state.fixedDeposits || []).map((f: any) => ({
+          name: f.bank || "FD",
+          sub: `${f.rate || 0}% · Due: ${f.maturityDate || "N/A"}`,
+          value: Number(f.principal || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "Recurring Deposits":
+        return (state.recurringDeposits || []).map((r: any) => {
+          const start = r.startDate ? new Date(r.startDate) : new Date();
+          const now = new Date();
+          const m = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+          const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
+          const currentVal = months * Number(r.monthly || 0);
+          return {
+            name: r.bank || "RD",
+            sub: `${fmtINR(r.monthly || 0)}/mo · ${months}/${r.tenureMonths || 0} m`,
+            value: currentVal,
+          };
+        }).sort((a: any, b: any) => b.value - a.value);
+
+      case "Mutual Funds":
+        return (state.mutualFunds || []).map((m: any) => ({
+          name: m.name || "Mutual Fund",
+          sub: `${Number(m.units || 0).toFixed(3)} units @ Nav ₹${Number(m.currentNav || 0).toFixed(2)}`,
+          value: Number(m.units || 0) * Number(m.currentNav || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "Stocks":
+        return (state.stocks || []).map((s: any) => {
+          const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+          const exch = s.exchange || "NSE";
+          const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+          const md = marketData?.[yfSym];
+          const price = md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
+          const val = Number(s.qty || 0) * price;
+          return {
+            name: base,
+            sub: `${s.qty} shares · CMP ₹${price.toFixed(2)}`,
+            value: val,
+          };
+        }).reduce((acc: any[], current: any) => {
+          const existing = acc.find(item => item.name === current.name);
+          if (existing) {
+            existing.value += current.value;
+          } else {
+            acc.push(current);
+          }
+          return acc;
+        }, []).sort((a: any, b: any) => b.value - a.value);
+
+      case "PPF":
+        return (state.ppf || []).map((p: any) => ({
+          name: p.bank || "PPF",
+          sub: p.accountNumber ? `Ac: ${p.accountNumber}` : "PPF Balance",
+          value: Number(p.balance || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "NPS":
+        return (state.nps || []).map((n: any) => ({
+          name: n.bank || "NPS",
+          sub: n.accountNumber ? `PRAN: ${n.accountNumber}` : "NPS Balance",
+          value: Number(n.balance || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "EPF":
+        return (state.epf || []).map((e: any) => ({
+          name: e.employer || "EPF",
+          sub: e.uan ? `UAN: ${e.uan}` : "EPF Balance",
+          value: Number(e.balance || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "Bonds":
+        return (state.bonds || []).map((b: any) => ({
+          name: b.name || "Bond",
+          sub: `${b.coupon || 0}% Coupon`,
+          value: Number(b.faceValue || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      case "LIC":
+        return (state.lic || []).map((l: any) => {
+          const txTotal = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          const premium = txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
+          return {
+            name: l.name || "LIC Policy",
+            sub: l.policyNumber ? `No: ${l.policyNumber}` : "Life Insurance",
+            value: premium,
+          };
+        }).sort((a: any, b: any) => b.value - a.value);
+
+      case "Investment Plans":
+        return (state.investmentPlans || []).map((ip: any) => {
+          const txTotal = (ip.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          const premium = txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
+          return {
+            name: ip.name || "ULIP",
+            sub: ip.policyNumber ? `No: ${ip.policyNumber}` : "ULIP Investment",
+            value: premium,
+          };
+        }).sort((a: any, b: any) => b.value - a.value);
+
+      case "Loans Given":
+        return (state.loansGiven || []).map((l: any) => ({
+          name: l.lender || "Borrower",
+          sub: l.rate ? `${l.rate}% Interest` : "Interest Free",
+          value: Number(l.outstanding || 0),
+        })).sort((a: any, b: any) => b.value - a.value);
+
+      default:
+        return [];
+    }
+  };
 
   const topHoldings = useMemo(() => {
     const map: Record<string, { base: string; exchange: string; yfSym: string; totalValue: number; qty: number }> = {};
@@ -792,24 +916,174 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: ALLOCATION ────────────────── */}
       {sub === "allocation" && (
         <div className="animate-fade-in-up">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginBottom: 28 }}>
             {/* Asset Allocation */}
-            <Card style={{ padding: 24 }}>
-              <div className="section-label">Asset Allocation</div>
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <div className="section-label" style={{ marginBottom: 2 }}>Asset Allocation</div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    {selectedAssetClass ? `Drill down: ${selectedAssetClass}` : "Interactive asset diversification map"}
+                  </div>
+                </div>
+                {selectedAssetClass && (
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedAssetClass(null); setActiveAssetIndex(null); }} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px" }}>
+                    <ChevronLeft size={14} /> Back
+                  </Button>
+                )}
+              </div>
+              
               {assetBreakdown?.length === 0 ? (
                 <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
                   Add assets in Bank Accounts, Demat, or Fixed Income to see allocation.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={assetBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={0} paddingAngle={0}>
-                      {assetBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="allocation-interactive-container" style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 24, minHeight: 300 }}>
+                  {/* Left Side: Donut Chart with central display */}
+                  <div style={{ flex: "1 1 240px", position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={assetBreakdown}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={72}
+                          outerRadius={92}
+                          paddingAngle={2}
+                          onMouseEnter={(_, index) => setActiveAssetIndex(index)}
+                          onMouseLeave={() => setActiveAssetIndex(null)}
+                          onClick={(_, index) => {
+                            const selectedName = assetBreakdown[index]?.name;
+                            setSelectedAssetClass(selectedName === selectedAssetClass ? null : selectedName);
+                          }}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {assetBreakdown.map((item: any, i: number) => {
+                            const isSelected = selectedAssetClass === item.name;
+                            const isHovered = activeAssetIndex === i;
+                            return (
+                              <Cell 
+                                key={i} 
+                                fill={PIE_COLORS[i % PIE_COLORS.length]} 
+                                opacity={selectedAssetClass ? (isSelected ? 1 : 0.4) : (activeAssetIndex !== null ? (isHovered ? 1 : 0.6) : 1)}
+                                style={{
+                                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                  transform: isHovered || isSelected ? "scale(1.03)" : "scale(1)",
+                                  transformOrigin: "center"
+                                }}
+                              />
+                            );
+                          })}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    
+                    {/* Central display inside the donut hole */}
+                    <div style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      textAlign: "center",
+                      pointerEvents: "none",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: 130,
+                      zIndex: 2
+                    }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                        {activeAssetIndex !== null ? assetBreakdown[activeAssetIndex]?.name : (selectedAssetClass ? selectedAssetClass : "Total Assets")}
+                      </span>
+                      <span style={{ fontSize: 17, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
+                        {fmtINRFull(
+                          activeAssetIndex !== null 
+                            ? assetBreakdown[activeAssetIndex]?.value 
+                            : (selectedAssetClass 
+                                ? (assetBreakdown.find(x => x.name === selectedAssetClass)?.value || 0) 
+                                : metrics.totalAssets)
+                        )}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
+                        {(() => {
+                          const val = activeAssetIndex !== null 
+                            ? assetBreakdown[activeAssetIndex]?.value 
+                            : (selectedAssetClass 
+                                ? (assetBreakdown.find(x => x.name === selectedAssetClass)?.value || 0) 
+                                : metrics.totalAssets);
+                          const total = metrics.totalAssets || 1;
+                          return `${((val / total) * 100).toFixed(1)}%`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Side: Interactive detail list and sub-asset drill-down */}
+                  <div style={{ flex: "1 1 240px", maxHeight: 260, overflowY: "auto", paddingRight: 4 }}>
+                    {selectedAssetClass ? (
+                      // DRILL DOWN SUB-LIST FOR SELECTED CLASS
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${THEME.line}`, paddingBottom: 6 }}>
+                          <span>Holding Breakdown</span>
+                          <span>Value</span>
+                        </div>
+                        {(() => {
+                          const subList = getSubAssets(selectedAssetClass);
+                          if (subList.length === 0) {
+                            return <div style={{ fontSize: 12, color: THEME.muted, padding: "12px 0", textAlign: "center" }}>No holdings recorded</div>;
+                          }
+                          return subList.map((item, idx) => (
+                            <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderRadius: 8, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                              <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                                {item.sub && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{item.sub}</div>}
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{fmtINR(item.value)}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    ) : (
+                      // OVERALL ALLOCATION LIST
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {assetBreakdown.map((item: any, i: number) => {
+                          const isHovered = activeAssetIndex === i;
+                          const color = PIE_COLORS[i % PIE_COLORS.length];
+                          const pct = ((item.value / (metrics.totalAssets || 1)) * 100).toFixed(1);
+                          return (
+                            <div 
+                              key={i} 
+                              onMouseEnter={() => setActiveAssetIndex(i)}
+                              onMouseLeave={() => setActiveAssetIndex(null)}
+                              onClick={() => setSelectedAssetClass(item.name)}
+                              style={{ 
+                                display: "flex", 
+                                justifyContent: "space-between", 
+                                alignItems: "center", 
+                                padding: "8px 10px", 
+                                borderRadius: 8, 
+                                background: isHovered ? "rgba(128,128,128,0.05)" : "rgba(128,128,128,0.02)", 
+                                border: isHovered ? `1px solid ${color}` : `1px solid ${THEME.line}`,
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</span>
+                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{pct}%</span>
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginLeft: 8 }}>{fmtINR(item.value)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </Card>
 
