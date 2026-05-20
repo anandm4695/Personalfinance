@@ -313,7 +313,23 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </div>
                         </div>
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Held</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                            <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowLogModal({ type: "deposit_out", property: p });
+                              }}
+                              style={{
+                                background: "none", border: "none", cursor: "pointer", color: THEME.gold,
+                                display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
+                                background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`, fontSize: 9, fontWeight: 800
+                              }}
+                              title="Log Partial Deposit Receipt"
+                            >
+                              <Plus size={8} style={{ marginRight: 2 }} /> Log
+                            </button>
+                          </div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
                             {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0)))}
                           </div>
@@ -771,7 +787,23 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           </div>
                         </div>
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Paid</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                            <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Paid</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowLogModal({ type: "deposit_in", property: p });
+                              }}
+                              style={{
+                                background: "none", border: "none", cursor: "pointer", color: THEME.sage,
+                                display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
+                                background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`, fontSize: 9, fontWeight: 800
+                              }}
+                              title="Log Partial Deposit Payment"
+                            >
+                              <Plus size={8} style={{ marginRight: 2 }} /> Log
+                            </button>
+                          </div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0)))}
                           </div>

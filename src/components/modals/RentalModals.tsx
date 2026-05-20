@@ -198,8 +198,11 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
             <option value="ended">Ended</option>
           </select>
         </Field>
-        <Field label="Security Deposit Received (₹)">
+        <Field label="Security Deposit Agreed (₹)">
           <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
+          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4, lineHeight: "1.4" }}>
+            For partial deposit installments, enter the total agreed amount here and log each receipt transaction in the property card's ledger.
+          </div>
         </Field>
         <Field label="Deposit Received Date">
           <input style={input} type="date" value={f.depositReceivedDate} onChange={(e) => setF({ ...f, depositReceivedDate: e.target.value })} />
@@ -601,8 +604,11 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
         <Field label="Total Monthly Rent (₹)">
           <input style={input} type="number" value={f.monthlyRent} onChange={(e) => setF({ ...f, monthlyRent: e.target.value })} placeholder="25000" />
         </Field>
-        <Field label="Security Deposit Paid (₹)">
+        <Field label="Security Deposit Agreed (₹)">
           <input style={input} type="number" value={f.securityDeposit} onChange={(e) => setF({ ...f, securityDeposit: e.target.value })} placeholder="100000" />
+          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4, lineHeight: "1.4" }}>
+            For partial deposit installments, enter the total agreed amount here and log each payment transaction in the property card's ledger.
+          </div>
         </Field>
         <Field label="Deposit Paid Date">
           <input style={input} type="date" value={f.depositPaidDate} onChange={(e) => setF({ ...f, depositPaidDate: e.target.value })} />
