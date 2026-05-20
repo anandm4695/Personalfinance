@@ -73,6 +73,60 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [activeAssetIndex, setActiveAssetIndex] = useState<number | null>(null);
   const [selectedAssetClass, setSelectedAssetClass] = useState<string | null>(null);
 
+  // Market Cap states
+  const [activeCapIndex, setActiveCapIndex] = useState<number | null>(null);
+  const [selectedCapClass, setSelectedCapClass] = useState<string | null>(null);
+
+  // Expense Breakup states
+  const [activeExpenseIndex, setActiveExpenseIndex] = useState<number | null>(null);
+  const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
+
+  const getStockCapAssets = (capName: string) => {
+    return (state.stocks || []).map((s: any) => {
+      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const exch = s.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      const md = marketData?.[yfSym];
+      const mCap = Number(md?.marketCap || 0);
+      const price = md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
+      const val = Number(s.qty || 0) * price;
+      
+      let classification = "Micro Cap";
+      if (mCap >= 200000000000) classification = "Large Cap";
+      else if (mCap >= 50000000000) classification = "Mid Cap";
+      else if (mCap >= 5000000000) classification = "Small Cap";
+
+      return {
+        name: base,
+        sub: `${s.qty} shares · CMP ₹${price.toFixed(2)}`,
+        value: val,
+        classification,
+      };
+    })
+    .filter((x: any) => x.classification === capName && x.value > 0)
+    .sort((a: any, b: any) => b.value - a.value);
+  };
+
+  const getExpenseAssets = (catName: string) => {
+    const now = new Date();
+    const ym = now.toISOString().slice(0, 7);
+    return (state.transactions || [])
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.date &&
+          t.date.startsWith(ym) &&
+          (t.category || "Uncategorized") === catName
+      )
+      .map((t: any) => ({
+        name: t.description || "Expense",
+        sub: t.date,
+        value: Number(t.amount || 0),
+      }))
+      .sort((a: any, b: any) => b.value - a.value);
+  };
+
+
   const getSubAssets = (categoryName: string) => {
     switch (categoryName) {
       case "Bank Cash":
@@ -1156,17 +1210,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {/* Market Cap Breakdown */}
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Activity size={16} /> Market Cap Allocation
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Activity size={16} /> Market Cap Allocation
+                  </span>
+                  {selectedCapClass && (
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedCapClass(null); setActiveCapIndex(null); }} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 2, padding: "2px 6px" }}>
+                      <ChevronLeft size={12} /> Back
+                    </Button>
+                  )}
                 </div>
                 {metrics.stockCapBreakdown?.length === 0 ? (
                   <div style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
                     No market cap data available
                   </div>
                 ) : (
-                  <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                    <div style={{ width: "50%" }}>
-                      <ResponsiveContainer width="100%" height={220}>
+                  <div className="allocation-interactive-container" style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+                    {/* Left Side: Donut Chart with central HUD */}
+                    <div style={{ flex: "1 1 160px", position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <ResponsiveContainer width="100%" height={180}>
                         <PieChart>
                           <Pie
                             data={metrics.stockCapBreakdown}
@@ -1174,32 +1236,144 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             nameKey="name"
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
+                            innerRadius={58}
+                            outerRadius={74}
+                            paddingAngle={3}
+                            onMouseEnter={(_, index) => setActiveCapIndex(index)}
+                            onMouseLeave={() => setActiveCapIndex(null)}
+                            onClick={(_, index) => {
+                              const selectedName = metrics.stockCapBreakdown[index]?.name;
+                              setSelectedCapClass(selectedName === selectedCapClass ? null : selectedName);
+                            }}
+                            style={{ cursor: "pointer" }}
                           >
-                            {metrics.stockCapBreakdown.map((_: any, i: number) => (
-                              <Cell key={i} fill={["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4]} />
-                            ))}
+                            {metrics.stockCapBreakdown.map((item: any, i: number) => {
+                              const isSelected = selectedCapClass === item.name;
+                              const isHovered = activeCapIndex === i;
+                              return (
+                                <Cell 
+                                  key={i} 
+                                  fill={["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4]} 
+                                  opacity={selectedCapClass ? (isSelected ? 1 : 0.4) : (activeCapIndex !== null ? (isHovered ? 1 : 0.6) : 1)}
+                                  style={{
+                                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    transform: isHovered || isSelected ? "scale(1.03)" : "scale(1)",
+                                    transformOrigin: "center"
+                                  }}
+                                />
+                              );
+                            })}
                           </Pie>
-                          <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }} />
                         </PieChart>
                       </ResponsiveContainer>
+
+                      {/* HUD overlay inside the donut hole */}
+                      <div style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        textAlign: "center",
+                        pointerEvents: "none",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: 100,
+                        zIndex: 2
+                      }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
+                          {activeCapIndex !== null ? metrics.stockCapBreakdown[activeCapIndex]?.name : (selectedCapClass ? selectedCapClass : "Total Stocks")}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
+                          {fmtINR(
+                            activeCapIndex !== null 
+                              ? metrics.stockCapBreakdown[activeCapIndex]?.value 
+                              : (selectedCapClass 
+                                  ? (metrics.stockCapBreakdown.find(x => x.name === selectedCapClass)?.value || 0) 
+                                  : metrics.stockValue)
+                          )}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: THEME.sage, marginTop: 1 }}>
+                          {(() => {
+                            const val = activeCapIndex !== null 
+                              ? metrics.stockCapBreakdown[activeCapIndex]?.value 
+                              : (selectedCapClass 
+                                  ? (metrics.stockCapBreakdown.find(x => x.name === selectedCapClass)?.value || 0) 
+                                  : metrics.stockValue);
+                            const total = metrics.stockValue || 1;
+                            return `${((val / total) * 100).toFixed(1)}%`;
+                          })()}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ width: "50%", display: "grid", gap: 12 }}>
-                      {metrics.stockCapBreakdown.map((c: any, i: number) => (
-                        <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: ["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4] }} />
-                            <span style={{ fontWeight: 600 }}>{c.name}</span>
+
+                    {/* Right Side: Interactive detail list & holdings drill-down */}
+                    <div style={{ flex: "1 1 180px", maxHeight: 180, overflowY: "auto", paddingRight: 4 }}>
+                      {selectedCapClass ? (
+                        // DRILL DOWN LIST (STOCKS UNDER ACTIVE CAP)
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${THEME.line}`, paddingBottom: 4 }}>
+                            <span>Stock</span>
+                            <span>Value</span>
                           </div>
-                          <span style={{ color: THEME.muted, fontWeight: 500 }}>{((c.value / metrics.stockValue) * 100).toFixed(1)}%</span>
+                          {(() => {
+                            const subList = getStockCapAssets(selectedCapClass);
+                            if (subList.length === 0) {
+                              return <div style={{ fontSize: 11, color: THEME.muted, padding: "8px 0", textAlign: "center" }}>No holdings</div>;
+                            }
+                            return subList.map((item: any, idx: number) => (
+                              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", borderRadius: 6, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                                <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                                  {item.sub && <div style={{ fontSize: 9, color: THEME.muted, marginTop: 1 }}>{item.sub}</div>}
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{fmtINR(item.value)}</span>
+                              </div>
+                            ));
+                          })()}
                         </div>
-                      ))}
+                      ) : (
+                        // OVERALL MARKET CAP LIST
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {metrics.stockCapBreakdown.map((item: any, i: number) => {
+                            const isHovered = activeCapIndex === i;
+                            const color = ["#818CF8", "#34D399", "#FBBF24", "#F87171"][i % 4];
+                            const pct = ((item.value / (metrics.stockValue || 1)) * 100).toFixed(1);
+                            return (
+                              <div 
+                                key={i} 
+                                onMouseEnter={() => setActiveCapIndex(i)}
+                                onMouseLeave={() => setActiveCapIndex(null)}
+                                onClick={() => setSelectedCapClass(item.name)}
+                                style={{ 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center", 
+                                  padding: "6px 8px", 
+                                  borderRadius: 6, 
+                                  background: isHovered ? "rgba(128,128,128,0.05)" : "rgba(128,128,128,0.02)", 
+                                  border: isHovered ? `1px solid ${color}` : `1px solid ${THEME.line}`,
+                                  cursor: "pointer",
+                                  transition: "all 0.2s ease"
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</span>
+                                  <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>{pct}%</span>
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: THEME.ink, marginLeft: 6 }}>{fmtINR(item.value)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
+
             </div>
           </Card>
 
@@ -1555,32 +1729,169 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "spending" && (
         <div className="animate-fade-in-up">
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
-            <Card style={{ padding: 24 }}>
-              <div className="section-label">Expense Breakup (This Month)</div>
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <div className="section-label" style={{ marginBottom: 2 }}>Expense Breakup (This Month)</div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    {selectedExpenseCategory ? `Drill down: ${selectedExpenseCategory}` : "Interactive monthly spending map"}
+                  </div>
+                </div>
+                {selectedExpenseCategory && (
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedExpenseCategory(null); setActiveExpenseIndex(null); }} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px" }}>
+                    <ChevronLeft size={14} /> Back
+                  </Button>
+                )}
+              </div>
               {metrics.expenseBreakdown?.length === 0 ? (
                 <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
                   No expenses recorded this month. Add debit transactions to see your spending breakup.
                 </div>
               ) : (
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie data={metrics.expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} innerRadius={70} paddingAngle={4}>
-                        {metrics.expenseBreakdown.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v: any) => fmtINRFull(v)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ display: "grid", gap: 10, minWidth: 200 }}>
-                    {metrics.expenseBreakdown.slice(0, 6).map((cat: any, i: number) => (
-                      <div key={cat.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                <div className="allocation-interactive-container" style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 24, minHeight: 300 }}>
+                  {/* Left Side: Donut Chart with central display */}
+                  <div style={{ flex: "1 1 240px", position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={metrics.expenseBreakdown}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={72}
+                          outerRadius={92}
+                          paddingAngle={2}
+                          onMouseEnter={(_, index) => setActiveExpenseIndex(index)}
+                          onMouseLeave={() => setActiveExpenseIndex(null)}
+                          onClick={(_, index) => {
+                            const selectedName = metrics.expenseBreakdown[index]?.name;
+                            setSelectedExpenseCategory(selectedName === selectedExpenseCategory ? null : selectedName);
+                          }}
+                          style={{ cursor: "pointer" }}
+                        >
+                          {metrics.expenseBreakdown.map((item: any, i: number) => {
+                            const isSelected = selectedExpenseCategory === item.name;
+                            const isHovered = activeExpenseIndex === i;
+                            return (
+                              <Cell 
+                                key={i} 
+                                fill={PIE_COLORS[i % PIE_COLORS.length]} 
+                                opacity={selectedExpenseCategory ? (isSelected ? 1 : 0.4) : (activeExpenseIndex !== null ? (isHovered ? 1 : 0.6) : 1)}
+                                style={{
+                                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                  transform: isHovered || isSelected ? "scale(1.03)" : "scale(1)",
+                                  transformOrigin: "center"
+                                }}
+                              />
+                            );
+                          })}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    
+                    {/* Central display inside the donut hole */}
+                    <div style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      textAlign: "center",
+                      pointerEvents: "none",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: 130,
+                      zIndex: 2
+                    }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
+                        {activeExpenseIndex !== null ? metrics.expenseBreakdown[activeExpenseIndex]?.name : (selectedExpenseCategory ? selectedExpenseCategory : "Total Spend")}
+                      </span>
+                      <span style={{ fontSize: 17, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
+                        {fmtINRFull(
+                          activeExpenseIndex !== null 
+                            ? metrics.expenseBreakdown[activeExpenseIndex]?.value 
+                            : (selectedExpenseCategory 
+                                ? (metrics.expenseBreakdown.find(x => x.name === selectedExpenseCategory)?.value || 0) 
+                                : metrics.monthExpense)
+                        )}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
+                        {(() => {
+                          const val = activeExpenseIndex !== null 
+                            ? metrics.expenseBreakdown[activeExpenseIndex]?.value 
+                            : (selectedExpenseCategory 
+                                ? (metrics.expenseBreakdown.find(x => x.name === selectedExpenseCategory)?.value || 0) 
+                                : metrics.monthExpense);
+                          const total = metrics.monthExpense || 1;
+                          return `${((val / total) * 100).toFixed(1)}%`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Side: Interactive detail list and sub-asset drill-down */}
+                  <div style={{ flex: "1 1 240px", maxHeight: 260, overflowY: "auto", paddingRight: 4 }}>
+                    {selectedExpenseCategory ? (
+                      // DRILL DOWN TRANSACTION LIST FOR SELECTED CATEGORY
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${THEME.line}`, paddingBottom: 6 }}>
+                          <span>Transaction Details</span>
+                          <span>Amount</span>
                         </div>
-                        <span style={{ color: THEME.muted }}>{fmtINR(cat.value)}</span>
+                        {(() => {
+                          const subList = getExpenseAssets(selectedExpenseCategory);
+                          if (subList.length === 0) {
+                            return <div style={{ fontSize: 12, color: THEME.muted, padding: "12px 0", textAlign: "center" }}>No transactions this month</div>;
+                          }
+                          return subList.map((item: any, idx: number) => (
+                            <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderRadius: 8, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                              <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                                {item.sub && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{item.sub}</div>}
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{fmtINR(item.value)}</span>
+                            </div>
+                          ));
+                        })()}
                       </div>
-                    ))}
+                    ) : (
+                      // OVERALL EXPENSE CATEGORY ALLOCATION LIST
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {metrics.expenseBreakdown.map((item: any, i: number) => {
+                          const isHovered = activeExpenseIndex === i;
+                          const color = PIE_COLORS[i % PIE_COLORS.length];
+                          const pct = ((item.value / (metrics.monthExpense || 1)) * 100).toFixed(1);
+                          return (
+                            <div 
+                              key={i} 
+                              onMouseEnter={() => setActiveExpenseIndex(i)}
+                              onMouseLeave={() => setActiveExpenseIndex(null)}
+                              onClick={() => setSelectedExpenseCategory(item.name)}
+                              style={{ 
+                                display: "flex", 
+                                justifyContent: "space-between", 
+                                alignItems: "center", 
+                                padding: "8px 10px", 
+                                borderRadius: 8, 
+                                background: isHovered ? "rgba(128,128,128,0.05)" : "rgba(128,128,128,0.02)", 
+                                border: isHovered ? `1px solid ${color}` : `1px solid ${THEME.line}`,
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</span>
+                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{pct}%</span>
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginLeft: 8 }}>{fmtINR(item.value)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
