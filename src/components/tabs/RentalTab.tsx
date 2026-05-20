@@ -9,7 +9,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
-import { RentalPropertyModal, RentedInPropertyModal, RentalReceiptModal, RentalDeductionModal } from "../modals/RentalModals";
+import { RentalPropertyModal, RentedInPropertyModal, RentalReceiptModal, RentalDeductionModal, RentalDepositTxModal } from "../modals/RentalModals";
 
 interface RentalTabProps {
   state: any;
@@ -25,7 +25,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
   // Ledger state
   const [expandedLedger, setExpandedLedger] = useState<string | null>(null);
-  const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction"; property: any } | null>(null);
+  const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction" | "deposit_in" | "deposit_out"; property: any } | null>(null);
 
   // CSV Import state
   const [showCsvImport, setShowCsvImport] = useState<string | null>(null);
@@ -33,6 +33,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const [csvPreview, setCsvPreview] = useState<any[]>([]);
   const [csvError, setCsvError] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
+
+  const getActualSecurityDeposit = (p: any) => {
+    if (p.depositTransactions && p.depositTransactions.length > 0) {
+      return p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+    }
+    return Number(p.securityDeposit || 0);
+  };
 
   const parseCsvText = (text: string, _type: "payment" | "receipt") => {
     setCsvError("");
@@ -70,14 +77,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
   const outMonthlyRent = propertiesOut.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
   const outThisFY = propertiesOut.reduce((s: number, p: any) => s + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((ss: number, rr: any) => ss + Number(rr.amount || 0), 0), 0);
-  const outDepositHeld = propertiesOut.reduce((s: number, p: any) => s + Math.max(0, Number(p.securityDeposit || 0) - (p.depositDeductions || []).reduce((ss: number, dd: any) => ss + Number(dd.amount || 0), 0) - Number(p.depositReturned || 0)), 0);
+  const outDepositHeld = propertiesOut.reduce((s: number, p: any) => s + Math.max(0, getActualSecurityDeposit(p) - (p.depositDeductions || []).reduce((ss: number, dd: any) => ss + Number(dd.amount || 0), 0) - Number(p.depositReturned || 0)), 0);
 
   const inMonthlyRent = propertiesIn.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
   const inThisFY = propertiesIn.reduce((s: number, p: any) => s + (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((ss: number, rr: any) => ss + Number(rr.amount || 0), 0), 0);
-  const inDepositPaid = propertiesIn.reduce((s: number, p: any) => s + Math.max(0, Number(p.securityDeposit || 0) - Number(p.depositReturned || 0)), 0);
+  const inDepositPaid = propertiesIn.reduce((s: number, p: any) => s + Math.max(0, getActualSecurityDeposit(p) - Number(p.depositReturned || 0)), 0);
 
   const handleAddOut = (data: any) => {
-    addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0 });
+    addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0, depositTransactions: [] });
     setModalOut({ open: false, editing: null });
   };
   const handleEditOut = (data: any) => {
@@ -85,7 +92,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     setModalOut({ open: false, editing: null });
   };
   const handleAddIn = (data: any) => {
-    addItem("rentedProperties", { ...data, payments: [], depositReturned: 0 });
+    addItem("rentedProperties", { ...data, payments: [], depositReturned: 0, depositTransactions: [] });
     setModalIn({ open: false, editing: null });
   };
   const handleEditIn = (data: any) => {
@@ -126,6 +133,29 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     const updatedDeductions = (p.depositDeductions || []).filter((dec: any) => dec.id !== deductionId);
     updateItem("rentalProperties", p.id, { ...p, depositDeductions: updatedDeductions });
   };
+
+  const handleAddDepositIn = (p: any, depositData: any) => {
+    const updated = [...(p.depositTransactions || []), { ...depositData, id: Math.random().toString(36).substr(2, 9) }];
+    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+    setShowLogModal(null);
+  };
+
+  const handleRemoveDepositIn = (p: any, depositId: string) => {
+    const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
+    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+  };
+
+  const handleAddDepositOut = (p: any, depositData: any) => {
+    const updated = [...(p.depositTransactions || []), { ...depositData, id: Math.random().toString(36).substr(2, 9) }];
+    updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+    setShowLogModal(null);
+  };
+
+  const handleRemoveDepositOut = (p: any, depositId: string) => {
+    const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
+    updateItem("rentalProperties", p.id, { ...p, depositTransactions: updated });
+  };
+
 
   return (
     <div className="tab-content-enter">
@@ -285,13 +315,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Held</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
-                            {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
+                            {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0)))}
                           </div>
-                          {p.depositReceivedDate && (
+                          {p.depositTransactions && p.depositTransactions.length > 0 ? (
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                              Agreed: <span style={{ color: THEME.gold }}>{fmtINRFull(p.securityDeposit || 0)}</span>
+                            </div>
+                          ) : p.depositReceivedDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
                               Recd: <span style={{ color: THEME.gold }}>{p.depositReceivedDate}</span>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
@@ -525,6 +559,53 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           )}
 
+                          {/* ── Divider between Receipts & Deposit Ledger ── */}
+                          <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />
+
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Deposit Receipts Ledger</span>
+                            <Button 
+                              variant="accent" 
+                              size="sm" 
+                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.gold }}
+                              onClick={() => setShowLogModal({ type: "deposit_out", property: p })}
+                            >
+                              <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
+                            </Button>
+                          </div>
+
+                          {(p.depositTransactions || []).length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                              No partial deposit receipts logged yet (falling back to agreed lump sum).
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {(p.depositTransactions || []).map((r: any) => (
+                                <div key={r.id} style={{
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`
+                                }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
+                                      Deposit Received {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}>+{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => handleRemoveDepositOut(p, r.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {/* ── Divider between Receipts & Deductions ── */}
                           <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />
 
@@ -692,13 +773,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Deposit Paid</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
-                            {fmtINRFull(Math.max(0, Number(p.securityDeposit || 0) - (p.depositReturned || 0)))}
+                            {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0)))}
                           </div>
-                          {p.depositPaidDate && (
+                          {p.depositTransactions && p.depositTransactions.length > 0 ? (
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                              Agreed: <span style={{ color: THEME.sage }}>{fmtINRFull(p.securityDeposit || 0)}</span>
+                            </div>
+                          ) : p.depositPaidDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
                               Paid: <span style={{ color: THEME.sage }}>{p.depositPaidDate}</span>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
@@ -931,6 +1016,53 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               ))}
                             </div>
                           )}
+
+                          {/* ── Divider between Rent Payments & Deposit Ledger ── */}
+                          <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />
+
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Deposit Payments Ledger</span>
+                            <Button 
+                              variant="accent" 
+                              size="sm" 
+                              style={{ padding: "4px 10px", fontSize: 11, background: THEME.sage }}
+                              onClick={() => setShowLogModal({ type: "deposit_in", property: p })}
+                            >
+                              <Plus size={10} style={{ marginRight: 4 }} /> Log Deposit
+                            </Button>
+                          </div>
+
+                          {(p.depositTransactions || []).length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "16px 0", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
+                              No partial deposit payments logged yet (falling back to agreed lump sum).
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {(p.depositTransactions || []).map((r: any) => (
+                                <div key={r.id} style={{
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  border: `1px solid ${THEME.line}`
+                                }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
+                                      Deposit Paid {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => handleRemoveDepositIn(p, r.id)}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -984,6 +1116,28 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         <RentalDeductionModal
           onClose={() => setShowLogModal(null)}
           onSave={(data) => handleAddDeduction(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Deposit Payment Modal (Rented In) */}
+      {showLogModal && showLogModal.type === "deposit_in" && (
+        <RentalDepositTxModal
+          title="Log Deposit Payment (Rent In)"
+          amountLabel="Deposit Amount Paid (₹)"
+          saveLabel="Log Deposit Payment"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data) => handleAddDepositIn(showLogModal.property, data)}
+        />
+      )}
+
+      {/* Log Deposit Receipt Modal (Rented Out) */}
+      {showLogModal && showLogModal.type === "deposit_out" && (
+        <RentalDepositTxModal
+          title="Log Deposit Receipt (Rent Out)"
+          amountLabel="Deposit Amount Received (₹)"
+          saveLabel="Log Deposit Receipt"
+          onClose={() => setShowLogModal(null)}
+          onSave={(data) => handleAddDepositOut(showLogModal.property, data)}
         />
       )}
     </div>

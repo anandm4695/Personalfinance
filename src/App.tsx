@@ -671,8 +671,11 @@ function FinanceDashboard() {
             return a + (loaded - spent);
           }, 0);
         const rentedDepositAsset = (s.rentedProperties || []).reduce((a, p) => {
+          const actualDeposit = p.depositTransactions && p.depositTransactions.length > 0
+            ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+            : Number(p.securityDeposit || 0);
           const returned = Number(p.depositReturned || 0);
-          return a + Math.max(0, Number(p.securityDeposit || 0) - returned);
+          return a + Math.max(0, actualDeposit - returned);
         }, 0);
         const informalLent = (s.informalLent || []).reduce((a, person) => {
           const tranches = person.tranches || [];
@@ -687,9 +690,12 @@ function FinanceDashboard() {
           .reduce((a, x) => a + Number(x.outstanding || 0), 0);
         const loansTaken = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
         const rentalDepositLiability = (s.rentalProperties || []).reduce((a, p) => {
+          const actualDeposit = p.depositTransactions && p.depositTransactions.length > 0
+            ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+            : Number(p.securityDeposit || 0);
           const deducted = (p.depositDeductions || []).reduce((ad, d) => ad + Number(d.amount || 0), 0);
           const returned = Number(p.depositReturned || 0);
-          return a + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+          return a + Math.max(0, actualDeposit - deducted - returned);
         }, 0);
         const informalBorrowed = (s.informalBorrowed || []).reduce((a, person) => {
           const tranches = person.tranches || [];
@@ -830,13 +836,19 @@ function FinanceDashboard() {
       0
     );
     const rentalDepositLiability = (sState.rentalProperties || []).reduce((s, p) => {
+      const actualDeposit = p.depositTransactions && p.depositTransactions.length > 0
+        ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+        : Number(p.securityDeposit || 0);
       const deducted = (p.depositDeductions || []).reduce((a, d) => a + Number(d.amount || 0), 0);
       const returned = Number(p.depositReturned || 0);
-      return s + Math.max(0, Number(p.securityDeposit || 0) - deducted - returned);
+      return s + Math.max(0, actualDeposit - deducted - returned);
     }, 0);
     const rentedDepositAsset = (sState.rentedProperties || []).reduce((s, p) => {
+      const actualDeposit = p.depositTransactions && p.depositTransactions.length > 0
+        ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
+        : Number(p.securityDeposit || 0);
       const returned = Number(p.depositReturned || 0);
-      return s + Math.max(0, Number(p.securityDeposit || 0) - returned);
+      return s + Math.max(0, actualDeposit - returned);
     }, 0);
 
     const informalLentValue = (sState.informalLent || []).reduce((s, person) => {

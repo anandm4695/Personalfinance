@@ -770,3 +770,28 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
     </Modal>
   );
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   RentalDepositTxModal — for logging partial security deposits
+   (received or paid, YYYY-MM-DD + amount + description)
+   ══════════════════════════════════════════════════════════════════ */
+export function RentalDepositTxModal({ title, saveLabel, onClose, onSave }: any) {
+  const [f, setF] = useState({ amount: "", date: today(), note: "" });
+  return (
+    <Modal title={title || "Log Deposit Transaction"} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Amount (₹)" style={{ gridColumn: "1 / -1" }}>
+          <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="50000" />
+        </Field>
+        <Field label="Date">
+          <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+        </Field>
+        <Field label="Note / Mode (optional)">
+          <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Bank Transfer, Token money" />
+        </Field>
+      </div>
+      <ModalActions onSave={() => Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel={saveLabel || "Log Deposit"} />
+    </Modal>
+  );
+}
+
