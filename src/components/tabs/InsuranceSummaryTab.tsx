@@ -636,20 +636,20 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               <input className={inp} type="number" value={term.annualPremium} onChange={e => handleTermFieldChange("annualPremium", e.target.value)} placeholder="12000" />
             </Field>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <Field label="Plan Cover (Years)">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+            <Field label="Plan Cover (Yrs)">
               <input className={inp} type="number" placeholder="20" value={term.term} onChange={e => handleTermFieldChange("term", e.target.value)} />
             </Field>
-            <Field label="Payable (Years)">
+            <Field label="Payable (Yrs)">
               <input className={inp} type="number" placeholder="20" value={term.premiumPayingTerm} onChange={e => handleTermFieldChange("premiumPayingTerm", e.target.value)} />
             </Field>
-            <Field label="Commencement Date">
+            <Field label="Commencement">
               <input className={inp} type="date" value={term.startDate} onChange={e => handleTermFieldChange("startDate", e.target.value)} />
             </Field>
+            <Field label="Expiry Date">
+              <input className={inp} type="date" value={term.expiryDate} onChange={e => handleTermFieldChange("expiryDate", e.target.value)} />
+            </Field>
           </div>
-          <Field label="Policy Expiry Date">
-            <input className={inp} type="date" value={term.expiryDate} onChange={e => handleTermFieldChange("expiryDate", e.target.value)} />
-          </Field>
 
           {/* Premium Payments Ledger */}
           <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
@@ -826,8 +826,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.lic.map((l: any) => {
               const paid = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0) || Number(l.premiumPaid || 0);
+              const expectedTotal = l.annualPremium && l.policyTerm ? (Number(l.annualPremium) * parseInt(l.policyTerm, 10)) : 0;
+              const balance = Math.max(0, expectedTotal - paid);
+              const isPaid = balance <= 0;
               return (
-                <Card key={l.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
+                <Card key={l.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <InsurerLogo name="LIC" isLic />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -895,7 +898,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       </Card>
 
       {/* TERM PLANS SECTION */}
-      <Card style={{ padding: 24 }}>
+      <Card style={{ marginBottom: 24, padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}>Term Insurance Plans</div>
           <Button onClick={() => setModal("term")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
@@ -915,8 +918,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.termPlans.map((t: any) => {
               const paid = (t.transactions || []).reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0) || Number(t.premiumPaid || 0);
+              const expectedTotal = t.annualPremium && (t.premiumPayingTerm || t.term) ? (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)) : 0;
+              const balance = Math.max(0, expectedTotal - paid);
+              const isPaid = balance <= 0;
               return (
-                <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
+                <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <InsurerLogo name={t.insurer} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -988,7 +994,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       </Card>
 
       {/* INVESTMENT PLANS SECTION */}
-      <Card style={{ padding: 24, marginTop: 24 }}>
+      <Card style={{ marginBottom: 24, padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}>Investment Plans (Endowment / ULIP)</div>
           <Button onClick={() => setModal("invest")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
