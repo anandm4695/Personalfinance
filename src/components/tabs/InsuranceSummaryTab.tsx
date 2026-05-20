@@ -146,10 +146,11 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         expiryDate: policy.expiryDate || "",
         startDate: policy.startDate || "",
         term: policy.term || "",
-        premiumPayingTerm: policy.premiumPayingTerm || ""
+        premiumPayingTerm: policy.premiumPayingTerm || "",
+        transactions: policy.transactions || []
       };
     }
-    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "", startDate: "", term: "", premiumPayingTerm: "" };
+    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "", startDate: "", term: "", premiumPayingTerm: "", transactions: [] };
   });
 
   const [newTxDate, setNewTxDate] = useState("");
@@ -164,15 +165,25 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       date: newTxDate,
       amount: Number(newTxAmount)
     };
-    const updatedTxns = [...(lic.transactions || []), newTx].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    setLic({ ...lic, transactions: updatedTxns });
+    if (sub === "lic") {
+      const updatedTxns = [...(lic.transactions || []), newTx].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setLic({ ...lic, transactions: updatedTxns });
+    } else {
+      const updatedTxns = [...(term.transactions || []), newTx].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setTerm({ ...term, transactions: updatedTxns });
+    }
     setNewTxDate("");
     setNewTxAmount("");
   };
 
   const handleRemoveTransaction = (txId: string) => {
-    const updatedTxns = (lic.transactions || []).filter((t: any) => t.id !== txId);
-    setLic({ ...lic, transactions: updatedTxns });
+    if (sub === "lic") {
+      const updatedTxns = (lic.transactions || []).filter((t: any) => t.id !== txId);
+      setLic({ ...lic, transactions: updatedTxns });
+    } else {
+      const updatedTxns = (term.transactions || []).filter((t: any) => t.id !== txId);
+      setTerm({ ...term, transactions: updatedTxns });
+    }
   };
 
   const handleAutoGenerateTransactions = () => {
@@ -204,6 +215,41 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
     setLic({ ...lic, transactions: generated });
   };
 
+  const handleTermAutoGenerateTransactions = () => {
+    if (!term.startDate || !term.annualPremium) {
+      alert("Please select a Commencement Date and enter an Annual Premium first.");
+      return;
+    }
+    const commDate = new Date(term.startDate);
+    const premium = Number(term.annualPremium);
+    const payTerm = term.premiumPayingTerm ? parseInt(term.premiumPayingTerm, 10) : null;
+    const todayDate = new Date();
+    const generated: any[] = [];
+    
+    let current = new Date(commDate);
+    let count = 0;
+    while (current <= todayDate) {
+      if (payTerm !== null && !isNaN(payTerm) && count >= payTerm) {
+        break;
+      }
+      const yearStr = current.getFullYear();
+      const monthStr = String(current.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(current.getDate()).padStart(2, "0");
+      const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+      
+      generated.push({
+        id: uid(),
+        date: dateStr,
+        amount: premium
+      });
+      
+      current.setFullYear(current.getFullYear() + 1);
+      count++;
+    }
+    
+    setTerm({ ...term, transactions: generated });
+  };
+
   const handleSave = () => {
     if (sub === "lic") {
       if (!lic.planName || !lic.sumAssured) return;
@@ -211,7 +257,8 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
       onSave("lic", { ...lic, premiumPaid: calculatedPremiumPaid, id: lic.id || uid() }, !!policy);
     } else {
       if (!term.insurer || !term.coverAmount) return;
-      onSave("termPlans", { ...term, id: term.id || uid() }, !!policy);
+      const calculatedPremiumPaid = (term.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      onSave("termPlans", { ...term, premiumPaid: calculatedPremiumPaid, id: term.id || uid() }, !!policy);
     }
   };
 
@@ -315,9 +362,22 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               </Button>
             </div>
 
-            <div style={{ textAlign: "right", fontSize: 12, fontWeight: 700, color: THEME.muted, marginTop: 10 }}>
-              Calculated Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                {fmtINRFull((lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0))}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: THEME.muted, marginTop: 10, flexWrap: "wrap", gap: 10 }}>
+              <span>
+                Expected Total: <span style={{ color: THEME.ink, fontWeight: 800 }}>{lic.annualPremium && lic.policyTerm ? fmtINRFull(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10)) : "—"}</span>
+              </span>
+              <span>
+                Calculated Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull((lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0))}</span>
+              </span>
+              <span>
+                Balance to Pay: <span style={{ color: (lic.annualPremium && lic.policyTerm && (Number(lic.annualPremium) * parseInt(lic.policyTerm, 10) - (lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                  {lic.annualPremium && lic.policyTerm ? (
+                    (() => {
+                      const bal = (Number(lic.annualPremium) * parseInt(lic.policyTerm, 10)) - (lic.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+                      return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
+                    })()
+                  ) : "—"}
+                </span>
               </span>
             </div>
           </div>
@@ -359,6 +419,86 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
           <Field label="Policy Expiry Date">
             <input className={inp} type="date" value={term.expiryDate} onChange={e => handleTermFieldChange("expiryDate", e.target.value)} />
           </Field>
+
+          {/* Premium Payments Ledger */}
+          <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Premium Payments Ledger</div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleTermAutoGenerateTransactions}
+                style={{ fontSize: 11, padding: "4px 8px", color: THEME.accent }}
+              >
+                <Sparkles size={12} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} /> Auto-Generate
+              </Button>
+            </div>
+
+            {/* List of Payments */}
+            <div style={{ maxHeight: 150, overflowY: "auto", border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "8px 12px", background: "rgba(128,128,128,0.02)", marginBottom: 12 }}>
+              {(term.transactions || []).length === 0 ? (
+                <div style={{ textAlign: "center", fontSize: 11, color: THEME.muted, padding: "16px 0" }}>No transaction history entered. Use the auto-generator or add below.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {(term.transactions || []).map((t: any) => (
+                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, paddingBottom: 6, borderBottom: `1px solid ${THEME.line}40` }}>
+                      <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 800, color: THEME.sage }}>{fmtINRFull(t.amount)}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveTransaction(t.id)} 
+                          style={{ padding: 2, color: THEME.rust }}
+                        >
+                          <Trash2 size={11} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add New Payment Entry Form */}
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "rgba(128,128,128,0.04)", padding: 10, borderRadius: 8 }}>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>Payment Date</label>
+                <input className={inp} type="date" value={newTxDate} onChange={e => setNewTxDate(e.target.value)} style={{ padding: "6px 8px", fontSize: 12 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>Amount (₹)</label>
+                <input className={inp} type="number" placeholder="12000" value={newTxAmount} onChange={e => setNewTxAmount(e.target.value)} style={{ padding: "6px 8px", fontSize: 12 }} />
+              </div>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleAddTransaction}
+                style={{ padding: "6px 12px", height: 32, fontSize: 12 }}
+              >
+                Add Row
+              </Button>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: THEME.muted, marginTop: 10, flexWrap: "wrap", gap: 10 }}>
+              <span>
+                Expected Total: <span style={{ color: THEME.ink, fontWeight: 800 }}>{term.annualPremium && (term.premiumPayingTerm || term.term) ? fmtINRFull(Number(term.annualPremium) * parseInt(term.premiumPayingTerm || term.term, 10)) : "—"}</span>
+              </span>
+              <span>
+                Calculated Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull((term.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0))}</span>
+              </span>
+              <span>
+                Balance to Pay: <span style={{ color: (term.annualPremium && (term.premiumPayingTerm || term.term) && (Number(term.annualPremium) * parseInt(term.premiumPayingTerm || term.term, 10) - (term.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                  {term.annualPremium && (term.premiumPayingTerm || term.term) ? (
+                    (() => {
+                      const bal = (Number(term.annualPremium) * parseInt(term.premiumPayingTerm || term.term, 10)) - (term.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+                      return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
+                    })()
+                  ) : "—"}
+                </span>
+              </span>
+            </div>
+          </div>
         </>
       )}
       <ModalActions onSave={handleSave} onClose={onClose} saveLabel={isEdit ? "Update Policy" : "Add Policy"} />
@@ -478,11 +618,23 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>
-                      Total Paid So Far: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                        Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                        Balance: <span style={{ color: (l.annualPremium && l.policyTerm && (Number(l.annualPremium) * parseInt(l.policyTerm, 10) - paid) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                          {l.annualPremium && l.policyTerm ? (
+                            (() => {
+                              const bal = (Number(l.annualPremium) * parseInt(l.policyTerm, 10)) - paid;
+                              return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
+                            })()
+                          ) : "—"}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                       <Button variant="ghost" size="sm" onClick={() => setEditPolicy(l)} style={{ padding: 6, color: THEME.accent }}>
                         <Pencil size={14} />
                       </Button>
@@ -517,58 +669,76 @@ export function InsuranceSummaryTab({ state, addItem, removeItem, updateItem }: 
           />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
-            {state.termPlans.map((t: any) => (
-              <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <InsurerLogo name={t.insurer} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
-                      <OwnerBadge owner={t.owner} />
+            {state.termPlans.map((t: any) => {
+              const paid = (t.transactions || []).reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0) || Number(t.premiumPaid || 0);
+              return (
+                <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${THEME.rust}`, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <InsurerLogo name={t.insurer} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
+                        <OwnerBadge owner={t.owner} />
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                        <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
+                        <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
+                        <span>{t.insurer}</span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                      <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
-                      <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                      <span>{t.insurer}</span>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(t.annualPremium)}</div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(t.annualPremium)}</div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
-                  </div>
-                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Plan Cover</div>
-                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.term ? `${t.term} Yrs` : "—"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Plan Cover</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.term ? `${t.term} Yrs` : "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Payable For</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.startDate || "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Expiry Date</div>
+                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.expiryDate || "—"}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Payable For</div>
-                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—"}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
-                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.startDate || "—"}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Expiry Date</div>
-                    <div style={{ fontWeight: 700, color: THEME.ink }}>{t.expiryDate || "—"}</div>
-                  </div>
-                </div>
 
-                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <Button variant="ghost" size="sm" onClick={() => setEditPolicy(t)} style={{ padding: 6, color: THEME.accent }}>
-                      <Pencil size={14} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
-                      <Trash2 size={14} />
-                    </Button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                        Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                        Balance: <span style={{ color: (t.annualPremium && (t.premiumPayingTerm || t.term) && (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10) - paid) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                          {t.annualPremium && (t.premiumPayingTerm || t.term) ? (
+                            (() => {
+                              const bal = (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)) - paid;
+                              return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
+                            })()
+                          ) : "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                      <Button variant="ghost" size="sm" onClick={() => setEditPolicy(t)} style={{ padding: 6, color: THEME.accent }}>
+                        <Pencil size={14} />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </Card>
