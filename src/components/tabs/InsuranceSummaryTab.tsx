@@ -77,6 +77,22 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
 };
 
 const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
+  const todayStr = (() => {
+    const d = new Date();
+    const yStr = d.getFullYear();
+    const mStr = String(d.getMonth() + 1).padStart(2, "0");
+    const dayStr = String(d.getDate()).padStart(2, "0");
+    return `${yStr}-${mStr}-${dayStr}`;
+  })();
+
+  const futureStr20 = (() => {
+    const d = new Date();
+    const yStr = d.getFullYear() + 20;
+    const mStr = String(d.getMonth() + 1).padStart(2, "0");
+    const dayStr = String(d.getDate()).padStart(2, "0");
+    return `${yStr}-${mStr}-${dayStr}`;
+  })();
+
   const [lic, setLic] = useState(() => {
     if (policy) {
       return {
@@ -93,7 +109,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         transactions: policy.transactions || []
       };
     }
-    return { owner: "self", planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: "", maturityDate: "", policyTerm: "", transactions: [] };
+    return { owner: "self", planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", commencementDate: todayStr, maturityDate: futureStr20, policyTerm: "20", transactions: [] };
   });
 
   const handleFieldChange = (field: string, val: any) => {
@@ -169,7 +185,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         transactions: policy.transactions || []
       };
     }
-    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: "", startDate: "", term: "", premiumPayingTerm: "", transactions: [] };
+    return { owner: "self", insurer: "", planName: "", coverAmount: "", annualPremium: "", expiryDate: futureStr20, startDate: todayStr, term: "20", premiumPayingTerm: "20", transactions: [] };
   });
 
   const [invest, setInvest] = useState(() => {
@@ -191,10 +207,10 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
         transactions: policy.transactions || []
       };
     }
-    return { owner: "self", insurer: "", planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", policyTerm: "", premiumPayingTerm: "", commencementDate: "", maturityDate: "", expectedMaturityAmount: "", transactions: [] };
+    return { owner: "self", insurer: "", planName: "", policyNumber: "", sumAssured: "", annualPremium: "", premiumPaid: "", policyTerm: "20", premiumPayingTerm: "10", commencementDate: todayStr, maturityDate: futureStr20, expectedMaturityAmount: "", transactions: [] };
   });
 
-  const [newTxDate, setNewTxDate] = useState("");
+  const [newTxDate, setNewTxDate] = useState(todayStr);
   const [newTxAmount, setNewTxAmount] = useState("");
 
   const inp = "form-input";
