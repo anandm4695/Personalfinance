@@ -1468,6 +1468,82 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }
               });
 
+              // 5. TERM PLAN PREMIUMS: recurring logic by anniversary month and active range
+              (state.termPlans || []).forEach((t: any) => {
+                if (t.startDate) {
+                  const commDate = new Date(t.startDate);
+                  if (!isNaN(commDate.getTime())) {
+                    const commYear = commDate.getFullYear();
+                    const commMonth = commDate.getMonth();
+                    
+                    // Viewed year/month must be >= commencement year/month
+                    if (year > commYear || (year === commYear && month >= commMonth)) {
+                      let isExpired = false;
+                      if (t.expiryDate) {
+                        const expDate = new Date(t.expiryDate);
+                        if (!isNaN(expDate.getTime())) {
+                          if (year > expDate.getFullYear() || (year === expDate.getFullYear() && month > expDate.getMonth())) {
+                            isExpired = true;
+                          }
+                        }
+                      }
+                      
+                      // Also check if we have finished paying based on premium paying term
+                      const payTerm = t.premiumPayingTerm ? parseInt(t.premiumPayingTerm, 10) : (t.term ? parseInt(t.term, 10) : null);
+                      if (payTerm && !isNaN(payTerm)) {
+                        const yearsElapsed = year - commYear;
+                        if (yearsElapsed >= payTerm) {
+                          isExpired = true; // Premium paying term ended
+                        }
+                      }
+                      
+                      if (!isExpired && month === commMonth) {
+                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
+                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({ label: `Term: ${t.planName || "Plan"}`, color: THEME.sage });
+                      }
+                    }
+                  }
+                }
+              });
+
+              // 6. INVESTMENT PLAN PREMIUMS: recurring logic by anniversary month and active range
+              (state.investmentPlans || []).forEach((ip: any) => {
+                if (ip.commencementDate) {
+                  const commDate = new Date(ip.commencementDate);
+                  if (!isNaN(commDate.getTime())) {
+                    const commYear = commDate.getFullYear();
+                    const commMonth = commDate.getMonth();
+                    
+                    // Viewed year/month must be >= commencement year/month
+                    if (year > commYear || (year === commYear && month >= commMonth)) {
+                      let isMatured = false;
+                      if (ip.maturityDate) {
+                        const matDate = new Date(ip.maturityDate);
+                        if (!isNaN(matDate.getTime())) {
+                          if (year > matDate.getFullYear() || (year === matDate.getFullYear() && month > matDate.getMonth())) {
+                            isMatured = true;
+                          }
+                        }
+                      }
+                      
+                      // Also check if we have finished paying based on premium paying term
+                      const payTerm = ip.premiumPayingTerm ? parseInt(ip.premiumPayingTerm, 10) : (ip.policyTerm ? parseInt(ip.policyTerm, 10) : null);
+                      if (payTerm && !isNaN(payTerm)) {
+                        const yearsElapsed = year - commYear;
+                        if (yearsElapsed >= payTerm) {
+                          isMatured = true; // Premium paying term ended
+                        }
+                      }
+                      
+                      if (!isMatured && month === commMonth) {
+                        const dueDay = Math.min(commDate.getDate(), daysInMonth);
+                        dueDays[dueDay] = (dueDays[dueDay] || []).concat({ label: `Invest: ${ip.planName || "Plan"}`, color: THEME.sage });
+                      }
+                    }
+                  }
+                }
+              });
+
               const cells: (number | null)[] = [];
               for (let i = 0; i < firstDay; i++) cells.push(null);
               for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -1479,7 +1555,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
                     ))}
                     {cells.map((d, i) => (
-                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: d === today2 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : (d && dueDays[d]) ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: d === today2 ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
+                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: (d && d === today2) ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : (d && dueDays[d]) ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: (d && d === today2) ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
                         {d && <>
                           <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
                           {(dueDays[d] || []).slice(0, 3).map((due: any, j: number) => (
@@ -1493,7 +1569,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
                     <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions</span>
                     <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
-                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> LIC Premium</span>
+                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance Premiums</span>
                   </div>
                 </>
               );
