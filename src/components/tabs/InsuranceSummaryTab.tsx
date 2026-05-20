@@ -349,7 +349,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
             <Field label="Plan Cover (Years)">
               <input className={inp} type="number" placeholder="20" value={term.term} onChange={e => handleTermFieldChange("term", e.target.value)} />
             </Field>
-            <Field label="Installment Payable (Years)">
+            <Field label="Payable (Years)">
               <input className={inp} type="number" placeholder="20" value={term.premiumPayingTerm} onChange={e => handleTermFieldChange("premiumPayingTerm", e.target.value)} />
             </Field>
             <Field label="Commencement Date">
