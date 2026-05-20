@@ -364,7 +364,7 @@ function FinanceDashboard() {
       console.log("Supabase: Fetching all modules in parallel for user:", userId);
       const [
         prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems,
-        licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct
+        licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct, taxP
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -394,6 +394,7 @@ function FinanceDashboard() {
         supabase.from("mf_sells").select("*").eq("user_id", userId),
         supabase.from("net_worth_history").select("*").eq("user_id", userId),
         supabase.from("corporate_actions").select("*").eq("user_id", userId),
+        supabase.from("tax_payments").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -401,7 +402,7 @@ function FinanceDashboard() {
       if (corpAct.error?.code === "42P01") missing.push("corporate_actions");
       setMissingTables(missing); // always set (clears when table is found)
 
-      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, corpAct].some(r => r.data && r.data.length > 0);
+      const hasAnyData = [banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems, licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, corpAct, taxP].some(r => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
       setState(currentState => {
@@ -462,6 +463,7 @@ function FinanceDashboard() {
               return st.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange) || sts.some((s: any) => s.symbol === ca.symbol && s.exchange === ca.exchange);
             }) 
           } : {}),
+          ...(!taxP.error && taxP.data != null ? { taxPayments: snakeToCamel(taxP.data) } : {}),
         };
       });
     } catch (e) {
@@ -1184,6 +1186,7 @@ function FinanceDashboard() {
     rentalProperties: "rental_properties", rentedProperties: "rental_properties",
     sips: "sips", stockSells: "stock_sells", mfSells: "mf_sells",
     corporateActions: "corporate_actions",
+    taxPayments: "tax_payments",
   };
 
   const camelToSnake = (obj: any) => {
@@ -1519,6 +1522,7 @@ function FinanceDashboard() {
       ...push("stock_sells",         data.stockSells),
       ...push("mf_sells",            data.mfSells),
       ...push("corporate_actions",   data.corporateActions),
+      ...push("tax_payments",        data.taxPayments),
       ...(data.netWorthHistory || []).map(entry =>
         supabase.from("net_worth_history").upsert(
           { user_id: userId, month: entry.month, net_worth: entry.netWorth ?? entry.net_worth ?? 0 },
