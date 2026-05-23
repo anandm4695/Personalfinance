@@ -500,9 +500,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 40, alignItems: "flex-start" }}>
+      <div className="demat-layout">
         {/* ── VERTICAL SIDEBAR NAV ── */}
-        <div style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 100, paddingRight: 20, borderRight: `1px solid ${THEME.line}` }}>
+        <div className="demat-sidebar no-scrollbar">
           <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Portfolios</div>
           <button
             onClick={() => setSelectedDematId(null)}

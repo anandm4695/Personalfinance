@@ -1004,3 +1004,46 @@ input[type="date"].form-input {
   }
   .skeleton { animation: none; background: var(--t-line); }
 }
+
+/* ── Demat Responsive Layout ── */
+.demat-layout {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+.demat-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 100px;
+  padding-right: 20px;
+  border-right: 1px solid var(--t-line);
+}
+@media (max-width: 768px) {
+  .demat-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .demat-sidebar {
+    width: 100%;
+    border-right: none;
+    padding-right: 0;
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--t-line);
+    scrollbar-width: none; /* Hide scrollbar for clean look */
+  }
+  .demat-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .demat-sidebar button {
+    width: auto !important;
+    flex-shrink: 0 !important;
+  }
+}
