@@ -3,7 +3,8 @@
 const { Resend } = require("resend");
 const { createClient } = require("@supabase/supabase-js");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const RESEND_KEY = process.env.Resend_Email_API || process.env.RESEND_API_KEY;
+const resend = new Resend(RESEND_KEY);
 
 // ── Supabase admin client (service role bypasses RLS) ─────────────────────────
 function getSupabase() {
@@ -590,7 +591,7 @@ module.exports = async function handler(req, res) {
       // ── Manual "Send Test" from Settings UI ─────────────────────────────
       const { state, emailTo, frequency, recipientName } = req.body || {};
       if (!state || !emailTo) return res.status(400).json({ error: "state and emailTo required" });
-      if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: "RESEND_API_KEY not configured" });
+      if (!RESEND_KEY) return res.status(500).json({ error: "Resend API key not configured" });
 
       const summary = computeSummary(state);
       const freq = frequency || "weekly";
@@ -610,8 +611,8 @@ module.exports = async function handler(req, res) {
 
     if (isCron) {
       // ── Scheduled cron: check all users' schedules ───────────────────────
-      if (!process.env.RESEND_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "Missing RESEND_API_KEY or SUPABASE_SERVICE_ROLE_KEY" });
+      if (!RESEND_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({ error: "Missing Resend API key or SUPABASE_SERVICE_ROLE_KEY" });
       }
 
       const supabase = getSupabase();
