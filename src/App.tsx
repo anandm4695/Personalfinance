@@ -449,8 +449,8 @@ function FinanceDashboard() {
             informalLent: snakeToCamel(infLns.data.filter(x => x.direction === 'lent')),
           } : {}),
           ...(!rentP.error && rentP.data != null ? {
-            rentalProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'out')),
-            rentedProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'in')),
+            rentalProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'out')).map((x: any) => ({ ...x, propertyType: x.propertyTypeDetail || 'shop' })),
+            rentedProperties: snakeToCamel(rentP.data.filter(x => x.property_type === 'in')).map((x: any) => ({ ...x, propertyType: x.propertyTypeDetail || 'shop' })),
           } : {}),
           ...(!sipsQ.error && sipsQ.data != null ? { sips: snakeToCamel(sipsQ.data) } : {}),
           ...(!stSells.error && stSells.data != null ? { stockSells: snakeToCamel(stSells.data) } : {}),
@@ -1217,8 +1217,10 @@ function FinanceDashboard() {
     if (key === "reminders") { finalItem.reminder_date = item.date; delete finalItem.date; }
     if (key === "informalBorrowed") finalItem.direction = "borrowed";
     if (key === "informalLent") finalItem.direction = "lent";
-    if (key === "rentalProperties") finalItem.property_type = "out";
-    if (key === "rentedProperties") finalItem.property_type = "in";
+    if (key === "rentalProperties" || key === "rentedProperties") {
+      finalItem.property_type_detail = item.propertyType || "shop";
+      finalItem.property_type = key === "rentalProperties" ? "out" : "in";
+    }
 
     const newId = uid();
     setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...itemWithOwner }] }));
@@ -1395,6 +1397,12 @@ function FinanceDashboard() {
       const table = TABLE_MAP[key];
       if (table) {
         let finalPatch = camelToSnake(patch);
+        if (key === "rentalProperties" || key === "rentedProperties") {
+          if (patch.propertyType !== undefined) {
+            finalPatch.property_type_detail = patch.propertyType;
+            delete finalPatch.property_type;
+          }
+        }
         if (key === "budgets" && patch.monthly) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
         if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
         
@@ -1516,8 +1524,8 @@ function FinanceDashboard() {
       ...push("investment_plans",    data.investmentPlans),
       ...push("informal_loans",      data.informalBorrowed, () => ({ direction: "borrowed" })),
       ...push("informal_loans",      data.informalLent,     () => ({ direction: "lent" })),
-      ...push("rental_properties",   data.rentalProperties, () => ({ property_type: "out" })),
-      ...push("rental_properties",   data.rentedProperties, () => ({ property_type: "in" })),
+      ...push("rental_properties",   data.rentalProperties, (item) => ({ property_type: "out", property_type_detail: item.propertyType || "shop" })),
+      ...push("rental_properties",   data.rentedProperties, (item) => ({ property_type: "in", property_type_detail: item.propertyType || "shop" })),
       ...push("sips",                data.sips),
       ...push("stock_sells",         data.stockSells),
       ...push("mf_sells",            data.mfSells),
