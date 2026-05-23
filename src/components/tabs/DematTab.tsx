@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronUp, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Building2, Search, PieChart as PieIcon, Activity } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Search, PieChart as PieIcon, Activity } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -662,276 +662,278 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       ) : visibleGroups.length === 0 ? (
         <div style={card}><EmptyHint text={`No holdings in ${state.demat.find((d: any) => d.id === selectedDematId)?.broker || "this account"}`} /></div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
-            const md = marketData[yfSym];
-            const currentPrice = md?.price ?? Number(lots[0]?.currentPrice ?? 0);
-            const totalQty = lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
-            const totalInv = lots.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice), 0);
-            const totalCurr = totalQty * currentPrice;
-            const totalPnl = totalCurr - totalInv;
-            const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
-            const isExpanded = expandedSymbols.has(yfSym);
-            const isLive = !!md;
-            const chartEntry = chartData[yfSym];
-            const charts: any[] | null = chartEntry ? (chartEntry.points ?? chartEntry) : null;
-            const chartDate: string | null = chartEntry?.date ?? null;
-            const changeAmt = md?.change ?? 0;
-            const changePct = md?.changePercent ?? 0;
+        <div style={{ background: "var(--t-card-bg)", borderRadius: 16, border: `1px solid ${THEME.line}`, overflowX: "auto", boxShadow: "var(--t-card-shadow)", marginBottom: 20 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                <th style={{ ...th, paddingLeft: 20, borderBottom: `1.5px solid ${THEME.line}` }}>Asset / Scrip</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Quantity</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Avg Price</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Live Price</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Invested</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Current Value</th>
+                <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Day's P&L</th>
+                <th style={{ ...th, textAlign: "right", paddingRight: 20, borderBottom: `1.5px solid ${THEME.line}` }}>Total Return</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
+                const md = marketData[yfSym];
+                const currentPrice = md?.price ?? Number(lots[0]?.currentPrice ?? 0);
+                const totalQty = lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
+                const totalInv = lots.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice), 0);
+                const totalCurr = totalQty * currentPrice;
+                const totalPnl = totalCurr - totalInv;
+                const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
+                const isExpanded = expandedSymbols.has(yfSym);
+                const isLive = !!md;
+                const chartEntry = chartData[yfSym];
+                const charts: any[] | null = chartEntry ? (chartEntry.points ?? chartEntry) : null;
+                const chartDate: string | null = chartEntry?.date ?? null;
+                const changeAmt = md?.change ?? 0;
+                const changePct = md?.changePercent ?? 0;
 
-            return (
-               <div key={yfSym} style={{ ...card, padding: 0, overflow: "hidden", transition: "all 0.2s ease", border: isExpanded ? `1px solid ${THEME.accent}40` : `1px solid ${THEME.line}` }}>
-                 <div 
-                   style={{ 
-                     display: "flex", 
-                     alignItems: "center", 
-                     flexWrap: "wrap", 
-                     gap: 16, 
-                     padding: "16px 20px", 
-                     cursor: "pointer", 
-                     background: isExpanded ? `${THEME.accent}05` : "transparent",
-                     borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none" 
-                   }} 
-                   onClick={() => toggleExpand(yfSym)}
-                 >
-                   <div style={{ color: isExpanded ? THEME.accent : THEME.muted, flexShrink: 0 }}>{isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>
-                   <StockLogo yfSym={yfSym} size={44} />
-                   
-                   <div style={{ flex: 1, minWidth: 200 }}>
-                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                       <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.01em" }}>{base}</span>
-                       <span style={{ fontSize: 9, background: THEME.line, color: THEME.muted, padding: "2px 6px", borderRadius: 4, fontWeight: 800, textTransform: "uppercase" }}>{exchange}</span>
-                     </div>
-                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                return (
+                  <React.Fragment key={yfSym}>
+                    {/* Collapsible main row */}
+                    <tr 
+                      className="demat-holdings-row"
+                      onClick={() => toggleExpand(yfSym)}
+                      style={{ 
+                        cursor: "pointer", 
+                        background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 4%, var(--t-card-bg))` : "transparent",
+                        transition: "background 0.15s ease",
+                        borderBottom: `1px solid ${THEME.line}`
+                      }}
+                    >
+                      <td style={{ ...td, paddingLeft: 20 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span style={{ 
+                            color: isExpanded ? THEME.accent : THEME.muted, 
+                            display: "inline-flex",
+                            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                            transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+                          }}>
+                            <ChevronDown size={16} />
+                          </span>
+                          <StockLogo yfSym={yfSym} size={36} />
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{base}</span>
+                              <span style={{ fontSize: 8, background: THEME.line, color: THEME.muted, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>{exchange}</span>
+                            </div>
+                            {isLive && (
+                              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
+                                {md.sector || "Sector N/A"}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
+                        {totalQty}
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                        ₹{Number(totalQty > 0 ? (totalInv / totalQty) : 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right" }}>
+                        <div style={{ fontWeight: 700, color: THEME.ink }}>
+                           ₹{currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                         {isLive ? (
-                          <>
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                              <Building2 size={11} /> {md.sector || "Sector N/A"}
-                            </div>
-                            <span style={{ color: THEME.line, fontSize: 14 }}>•</span>
-                            <div style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, background: "rgba(128,128,128,0.06)", color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.02em" }}>
-                              {(() => {
-                                const mCap = Number(md.marketCap || 0);
-                                if (!mCap) return "—";
-                                let label = "Micro";
-                                if (mCap >= 200000000000) label = "Large";
-                                else if (mCap >= 50000000000) label = "Mid";
-                                else if (mCap >= 5000000000) label = "Small";
-                                
-                                const cr = mCap / 10000000;
-                                const displayVal = cr >= 100000 ? `${(cr/100000).toFixed(1)}L Cr` : `${cr.toFixed(0)} Cr`;
-                                return `${label} · ₹${displayVal}`;
-                              })()}
-                            </div>
-                          </>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: changeAmt >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
+                            {changeAmt >= 0 ? "+" : ""}{changePct.toFixed(2)}%
+                          </div>
                         ) : (
-                          <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>Historical data only</div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic", marginTop: 1 }}>Offline</div>
                         )}
-                     </div>
-                   </div>
-
-                   <div style={{ textAlign: "right", minWidth: 120 }}>
-                     <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.03em", color: THEME.ink }}>
-                       ₹{currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                     </div>
-                     {isLive && (
-                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 2 }}>
-                         <div style={{ fontSize: 12, fontWeight: 700, color: changeAmt >= 0 ? THEME.sage : THEME.rust }}>
-                           {changeAmt >= 0 ? "+" : ""}{changeAmt.toFixed(2)} ({changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}%)
-                         </div>
-                         <div style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.sage, boxShadow: `0 0 8px ${THEME.sage}` }} />
-                       </div>
-                     )}
-                   </div>
-
-                   <div style={{ display: "flex", gap: 24, paddingLeft: 24, borderLeft: `1px solid ${THEME.line}` }}>
-                     {[{ label: "Holdings", val: String(totalQty) }, { label: "Current Value", val: fmtINR(totalCurr), bold: true }].map(({ label, val, bold }) => (
-                       <div key={label} style={{ textAlign: "right" }}>
-                         <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>{label}</div>
-                         <div style={{ fontWeight: bold ? 800 : 600, fontSize: 15, color: THEME.ink }}>{val}</div>
-                       </div>
-                     ))}
-                     <div style={{ textAlign: "right", minWidth: 90 }}>
-                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Day's P&L</div>
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                        {fmtINR(totalInv)}
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
+                        {fmtINR(totalCurr)}
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right" }}>
                         {isLive ? (
                           <>
-                            <div style={{ fontWeight: 800, fontSize: 15, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust }}>
+                            <div style={{ fontWeight: 800, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust }}>
                               {(totalQty * changeAmt) >= 0 ? "+" : ""}{fmtINR(totalQty * changeAmt)}
                             </div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
-                              {(totalQty * changeAmt) >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                              {Math.abs(changePct).toFixed(2)}%
+                            <div style={{ fontSize: 11, fontWeight: 700, color: (totalQty * changeAmt) >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
+                              {changePct >= 0 ? "▲" : "▼"}{Math.abs(changePct).toFixed(2)}%
                             </div>
                           </>
                         ) : (
-                          <div style={{ fontWeight: 600, fontSize: 15, color: THEME.muted }}>—</div>
+                          <span style={{ color: THEME.muted }}>—</span>
                         )}
-                      </div>
-
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 4 }}>Total P&L</div>
-                        <div style={{ fontWeight: 800, fontSize: 15, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                      </td>
+                      
+                      <td style={{ ...td, textAlign: "right", paddingRight: 20 }}>
+                        <div style={{ fontWeight: 800, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
                           {totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}
                         </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: totalPnl >= 0 ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
-                          {totalPnl >= 0 ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                          {Math.abs(totalPnlPct).toFixed(2)}%
+                        <div style={{ fontSize: 11, fontWeight: 700, color: totalPnl >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
+                          {totalPnlPct >= 0 ? "▲" : "▼"}{Math.abs(totalPnlPct).toFixed(2)}%
                         </div>
-                      </div>
-                   </div>
-                 </div>
-                {isExpanded && (
-                  <div>
-                    {isLive && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 20, padding: "10px 18px", background: "rgba(128,128,128,0.06)", borderBottom: `1px solid ${THEME.line}`, fontSize: 12 }}>
-                        {md.prevClose != null && <span><span style={{ color: THEME.muted }}>Prev Close </span><b>₹{md.prevClose.toFixed(2)}</b></span>}
-                        {md.dayHigh != null && <span><span style={{ color: THEME.muted }}>Day H/L </span><b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b></span>}
-                        {md.weekHigh52 != null && <span><span style={{ color: THEME.muted }}>52W H/L </span><b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b></span>}
-                        {md.volume != null && <span><span style={{ color: THEME.muted }}>Vol </span><b>{fmtVol(md.volume)}</b></span>}
-                      </div>
-                    )}
-                    {charts && charts.length > 2 && (
-                      <div style={{ padding: "14px 18px", borderBottom: `1px solid ${THEME.line}` }}>
-                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 600 }}>{chartDate ? `Session Chart — ${chartDate}` : "Intraday Chart"}</div>
-                        <ResponsiveContainer width="100%" height={130}>
-                          <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                            <defs><linearGradient id={`ig-${base}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} /><stop offset="95%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} /></linearGradient></defs>
-                            <XAxis dataKey="t" tick={{ fontSize: 10, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
-                            <YAxis hide domain={["auto", "auto"]} />
-                            <Tooltip contentStyle={{ fontSize: 12, background: "var(--t-paper)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]} />
-                            <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#ig-${base})`} dot={false} />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                    <div style={{ overflowX: "auto", padding: "0 20px" }}>
-                      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", fontSize: 13 }}>
-                        <thead>
-                          <tr>
-                            <th style={{ ...th, paddingLeft: 12, borderBottom: "none" }}>Broker / Source</th>
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Quantity</th>
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Buy Price</th>
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Holding Period</th>
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Investment</th>
-                            {isLive && <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Today's Gain</th>}
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Overall Return</th>
-                            <th style={{ ...th, textAlign: "right", borderBottom: "none" }}>Current Value</th>
-                            <th style={{ ...th, borderBottom: "none" }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {lots.map((lot: any) => {
-                            const lInv = Number(lot.qty) * Number(lot.avgPrice);
-                            const lCurr = Number(lot.qty) * currentPrice;
-                            const lPnl = lCurr - lInv;
-                            const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
-                            const lDayGain = isLive ? Number(lot.qty) * changeAmt : null;
-                            const demat = state.demat.find((d: any) => d.id === lot.dematId);
-                            const theme = getBrokerTheme(demat?.broker || "");
+                      </td>
+                    </tr>
+                    
+                    {/* Collapsible detail drawer row */}
+                    {isExpanded && (
+                      <tr className="demat-drawer-row" style={{ background: "rgba(128,128,128,0.015)" }}>
+                        <td colSpan={8} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
+                          <div className="demat-drawer-content" style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+                            {/* Left Panel: Session sparkline chart */}
+                            {isLive && charts && charts.length > 2 && (
+                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                  {chartDate ? `Session Sparkline — ${chartDate}` : "Live Intraday Chart"}
+                                </div>
+                                <div style={{ background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
+                                  <ResponsiveContainer width="100%" height={150}>
+                                    <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                                      <defs>
+                                        <linearGradient id={`ig-${base}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                          <stop offset="95%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                                        </linearGradient>
+                                      </defs>
+                                      <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                                      <YAxis hide domain={["auto", "auto"]} />
+                                      <Tooltip contentStyle={{ fontSize: 12, background: "var(--t-paper)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]} />
+                                      <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#ig-${base})`} dot={false} />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                  {/* Scrip details pill list */}
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                                    {md.prevClose != null && <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>}
+                                    {md.dayHigh != null && <span><span style={{ color: THEME.muted }}>Day High/Low: </span><b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b></span>}
+                                    {md.weekHigh52 != null && <span><span style={{ color: THEME.muted }}>52W H/L: </span><b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b> / <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b></span>}
+                                    {md.volume != null && <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             
-                            return (
-                              <tr key={lot.id} style={{ background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
-                                <td style={{ ...td, paddingLeft: 12, borderBottom: "none", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <BrokerLogo broker={demat?.broker || "?"} theme={theme} size={24} borderRadius={6} />
-                                    <span style={{ fontWeight: 700, color: THEME.ink }}>{demat?.broker || "Direct"}</span>
-                                  </div>
-                                </td>
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 700 }}>{lot.qty}</td>
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 600 }}>₹{Number(lot.avgPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
-                                  <div style={{ fontSize: 12, color: THEME.ink, fontWeight: 600 }}>{lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</div>
-                                  {lot.buyDate && (
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
-                                      {(() => {
-                                        const diff = new Date().getTime() - new Date(lot.buyDate).getTime();
-                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                        if (days > 365) return `Long Term (${(days/365).toFixed(1)}y)`;
-                                        return `Short Term (${days}d)`;
-                                      })()}
+                            {/* Right Panel: Buy lots detail & actions */}
+                            <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
+                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                Holdings Lot Breakdown
+                              </div>
+                              <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 6px", fontSize: 12 }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", paddingLeft: 8 }}>Broker</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Qty</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Buy Price</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Period</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Return</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Value</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px" }}></th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {lots.map((lot: any) => {
+                                    const lInv = Number(lot.qty) * Number(lot.avgPrice);
+                                    const lCurr = Number(lot.qty) * currentPrice;
+                                    const lPnl = lCurr - lInv;
+                                    const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
+                                    const demat = state.demat.find((d: any) => d.id === lot.dematId);
+                                    const theme = getBrokerTheme(demat?.broker || "");
+                                    
+                                    return (
+                                      <tr key={lot.id} style={{ background: "rgba(128,128,128,0.03)" }}>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <BrokerLogo broker={demat?.broker || "?"} theme={theme} size={20} borderRadius={5} />
+                                            <span style={{ fontWeight: 700, color: THEME.ink }}>{demat?.broker || "Direct"}</span>
+                                          </div>
+                                        </td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 700 }}>{lot.qty}</td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 600 }}>₹{Number(lot.avgPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right" }}>
+                                          <div style={{ fontWeight: 600 }}>{lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</div>
+                                          {lot.buyDate && (
+                                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>
+                                              {(() => {
+                                                const diff = new Date().getTime() - new Date(lot.buyDate).getTime();
+                                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                if (days > 365) return `LTCG (${(days/365).toFixed(1)}y)`;
+                                                return `STCG (${days}d)`;
+                                              })()}
+                                            </div>
+                                          )}
+                                        </td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right" }}>
+                                          <div style={{ color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
+                                            {lPnl >= 0 ? "+" : ""}{Math.round(lPnlPct)}%
+                                          </div>
+                                          {lot.buyDate && (() => { 
+                                            const cagr = calcCAGR(lInv, lCurr, lot.buyDate); 
+                                            return cagr !== null ? <div style={{ fontSize: 9, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 800 }}>{cagr.toFixed(0)}% CAGR</div> : null; 
+                                          })()}
+                                        </td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
+                                        <td style={{ ...td, borderBottom: "none", padding: "8px", borderTopRightRadius: 8, borderBottomRightRadius: 8 }}>
+                                          <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }}>
+                                            <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, padding: 4, color: THEME.rust, background: "rgba(220,38,38,0.06)" }} title="Sell Shares"><ArrowLeftRight size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Edit3 size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Trash2 size={12} /></button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                              
+                              {/* Corporate actions logs */}
+                              {(() => {
+                                const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
+                                if (caHistory.length === 0) return null;
+                                return (
+                                  <div style={{ marginTop: 14, borderTop: `1px dashed ${THEME.line}`, paddingTop: 10 }}>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>Corporate Actions History</div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                      {caHistory.map((a: any) => (
+                                        <div key={a.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 11 }}>
+                                          <span style={{ padding: "1px 6px", borderRadius: 4, fontWeight: 800, fontSize: 9, background: a.actionType === "split" ? "rgba(217,119,6,0.1)" : "rgba(5,150,105,0.1)", color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
+                                            {a.actionType === "split" ? "SPLIT" : "BONUS"} {a.ratioN}:{a.ratioM}
+                                          </span>
+                                          <span style={{ color: THEME.muted }}>{a.actionDate ? new Date(a.actionDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}</span>
+                                          <span style={{ color: THEME.line }}>·</span>
+                                          <span style={{ color: THEME.muted }}>Qty {a.oldQty} → <b style={{ color: THEME.ink }}>{a.newQty}</b></span>
+                                          <span style={{ color: THEME.line }}>·</span>
+                                          <span style={{ color: THEME.muted }}>Avg ₹{Number(a.oldAvgPrice).toFixed(1)} → <b style={{ color: THEME.ink }}>₹{Number(a.newAvgPrice).toFixed(1)}</b></span>
+                                        </div>
+                                      ))}
                                     </div>
-                                  )}
-                                </td>
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 600 }}>{fmtINR(lInv)}</td>
-                                {isLive && (
-                                  <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
-                                    <div style={{ color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-                                      {(lDayGain ?? 0) >= 0 ? "+" : ""}{fmtINR(lDayGain ?? 0)}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: (lDayGain ?? 0) >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-                                      {changePct >= 0 ? "▲" : "▼"}{Math.abs(changePct).toFixed(2)}%
-                                    </div>
-                                  </td>
-                                )}
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none" }}>
-                                  <div style={{ color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
-                                    {lPnl >= 0 ? "+" : ""}{fmtINR(lPnl)}
                                   </div>
-                                  <div style={{ fontSize: 11, color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-                                    {lPnl >= 0 ? "▲" : "▼"}{Math.abs(lPnlPct).toFixed(2)}%
-                                  </div>
-                                  {lot.buyDate && (() => { 
-                                    const cagr = calcCAGR(lInv, lCurr, lot.buyDate); 
-                                    return cagr !== null ? <div style={{ fontSize: 10, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 800, textTransform: "uppercase", marginTop: 2 }}>{cagr.toFixed(1)}% CAGR</div> : null; 
-                                  })()}
-                                </td>
-                                <td style={{ ...td, textAlign: "right", borderBottom: "none", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
-                                <td style={{ ...td, borderBottom: "none", borderTopRightRadius: 10, borderBottomRightRadius: 10 }}>
-                                  <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, color: THEME.rust, background: "rgba(220,38,38,0.06)" }} title="Sell Shares"><ArrowLeftRight size={14} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={{ ...iconBtn, background: "rgba(128,128,128,0.06)" }}><Edit3 size={14} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={{ ...iconBtn, background: "rgba(128,128,128,0.06)" }}><Trash2 size={14} /></button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    {(() => {
-                      const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
-                      if (caHistory.length === 0 && missingTables.includes("corporate_actions")) {
-                        return (
-                          <div style={{ padding: "12px 18px", borderTop: `1px solid ${THEME.line}`, background: "rgba(220,38,38,0.04)" }}>
-                            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginBottom: 6 }}>⚠️ Corporate Action History — DB Setup Required</div>
-                            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 8 }}>The history table is missing in Supabase. Run this SQL once to fix it:</div>
-                            <div style={{ fontFamily: "monospace", fontSize: 11, background: "rgba(0,0,0,0.06)", padding: "8px 12px", borderRadius: 6, color: THEME.ink, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" as const }}>
-                              {`CREATE TABLE IF NOT EXISTS public.corporate_actions (\n  id uuid default gen_random_uuid() primary key,\n  user_id uuid references auth.users not null,\n  owner text not null default 'self',\n  symbol text not null,\n  exchange text not null default 'NSE',\n  action_type text not null check (action_type in ('split', 'bonus')),\n  ratio_n numeric not null,\n  ratio_m numeric not null,\n  action_date date,\n  old_qty numeric,\n  new_qty numeric,\n  old_avg_price numeric,\n  new_avg_price numeric,\n  created_at timestamp with time zone default now()\n);\nALTER TABLE public.corporate_actions ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Users can access own data" ON public.corporate_actions\n  FOR ALL USING (auth.uid() = user_id);`}
+                                );
+                              })()}
+
+                              {/* Nested bottom action buttons */}
+                              <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap", borderTop: `1px solid ${THEME.line}`, paddingTop: 12 }}>
+                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px" }} onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}><Plus size={11} /> Add Lot</button>
+                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.gold }} onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}><Scissors size={11} /> Split / Bonus</button>
+                              </div>
                             </div>
                           </div>
-                        );
-                      }
-                      if (caHistory.length === 0) return null;
-                      return (
-                        <div style={{ padding: "10px 18px 12px", borderTop: `1px solid ${THEME.line}`, background: "rgba(128,128,128,0.03)" }}>
-                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 8 }}>Corporate Action History</div>
-                          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                            {caHistory.map((a: any) => (
-                              <div key={a.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12 }}>
-                                <span style={{ padding: "2px 9px", borderRadius: 20, fontWeight: 700, fontSize: 10, letterSpacing: "0.05em", background: a.actionType === "split" ? "rgba(217,119,6,0.12)" : "rgba(5,150,105,0.12)", color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
-                                  {a.actionType === "split" ? "SPLIT" : "BONUS"} {a.ratioN}:{a.ratioM}
-                                </span>
-                                <span style={{ color: THEME.muted }}>{a.actionDate ? new Date(a.actionDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
-                                <span style={{ color: THEME.line }}>·</span>
-                                <span style={{ color: THEME.muted }}>Qty <b style={{ color: THEME.ink }}>{a.oldQty}</b> → <b style={{ color: a.actionType === "split" ? THEME.gold : THEME.sage }}>{a.newQty}</b></span>
-                                <span style={{ color: THEME.line }}>·</span>
-                                <span style={{ color: THEME.muted }}>Avg ₹<b style={{ color: THEME.ink }}>{Number(a.oldAvgPrice).toFixed(2)}</b> → ₹<b style={{ color: a.actionType === "split" ? THEME.gold : THEME.sage }}>{Number(a.newAvgPrice).toFixed(2)}</b></span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <div style={{ padding: "10px 18px", borderTop: `1px solid ${THEME.line}`, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button style={{ ...btnGhost, fontSize: 12 }} onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}><Plus size={12} /> Add Lot to {base}</button>
-                      <button style={{ ...btnGhost, fontSize: 12, color: THEME.gold }} onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}><Scissors size={12} /> Split / Bonus</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
         </div>

@@ -1047,3 +1047,34 @@ input[type="date"].form-input {
     flex-shrink: 0 !important;
   }
 }
+
+/* ── Demat Collapsible Drawer Transitions ── */
+.demat-holdings-row {
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.demat-holdings-row:hover {
+  background-color: rgba(128, 128, 128, 0.04) !important;
+}
+
+.demat-drawer-row {
+  transition: background-color 0.25s ease !important;
+}
+
+@keyframes dematDrawerExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.demat-drawer-content {
+  animation: dematDrawerExpand 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
