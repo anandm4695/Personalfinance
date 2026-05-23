@@ -46,6 +46,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { MonthlyReportModal } from "../modals/MonthlyReportModal";
+import { Modal } from "../ui/Modal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StockLogo } from "./DematTab";
 
@@ -70,6 +71,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [selectedDayEvents, setSelectedDayEvents] = useState<{ day: number; events: any[] } | null>(null);
+
+  const getOrdinal = (n: number | string) => {
+    const num = parseInt(n as string, 10);
+    if (isNaN(num)) return n;
+    const s = ["th", "st", "nd", "rd"];
+    const v = num % 100;
+    return num + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
   const [activeAssetIndex, setActiveAssetIndex] = useState<number | null>(null);
   const [selectedAssetClass, setSelectedAssetClass] = useState<string | null>(null);
 
@@ -2341,16 +2351,67 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
                       <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: THEME.muted, padding: "4px 0" }}>{d}</div>
                     ))}
-                    {cells.map((d, i) => (
-                      <div key={i} style={{ minHeight: 60, padding: 4, borderRadius: 6, fontSize: 11, background: (d && d === today2) ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : (d && dueDays[d]) ? "color-mix(in srgb, var(--t-gold) 10%, transparent)" : "transparent", border: (d && d === today2) ? `1.5px solid ${THEME.accent}` : "1px solid transparent" }}>
-                        {d && <>
-                          <div style={{ fontWeight: d === today2 ? 800 : 500, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 2 }}>{d}</div>
-                          {(dueDays[d] || []).slice(0, 3).map((due: any, j: number) => (
-                            <div key={j} style={{ fontSize: 9, color: due.color, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{due.label}</div>
-                          ))}
-                        </>}
-                      </div>
-                    ))}
+                    {cells.map((d, i) => {
+                      const hasEvents = d && dueDays[d] && dueDays[d].length > 0;
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            if (d && hasEvents) {
+                              setSelectedDayEvents({ day: d, events: dueDays[d] });
+                            }
+                          }}
+                          style={{
+                            minHeight: 60,
+                            padding: 6,
+                            borderRadius: 10,
+                            fontSize: 11,
+                            background: (d && d === today2)
+                              ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)`
+                              : (d && dueDays[d])
+                              ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
+                              : "transparent",
+                            border: (d && d === today2)
+                              ? `1.5px solid ${THEME.accent}`
+                              : (d && dueDays[d])
+                              ? `1px dashed color-mix(in srgb, ${THEME.gold} 30%, transparent)`
+                              : `1px solid ${THEME.line}`,
+                            cursor: hasEvents ? "pointer" : "default",
+                            transition: "all 0.18s ease-in-out",
+                          }}
+                          className={hasEvents ? "hover:scale-[1.03] hover:shadow-lg" : ""}
+                        >
+                          {d && (
+                            <>
+                              <div style={{ fontWeight: d === today2 ? 800 : 600, color: d === today2 ? THEME.accent : THEME.ink, marginBottom: 4 }}>
+                                {d}
+                              </div>
+                              {(dueDays[d] || []).slice(0, 2).map((due: any, j: number) => (
+                                <div
+                                  key={j}
+                                  style={{
+                                    fontSize: 9,
+                                    color: due.color,
+                                    fontWeight: 700,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  {due.label}
+                                </div>
+                              ))}
+                              {dueDays[d] && dueDays[d].length > 2 && (
+                                <div style={{ fontSize: 8, color: THEME.accent, fontWeight: 800, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                                  <span>•</span> {dueDays[d].length - 2} more
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 12 }}>
                     <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
@@ -2367,6 +2428,58 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {showReport && (
         <MonthlyReportModal metrics={metrics} state={state} selectedDate={calendarDate} onClose={() => setShowReport(false)} />
+      )}
+
+      {selectedDayEvents && (
+        <Modal
+          title={`Scheduled Items — ${getOrdinal(selectedDayEvents.day)} ${calendarDate.toLocaleString("en-IN", { month: "long" })} ${calendarDate.getFullYear()}`}
+          onClose={() => setSelectedDayEvents(null)}
+          maxWidth={420}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 0" }}>
+            {selectedDayEvents.events.map((evt, idx) => {
+              const isPaid = evt.label.includes("(Paid)");
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.02)",
+                    border: `1px solid color-mix(in srgb, ${evt.color} 18%, transparent)`,
+                    borderLeft: `4px solid ${evt.color}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                      {evt.label}
+                    </span>
+                    <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+                      Monthly Scheduled Due
+                    </span>
+                  </div>
+                  <Badge
+                    style={{
+                      background: isPaid ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                      color: isPaid ? THEME.sage : THEME.gold,
+                      border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {isPaid ? "Paid" : "Due"}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
       )}
     </div>
   );
