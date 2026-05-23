@@ -205,7 +205,7 @@ function computeSummary(state) {
 // ── HTML email template ──────────────────────────────────────────────────────
 function generateHTML(summary, frequency, recipientName) {
   const {
-    netWorth, bankTotal, investTotal, mfTotal, stockTotal,
+    netWorth, bankTotal, investTotal, mfTotal, stockTotal, fdTotal,
     creditOutstanding, creditUtil, activeCardCount, activeCards,
     monthExpense, monthIncome, netSavings, savingsPct,
     topCats, dues, goals, alerts, budgetStatus,
