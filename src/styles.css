@@ -1005,46 +1005,71 @@ input[type="date"].form-input {
   .skeleton { animation: none; background: var(--t-line); }
 }
 
-/* ── Demat Responsive Layout ── */
-.demat-layout {
+/* ── Demat Horizontal Responsive Layout Redesign ── */
+
+.demat-portfolio-bar {
   display: flex;
-  gap: 40px;
-  align-items: flex-start;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px;
+  background: var(--surface-0, rgba(128, 128, 128, 0.02));
+  border: 1px solid var(--t-line);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  scrollbar-width: none; /* Hide scrollbar for clean look */
+  -webkit-overflow-scrolling: touch;
 }
-.demat-sidebar {
-  width: 220px;
-  flex-shrink: 0;
+
+.demat-portfolio-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.demat-portfolio-pill {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  position: sticky;
-  top: 100px;
-  padding-right: 20px;
-  border-right: 1px solid var(--t-line);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--t-muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
-@media (max-width: 768px) {
-  .demat-layout {
-    flex-direction: column;
-    gap: 20px;
+
+.demat-portfolio-pill:hover {
+  background: rgba(128, 128, 128, 0.04);
+  color: var(--t-ink);
+}
+
+.demat-portfolio-pill.active {
+  background: var(--active-bg, rgba(var(--accent-rgb), 0.08));
+  color: var(--active-color, var(--t-accent));
+  border-color: var(--active-border, rgba(var(--accent-rgb), 0.15));
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+/* ── Widescreen Stats Grid (4 columns on desktop) ── */
+.demat-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1024px) {
+  .demat-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-  .demat-sidebar {
-    width: 100%;
-    border-right: none;
-    padding-right: 0;
-    position: static;
-    flex-direction: row;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 8px;
-    border-bottom: 1.5px solid var(--t-line);
-    scrollbar-width: none; /* Hide scrollbar for clean look */
-  }
-  .demat-sidebar::-webkit-scrollbar {
-    display: none;
-  }
-  .demat-sidebar button {
-    width: auto !important;
-    flex-shrink: 0 !important;
+}
+
+@media (max-width: 580px) {
+  .demat-stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 

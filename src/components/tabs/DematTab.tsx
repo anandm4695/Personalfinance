@@ -500,66 +500,39 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      <div className="demat-layout">
-        {/* ── VERTICAL SIDEBAR NAV ── */}
-        <div className="demat-sidebar no-scrollbar">
-          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 12 }}>Portfolios</div>
-          <button
-            onClick={() => setSelectedDematId(null)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              borderRadius: 14,
-              border: "none",
-              background: selectedDematId === null ? `${THEME.accent}12` : "transparent",
-              color: selectedDematId === null ? THEME.accent : THEME.muted,
-              fontWeight: selectedDematId === null ? 800 : 600,
-              cursor: "pointer",
-              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-              textAlign: "left",
-              fontSize: 14,
-              width: "100%",
-            }}
-          >
-            <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
-            Global View
-          </button>
-          {state.demat.map((d: any) => {
-            const active = selectedDematId === d.id;
-            const theme = getBrokerTheme(d.broker || "");
-            return (
-              <button
-                key={d.id}
-                onClick={() => setSelectedDematId(d.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 14px",
-                    borderRadius: 14,
-                    border: "none",
-                    background: active ? `${theme.color}15` : "transparent",
-                    color: active ? theme.color : THEME.muted,
-                    fontWeight: active ? 800 : 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                    textAlign: "left",
-                    fontSize: 13,
-                    width: "100%",
-                  }}
-              >
-                <BrokerLogo broker={d.broker || "?"} theme={theme} size={26} borderRadius={7} />
-                {d.broker || "Broker"}
-              </button>
-            );
-          })}
-        </div>
+      {/* ── HORIZONTAL PORTFOLIOS SEGMENT BAR ── */}
+      <div className="demat-portfolio-bar no-scrollbar">
+        <button
+          onClick={() => setSelectedDematId(null)}
+          className={`demat-portfolio-pill ${selectedDematId === null ? "active" : ""}`}
+        >
+          <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
+          <span>Global View</span>
+        </button>
+        {state.demat.map((d: any) => {
+          const active = selectedDematId === d.id;
+          const theme = getBrokerTheme(d.broker || "");
+          return (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDematId(d.id)}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
+              style={active ? {
+                "--active-bg": `${theme.color}15`,
+                "--active-color": theme.color,
+                "--active-border": `${theme.color}30`
+              } as React.CSSProperties : {}}
+            >
+              <BrokerLogo broker={d.broker || "?"} theme={theme} size={20} borderRadius={5} />
+              <span>{d.broker || "Broker"}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* ── CONTENT AREA ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 32 }}>
+      {/* ── MAIN CONTENT AREA (100% width) ── */}
+      <div style={{ width: "100%" }}>
+        <div className="demat-stats-grid">
             <StatCard
               icon={<BarChart3 />}
               label="Portfolio Value"
@@ -937,7 +910,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
         </div>
-      </div>
 
 
       {showDemat && <DematModal onClose={() => setShowDemat(false)} onSave={(v: any) => { addItem("demat", v); setShowDemat(false); }} />}
