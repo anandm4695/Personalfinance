@@ -391,7 +391,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     else if (metrics.savingsRate > 0) savingsScore = 4;
     else savingsScore = 0;
 
-    if (metrics.totalAssets === 0 && metrics.totalLiabilities === 0) debtScore = 0;
+    // Bug fix: when assets=0 but liabilities>0, debtToAssetRatio defaults to 0 which
+    // incorrectly passes the <10 threshold and gives a perfect score. Guard on totalAssets.
+    if (metrics.totalAssets === 0) debtScore = 0;
     else if (metrics.debtToAssetRatio < 10) debtScore = 25;
     else if (metrics.debtToAssetRatio < 25) debtScore = 18;
     else if (metrics.debtToAssetRatio < 50) debtScore = 10;
@@ -411,13 +413,37 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (state.ppf.length > 0 || state.nps.length > 0) divScore += 7;
 
     const totalScore = savingsScore + debtScore + emergencyScore + divScore;
-    const scoreColor = totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
+    const hasData = metrics.totalAssets > 0 || metrics.monthIncome > 0;
+    const scoreColor = !hasData ? THEME.muted : totalScore >= 75 ? THEME.sage : totalScore >= 50 ? THEME.gold : THEME.rust;
+
+    const investTypes = [
+      state.mutualFunds.length > 0 ? "MF" : null,
+      state.stocks.length > 0 ? "Stocks" : null,
+      state.fixedDeposits.length > 0 ? "FDs" : null,
+      (state.ppf.length > 0 || state.nps.length > 0) ? "PPF/NPS" : null,
+    ].filter(Boolean);
 
     const subScores = [
-      { label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100, color: savingsScore >= 25 ? THEME.sage : savingsScore >= 18 ? THEME.gold : savingsScore >= 10 ? "#F97316" : THEME.rust },
-      { label: "Debt Ratio", score: debtScore, max: 25, pct: (debtScore / 25) * 100, color: debtScore >= 25 ? THEME.sage : debtScore >= 18 ? THEME.gold : debtScore >= 10 ? "#F97316" : THEME.rust },
-      { label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100, color: emergencyScore >= 25 ? THEME.sage : emergencyScore >= 18 ? THEME.gold : emergencyScore >= 10 ? "#F97316" : THEME.rust },
-      { label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100, color: divScore >= 25 ? THEME.sage : divScore >= 18 ? THEME.gold : divScore >= 10 ? "#F97316" : THEME.rust },
+      {
+        label: "Savings Rate", score: savingsScore, max: 25, pct: (savingsScore / 25) * 100,
+        color: savingsScore >= 25 ? THEME.sage : savingsScore >= 18 ? THEME.gold : savingsScore >= 10 ? "#F97316" : THEME.rust,
+        hint: metrics.monthIncome > 0 ? `${metrics.savingsRate.toFixed(0)}% of income saved` : "No income data",
+      },
+      {
+        label: "Debt Health", score: debtScore, max: 25, pct: (debtScore / 25) * 100,
+        color: debtScore >= 25 ? THEME.sage : debtScore >= 18 ? THEME.gold : debtScore >= 10 ? "#F97316" : THEME.rust,
+        hint: metrics.totalAssets === 0 ? "No asset data" : metrics.totalLiabilities === 0 ? "Debt-free" : `${metrics.debtToAssetRatio.toFixed(0)}% debt-to-asset ratio`,
+      },
+      {
+        label: "Emergency Fund", score: emergencyScore, max: 25, pct: (emergencyScore / 25) * 100,
+        color: emergencyScore >= 25 ? THEME.sage : emergencyScore >= 18 ? THEME.gold : emergencyScore >= 10 ? "#F97316" : THEME.rust,
+        hint: metrics.monthExpense > 0 ? `${emergencyMonths.toFixed(1)} months of expenses covered` : "No expense data",
+      },
+      {
+        label: "Diversification", score: divScore, max: 25, pct: (divScore / 25) * 100,
+        color: divScore >= 25 ? THEME.sage : divScore >= 18 ? THEME.gold : divScore >= 10 ? "#F97316" : THEME.rust,
+        hint: investTypes.length > 0 ? (investTypes as string[]).join(", ") : "No investments yet",
+      },
     ];
 
     const todayMs = new Date().getTime();
@@ -492,7 +518,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const now = new Date();
     for (let i = 1; i <= 24; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym2 = d.toISOString().slice(0, 7);
+      // Use local date parts — toISOString() would return UTC which shifts month for IST (UTC+5:30)
+      const ym2 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const txns = state.transactions.filter((t: any) => t.date && t.date.startsWith(ym2));
       const inc = txns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const exp = txns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -501,7 +528,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const streakEmoji = streak >= 12 ? "🏆" : streak >= 6 ? "🔥" : streak >= 3 ? "⚡" : streak >= 1 ? "✅" : "💤";
     const streakMsg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
 
-    return { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg };
+    return { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg, hasData };
   }, [metrics, state.mutualFunds.length, state.stocks.length, state.fixedDeposits.length, state.ppf.length, state.nps.length, state.creditCards, state.subscriptions, state.transactions, state.rentedProperties]);
 
   const momNetWorthDelta = useMemo(() => {
@@ -860,19 +887,29 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <Card className="bento-col-4 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
               <div className="section-label">Financial Health</div>
               <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
-                <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: dashboardData.scoreColor }}>{dashboardData.totalScore}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                  <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: dashboardData.scoreColor }}>
+                    {dashboardData.hasData ? dashboardData.totalScore : "—"}
+                  </div>
+                  {dashboardData.hasData && (
+                    <div style={{ fontSize: 18, fontWeight: 700, color: THEME.muted, lineHeight: 1 }}>/100</div>
+                  )}
+                </div>
                 <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: dashboardData.scoreColor }}>{dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: dashboardData.scoreColor }}>
+                    {!dashboardData.hasData ? "No Data Yet" : dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}
+                  </div>
                   <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Overall Score</div>
                 </div>
               </div>
               <div style={{ display: "grid", gap: 14 }}>
                 {dashboardData.subScores.map((s) => (
                   <div key={s.label}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                       <span style={{ color: THEME.muted, fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ fontWeight: 800 }}>{s.score}/{s.max}</span>
+                      <span style={{ fontWeight: 800, color: s.color }}>{s.score}/{s.max}</span>
                     </div>
+                    {s.hint && <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 5, opacity: 0.8 }}>{s.hint}</div>}
                     <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: s.color }} /></div>
                   </div>
                 ))}
