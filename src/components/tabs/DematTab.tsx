@@ -143,7 +143,7 @@ const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; the
   const [imgErr, setImgErr] = React.useState(false);
   const logoUrl = getBrokerLogoUrl(broker);
   const initials = brokerInitials(broker || "?");
-  const fontSize = Math.round(size * 0.3);
+  const fontSize = Math.round(size * 0.38);
 
   if (logoUrl && !imgErr) {
     return (
@@ -656,8 +656,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               );
             })}
           </Grid>
-        </div>
-      </div>
 
       {state.stocks.length === 0 ? (
         <div style={card}><StockEmptyState onAdd={() => { setStockDefaults(null); setShowStock(true); }} /></div>
@@ -936,6 +934,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           })}
         </div>
       )}
+        </div>
+      </div>
 
 
       {showDemat && <DematModal onClose={() => setShowDemat(false)} onSave={(v: any) => { addItem("demat", v); setShowDemat(false); }} />}
