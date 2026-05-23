@@ -417,6 +417,50 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: s.name + " Renewal", amount: Number(s.amount || 0), daysLeft, date: s.renewalDate });
       }
     });
+    // Rent dues for active rented property agreements (1-31 recurring monthly, defaults to 5th)
+    (state.rentedProperties || []).filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0).forEach((p: any) => {
+      const dueDay = p.dueDay ? parseInt(p.dueDay, 10) : 5;
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth(); // 0-indexed
+      
+      const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+      const paidCurrent = (p.payments || []).some((pay: any) => pay.date && pay.date.startsWith(currentMonthStr));
+      if (!paidCurrent) {
+        const curDueDate = new Date(currentYear, currentMonth, dueDay);
+        const ms = curDueDate.getTime();
+        const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+        if (ms <= plus30Ms) {
+          dues.push({
+            name: `${p.propertyName || "Rent"} Rent`,
+            amount: Number(p.monthlyRent),
+            daysLeft,
+            date: curDueDate.toISOString().slice(0, 10),
+            isRent: true,
+          });
+        }
+      } else {
+        const nextMonth = currentMonth + 1;
+        const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
+        const nextMonthNorm = nextMonth > 11 ? 0 : nextMonth;
+        const nextMonthStr = `${nextYear}-${String(nextMonthNorm + 1).padStart(2, "0")}`;
+        const paidNext = (p.payments || []).some((pay: any) => pay.date && pay.date.startsWith(nextMonthStr));
+        if (!paidNext) {
+          const nextDueDate = new Date(nextYear, nextMonthNorm, dueDay);
+          const ms = nextDueDate.getTime();
+          const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+          if (ms <= plus30Ms && daysLeft >= 0) {
+            dues.push({
+              name: `${p.propertyName || "Rent"} Rent`,
+              amount: Number(p.monthlyRent),
+              daysLeft,
+              date: nextDueDate.toISOString().slice(0, 10),
+              isRent: true,
+            });
+          }
+        }
+      }
+    });
     dues.sort((a, b) => a.daysLeft - b.daysLeft);
 
     const saved = metrics.monthIncome - metrics.monthExpense;
@@ -437,7 +481,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const streakMsg = streak >= 12 ? "Incredible!" : streak >= 6 ? "On fire!" : streak >= 3 ? "Great run!" : streak >= 1 ? "Keep going!" : "Start saving";
 
     return { totalScore, scoreColor, subScores, dues, saved, expensePct, savedPct, streak, streakEmoji, streakMsg };
-  }, [metrics, state.mutualFunds.length, state.stocks.length, state.fixedDeposits.length, state.ppf.length, state.nps.length, state.creditCards, state.subscriptions, state.transactions]);
+  }, [metrics, state.mutualFunds.length, state.stocks.length, state.fixedDeposits.length, state.ppf.length, state.nps.length, state.creditCards, state.subscriptions, state.transactions, state.rentedProperties]);
 
   const momNetWorthDelta = useMemo(() => {
     if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
@@ -2253,6 +2297,40 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }
               });
 
+              // 7. RENTED PROPERTIES: monthly rent due day within active agreement range (paid vs unpaid status coloring)
+              (state.rentedProperties || []).filter((p: any) => p.isActive !== false && Number(p.monthlyRent) > 0).forEach((p: any) => {
+                let isAgreementActive = true;
+                if (p.agreementStart) {
+                  const start = new Date(p.agreementStart);
+                  if (!isNaN(start.getTime())) {
+                    if (year < start.getFullYear() || (year === start.getFullYear() && month < start.getMonth())) {
+                      isAgreementActive = false;
+                    }
+                  }
+                }
+                if (p.agreementEnd) {
+                  const end = new Date(p.agreementEnd);
+                  if (!isNaN(end.getTime())) {
+                    if (year > end.getFullYear() || (year === end.getFullYear() && month > end.getMonth())) {
+                      isAgreementActive = false;
+                    }
+                  }
+                }
+
+                if (isAgreementActive) {
+                  const day = p.dueDay ? parseInt(p.dueDay, 10) : 5;
+                  if (!isNaN(day) && day >= 1 && day <= 31) {
+                    const targetDay = Math.min(day, daysInMonth);
+                    const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
+                    const isPaid = (p.payments || []).some((pay: any) => pay.date && pay.date.startsWith(monthStr));
+                    dueDays[targetDay] = (dueDays[targetDay] || []).concat({
+                      label: `${p.propertyName || "Rent"}${isPaid ? " (Paid)" : " Rent"}`,
+                      color: isPaid ? THEME.sage : THEME.gold,
+                    });
+                  }
+                }
+              });
+
               const cells: (number | null)[] = [];
               for (let i = 0; i < firstDay; i++) cells.push(null);
               for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -2276,9 +2354,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                   <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 12 }}>
                     <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
-                    <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions</span>
+                    <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions / Unpaid Rent</span>
                     <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
-                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance Premiums</span>
+                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance / Paid Rent</span>
                   </div>
                 </>
               );

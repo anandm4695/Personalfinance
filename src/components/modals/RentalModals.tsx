@@ -522,6 +522,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
     agreementStart: initial?.agreementStart || "",
     agreementEnd: initial?.agreementEnd || "",
     isActive: initial?.isActive !== false,
+    dueDay: initial?.dueDay || 5,
   });
 
   const [landlords, setLandlords] = useState<any[]>(initLandlords);
@@ -618,6 +619,20 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
             <option value="active">Active</option>
             <option value="ended">Ended / Vacated</option>
           </select>
+        </Field>
+        <Field label="Monthly Due Day (1-31)">
+          <input
+            style={input}
+            type="number"
+            min="1"
+            max="31"
+            value={f.dueDay}
+            onChange={(e) => {
+              const val = Math.min(31, Math.max(1, parseInt(e.target.value, 10) || 5));
+              setF({ ...f, dueDay: val });
+            }}
+            placeholder="5"
+          />
         </Field>
         <Field label="Agreement Start">
           <input style={input} type="date" value={f.agreementStart} onChange={(e) => setF({ ...f, agreementStart: e.target.value })} />

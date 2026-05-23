@@ -34,6 +34,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const [csvError, setCsvError] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
 
+  const getOrdinal = (n: number | string) => {
+    const num = parseInt(n as string, 10);
+    if (isNaN(num)) return n;
+    const s = ["th", "st", "nd", "rd"];
+    const v = num % 100;
+    return num + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
   const getActualSecurityDeposit = (p: any) => {
     if (p.depositTransactions && p.depositTransactions.length > 0) {
       return p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
@@ -746,6 +754,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             }
                             {" · "}
                             <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                            {" · "}
+                            <span style={{ color: THEME.gold }}>Due: {getOrdinal(p.dueDay ?? 5)} of month</span>
                           </div>
                           {/* Multi-landlord split pills */}
                           {p.landlords && p.landlords.length > 1 && (
