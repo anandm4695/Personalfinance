@@ -909,9 +909,17 @@ function FinanceDashboard() {
     const monthIncome = monthTxns
       .filter((t) => t.type === "credit")
       .reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    const rentPaidThisMonth = (sState.rentedProperties || []).reduce((sum, p) => {
+      const paymentsThisMonth = (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+        .reduce((s, pay: any) => s + Number(pay.amount || 0), 0);
+      return sum + paymentsThisMonth;
+    }, 0);
+
     const monthExpense = monthTxns
       .filter((t) => t.type === "debit")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .reduce((s, t) => s + Number(t.amount || 0), 0) + rentPaidThisMonth;
 
     // Annual income from income ledger
     const fyStart = new Date(`${sState.profile.fy.split("-")[0]}-04-01`);
@@ -950,6 +958,11 @@ function FinanceDashboard() {
         acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
         return acc;
       }, {});
+
+    if (rentPaidThisMonth > 0) {
+      expenseBreakdownMap["Rent"] = (expenseBreakdownMap["Rent"] || 0) + rentPaidThisMonth;
+    }
+
     const expenseBreakdown = Object.keys(expenseBreakdownMap).map((k) => ({
       name: k,
       value: expenseBreakdownMap[k],

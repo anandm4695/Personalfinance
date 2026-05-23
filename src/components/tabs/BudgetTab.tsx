@@ -41,14 +41,27 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
   const ym = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
   const monthSpending = useMemo(() => {
-    return state.transactions
+    const spending = state.transactions
       .filter((t: any) => t.date && t.date.startsWith(ym) && t.type === "debit")
       .reduce((acc: any, t: any) => {
         const cat = t.category || "Uncategorized";
         acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
         return acc;
       }, {});
-  }, [state.transactions, ym]);
+
+    const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      const paymentsThisMonth = (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      return sum + paymentsThisMonth;
+    }, 0);
+
+    if (rentPaidThisMonth > 0) {
+      spending["Rent"] = (spending["Rent"] || 0) + rentPaidThisMonth;
+    }
+
+    return spending;
+  }, [state.transactions, state.rentedProperties, ym]);
 
   const totalBudget = state.budgets.reduce((s: number, b: any) => s + Number(b.monthly || 0), 0);
   const totalSpent = state.budgets.reduce((s: number, b: any) => s + (monthSpending[b.category] || 0), 0);

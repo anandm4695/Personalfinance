@@ -309,7 +309,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Received</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
-                            {fmtINRFull((p.receipts || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                            {fmtINRFull((p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
@@ -783,7 +783,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Paid</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.rust }}>
-                            {fmtINRFull((p.payments || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
+                            {fmtINRFull((p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
                         <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
