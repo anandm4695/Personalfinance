@@ -81,6 +81,67 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [activeExpenseIndex, setActiveExpenseIndex] = useState<number | null>(null);
   const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
 
+  const lastTradingDayPerformance = useMemo(() => {
+    const uniqueStocks = new Map<string, { base: string; exchange: string; yfSym: string }>();
+    (state.stocks || []).forEach((s: any) => {
+      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const exch = s.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      if (!uniqueStocks.has(yfSym)) {
+        uniqueStocks.set(yfSym, { base, exchange: exch, yfSym });
+      }
+    });
+
+    let gainingCount = 0;
+    let losingCount = 0;
+    let noChangeCount = 0;
+
+    let topGainer: any = null;
+    let topLoser: any = null;
+
+    uniqueStocks.forEach(({ base, yfSym }) => {
+      const md = marketData?.[yfSym];
+      if (!md) {
+        noChangeCount++;
+        return;
+      }
+
+      const changeAmt = md.change ?? 0;
+      const changePct = md.changePercent ?? 0;
+      const currentPrice = md.price ?? 0;
+
+      const stockData = {
+        name: base,
+        symbol: yfSym,
+        price: currentPrice,
+        changeAmt,
+        changePct
+      };
+
+      if (changePct > 0) {
+        gainingCount++;
+        if (!topGainer || changePct > topGainer.changePct) {
+          topGainer = stockData;
+        }
+      } else if (changePct < 0) {
+        losingCount++;
+        if (!topLoser || changePct < topLoser.changePct) {
+          topLoser = stockData;
+        }
+      } else {
+        noChangeCount++;
+      }
+    });
+
+    return {
+      gainingCount,
+      losingCount,
+      noChangeCount,
+      topGainer,
+      topLoser
+    };
+  }, [state.stocks, marketData]);
+
   const getStockCapAssets = (capName: string) => {
     return (state.stocks || []).map((s: any) => {
       const base = s.symbol.replace(/\.(NS|BO)$/i, "");
@@ -1165,6 +1226,69 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
             </Card>
+          </div>
+
+          {/* Last Trading Day Performance */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>
+              Last Trading Day Performance:
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+              {/* Gaining Card */}
+              <Card style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.sage }}>
+                  <span style={{ fontSize: 14 }}>▲</span> {lastTradingDayPerformance.gainingCount} Stock Gaining
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: THEME.ink }}>
+                  {lastTradingDayPerformance.topGainer ? lastTradingDayPerformance.topGainer.name : "-"}
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                    ₹{lastTradingDayPerformance.topGainer ? Number(lastTradingDayPerformance.topGainer.price.toFixed(1)).toLocaleString("en-IN") : "0"}
+                  </span>
+                  {lastTradingDayPerformance.topGainer && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
+                      +{lastTradingDayPerformance.topGainer.changePct.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+              </Card>
+
+              {/* Losing Card */}
+              <Card style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.rust }}>
+                  <span style={{ fontSize: 14 }}>▼</span> {lastTradingDayPerformance.losingCount} Stock Losing
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: THEME.ink }}>
+                  {lastTradingDayPerformance.topLoser ? lastTradingDayPerformance.topLoser.name : "-"}
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                    ₹{lastTradingDayPerformance.topLoser ? Number(lastTradingDayPerformance.topLoser.price.toFixed(1)).toLocaleString("en-IN") : "0"}
+                  </span>
+                  {lastTradingDayPerformance.topLoser && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: THEME.rust }}>
+                      {lastTradingDayPerformance.topLoser.changePct.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+              </Card>
+
+              {/* No Change Card */}
+              <Card style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.muted }}>
+                  ● {lastTradingDayPerformance.noChangeCount} Stock No Change
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: THEME.muted }}>
+                  -
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                    ₹0
+                  </span>
+                </div>
+              </Card>
+            </div>
           </div>
 
           {/* Equity Insights (Sectors and Market Caps) */}
