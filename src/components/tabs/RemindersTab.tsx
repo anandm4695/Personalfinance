@@ -73,6 +73,59 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
   const [notifPerm, setNotifPerm] = useState<string>(() => {
     try { return localStorage.getItem("finance-notif") || "default"; } catch { return "default"; }
   });
+  const [completedKeys, setCompletedKeys] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("finance-completed-reminders");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("finance-completed-reminders");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        const validKeys = parsed.filter((key: string) => {
+          const parts = key.split("-");
+          if (parts.length >= 4) {
+            const dateStr = parts.slice(-3).join("-");
+            const d = new Date(dateStr + "T00:00:00");
+            if (!isNaN(d.getTime()) && d.getTime() < ninetyDaysAgo) {
+              return false;
+            }
+          }
+          return true;
+        });
+        if (validKeys.length !== parsed.length) {
+          localStorage.setItem("finance-completed-reminders", JSON.stringify(validKeys));
+          setCompletedKeys(validKeys);
+        }
+      }
+    } catch (e) {
+      console.error("Cleanup old completed reminders error:", e);
+    }
+  }, []);
+
+  const toggleComplete = (id: string, date: string) => {
+    const key = `${id}-${date}`;
+    let newKeys: string[];
+    if (completedKeys.includes(key)) {
+      newKeys = completedKeys.filter((k) => k !== key);
+    } else {
+      newKeys = [...completedKeys, key];
+    }
+    setCompletedKeys(newKeys);
+    try {
+      localStorage.setItem("finance-completed-reminders", JSON.stringify(newKeys));
+    } catch (e) {
+      console.error("Failed to save completed reminders", e);
+    }
+  };
+
   const todayStr = today();
 
   const requestNotifications = async () => {
@@ -328,8 +381,35 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
   const daysLeft = (d: string) => Math.ceil((new Date(d + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) / 86400000);
   const urgencyColor = (days: number) => days < 0 ? THEME.muted : days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
 
-  const upcoming = allReminders.filter((r) => daysLeft(r.date) >= 0);
-  const past = allReminders.filter((r) => daysLeft(r.date) < 0);
+  const partitioned = useMemo(() => {
+    const upcomingList: any[] = [];
+    const pastList: any[] = [];
+    const completedList: any[] = [];
+
+    allReminders.forEach((r) => {
+      const key = `${r.id}-${r.date}`;
+      const isCompleted = completedKeys.includes(key);
+      if (isCompleted) {
+        completedList.push(r);
+      } else {
+        const days = daysLeft(r.date);
+        if (days >= 0) {
+          upcomingList.push(r);
+        } else {
+          pastList.push(r);
+        }
+      }
+    });
+
+    return {
+      upcoming: upcomingList,
+      past: pastList,
+      completed: completedList,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allReminders, completedKeys]);
+
+  const { upcoming, past, completed } = partitioned;
 
   const availableTypes = useMemo(() => {
     const types = new Set(upcoming.map((r) => r.type));
@@ -370,7 +450,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         <StatCard icon={<Trash2 size={20} />} label="Past Due" value={past.length} color={past.length > 0 ? THEME.rust : THEME.muted} sub="Unresolved past alerts" />
       </div>
 
-      {upcoming.length === 0 && past.length === 0 ? (
+      {allReminders.length === 0 ? (
         <EmptyState
           icon={Bell}
           gradient="linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)"
@@ -383,8 +463,37 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         />
       ) : (
         <>
+          {/* All Caught Up Premium Empty State */}
+          {upcoming.length === 0 && past.length === 0 && completed.length > 0 && (
+            <Card style={{ padding: "40px 24px", textAlign: "center", background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`, border: `1.5px dashed color-mix(in srgb, ${THEME.sage} 25%, transparent)`, borderRadius: 16, marginBottom: 24 }}>
+              <div style={{ width: 54, height: 54, borderRadius: "50%", background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <Check size={28} color={THEME.sage} />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>All Caught Up!</h3>
+              <p style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 16px", lineHeight: 1.5 }}>
+                You have marked all active reminders as completed or have no unresolved dues. Excellent job keeping your personal finances in order!
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => setShow(true)} icon={<Plus size={14} />}>
+                Add Manual Reminder
+              </Button>
+            </Card>
+          )}
+
+          {/* Fallback Empty State if active lists are empty */}
+          {upcoming.length === 0 && past.length === 0 && completed.length === 0 && (
+            <EmptyState
+              icon={Bell}
+              gradient="linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)"
+              dotColor="#4f46e5"
+              title="No Active Reminders"
+              description="You have no active or completed reminders."
+              buttonLabel="Add Manual Reminder"
+              onAdd={() => setShow(true)}
+            />
+          )}
+
           {/* ── FILTER PILLS ── */}
-          {availableTypes.length > 2 && (
+          {availableTypes.length > 2 && (upcoming.length > 0 || past.length > 0) && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
               <Filter size={13} color={THEME.muted} />
               {availableTypes.map((t) => {
@@ -454,7 +563,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                         }}>
                           <Icon size={20} color={color} />
                         </div>
-
+ 
                         {/* Info */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
@@ -471,25 +580,61 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                             <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
                           )}
                         </div>
-
-                        {/* Days Badge */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                          <div style={{
-                            padding: "4px 14px", borderRadius: 8,
-                            background: urgencyBg,
-                            border: `1px solid color-mix(in srgb, ${urgencyColor2} 20%, transparent)`,
-                          }}>
-                            <span style={{ fontWeight: 900, fontSize: 15, color: urgencyColor2, letterSpacing: "-0.02em" }}>{daysLabel}</span>
+ 
+                        {/* Actions Flex */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                          {/* Days Badge */}
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                            <div style={{
+                              padding: "4px 14px", borderRadius: 8,
+                              background: urgencyBg,
+                              border: `1px solid color-mix(in srgb, ${urgencyColor2} 20%, transparent)`,
+                            }}>
+                              <span style={{ fontWeight: 900, fontSize: 15, color: urgencyColor2, letterSpacing: "-0.02em" }}>{daysLabel}</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{fmtDisplayDate(r.date)}</div>
                           </div>
-                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{fmtDisplayDate(r.date)}</div>
-                        </div>
 
-                        {/* Delete (manual only) */}
-                        {r.manual && (
-                          <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust, flexShrink: 0 }}>
-                            <Trash2 size={14} />
-                          </Button>
-                        )}
+                          {/* Complete Checkbox */}
+                          <button
+                            onClick={() => toggleComplete(r.id, r.date)}
+                            title="Mark as Done"
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: "50%",
+                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
+                              background: "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
+                              transition: "all 0.2s ease-in-out",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderStyle = "solid";
+                              e.currentTarget.style.borderColor = THEME.sage;
+                              e.currentTarget.style.color = "#ffffff";
+                              e.currentTarget.style.background = THEME.sage;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderStyle = "dashed";
+                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
+                              e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <Check size={16} strokeWidth={2.5} />
+                          </button>
+ 
+                          {/* Delete (manual only) */}
+                          {r.manual && (
+                            <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   );
@@ -497,18 +642,18 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               </div>
             </>
           )}
-
-          {filteredUpcoming.length === 0 && activeFilter !== "All" && (
+ 
+          {filteredUpcoming.length === 0 && activeFilter !== "All" && (upcoming.length > 0 || past.length > 0) && (
             <div style={{ textAlign: "center", padding: "40px 0", color: THEME.muted, fontSize: 13 }}>
               No upcoming {activeFilter} alerts.
             </div>
           )}
-
+ 
           {/* ── PAST DUE ── */}
           {past.length > 0 && (
-            <div>
+            <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
-                Past Due / Completed · {past.length}
+                Past Due Alerts · {past.length}
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {[...past].reverse().slice(0, 8).map((r) => {
@@ -516,7 +661,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                   const Icon = TYPE_ICONS[r.type] || Bell;
                   const color = TYPE_COLORS[r.type] || THEME.muted;
                   return (
-                    <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.6 }}>
+                    <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.85 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <Icon size={15} color={THEME.muted} />
@@ -529,19 +674,55 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                             {fmtDisplayDate(r.date)}
                           </div>
                         </div>
-                        <div style={{
-                          fontSize: 11, fontWeight: 700, color: THEME.rust, flexShrink: 0,
-                          padding: "2px 8px", borderRadius: 6,
-                          background: `${THEME.rust}12`,
-                          border: `1px solid ${THEME.rust}22`,
-                        }}>
-                          {days}d ago
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, color: THEME.rust,
+                            padding: "2px 8px", borderRadius: 6,
+                            background: `${THEME.rust}12`,
+                            border: `1px solid ${THEME.rust}22`,
+                          }}>
+                            {days}d ago
+                          </div>
+
+                          {/* Complete Checkbox */}
+                          <button
+                            onClick={() => toggleComplete(r.id, r.date)}
+                            title="Mark as Done"
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
+                              background: "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
+                              transition: "all 0.2s ease-in-out",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderStyle = "solid";
+                              e.currentTarget.style.borderColor = THEME.sage;
+                              e.currentTarget.style.color = "#ffffff";
+                              e.currentTarget.style.background = THEME.sage;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderStyle = "dashed";
+                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
+                              e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <Check size={13} strokeWidth={2.5} />
+                          </button>
+
+                          {r.manual && (
+                            <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
+                              <Trash2 size={12} />
+                            </Button>
+                          )}
                         </div>
-                        {r.manual && (
-                          <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust, flexShrink: 0 }}>
-                            <Trash2 size={12} />
-                          </Button>
-                        )}
                       </div>
                     </Card>
                   );
@@ -549,8 +730,103 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               </div>
             </div>
           )}
+
+          {/* ── COMPLETED REMINDERS ── */}
+          {completed.length > 0 && (
+            <div style={{ marginTop: 32, marginBottom: 16 }}>
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 10,
+                  color: THEME.muted,
+                  fontWeight: 800,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  marginBottom: 14,
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left"
+                }}
+              >
+                <span>Completed Reminders · {completed.length}</span>
+                <span style={{ fontSize: 9, transition: "transform 0.2s", transform: showCompleted ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>▶</span>
+              </button>
+
+              {showCompleted && (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {completed.map((r) => {
+                    const color = TYPE_COLORS[r.type] || THEME.muted;
+                    return (
+                      <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.55, background: "rgba(128,128,128,0.02)", borderLeft: `3px solid ${THEME.sage}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                          {/* Filled Green Check Box */}
+                          <div style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: THEME.sage,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0
+                          }}>
+                            <Check size={16} color="#ffffff" strokeWidth={3} />
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, textDecoration: "line-through" }}>{r.title}</div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                              <span style={{ color: `color-mix(in srgb, ${color} 70%, ${THEME.muted})`, fontWeight: 700 }}>{r.type}</span>
+                              {" · "}
+                              {fmtDisplayDate(r.date)}
+                            </div>
+                          </div>
+
+                          {/* Undo Button */}
+                          <button
+                            onClick={() => toggleComplete(r.id, r.date)}
+                            title="Mark Active"
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              border: `1px solid ${THEME.line}`,
+                              background: "transparent",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: THEME.muted,
+                              cursor: "pointer",
+                              transition: "all 0.15s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = THEME.accent;
+                              e.currentTarget.style.color = THEME.accent;
+                              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 10%, transparent)`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = THEME.line;
+                              e.currentTarget.style.color = THEME.muted;
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            Undo
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
+
 
       {show && (
         <ReminderModal
