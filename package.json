@@ -9,7 +9,8 @@
   ],
   "main": "src/index.tsx",
   "dependencies": {
-    "@supabase/supabase-js": "^2.104.1",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
     "lucide-react": "1.8.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
