@@ -96,7 +96,8 @@ const DEFAULT_STATE = {
   masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
     darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
-    radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone"
+    radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone",
+    emailEnabled: false, emailFrequency: "weekly", emailDay: 1, emailHour: 8, emailAddress: ""
   }
 };
 
@@ -202,7 +203,12 @@ function FinanceDashboard() {
       if (updates.bgStyle !== undefined) dbUpdates.bg_style = updates.bgStyle;
       if (updates.animSpeed !== undefined) dbUpdates.anim_speed = updates.animSpeed;
       if (updates.chartStyle !== undefined) dbUpdates.chart_style = updates.chartStyle;
-      
+      if (updates.emailEnabled !== undefined) dbUpdates.email_enabled = updates.emailEnabled;
+      if (updates.emailFrequency !== undefined) dbUpdates.email_frequency = updates.emailFrequency;
+      if (updates.emailDay !== undefined) dbUpdates.email_day = updates.emailDay;
+      if (updates.emailHour !== undefined) dbUpdates.email_hour = updates.emailHour;
+      if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
+
       await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
     }
 
@@ -431,7 +437,7 @@ function FinanceDashboard() {
             nps: snakeToCamel(pn.data.filter(x => x.type === 'NPS')),
             epf: snakeToCamel(pn.data.filter(x => x.type === 'EPF')),
           } : {}),
-          ...(!ccs.error && ccs.data != null ? { creditCards: snakeToCamel(ccs.data) } : {}),
+          ...(!ccs.error && ccs.data != null ? { creditCards: snakeToCamel(ccs.data).map((c: any) => ({ ...c, limit: c.cardLimit ?? c.limit })) } : {}),
           ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
           ...(!lns.error && lns.data != null ? {
             loansTaken: snakeToCamel(lns.data.filter(x => !x.is_lent)),
@@ -1420,7 +1426,7 @@ function FinanceDashboard() {
         if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
         
         // Specific field mapping for updates
-        if (key === "creditCards" && patch.limit) { finalPatch.card_limit = patch.limit; delete finalPatch.limit; }
+        if (key === "creditCards") { if (patch.limit !== undefined) { finalPatch.card_limit = patch.limit; } delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
         if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
         if (key === "epf") { if (patch.employer !== undefined) { finalPatch.bank = patch.employer || ""; delete finalPatch.employer; } if (patch.uan !== undefined) { finalPatch.account_number = patch.uan || ""; delete finalPatch.uan; } }
@@ -1751,7 +1757,7 @@ function FinanceDashboard() {
 
   const d = DENSITY[density] || DENSITY.normal;
 
-  const isSupabaseConfigured = !!(process.env.REACT_APP_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL.includes("placeholder"));
+  const isSupabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes("placeholder"));
 
   if (isAuthChecking) {
     return (
@@ -1790,8 +1796,8 @@ function FinanceDashboard() {
           <div style={{ fontSize: 40, marginBottom: 8 }}>⚙️</div>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Backend Connection Required</h2>
           <p style={{ color: "rgba(255,255,255,0.45)", maxWidth: 380, lineHeight: 1.6, fontSize: 14 }}>
-            Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_URL</code> and{" "}
-            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>REACT_APP_SUPABASE_ANON_KEY</code> to your environment.
+            Please add <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>VITE_SUPABASE_URL</code> and{" "}
+            <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#818CF8" }}>VITE_SUPABASE_ANON_KEY</code> to your environment.
           </p>
         </div>
       );
@@ -2267,6 +2273,8 @@ function FinanceDashboard() {
                 chartStyle={chartStyle} setChartStyle={(v) => updateSettings({ chartStyle: v })}
                 masterData={state.masterData || DEFAULT_MASTER_DATA}
                 updateMasterData={updateMasterData}
+                emailSettings={settings}
+                updateEmailSettings={updateSettings}
               />
             )}
           </div>

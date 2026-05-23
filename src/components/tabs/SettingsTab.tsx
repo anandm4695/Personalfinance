@@ -550,11 +550,263 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
   );
 }
 
+// ─── Section: Email Summary ───────────────────────────────────────────────────
+const HOUR_OPTIONS = [
+  { value: 6,  label: "6:00 AM" }, { value: 7,  label: "7:00 AM" },
+  { value: 8,  label: "8:00 AM" }, { value: 9,  label: "9:00 AM" },
+  { value: 10, label: "10:00 AM" }, { value: 12, label: "12:00 PM" },
+  { value: 14, label: "2:00 PM" }, { value: 18, label: "6:00 PM" },
+  { value: 20, label: "8:00 PM" }, { value: 21, label: "9:00 PM" },
+];
+const WEEKDAYS = [
+  { value: 1, label: "Monday" }, { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" }, { value: 6, label: "Saturday" },
+  { value: 0, label: "Sunday" },
+];
+
+function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any) {
+  const es = emailSettings || {};
+  const enabled    = !!es.emailEnabled;
+  const frequency  = es.emailFrequency || "weekly";
+  const day        = Number(es.emailDay ?? 1);
+  const hour       = Number(es.emailHour ?? 8);
+  const address    = es.emailAddress || "";
+
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"" | "ok" | "err">("");
+  const [errMsg, setErrMsg] = useState("");
+
+  const inp: any = {
+    width: "100%", padding: "10px 14px", boxSizing: "border-box",
+    background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`,
+    borderRadius: 10, color: THEME.ink, fontSize: 14, outline: "none",
+    fontFamily: "inherit",
+  };
+
+  const sel: any = { ...inp, cursor: "pointer", appearance: "none", WebkitAppearance: "none" };
+
+  async function handleSendTest() {
+    if (!address) return;
+    setSending(true); setSendStatus(""); setErrMsg("");
+    try {
+      const res = await fetch("/api/send-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state, emailTo: address, frequency, recipientName: state?.profile?.name || "there" }),
+      });
+      const json = await res.json();
+      if (res.ok && json.sent) { setSendStatus("ok"); }
+      else { setSendStatus("err"); setErrMsg(json.error || "Unknown error"); }
+    } catch (e: any) {
+      setSendStatus("err"); setErrMsg(e.message);
+    } finally { setSending(false); setTimeout(() => setSendStatus(""), 5000); }
+  }
+
+  const freqOptions: { value: string; label: string; desc: string }[] = [
+    { value: "daily",   label: "Daily",   desc: "Every day at your chosen time" },
+    { value: "weekly",  label: "Weekly",  desc: "Once a week — pick a day" },
+    { value: "monthly", label: "Monthly", desc: "Once a month — pick a date" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Enable toggle card */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>✉️</span>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>Email Summary Reports</div>
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480 }}>
+              Get your complete financial picture delivered straight to your inbox — net worth, cash flow, investments, upcoming dues, goals, and smart alerts. All in one clean summary.
+            </div>
+          </div>
+          {/* Toggle switch */}
+          <button
+            onClick={() => updateEmailSettings({ emailEnabled: !enabled })}
+            style={{
+              position: "relative", width: 52, height: 28, borderRadius: 99,
+              background: enabled ? THEME.accent : THEME.line,
+              border: "none", cursor: "pointer", flexShrink: 0,
+              transition: "background 0.2s ease",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 4, left: enabled ? 26 : 4,
+              width: 20, height: 20, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s ease",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            }} />
+          </button>
+        </div>
+
+        {enabled && (
+          <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.15)", fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
+            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>RESEND_API_KEY</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_ROLE_KEY</code> to your Vercel environment variables. Get a free Resend API key at resend.com — 3,000 free emails/month.
+          </div>
+        )}
+      </Card>
+
+      {enabled && (
+        <>
+          {/* Email address */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Delivery Address</div>
+            <Field label="Email Address">
+              <input
+                style={inp} type="email" placeholder="you@example.com"
+                value={address}
+                onChange={e => updateEmailSettings({ emailAddress: e.target.value })}
+              />
+            </Field>
+          </Card>
+
+          {/* Frequency + timing */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Schedule</div>
+
+            {/* Frequency pills */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>How often?</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+                {freqOptions.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => updateEmailSettings({ emailFrequency: f.value })}
+                    style={{
+                      flex: "1 1 140px", padding: "12px 16px", borderRadius: 12,
+                      border: frequency === f.value ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
+                      background: frequency === f.value ? `color-mix(in srgb, var(--t-accent) 8%, var(--surface-0))` : "var(--surface-0)",
+                      cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 700, color: frequency === f.value ? THEME.accent : THEME.ink }}>{f.label}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{f.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Day picker — weekly */}
+            {frequency === "weekly" && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>Which day?</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                  {WEEKDAYS.map(d => (
+                    <button
+                      key={d.value}
+                      onClick={() => updateEmailSettings({ emailDay: d.value })}
+                      style={{
+                        padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                        fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                        background: day === d.value ? THEME.accent : THEME.line,
+                        color: day === d.value ? "#fff" : THEME.muted,
+                        transition: "all 0.15s ease",
+                      }}
+                    >{d.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Date picker — monthly */}
+            {frequency === "monthly" && (
+              <div style={{ marginBottom: 20 }}>
+                <Field label="Day of Month">
+                  <input
+                    style={inp} type="number" min="1" max="28"
+                    placeholder="e.g. 1"
+                    value={day || ""}
+                    onChange={e => updateEmailSettings({ emailDay: Number(e.target.value) })}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {/* Delivery time note */}
+            <div style={{ marginTop: 8, padding: "10px 14px", background: "var(--surface-0)", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+              <div style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>⏰</span>
+                <span>Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong> on your chosen day. Upgrade to Vercel Pro for custom delivery times.</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Preview of what's included */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>What's in each email</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+              {[
+                { icon: "💰", title: "Net Worth Snapshot", desc: "Total wealth with asset breakdown" },
+                { icon: "💸", title: "Monthly Cash Flow", desc: "Income vs expenses + savings rate" },
+                { icon: "📈", title: "Investment Portfolio", desc: "MF, stocks, FD, PPF, NPS values" },
+                { icon: "💳", title: "Credit Card Status", desc: "Outstanding + utilization % per card" },
+                { icon: "🛍️", title: "Top Spending", desc: "Your biggest expense categories" },
+                { icon: "🎯", title: "Goals Progress", desc: "How close you are to each goal" },
+                { icon: "📅", title: "Upcoming Dues", desc: "Bills, EMIs and subscriptions in 7 days" },
+                { icon: "⚡", title: "Smart Alerts", desc: "Over-budget, high credit util, overdue" },
+              ].map(item => (
+                <div key={item.title} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--surface-0)", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{item.title}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Send test email */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Test Your Email</div>
+            <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 16 }}>
+              Send a test email right now using your current financial data.
+              {!address && <span style={{ color: THEME.rust }}> Add your email address above first.</span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
+              <button
+                onClick={handleSendTest}
+                disabled={sending || !address}
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "none",
+                  background: !address ? THEME.line : sending ? THEME.muted : THEME.accent,
+                  color: "#fff", fontWeight: 700, fontSize: 14, cursor: !address ? "default" : "pointer",
+                  fontFamily: "inherit", transition: "all 0.2s ease",
+                  opacity: sending ? 0.7 : 1,
+                }}
+              >
+                {sending ? "Sending…" : "Send Test Email Now"}
+              </button>
+              {sendStatus === "ok" && (
+                <span style={{ fontSize: 13, color: THEME.sage, fontWeight: 600 }}>
+                  ✓ Email sent to {address}
+                </span>
+              )}
+              {sendStatus === "err" && (
+                <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600 }}>
+                  ✕ {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
+                </span>
+              )}
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const TOP_TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "profile",    label: "Profile",    icon: User },
   { id: "masterdata", label: "Master Data", icon: Tags },
+  { id: "email",      label: "Email Reports", icon: Settings },
   { id: "data",       label: "Data & Account", icon: Settings },
 ];
 
@@ -564,6 +816,7 @@ export function SettingsTab({
   updateProfile,
   accentKey, setAccentKey,
   masterData, updateMasterData,
+  emailSettings, updateEmailSettings,
 }: any) {
   const [tab, setTab] = useState("appearance");
 
@@ -592,6 +845,14 @@ export function SettingsTab({
 
       {tab === "masterdata" && (
         <MasterDataSection masterData={masterData} updateMasterData={updateMasterData} />
+      )}
+
+      {tab === "email" && (
+        <EmailSummarySection
+          state={state}
+          emailSettings={emailSettings}
+          updateEmailSettings={updateEmailSettings}
+        />
       )}
 
       {tab === "data" && (

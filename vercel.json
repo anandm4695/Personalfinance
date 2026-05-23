@@ -2,11 +2,18 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "functions": {
-    "api/stock-logo.js":  { "maxDuration": 15 },
-    "api/stock-chart.js": { "maxDuration": 15 },
-    "api/stock-price.js": { "maxDuration": 10 },
-    "api/mf-nav.js":      { "maxDuration": 10 }
+    "api/stock-logo.js":   { "maxDuration": 15 },
+    "api/stock-chart.js":  { "maxDuration": 15 },
+    "api/stock-price.js":  { "maxDuration": 10 },
+    "api/mf-nav.js":       { "maxDuration": 10 },
+    "api/send-summary.js": { "maxDuration": 30 }
   },
+  "crons": [
+    {
+      "path": "/api/send-summary",
+      "schedule": "30 2 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

@@ -91,6 +91,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [activeExpenseIndex, setActiveExpenseIndex] = useState<number | null>(null);
   const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
 
+  // Interactive dashboard states
+  const [trendPeriod, setTrendPeriod] = useState<"3M" | "6M" | "12M" | "All">("6M");
+  const [showAllTxns, setShowAllTxns] = useState(false);
+  const [fireWhatIfExtra, setFireWhatIfExtra] = useState(0);
+
   const lastTradingDayPerformance = useMemo(() => {
     const uniqueStocks = new Map<string, { base: string; exchange: string; yfSym: string }>();
     (state.stocks || []).forEach((s: any) => {
@@ -371,6 +376,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return { month: t.month, value, real: histMap[ym] !== undefined };
     });
   }, [trendData, metrics, state.netWorthHistory]);
+
+  const filteredNetWorthTrend = useMemo(() => {
+    if (trendPeriod === "All") return netWorthTrend;
+    const n = trendPeriod === "3M" ? 3 : trendPeriod === "6M" ? 6 : 12;
+    return netWorthTrend.slice(-n);
+  }, [netWorthTrend, trendPeriod]);
 
   const dashboardData = useMemo(() => {
     let savingsScore = 0, debtScore = 0, emergencyScore = 0, divScore = 0;
@@ -713,7 +724,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           <div className="animate-fade-in-up bento-grid">
             {/* Hero Card */}
-            <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "var(--t-darkInk)", color: "#fff" }}>
+            <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "var(--t-darkInk)", color: "#fff", position: "relative", overflow: "hidden" }}>
+              {netWorthTrend.filter((t: any) => t.value > 0).length > 2 && (
+                <div style={{ position: "absolute", top: 0, right: 0, width: 240, height: 110, opacity: 0.10, pointerEvents: "none", zIndex: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={netWorthTrend.slice(-6)} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                      <defs>
+                        <linearGradient id="heroSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#34D399" stopOpacity={0.7} />
+                          <stop offset="100%" stopColor="#34D399" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="value" stroke="#34D399" strokeWidth={2.5} fill="url(#heroSparkGrad)" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
@@ -892,7 +918,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Badge variant="muted">{state.transactions.length} total</Badge>
                   {state.transactions.length > 5 && (
-                    <span style={{ fontSize: 11, color: THEME.muted }}>showing latest 5</span>
+                    <button
+                      onClick={() => setShowAllTxns(prev => !prev)}
+                      style={{ fontSize: 11, color: THEME.accent, background: "none", border: `1px solid ${THEME.accent}44`, cursor: "pointer", fontWeight: 700, padding: "3px 10px", borderRadius: 6, transition: "all 0.2s ease" }}
+                    >
+                      {showAllTxns ? "Show less" : `Show all ${state.transactions.length}`}
+                    </button>
                   )}
                 </div>
               </div>
@@ -903,7 +934,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {state.transactions
                     .slice()
                     .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .slice(0, 5)
+                    .slice(0, showAllTxns ? undefined : 5)
                     .map((t: any) => (
                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -937,14 +968,31 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div className="animate-fade-in-up">
           {/* Net Worth Growth */}
           <Card style={{ marginBottom: 28, padding: 24 }}>
-            <div className="section-label">Net Worth Growth</div>
-            {netWorthTrend.length === 0 || netWorthTrend.every(t => t.value === 0) ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div className="section-label" style={{ marginBottom: 0 }}>Net Worth Growth</div>
+              <div style={{ display: "flex", gap: 3, background: THEME.line, padding: 3, borderRadius: 8 }}>
+                {(["3M", "6M", "12M", "All"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setTrendPeriod(p)}
+                    style={{
+                      padding: "3px 10px", borderRadius: 6, border: "none", cursor: "pointer",
+                      fontSize: 11, fontWeight: 700,
+                      background: trendPeriod === p ? THEME.accent : "transparent",
+                      color: trendPeriod === p ? "#fff" : THEME.muted,
+                      transition: "all 0.2s ease"
+                    }}
+                  >{p}</button>
+                ))}
+              </div>
+            </div>
+            {filteredNetWorthTrend.length === 0 || filteredNetWorthTrend.every(t => t.value === 0) ? (
               <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12 }}>
                 Not enough history to show net worth trend
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={netWorthTrend}>
+                <AreaChart data={filteredNetWorthTrend}>
                   <defs>
                     <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} /><stop offset="100%" stopColor={THEME.accent} stopOpacity={0} /></linearGradient>
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1671,6 +1719,59 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             ) : (
               <div style={{ padding: "24px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
                 Add monthly expenses to calculate your FIRE corpus target
+              </div>
+            )}
+
+            {fireData.fireCorpus > 0 && (
+              <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.18)" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#818CF8", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 12 }}>
+                  What-If: Extra Monthly Investment
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 180px" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: THEME.muted }}>₹</span>
+                    <input
+                      type="number"
+                      value={fireWhatIfExtra || ""}
+                      onChange={(e) => setFireWhatIfExtra(Math.max(0, Number(e.target.value) || 0))}
+                      placeholder="e.g. 10000"
+                      style={{
+                        flex: 1, padding: "8px 12px", borderRadius: 8,
+                        border: "1px solid rgba(99,102,241,0.3)",
+                        background: "var(--surface-0)", color: THEME.ink, fontSize: 13, outline: "none"
+                      }}
+                    />
+                    <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 500, whiteSpace: "nowrap" }}>extra/month</span>
+                  </div>
+                  {(() => {
+                    const currentSavings = Math.max(0, metrics.monthIncome - metrics.monthExpense);
+                    const totalSavings = currentSavings + fireWhatIfExtra;
+                    const gap = Math.max(0, fireData.fireCorpus - Math.max(metrics.netWorth, 0));
+                    if (gap <= 0) return <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700 }}>FIRE already achieved!</div>;
+                    if (totalSavings <= 0) return <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>Enter an amount above</div>;
+                    const r = 0.12 / 12;
+                    const months = Math.log(1 + (gap * r) / totalSavings) / Math.log(1 + r);
+                    const years = months / 12;
+                    const baseYrs = currentSavings > 0
+                      ? Math.log(1 + (gap * r) / currentSavings) / Math.log(1 + r) / 12
+                      : null;
+                    const saved = baseYrs !== null && isFinite(baseYrs) ? baseYrs - years : null;
+                    return isFinite(years) && years > 0 ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "10px 16px", background: "rgba(99,102,241,0.08)", borderRadius: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 26, fontWeight: 900, color: "#818CF8", letterSpacing: "-0.03em", lineHeight: 1 }}>{years.toFixed(1)}</div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" as const }}>years to FIRE</div>
+                        </div>
+                        {saved !== null && isFinite(saved) && saved > 0.1 && (
+                          <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700 }}>
+                            {saved.toFixed(1)} yrs faster
+                          </div>
+                        )}
+                      </div>
+                    ) : <div style={{ fontSize: 12, color: THEME.muted }}>Calculating…</div>;
+                  })()}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 10 }}>* Assumes 12% p.a. compounded returns</div>
               </div>
             )}
           </Card>
