@@ -504,7 +504,7 @@ async function fetchStateFromSupabase(supabase, userId) {
       supabase.from("fixed_deposits").select("*").eq("user_id", userId),
       supabase.from("recurring_deposits").select("*").eq("user_id", userId),
       supabase.from("bonds").select("*").eq("user_id", userId),
-      supabase.from("ppf_nps_epf").select("*").eq("user_id", userId),
+      supabase.from("ppf_nps").select("*").eq("user_id", userId),
       supabase.from("credit_cards").select("*").eq("user_id", userId),
       supabase.from("loans").select("*").eq("user_id", userId),
       supabase.from("goals").select("*").eq("user_id", userId),
