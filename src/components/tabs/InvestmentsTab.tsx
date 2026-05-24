@@ -1744,10 +1744,23 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   };
 
   /* ── stats ── */
-  const byType = (t: string) => txs.filter(x => x.type === t).reduce((s, x) => s + Number(x.amount || 0), 0);
-  const monthlyRows   = txs.filter(x => x.type === "monthly_contribution");
-  const interestRows  = txs.filter(x => x.type === "interest_credit");
-  const transferRows  = txs.filter(x => x.type === "transfer_in");
+  // Establishments whose balance has been transferred out via Form 13 (transfer_in recorded).
+  // Their individual transactions must NOT be summed — the transfer_in amount already captures them.
+  const transferredOutEstIds = new Set<string>(
+    txs
+      .filter(x => x.type === "transfer_in" && x.fromEmployer)
+      .map(x => { const e = ests.find((e: any) => e.employerName === x.fromEmployer); return e ? e.id : null; })
+      .filter(Boolean)
+  );
+
+  // activeTxs = everything except transactions explicitly tagged to transferred-out establishments
+  const activeTxs   = txs.filter(t => !t.estId || !transferredOutEstIds.has(t.estId));
+
+  const byType      = (type: string) => activeTxs.filter(x => x.type === type).reduce((s, x) => s + Number(x.amount || 0), 0);
+  const monthlyRows  = activeTxs.filter(x => x.type === "monthly_contribution");
+  const interestRows = activeTxs.filter(x => x.type === "interest_credit");
+  const transferRows = txs.filter(x => x.type === "transfer_in"); // all txs — all transfer_ins count
+
   const totalEmployee  = byType("employee_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
   const totalEmployer  = byType("employer_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
   const totalPension   = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
@@ -1759,7 +1772,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
   const totalWithdrawal = byType("withdrawal");
 
-  // Compute closing balances from passbook (like EPFO passbook "Closing Balance" row)
+  // Compute closing balances per EPFO passbook column
   const empInterest = interestRows.reduce((s, x) => {
     if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
     return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
