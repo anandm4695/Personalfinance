@@ -1488,19 +1488,34 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
   if (!items.length) return <LoanEmptyState type="taken" onAdd={onAdd} />;
   return (
     <Grid>
-      {items.map((l: any) => (
-        <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
-          <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.accent }}>{l.type || "Loan"}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: THEME.accent }}>{fmtINRFull(l.outstanding)}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
-            <Stat k="Principal" v={fmtINR(l.principal)} />
-            <Stat k="EMI" v={fmtINR(l.emi)} />
-            <Stat k="Rate" v={`${l.rate}%`} />
-            <Stat k="Tenure Left" v={`${l.monthsRemaining || "—"} mo`} />
-          </div>
-        </InvestCard>
-      ))}
+      {items.map((l: any) => {
+        const months = Number(l.monthsRemaining) || 0;
+        const isPaidOff = months === 0 && Number(l.outstanding || 0) === 0;
+        const payoffDate = months > 0 ? (() => {
+          const d = new Date();
+          d.setMonth(d.getMonth() + months);
+          return d.toLocaleString("en-IN", { month: "short", year: "numeric" });
+        })() : null;
+        const totalInterest = months > 0 ? Math.max(0, Number(l.emi || 0) * months - Number(l.outstanding || 0)) : 0;
+        return (
+          <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.accent }}>{l.type || "Loan"}</div>
+              {isPaidOff && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.08em" }}>PAID OFF</span>}
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : THEME.accent }}>{fmtINRFull(l.outstanding)}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
+              <Stat k="Principal" v={fmtINR(l.principal)} />
+              <Stat k="EMI" v={fmtINR(l.emi)} />
+              <Stat k="Rate" v={`${l.rate}%`} />
+              <Stat k="Months Left" v={`${months > 0 ? months : "—"}`} />
+              {payoffDate && <Stat k="Payoff By" v={payoffDate} />}
+              {totalInterest > 0 && <Stat k="Interest Left" v={fmtINR(totalInterest)} />}
+            </div>
+          </InvestCard>
+        );
+      })}
     </Grid>
   );
 }

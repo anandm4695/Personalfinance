@@ -23,9 +23,13 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
   const [sipProjRate, setSipProjRate] = useState("12");
 
   const sipsWithCalc = useMemo(() => {
-    const r = (Number(sipProjRate) || 12) / 12 / 100;
     return (state.sips || []).map((sip: any) => {
-      const paid = Math.min(Math.max(0, monthsBetween(sip.startDate, todayStr)), Number(sip.totalInstallments || 0));
+      const isQuarterly = sip.frequency === "quarterly";
+      const periodMonths = isQuarterly ? 3 : 1;
+      // r = return per period (quarterly vs monthly)
+      const r = (Number(sipProjRate) || 12) / (isQuarterly ? 4 : 12) / 100;
+      const monthsElapsed = Math.max(0, monthsBetween(sip.startDate, todayStr));
+      const paid = Math.min(Math.floor(monthsElapsed / periodMonths), Number(sip.totalInstallments || 0));
       const totalInvested = paid * Number(sip.amount || 0);
       const remaining = Math.max(0, Number(sip.totalInstallments || 0) - paid);
       const m = Number(sip.amount || 0);
@@ -128,12 +132,15 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{sip.scheme}</span>
                     <Badge variant="muted" style={{ fontSize: 9 }}>{sip.fundType}</Badge>
+                    {sip.frequency && sip.frequency !== "monthly" && (
+                      <Badge variant="accent" style={{ fontSize: 9 }}>{sip.frequency}</Badge>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                    <span style={{ color: THEME.sage }}>{fmtINRFull(sip.amount)}/mo</span>
+                    <span style={{ color: THEME.sage }}>{fmtINRFull(sip.amount)}/{sip.frequency === "quarterly" ? "qtr" : "mo"}</span>
                     <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
                     <span>Paid {sip.paid}/{sip.totalInstallments}</span>
                   </div>

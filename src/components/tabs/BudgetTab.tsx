@@ -35,7 +35,7 @@ function getCatIcon(cat: string) {
 
 
 
-export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
+export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
   const [editBudget, setEditBudget] = useState<any>(null);
   const ym = useMemo(() => new Date().toISOString().slice(0, 7), []);
@@ -114,13 +114,22 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
           color={totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust}
           sub="Balance to spend"
         />
-        <StatCard 
-          icon={<Target />} 
-          label="Categories" 
-          value={String(state.budgets.length)} 
+        <StatCard
+          icon={<Target />}
+          label="Categories"
+          value={String(state.budgets.length)}
           color={THEME.muted}
           sub="Active budget buckets"
         />
+        {metrics?.monthIncome > 0 && (
+          <StatCard
+            icon={<TrendingUp />}
+            label="Budget / Income"
+            value={`${((totalBudget / metrics.monthIncome) * 100).toFixed(0)}%`}
+            color={totalBudget > metrics.monthIncome ? THEME.rust : totalBudget > metrics.monthIncome * 0.8 ? THEME.gold : THEME.sage}
+            sub={`${fmtINRFull(totalBudget)} of ${fmtINRFull(metrics.monthIncome)} income`}
+          />
+        )}
       </div>
 
       {totalBudget > 0 && (() => {
@@ -156,6 +165,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem }: any) {
                     { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
                     { label: "Daily average", val: fmtINR(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day", color: THEME.muted },
                     { label: "Projected month-end", val: fmtINRFull(daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0), color: burnColor },
+                    ...(metrics?.monthIncome > 0 ? [{ label: "Budget vs income", val: `${((totalBudget / metrics.monthIncome) * 100).toFixed(0)}% of income`, color: totalBudget > metrics.monthIncome * 0.9 ? THEME.rust : THEME.muted }] : []),
                   ].map(({ label, val, color }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}>
                       <span style={{ color: THEME.muted, fontWeight: 600 }}>{label}</span>

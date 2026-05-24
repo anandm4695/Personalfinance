@@ -104,12 +104,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
 
   // Controlled deduction state — 80C pre-filled from real state data
   const [deductions, setDeductions] = useState(() => {
-    const yearStr = `${new Date().getFullYear()}`;
+    // Use FY date range (same fix as AnalyticsTab taxData80C)
+    const fyParts = (state.profile?.fy || "2025-26").split("-");
+    const fyStartYear = Number(fyParts[0]) || new Date().getFullYear() - 1;
+    const fyStartStr = `${fyStartYear}-04-01`;
+    const fyEndStr = `${fyStartYear + 1}-03-31`;
     const elss = (state.mutualFunds || [])
       .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
     const ppfThisYear = (state.ppfLedger || [])
-      .filter((t: any) => t.date && t.date.startsWith(yearStr) && t.type !== "withdrawal")
+      .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ppf = ppfThisYear > 0 ? ppfThisYear
       : (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);

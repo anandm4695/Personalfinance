@@ -954,7 +954,10 @@ function FinanceDashboard() {
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
     // FOIR: total monthly EMI / monthly income — safe lending threshold is <40%
-    const totalMonthlyEMI = (sState.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
+    // Only include active loans (monthsRemaining unset OR > 0; explicitly 0 means fully paid)
+    const totalMonthlyEMI = (sState.loansTaken || [])
+      .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
+      .reduce((s, l) => s + Number(l.emi || 0), 0);
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 
     // Credit utilization: cc outstanding / cc total limit
@@ -1204,28 +1207,58 @@ function FinanceDashboard() {
       const days = Math.ceil((new Date(s.renewalDate).getTime() - now.getTime()) / 86400000);
       if (days >= 0 && days <= 7) list.push({ level: "info", title: `${s.name} renews in ${days}d`, detail: fmtINRFull(s.amount), tab: "subs" });
     });
-    // Credit card utilization
+    // Credit card utilization — compute from state (unfiltered) for consistent alert coverage
     const totalCCLimitForAlert = state.creditCards
       .filter((c) => (c.status || "").toLowerCase() !== "closed")
       .reduce((s, c) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
-    if (totalCCLimitForAlert > 0 && metrics.ccOutstanding > 0) {
-      const util = (metrics.ccOutstanding / totalCCLimitForAlert) * 100;
-      if (util > 75) list.push({ level: "error", title: `Credit utilization at ${util.toFixed(0)}%`, detail: `${fmtINRFull(metrics.ccOutstanding)} used of ${fmtINRFull(totalCCLimitForAlert)} limit — may hurt credit score`, tab: "credit" });
+    const ccOutstandingForAlert = state.creditCards
+      .filter((c) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((s, c) => s + Number(c.outstanding || 0), 0);
+    if (totalCCLimitForAlert > 0 && ccOutstandingForAlert > 0) {
+      const util = (ccOutstandingForAlert / totalCCLimitForAlert) * 100;
+      if (util > 75) list.push({ level: "error", title: `Credit utilization at ${util.toFixed(0)}%`, detail: `${fmtINRFull(ccOutstandingForAlert)} used of ${fmtINRFull(totalCCLimitForAlert)} limit — may hurt credit score`, tab: "credit" });
       else if (util > 40) list.push({ level: "warn", title: `Credit utilization ${util.toFixed(0)}%`, detail: "Keep utilization below 30% to protect your credit score", tab: "credit" });
     }
-    // FOIR: loan EMI burden vs income
-    const totalEMIForAlert = state.loansTaken.reduce((s, l) => s + Number(l.emi || 0), 0);
+    // FOIR: loan EMI burden vs income (only active loans with months remaining)
+    const totalEMIForAlert = state.loansTaken
+      .filter((l) => Number(l.monthsRemaining || 1) > 0)
+      .reduce((s, l) => s + Number(l.emi || 0), 0);
     if (metrics.monthIncome > 0 && totalEMIForAlert > 0) {
       const foirPct = (totalEMIForAlert / metrics.monthIncome) * 100;
       if (foirPct > 50) list.push({ level: "error", title: `EMI burden ${foirPct.toFixed(0)}% of income`, detail: `${fmtINRFull(totalEMIForAlert)}/mo EMIs is very high — severe cash flow risk`, tab: "credit" });
       else if (foirPct > 40) list.push({ level: "warn", title: `High FOIR: ${foirPct.toFixed(0)}%`, detail: "EMI payments exceed 40% of monthly income — reduce debt", tab: "credit" });
+    }
+    // Net worth MoM drop alert
+    const nwHistory = state.netWorthHistory || [];
+    if (nwHistory.length >= 2) {
+      const sorted = [...nwHistory].sort((a, b) => a.month < b.month ? -1 : 1);
+      const prev = sorted[sorted.length - 2];
+      const curr = sorted[sorted.length - 1];
+      if (prev.netWorth > 0 && curr.netWorth < prev.netWorth) {
+        const drop = prev.netWorth - curr.netWorth;
+        const dropPct = (drop / prev.netWorth) * 100;
+        if (dropPct > 5) list.push({ level: "warn", title: `Net worth dropped ${dropPct.toFixed(0)}% MoM`, detail: `Down ${fmtINRFull(drop)} vs last month`, tab: "analytics" });
+      }
+    }
+    // Tax regime switch alert — if switching saves >₹5,000 suggest it
+    if (metrics.annualIncome > 0) {
+      const stdDedNew = 75000;
+      const taxableNew = Math.max(0, metrics.annualIncome - stdDedNew);
+      const taxNewAmt = calcTaxNew(taxableNew).total;
+      const taxOldAmt = calcTaxOld(metrics.annualIncome, 50000).total;
+      const saving = Math.abs(taxNewAmt - taxOldAmt);
+      const betterRegime = taxOldAmt < taxNewAmt ? "Old" : "New";
+      const currentRegime = state.profile?.regime === "old" ? "Old" : "New";
+      if (saving > 5000 && betterRegime !== currentRegime) {
+        list.push({ level: "info", title: `Switch to ${betterRegime} Regime — save ${fmtINRFull(saving)}`, detail: `${betterRegime} regime saves more for your income level. Check Tax Vault for details.`, tab: "tax" });
+      }
     }
     const filteredList = list.filter(a => {
       const dismissUntil = state.dismissedAlerts?.[a.title];
       return !(dismissUntil && dismissUntil > Date.now());
     });
     return filteredList;
-  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, metrics.monthExpense, metrics.cashInBanks, state.dismissedAlerts]);
+  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, state.dismissedAlerts, state.profile?.regime]);
 
   const TABLE_MAP: Record<string, string> = {
     bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
