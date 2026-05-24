@@ -936,7 +936,8 @@ function FinanceDashboard() {
       .filter((t) => t.type === "credit" && t.date && new Date(t.date) >= fyStart)
       .reduce((s, t) => s + Number(t.amount || 0), 0);
     const annualizedCurrentMonth = (monthIncome || 0) * 12;
-    const annualIncome = explicitIncome || annualizedCurrentMonth || txnIncome || 0;
+    // Prefer explicit ledger → FY-to-date credit txns → annualised single month (least accurate)
+    const annualIncome = explicitIncome || txnIncome || annualizedCurrentMonth || 0;
 
     const subTotal = sState.subscriptions.filter(sub => !sub.paused).reduce((s, sub) => {
       const m =
@@ -1219,12 +1220,15 @@ function FinanceDashboard() {
       if (util > 75) list.push({ level: "error", title: `Credit utilization at ${util.toFixed(0)}%`, detail: `${fmtINRFull(ccOutstandingForAlert)} used of ${fmtINRFull(totalCCLimitForAlert)} limit — may hurt credit score`, tab: "credit" });
       else if (util > 40) list.push({ level: "warn", title: `Credit utilization ${util.toFixed(0)}%`, detail: "Keep utilization below 30% to protect your credit score", tab: "credit" });
     }
-    // FOIR: loan EMI burden vs income (only active loans with months remaining)
+    // FOIR: use unfiltered household income + unfiltered loans for a consistent household metric
+    const unfilteredMonthlyIncome = state.transactions
+      .filter((t) => t.date && t.date.startsWith(ym) && t.type === "credit")
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
     const totalEMIForAlert = state.loansTaken
       .filter((l) => Number(l.monthsRemaining || 1) > 0)
       .reduce((s, l) => s + Number(l.emi || 0), 0);
-    if (metrics.monthIncome > 0 && totalEMIForAlert > 0) {
-      const foirPct = (totalEMIForAlert / metrics.monthIncome) * 100;
+    if (unfilteredMonthlyIncome > 0 && totalEMIForAlert > 0) {
+      const foirPct = (totalEMIForAlert / unfilteredMonthlyIncome) * 100;
       if (foirPct > 50) list.push({ level: "error", title: `EMI burden ${foirPct.toFixed(0)}% of income`, detail: `${fmtINRFull(totalEMIForAlert)}/mo EMIs is very high — severe cash flow risk`, tab: "credit" });
       else if (foirPct > 40) list.push({ level: "warn", title: `High FOIR: ${foirPct.toFixed(0)}%`, detail: "EMI payments exceed 40% of monthly income — reduce debt", tab: "credit" });
     }
@@ -1253,12 +1257,22 @@ function FinanceDashboard() {
         list.push({ level: "info", title: `Switch to ${betterRegime} Regime — save ${fmtINRFull(saving)}`, detail: `${betterRegime} regime saves more for your income level. Check Tax Vault for details.`, tab: "tax" });
       }
     }
+    // Insurance adequacy — recommend 10× annual income life cover
+    const totalLifeCover = [...(state.termPlans || []), ...(state.lic || [])].reduce((s, p) => s + Number((p as any).coverAmount || (p as any).sumAssured || 0), 0);
+    if (metrics.annualIncome > 0 && totalLifeCover > 0 && totalLifeCover < metrics.annualIncome * 10) {
+      const shortfall = metrics.annualIncome * 10 - totalLifeCover;
+      list.push({ level: "warn", title: "Under-insured: life cover below 10× income", detail: `Cover ${fmtINRFull(totalLifeCover)} vs recommended ${fmtINRFull(metrics.annualIncome * 10)}. Shortfall: ${fmtINRFull(shortfall)}`, tab: "insurance" });
+    }
+    // Low savings rate alert
+    if (metrics.monthIncome > 0 && metrics.monthExpense > 0 && metrics.savingsRate < 10) {
+      list.push({ level: "warn", title: `Low savings rate: ${metrics.savingsRate.toFixed(0)}%`, detail: `Saving only ${metrics.savingsRate.toFixed(0)}% of monthly income. Target 20%+ for long-term financial security.`, tab: "analytics" });
+    }
     const filteredList = list.filter(a => {
       const dismissUntil = state.dismissedAlerts?.[a.title];
       return !(dismissUntil && dismissUntil > Date.now());
     });
     return filteredList;
-  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, state.dismissedAlerts, state.profile?.regime]);
+  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, state.termPlans, state.lic, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, metrics.savingsRate, state.dismissedAlerts, state.profile?.regime]);
 
   const TABLE_MAP: Record<string, string> = {
     bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
@@ -2311,7 +2325,7 @@ function FinanceDashboard() {
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
-            {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+            {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} metrics={metrics} />}
             {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}

@@ -62,7 +62,7 @@ const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
   );
 };
 
-export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any) {
+export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
 
@@ -73,6 +73,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
     if (s.cycle === "quarterly") return acc + amount / 3;
     return acc + amount;
   }, 0);
+  const totalAnnual = totalMonthly * 12;
 
   return (
     <div className="tab-content-enter">
@@ -89,25 +90,32 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem }: any
         Subscriptions
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
-        <StatCard 
-          icon={<Repeat />} 
-          label="Active Subscriptions" 
-          value={activeSubs.length} 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
+        <StatCard
+          icon={<Repeat />}
+          label="Active Subscriptions"
+          value={activeSubs.length}
           color={THEME.accent}
           sub="Monthly/Annual recurring"
         />
-        <StatCard 
-          icon={<Wallet />} 
-          label="Monthly Equivalent" 
-          value={fmtINRFull(totalMonthly)} 
+        <StatCard
+          icon={<Wallet />}
+          label="Monthly Equivalent"
+          value={fmtINRFull(totalMonthly)}
           color={THEME.gold}
-          sub="Projected monthly spend"
+          sub={metrics?.monthIncome > 0 ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Projected monthly spend"}
         />
-        <StatCard 
-          icon={<Repeat />} 
-          label="Total Tracked" 
-          value={state.subscriptions.length} 
+        <StatCard
+          icon={<Wallet />}
+          label="Annual Cost"
+          value={fmtINRFull(totalAnnual)}
+          color={THEME.rust}
+          sub={metrics?.annualIncome > 0 ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income` : "Total annual outgo"}
+        />
+        <StatCard
+          icon={<Repeat />}
+          label="Total Tracked"
+          value={state.subscriptions.length}
           color={THEME.muted}
           sub="Including paused services"
         />

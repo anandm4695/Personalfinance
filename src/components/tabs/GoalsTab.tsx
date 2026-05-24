@@ -44,7 +44,7 @@ const GoalEmptyState = ({ onAdd }: any) => (
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
 const PRIORITY_COLOR: Record<string, string> = { High: "#ef4444", Medium: "#f59e0b", Low: "#22c55e" };
 
-export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
+export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
   const [editGoal, setEditGoal] = useState<any>(null);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
@@ -55,6 +55,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
   const totalTarget = state.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
   const totalRemaining = Math.max(0, totalTarget - totalSaved);
+
+  // Total monthly savings needed across all incomplete, time-bound goals
+  const totalMonthlyRequired = state.goals.reduce((s: number, g: any) => {
+    const isComplete = Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount);
+    if (isComplete || !g.targetDate) return s;
+    const monthsLeft = Math.max(0, monthsBetween(today(), g.targetDate));
+    const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
+    return s + (monthsLeft > 0 ? remaining / monthsLeft : 0);
+  }, 0);
+  const monthlySavings = metrics ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0)) : 0;
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
   
   const completedCount = state.goals.filter((g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)).length;
@@ -110,35 +120,46 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
 
       {state.goals.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
-            <StatCard 
-              icon={<Flag />} 
-              label="Total Target" 
-              value={fmtINRFull(totalTarget)} 
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
+            <StatCard
+              icon={<Flag />}
+              label="Total Target"
+              value={fmtINRFull(totalTarget)}
               color={THEME.accent}
               sub={`${state.goals.length} active goals`}
             />
-            <StatCard 
-              icon={<TrendingUp />} 
-              label="Saved So Far" 
-              value={fmtINRFull(totalSaved)} 
+            <StatCard
+              icon={<TrendingUp />}
+              label="Saved So Far"
+              value={fmtINRFull(totalSaved)}
               color={THEME.sage}
               sub={`${overallPct.toFixed(1)}% of global target`}
             />
-            <StatCard 
-              icon={<Flag />} 
-              label="Balance Left" 
-              value={fmtINRFull(totalRemaining)} 
+            <StatCard
+              icon={<Flag />}
+              label="Balance Left"
+              value={fmtINRFull(totalRemaining)}
               color={THEME.rust}
               sub="Required capital to finish"
             />
-            <StatCard 
-              icon={<Sparkles />} 
-              label="Status" 
-              value={onTrackCount + completedCount} 
-              color={ringColor(overallPct)}
-              sub={`${onTrackCount} on track, ${completedCount} done`}
-            />
+            {totalMonthlyRequired > 0 && (
+              <StatCard
+                icon={<Sparkles />}
+                label="Monthly Required"
+                value={fmtINRFull(totalMonthlyRequired)}
+                color={monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold}
+                sub={monthlySavings > 0 ? (totalMonthlyRequired > monthlySavings ? `Exceeds ${fmtINRFull(monthlySavings)} savings capacity` : `Within ${fmtINRFull(monthlySavings)} monthly savings`) : "Needed/mo to stay on track"}
+              />
+            )}
+            {totalMonthlyRequired === 0 && (
+              <StatCard
+                icon={<Sparkles />}
+                label="Status"
+                value={onTrackCount + completedCount}
+                color={ringColor(overallPct)}
+                sub={`${onTrackCount} on track, ${completedCount} done`}
+              />
+            )}
           </div>
 
           <Card style={{ marginBottom: 32, padding: 28 }}>

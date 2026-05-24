@@ -17,7 +17,7 @@ import { EmptyState } from "../ui/EmptyState";
 
 
 
-export function SIPTrackerTab({ state, addItem, removeItem }: any) {
+export function SIPTrackerTab({ state, addItem, removeItem, metrics }: any) {
   const [show, setShow] = useState(false);
   const todayStr = today();
   const [sipProjRate, setSipProjRate] = useState("12");
@@ -58,32 +58,32 @@ export function SIPTrackerTab({ state, addItem, removeItem }: any) {
         SIP Tracker
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
-        <StatCard 
-          icon={<Activity />} 
-          label="Monthly SIP" 
-          value={fmtINRFull(totalMonthly)} 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
+        <StatCard
+          icon={<Activity />}
+          label="Monthly SIP"
+          value={fmtINRFull(totalMonthly)}
           color={THEME.accent}
-          sub="Total monthly commitment"
+          sub={metrics?.monthIncome > 0 ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Total monthly commitment"}
         />
-        <StatCard 
-          icon={<TrendingUp />} 
-          label="Total Invested" 
-          value={fmtINRFull(totalInvested)} 
+        <StatCard
+          icon={<TrendingUp />}
+          label="Total Invested"
+          value={fmtINRFull(totalInvested)}
           color={THEME.sage}
           sub="Cumulative capital put in"
         />
-        <StatCard 
-          icon={<Repeat />} 
-          label="Active SIPs" 
-          value={sipsWithCalc.length} 
+        <StatCard
+          icon={<Repeat />}
+          label="Active SIPs"
+          value={sipsWithCalc.length}
           color={THEME.muted}
           sub="Running investment plans"
         />
-        <StatCard 
-          icon={<Sparkles />} 
-          label="Projected Corpus" 
-          value={fmtINRFull(totalProjected)} 
+        <StatCard
+          icon={<Sparkles />}
+          label="Projected Corpus"
+          value={fmtINRFull(totalProjected)}
           color={THEME.gold}
           sub={`@${sipProjRate}% p.a. estimation`}
         />
