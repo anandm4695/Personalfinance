@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Plus, Pencil, Trash2, Flag, TrendingUp, Sparkles } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -49,6 +49,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
   const [editGoal, setEditGoal] = useState<any>(null);
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [sipExpanded, setSipExpanded] = useState<Set<string>>(new Set());
+  const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
 
   const totalTarget = state.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
@@ -319,9 +321,75 @@ export function GoalsTab({ state, addItem, removeItem, updateItem }: any) {
                       <div><div style={{ color: THEME.muted }}>Remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(remaining)}</div></div>
                       {g.targetDate && <div><div style={{ color: THEME.muted }}>Months left</div><div style={{ fontWeight: 700 }}>{monthsLeft}</div></div>}
                     </div>
-                    {monthlyNeeded > 0 && (
-                      <div style={{ marginTop: 10, fontSize: 13, color: THEME.ink }}>
-                        → Save <b>{fmtINRFull(monthlyNeeded)}</b>/month to hit target on time.
+                    {monthlyNeeded > 0 && !isComplete && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ fontSize: 13, color: THEME.ink }}>
+                            → Simple: <b>{fmtINRFull(monthlyNeeded)}</b>/mo without returns
+                          </div>
+                          <button
+                            onClick={() => setSipExpanded(prev => {
+                              const next = new Set(prev);
+                              next.has(g.id) ? next.delete(g.id) : next.add(g.id);
+                              return next;
+                            })}
+                            style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "2px 6px" }}
+                          >
+                            {sipExpanded.has(g.id) ? "SIP Calc ▲" : "SIP Calc ▼"}
+                          </button>
+                        </div>
+
+                        {sipExpanded.has(g.id) && (
+                          <div style={{ marginTop: 12, padding: 16, background: "rgba(99,102,241,0.04)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.12)" }}>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>Required SIP at different returns</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
+                              {[10, 12, 15].map(rate => {
+                                const r = rate / 100 / 12;
+                                const n = monthsLeft;
+                                const sip = n > 0 && r > 0 ? remaining * r / (Math.pow(1 + r, n) - 1) : monthlyNeeded;
+                                return (
+                                  <div key={rate} style={{ textAlign: "center", padding: "10px 8px", background: "rgba(255,255,255,0.6)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>{rate}% p.a.</div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>{fmtINR(sip)}/mo</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 8 }}>What-if calculator</div>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const }}>
+                              <span style={{ fontSize: 12, color: THEME.muted }}>I can invest</span>
+                              <input
+                                type="number"
+                                placeholder="amount"
+                                value={sipInputs[g.id] || ""}
+                                onChange={e => setSipInputs(prev => ({ ...prev, [g.id]: e.target.value }))}
+                                style={{ width: 90, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                              />
+                              <span style={{ fontSize: 12, color: THEME.muted }}>/mo at 12% p.a.</span>
+                            </div>
+                            {sipInputs[g.id] && Number(sipInputs[g.id]) > 0 && (() => {
+                              const monthlySip = Number(sipInputs[g.id]);
+                              const r = 0.12 / 12;
+                              const monthsNeeded = monthlySip > 0 && remaining > 0 ? Math.log(1 + remaining * r / monthlySip) / Math.log(1 + r) : 0;
+                              const reachDate = monthsNeeded > 0 ? new Date(new Date().setMonth(new Date().getMonth() + Math.ceil(monthsNeeded))) : null;
+                              const goalDate = g.targetDate ? new Date(g.targetDate) : null;
+                              const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
+                              return (
+                                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: onTime === true ? "rgba(52,211,153,0.06)" : onTime === false ? "rgba(239,68,68,0.06)" : "rgba(128,128,128,0.04)", border: `1px solid ${onTime === true ? "rgba(52,211,153,0.15)" : onTime === false ? "rgba(239,68,68,0.12)" : THEME.line}` }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: onTime === true ? THEME.sage : onTime === false ? THEME.rust : THEME.ink }}>
+                                    Reach goal in {monthsNeeded > 0 ? Math.ceil(monthsNeeded) : "—"} months{reachDate ? ` · ${reachDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}` : ""}
+                                  </div>
+                                  {onTime !== null && (
+                                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                                      {onTime ? "✓ On track to meet your target date" : "✗ You'll miss your target date at this rate"}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                     )}
                     {isBehind && (

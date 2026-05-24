@@ -72,6 +72,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ day: number; events: any[] } | null>(null);
+  const [rebalTargets, setRebalTargets] = useState({ equity: 60, debt: 25, cash: 10, other: 5 });
 
   const getOrdinal = (n: number | string) => {
     const num = parseInt(n as string, 10);
@@ -1754,6 +1755,125 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </div>
           </Card>
+
+          {/* Portfolio Rebalancing */}
+          <Card style={{ padding: 24, marginTop: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>Portfolio Rebalancing</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Set target allocation and see how much to buy/sell per asset class</div>
+              </div>
+              <Badge variant="accent">Target vs Actual</Badge>
+            </div>
+
+            {(() => {
+              const equity = (metrics.mfValue || 0) + (metrics.stockValue || 0);
+              const debt = (metrics.fdValue || 0) + (metrics.rdValue || 0) + (metrics.bondValue || 0) + (metrics.ppfValue || 0) + (metrics.npsValue || 0) + (metrics.epfValue || 0) + (metrics.licValue || 0) + (metrics.investmentValue || 0);
+              const cash = metrics.cashInBanks || 0;
+              const other = Math.max(0, (metrics.totalAssets || 0) - equity - debt - cash);
+              const total = equity + debt + cash + other;
+
+              const actual = {
+                equity: total > 0 ? (equity / total) * 100 : 0,
+                debt: total > 0 ? (debt / total) * 100 : 0,
+                cash: total > 0 ? (cash / total) * 100 : 0,
+                other: total > 0 ? (other / total) * 100 : 0,
+              };
+
+              const classes = [
+                { key: "equity", label: "Equity", actualPct: actual.equity, actualVal: equity, color: "#6366f1", icon: TrendingUp },
+                { key: "debt", label: "Debt", actualPct: actual.debt, actualVal: debt, color: "#f59e0b", icon: Landmark },
+                { key: "cash", label: "Cash", actualPct: actual.cash, actualVal: cash, color: "#22c55e", icon: Activity },
+                { key: "other", label: "Other", actualPct: actual.other, actualVal: other, color: "#94a3b8", icon: Receipt },
+              ] as const;
+
+              const totalTarget = rebalTargets.equity + rebalTargets.debt + rebalTargets.cash + rebalTargets.other;
+
+              return (
+                <>
+                  {/* Sliders */}
+                  <div style={{ display: "grid", gap: 14, marginBottom: 24 }}>
+                    {classes.map(({ key, label, actualPct, color }) => {
+                      const targetPct = rebalTargets[key];
+                      return (
+                        <div key={key}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                              <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              <span style={{ fontSize: 12, color: THEME.muted }}>Actual: <b style={{ color: THEME.ink }}>{actualPct.toFixed(1)}%</b></span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontSize: 12, color }}>Target:</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={targetPct}
+                                  onChange={e => setRebalTargets(prev => ({ ...prev, [key]: Math.max(0, Math.min(100, Number(e.target.value) || 0)) }))}
+                                  style={{ width: 52, padding: "2px 6px", borderRadius: 6, border: `1px solid ${color}33`, background: `${color}08`, fontSize: 12, fontWeight: 700, color, outline: "none", textAlign: "center" as const }}
+                                />
+                                <span style={{ fontSize: 12, color }}>%</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ position: "relative", height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${Math.min(actualPct, 100)}%`, background: color, borderRadius: 5, opacity: 0.4 }} />
+                            <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: 2, marginLeft: `${Math.min(targetPct, 100)}%`, background: color, boxShadow: `0 0 4px ${color}` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {totalTarget !== 100 && (
+                      <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600 }}>Targets sum to {totalTarget}% — adjust to total 100%</div>
+                    )}
+                  </div>
+
+                  {/* Action plan table */}
+                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 12 }}>Rebalancing Action Plan</div>
+                    {total === 0 ? (
+                      <div style={{ textAlign: "center", fontSize: 13, color: THEME.muted, padding: "16px 0" }}>Add assets to see rebalancing recommendations</div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {classes.map(({ key, label, actualPct, actualVal, color }) => {
+                          const targetPct = rebalTargets[key];
+                          const targetVal = (targetPct / 100) * total;
+                          const diff = targetVal - actualVal;
+                          const absDiff = Math.abs(diff);
+                          const isBuy = diff > 0;
+                          if (absDiff < 1000) return null;
+                          return (
+                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: isBuy ? "rgba(52,211,153,0.04)" : "rgba(239,68,68,0.04)", border: `1px solid ${isBuy ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.12)"}` }}>
+                              <div style={{ width: 34, height: 34, borderRadius: 9, background: color + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700 }}>{label}</div>
+                                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                                  {actualPct.toFixed(1)}% → target {targetPct}%
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: isBuy ? THEME.sage : THEME.rust }}>
+                                  {isBuy ? "+" : "−"}{fmtINR(absDiff)}
+                                </div>
+                                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>{isBuy ? "Buy / Add" : "Reduce"}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {classes.every(({ key, actualVal }) => Math.abs(rebalTargets[key] / 100 * total - actualVal) < 1000) && (
+                          <div style={{ textAlign: "center", fontSize: 13, color: THEME.sage, padding: "12px 0" }}>Portfolio is balanced — all classes within ₹1K of target</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </Card>
         </div>
       )}
 
@@ -2077,6 +2197,125 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               )}
             </Card>
           </div>
+
+          {/* Tax Loss Harvesting */}
+          {(() => {
+            const todayD = new Date();
+            const todayMs = todayD.getTime();
+            const fyEndYear = todayD.getMonth() >= 3 ? todayD.getFullYear() + 1 : todayD.getFullYear();
+            const fyEnd = new Date(fyEndYear, 2, 31);
+            const daysToFYEnd = Math.ceil((fyEnd.getTime() - todayMs) / 86400000);
+            const isNearFYEnd = daysToFYEnd >= 0 && daysToFYEnd <= 60;
+
+            const losingStocks = (state.stocks || []).reduce((acc: any[], s: any) => {
+              const base = (s.symbol || "").replace(/\.NS$|\.BO$/, "").replace(/-EQ$/, "").toUpperCase();
+              const exch = s.exchange || "NSE";
+              const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+              const md = marketData?.[yfSym];
+              const currentPrice = md?.price ?? Number(s.currentPrice || 0);
+              const avgPrice = Number(s.avgPrice || 0);
+              if (!currentPrice || !avgPrice || currentPrice >= avgPrice) return acc;
+              const qty = Number(s.qty || 0);
+              const loss = (avgPrice - currentPrice) * qty;
+              const lossPct = ((avgPrice - currentPrice) / avgPrice) * 100;
+              const buyDate = s.buyDate ? new Date(s.buyDate) : null;
+              const daysHeld = buyDate ? Math.floor((todayMs - buyDate.getTime()) / 86400000) : null;
+              const isSTCG = daysHeld === null || daysHeld < 365;
+              acc.push({ name: base, type: "Stock", loss, lossPct, isSTCG });
+              return acc;
+            }, []);
+
+            const losingMFs = (state.mutualFunds || []).reduce((acc: any[], m: any) => {
+              const currentNav = Number(m.currentNav || 0);
+              const buyNav = Number(m.buyNav || 0) || (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
+              if (!currentNav || !buyNav || currentNav >= buyNav) return acc;
+              const units = Number(m.units || 0);
+              const loss = (buyNav - currentNav) * units;
+              const lossPct = ((buyNav - currentNav) / buyNav) * 100;
+              const buyDate = m.buyDate ? new Date(m.buyDate) : null;
+              const daysHeld = buyDate ? Math.floor((todayMs - buyDate.getTime()) / 86400000) : null;
+              const isSTCG = daysHeld === null || daysHeld < 365;
+              const name = (m.scheme || m.fund || "Mutual Fund").substring(0, 28);
+              acc.push({ name, type: "MF", loss, lossPct, isSTCG });
+              return acc;
+            }, []);
+
+            const allLosses = [...losingStocks, ...losingMFs].sort((a, b) => b.loss - a.loss);
+            const totalLoss = allLosses.reduce((s, x) => s + x.loss, 0);
+            const stcgLoss = allLosses.filter(x => x.isSTCG).reduce((s, x) => s + x.loss, 0);
+            const ltcgLoss = allLosses.filter(x => !x.isSTCG).reduce((s, x) => s + x.loss, 0);
+            const estimatedTaxSaving = stcgLoss * 0.20 + ltcgLoss * 0.125;
+
+            return (
+              <Card style={{ padding: 24, marginTop: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 2 }}>Tax Loss Harvesting</div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>Holdings in loss that can be sold to offset capital gains</div>
+                  </div>
+                  {isNearFYEnd && (
+                    <Badge variant="rust" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <AlertTriangle size={10} />
+                      {daysToFYEnd}d to Mar 31
+                    </Badge>
+                  )}
+                </div>
+
+                {allLosses.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, background: "rgba(52,211,153,0.03)", borderRadius: 12 }}>
+                    All holdings currently in profit — no harvesting opportunities
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 16, background: "rgba(239,68,68,0.04)", borderRadius: 12, border: "1px solid rgba(239,68,68,0.1)", marginBottom: 20 }}>
+                      {[
+                        { label: "Harvestable Loss", value: fmtINR(totalLoss), color: THEME.rust },
+                        { label: "Est. Tax Saving", value: fmtINR(estimatedTaxSaving), color: THEME.sage },
+                        { label: "Positions", value: String(allLosses.length), color: THEME.ink },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.02em" }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {allLosses.slice(0, 6).map((item, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(239,68,68,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {item.type === "Stock"
+                              ? <TrendingUp size={16} color={THEME.rust} />
+                              : <Activity size={16} color={THEME.rust} />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{item.name}</span>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, flexShrink: 0, marginLeft: 8 }}>−{fmtINR(item.loss)}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 11, color: THEME.muted }}>
+                              <span>{item.type} · {item.isSTCG ? "STCG 20%" : "LTCG 12.5%"}</span>
+                              <span style={{ color: THEME.rust, fontWeight: 600 }}>↓ {item.lossPct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {allLosses.length > 6 && (
+                      <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: THEME.muted }}>
+                        +{allLosses.length - 6} more positions in loss
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 14, fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
+                      * STCG 20% · LTCG 12.5% (Budget 2024 rates). Selling realises the loss to offset gains. Re-buy after 30+ days to avoid wash-sale issues. Consult your CA.
+                    </div>
+                  </>
+                )}
+              </Card>
+            );
+          })()}
         </div>
       )}
 

@@ -205,6 +205,104 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
         </Card>
       </div>
 
+      {/* ── ADVANCE TAX COUNTDOWN ── */}
+      {isAdvanceTaxApplicable && (() => {
+        const fyParts = (state.profile.fy || "").split("-");
+        const fyStartYear = Number(fyParts[0]) || new Date().getFullYear();
+        const fyEndYear = fyStartYear + 1;
+        const now = new Date();
+        const todayMs = now.getTime();
+
+        const instDates = [
+          { q: "Q1", label: "1st Instalment", dueDate: new Date(fyStartYear, 5, 15), pct: 15, cumAmt: netLiability * 0.15 },
+          { q: "Q2", label: "2nd Instalment", dueDate: new Date(fyStartYear, 8, 15), pct: 45, cumAmt: netLiability * 0.45 },
+          { q: "Q3", label: "3rd Instalment", dueDate: new Date(fyStartYear, 11, 15), pct: 75, cumAmt: netLiability * 0.75 },
+          { q: "Q4", label: "4th Instalment", dueDate: new Date(fyEndYear, 2, 15), pct: 100, cumAmt: netLiability * 1.00 },
+        ];
+
+        const upcoming = instDates.find(i => totalAdvancePaid < i.cumAmt && i.dueDate.getTime() >= todayMs);
+        const overdue = instDates.find(i => totalAdvancePaid < i.cumAmt && i.dueDate.getTime() < todayMs);
+        const target = upcoming || overdue;
+        const allPaid = instDates.every(i => totalAdvancePaid >= i.cumAmt);
+
+        if (allPaid) {
+          return (
+            <Card style={{ padding: 20, marginBottom: 28, background: "rgba(52,211,153,0.04)", border: "1px solid rgba(52,211,153,0.2)", display: "flex", alignItems: "center", gap: 16 }}>
+              <CheckCircle2 size={32} color={THEME.sage} />
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.sage }}>All advance tax payments on track!</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>FY {state.profile.fy} — {fmtINRFull(totalAdvancePaid)} paid of {fmtINRFull(netLiability)} net liability</div>
+              </div>
+            </Card>
+          );
+        }
+
+        if (!target) return null;
+
+        const daysLeft = Math.ceil((target.dueDate.getTime() - todayMs) / 86400000);
+        const isOverdue = daysLeft < 0;
+        const isUrgent = daysLeft >= 0 && daysLeft <= 15;
+        const amountDue = Math.max(0, target.cumAmt - totalAdvancePaid);
+        const countColor = isOverdue ? THEME.rust : isUrgent ? "#f59e0b" : THEME.sage;
+        const dueDateStr = target.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+        return (
+          <Card style={{ padding: 24, marginBottom: 28, border: `1.5px solid ${countColor}30` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.15em", color: THEME.muted, marginBottom: 4 }}>Advance Tax Countdown</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{target.label} — {target.q} · {target.pct}% cumulative</div>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Due by {dueDateStr}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 48, fontWeight: 900, color: countColor, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                  {Math.abs(daysLeft)}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: countColor, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>
+                  {isOverdue ? "days overdue" : "days left"}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
+              {[
+                { label: "Amount Due Now", value: fmtINRFull(amountDue), color: countColor },
+                { label: "Already Paid", value: fmtINRFull(totalAdvancePaid), color: THEME.sage },
+                { label: "Net Liability", value: fmtINRFull(netLiability), color: THEME.ink },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ textAlign: "center", padding: "12px 8px", background: "rgba(128,128,128,0.03)", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+              <span>FY Progress</span>
+              <span>{instDates.filter(i => totalAdvancePaid >= i.cumAmt).length} / {instDates.length} instalments done</span>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {instDates.map((i) => {
+                const paid = totalAdvancePaid >= i.cumAmt;
+                const isCurrent = i.q === target.q;
+                return (
+                  <div key={i.q} style={{ flex: 1, height: 8, borderRadius: 4, background: paid ? THEME.sage : isCurrent ? countColor : THEME.line, opacity: isCurrent && !paid ? 0.85 : 1, transition: "background 0.3s" }} title={`${i.q}: ${i.pct}%`} />
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: THEME.muted }}>
+              {instDates.map(i => <span key={i.q}>{i.q}</span>)}
+            </div>
+
+            {isOverdue && (
+              <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
+                ⚠️ Overdue by {Math.abs(daysLeft)} days. Interest u/s 234B/234C may apply. Pay immediately.
+              </div>
+            )}
+          </Card>
+        );
+      })()}
+
       {/* ── TAX PAYMENTS LOG ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>Payment Log & TDS</h3>

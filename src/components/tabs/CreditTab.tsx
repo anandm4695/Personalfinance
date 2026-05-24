@@ -266,6 +266,8 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
   const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
+  const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
 
   const subs = [
     { id: "cc", label: "Credit Cards", icon: IndianRupee },
@@ -400,6 +402,76 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                             <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Payoff date</div><div style={{ fontWeight: 700 }}>{months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—"}</div></div>
                           </div>
                           <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted }}>{paidPct.toFixed(1)}% of principal repaid · {months} months left</div>
+
+                          {/* Prepayment Calculator */}
+                          <div style={{ marginTop: 14, borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>Prepayment Calculator</div>
+                              <button
+                                onClick={() => setPrepayExpanded(prev => {
+                                  const next = new Set(prev);
+                                  next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                                  return next;
+                                })}
+                                style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "2px 6px" }}
+                              >
+                                {prepayExpanded.has(l.id) ? "Hide ▲" : "Show ▼"}
+                              </button>
+                            </div>
+                            {prepayExpanded.has(l.id) && (
+                              <div style={{ marginTop: 12, padding: 14, background: "rgba(99,102,241,0.04)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.1)" }}>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const, marginBottom: 12 }}>
+                                  <span style={{ fontSize: 12, color: THEME.muted }}>If I prepay</span>
+                                  <input
+                                    type="number"
+                                    placeholder="₹ amount"
+                                    value={prepayInputs[l.id] || ""}
+                                    onChange={e => setPrepayInputs(prev => ({ ...prev, [l.id]: e.target.value }))}
+                                    style={{ width: 110, padding: "5px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                                  />
+                                  <span style={{ fontSize: 12, color: THEME.muted }}>today</span>
+                                </div>
+                                {prepayInputs[l.id] && Number(prepayInputs[l.id]) > 0 && (() => {
+                                  const prepay = Number(prepayInputs[l.id]);
+                                  if (prepay >= outstanding) {
+                                    return (
+                                      <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", fontSize: 13, fontWeight: 700, color: THEME.sage }}>
+                                        Full payoff! Save {fmtINR(interestRemaining)} in interest & close loan today.
+                                      </div>
+                                    );
+                                  }
+                                  const newOutstanding = outstanding - prepay;
+                                  const r = Number(l.rate || 0) / 100 / 12;
+                                  let newMonths: number;
+                                  if (r > 0 && emi > r * newOutstanding) {
+                                    newMonths = -Math.log(1 - (r * newOutstanding) / emi) / Math.log(1 + r);
+                                  } else {
+                                    newMonths = emi > 0 ? newOutstanding / emi : months;
+                                  }
+                                  newMonths = Math.ceil(newMonths);
+                                  const newInterestRemaining = Math.max(0, emi * newMonths - newOutstanding);
+                                  const monthsSaved = Math.max(0, months - newMonths);
+                                  const interestSaved = Math.max(0, interestRemaining - newInterestRemaining);
+                                  const newPayoff = new Date();
+                                  newPayoff.setMonth(newPayoff.getMonth() + newMonths);
+                                  return (
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+                                      {[
+                                        { label: "Months Saved", value: `${monthsSaved} mo`, color: THEME.sage },
+                                        { label: "Interest Saved", value: fmtINR(interestSaved), color: THEME.sage },
+                                        { label: "New Payoff", value: newPayoff.toLocaleString("en-IN", { month: "short", year: "numeric" }), color: THEME.ink },
+                                      ].map(({ label, value, color }) => (
+                                        <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: "rgba(255,255,255,0.7)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
+                                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>{label}</div>
+                                          <div style={{ fontSize: 14, fontWeight: 800, color }}>{value}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            )}
+                          </div>
                         </Card>
                       );
                     })}
