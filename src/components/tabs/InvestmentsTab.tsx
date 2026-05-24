@@ -1753,7 +1753,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const totalPension   = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
   const totalInterest  = interestRows.reduce((s, x) => {
     if (x.employeeShare !== undefined || x.employerShare !== undefined)
-      return s + Number(x.employeeShare || 0) + Number(x.employerShare || 0);
+      return s + Number(x.employeeShare || 0) + Number(x.employerShare || 0) + Number(x.pensionShare || 0);
     return s + Number(x.amount || 0);
   }, 0);
   const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
@@ -1764,18 +1764,16 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
     if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
     return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
   }, 0);
-  const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
-  // transfer_in breakdown: use splits if provided, else bucket into employee share
-  const transferInEmp = transferRows.reduce((s, x) => {
-    const splits = Number(x.employeeShare || 0) + Number(x.employerShare || 0) + Number(x.pensionShare || 0);
-    return s + (splits > 0 ? Number(x.employeeShare || 0) : Number(x.amount || 0));
-  }, 0);
+  const erInterest  = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const penInterest = interestRows.reduce((s, x) => s + Number(x.pensionShare  || 0), 0);
+  // employee gets remainder: total - er - pen (handles partial splits and no-splits correctly)
   const transferInEr  = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
   const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare  || 0), 0);
+  const transferInEmp = totalTransferIn - transferInEr - transferInPen;
 
   const closingEmployee  = totalEmployee + empInterest + transferInEmp;
   const closingEmployer  = totalEmployer + erInterest  + transferInEr;
-  const closingPension   = totalPension  + transferInPen;
+  const closingPension   = totalPension  + transferInPen + penInterest;
   const closingTotal     = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
   const hasPassbook      = txs.some(t => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in");
   const displayCorpus    = hasPassbook ? closingTotal : Number(p.balance || 0);
@@ -1825,7 +1823,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         employeeShare: empInt,
         employerShare: erInt,
         pensionShare:  penInt,
-        amount:        empInt + erInt,
+        amount:        empInt + erInt + penInt,
         note:          form.note || "",
       };
     } else if (form.type === "transfer_in") {
@@ -2190,7 +2188,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epsWages || 0), 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#6366f1" }}>{fmtINR(passbookRows.reduce((s, t) => {
                           if (t.type === "interest_credit") return s + Number(t.employeeShare !== undefined ? t.employeeShare : t.amount || 0);
-                          if (t.type === "transfer_in") return s + Number(Number(t.employeeShare || 0) > 0 ? t.employeeShare : t.amount || 0);
+                          if (t.type === "transfer_in") { const erT = Number(t.employerShare || 0); const penT = Number(t.pensionShare || 0); return s + (Number(t.amount || 0) - erT - penT); }
                           return s + Number(t.employeeShare || 0);
                         }, 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#0ea5e9" }}>{fmtINR(passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0))}</td>
