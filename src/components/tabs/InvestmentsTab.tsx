@@ -75,7 +75,15 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   // ── RD State ──
   const [rd, setRd] = useState({ bank: "", monthly: "", rate: "", tenureMonths: "", startDate: today() });
   // ── Bond State ──
-  const [bond, setBond] = useState({ name: "", issuer: "", faceValue: "", coupon: "", maturityDate: "" });
+  const [bond, setBond] = useState({
+    name: "", issuer: "", isin: "", securityNature: "", orderId: "",
+    faceValuePerUnit: "", numberOfUnits: "", coupon: "", ytmRate: "",
+    maturityDate: "", orderDate: today(),
+    principalRepayment: "At Maturity", interestPaymentDate: "Annually",
+    cleanPricePerUnit: "", accruedInterestPerUnit: "",
+    brokerage: "0", stampDuty: "0",
+    buyerName: "", sellerName: "",
+  });
   // ── PPF State ──
   const [ppf, setPpf] = useState({ institution: "", balance: "", accountNumber: "" });
   // ── NPS State ──
@@ -94,10 +102,26 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         if (!rd.bank || !rd.monthly || !rd.rate) return;
         onSave("recurringDeposits", rd);
         break;
-      case "bond":
-        if (!bond.name || !bond.faceValue || !bond.coupon) return;
-        onSave("bonds", bond);
+      case "bond": {
+        if (!bond.name || !bond.coupon) return;
+        const units = Number(bond.numberOfUnits) || 0;
+        const fvpu = Number(bond.faceValuePerUnit) || 0;
+        const cppu = Number(bond.cleanPricePerUnit) || 0;
+        const aipu = Number(bond.accruedInterestPerUnit) || 0;
+        const totalPrincipal = units * fvpu;
+        const totalAccrued = units * aipu;
+        const totalConsideration = units * cppu + totalAccrued;
+        const totalInvestment = totalConsideration + Number(bond.brokerage || 0) + Number(bond.stampDuty || 0);
+        onSave("bonds", {
+          ...bond,
+          faceValue: totalPrincipal || Number(bond.faceValuePerUnit) || 0,
+          totalPrincipalAmount: totalPrincipal,
+          totalAccruedInterest: totalAccrued,
+          totalConsideration: totalConsideration,
+          totalInvestmentAmount: totalInvestment,
+        });
         break;
+      }
       case "ppf":
         if (!ppf.balance) return;
         onSave("ppf", ppf);
@@ -173,27 +197,121 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       )}
 
       {/* ── Bonds ── */}
-      {sub === "bond" && (
-        <>
-          <Field label="Bond Name">
-            <input style={inp} value={bond.name} onChange={e => setBond({ ...bond, name: e.target.value })} placeholder="e.g. SGB 2025-I, NHAI Bond" />
-          </Field>
-          <Field label="Issuer">
-            <input style={inp} value={bond.issuer} onChange={e => setBond({ ...bond, issuer: e.target.value })} placeholder="e.g. RBI, NHAI, Govt of India" />
-          </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Face Value (₹)">
-              <input style={inp} type="number" value={bond.faceValue} onChange={e => setBond({ ...bond, faceValue: e.target.value })} placeholder="100000" />
+      {sub === "bond" && (() => {
+        const units = Number(bond.numberOfUnits) || 0;
+        const fvpu  = Number(bond.faceValuePerUnit) || 0;
+        const cppu  = Number(bond.cleanPricePerUnit) || 0;
+        const aipu  = Number(bond.accruedInterestPerUnit) || 0;
+        const brok  = Number(bond.brokerage) || 0;
+        const sdut  = Number(bond.stampDuty) || 0;
+        const totalPrincipal    = units * fvpu;
+        const totalAccrued      = units * aipu;
+        const totalConsideration = units * cppu + totalAccrued;
+        const totalInvestment   = totalConsideration + brok + sdut;
+        const labelStyle = { fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.12em", color: THEME.muted, marginTop: 16, marginBottom: 4, borderTop: `1px solid ${THEME.line}`, paddingTop: 12 };
+        return (
+          <>
+            <div style={{ ...labelStyle, marginTop: 0, borderTop: "none", paddingTop: 0 }}>Bond Identity</div>
+            <Field label="Bond / Product Name *">
+              <input style={inp} value={bond.name} onChange={e => setBond({ ...bond, name: e.target.value })} placeholder="e.g. IIFL Samasta Mar'25" />
             </Field>
-            <Field label="Coupon Rate (% p.a.)">
-              <input style={inp} type="number" value={bond.coupon} onChange={e => setBond({ ...bond, coupon: e.target.value })} placeholder="7.5" step="0.1" />
-            </Field>
-          </div>
-          <Field label="Maturity Date">
-            <input style={inp} type="date" value={bond.maturityDate} onChange={e => setBond({ ...bond, maturityDate: e.target.value })} />
-          </Field>
-        </>
-      )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Issuer">
+                <input style={inp} value={bond.issuer} onChange={e => setBond({ ...bond, issuer: e.target.value })} placeholder="e.g. IIFL, NHAI" />
+              </Field>
+              <Field label="Security Nature">
+                <input style={inp} value={bond.securityNature} onChange={e => setBond({ ...bond, securityNature: e.target.value })} placeholder="Senior Secured Bond" />
+              </Field>
+              <Field label="ISIN">
+                <input style={inp} value={bond.isin} onChange={e => setBond({ ...bond, isin: e.target.value })} placeholder="INE413U07335" />
+              </Field>
+              <Field label="Order ID">
+                <input style={inp} value={bond.orderId} onChange={e => setBond({ ...bond, orderId: e.target.value })} placeholder="1514021" />
+              </Field>
+            </div>
+
+            <div style={labelStyle}>Financial Terms</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Face Value per Unit (₹)">
+                <input style={inp} type="number" value={bond.faceValuePerUnit} onChange={e => setBond({ ...bond, faceValuePerUnit: e.target.value })} placeholder="1000" />
+              </Field>
+              <Field label="Number of Units">
+                <input style={inp} type="number" value={bond.numberOfUnits} onChange={e => setBond({ ...bond, numberOfUnits: e.target.value })} placeholder="10" />
+              </Field>
+              <Field label="Coupon Rate (% p.a.) *">
+                <input style={inp} type="number" value={bond.coupon} onChange={e => setBond({ ...bond, coupon: e.target.value })} placeholder="9.6" step="0.01" />
+              </Field>
+              <Field label="YTM Rate (% after brokerage)">
+                <input style={inp} type="number" value={bond.ytmRate} onChange={e => setBond({ ...bond, ytmRate: e.target.value })} placeholder="11.25" step="0.01" />
+              </Field>
+              <Field label="Maturity Date">
+                <input style={inp} type="date" value={bond.maturityDate} onChange={e => setBond({ ...bond, maturityDate: e.target.value })} />
+              </Field>
+              <Field label="Order Date">
+                <input style={inp} type="date" value={bond.orderDate} onChange={e => setBond({ ...bond, orderDate: e.target.value })} />
+              </Field>
+              <Field label="Principal Repayment">
+                <select style={inp} value={bond.principalRepayment} onChange={e => setBond({ ...bond, principalRepayment: e.target.value })}>
+                  <option>At Maturity</option>
+                  <option>Installments</option>
+                </select>
+              </Field>
+              <Field label="Interest Payment">
+                <select style={inp} value={bond.interestPaymentDate} onChange={e => setBond({ ...bond, interestPaymentDate: e.target.value })}>
+                  <option>Annually</option>
+                  <option>Semi-Annually</option>
+                  <option>Quarterly</option>
+                  <option>Monthly</option>
+                  <option>At Maturity</option>
+                </select>
+              </Field>
+            </div>
+
+            <div style={labelStyle}>Transaction Details</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Clean Price per Unit (₹)">
+                <input style={inp} type="number" value={bond.cleanPricePerUnit} onChange={e => setBond({ ...bond, cleanPricePerUnit: e.target.value })} placeholder="991.087" step="0.001" />
+              </Field>
+              <Field label="Accrued Interest per Unit (₹)">
+                <input style={inp} type="number" value={bond.accruedInterestPerUnit} onChange={e => setBond({ ...bond, accruedInterestPerUnit: e.target.value })} placeholder="47.8685" step="0.0001" />
+              </Field>
+              <Field label="Brokerage incl. GST (₹)">
+                <input style={inp} type="number" value={bond.brokerage} onChange={e => setBond({ ...bond, brokerage: e.target.value })} placeholder="0" />
+              </Field>
+              <Field label="Stamp Duty (₹)">
+                <input style={inp} type="number" value={bond.stampDuty} onChange={e => setBond({ ...bond, stampDuty: e.target.value })} placeholder="0" />
+              </Field>
+            </div>
+
+            {/* Live computed summary */}
+            {(units > 0 || cppu > 0) && (
+              <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {[
+                  ["Total Principal",       fmtINRFull(totalPrincipal)],
+                  ["Total Accrued Interest", fmtINRFull(totalAccrued)],
+                  ["Total Consideration",   fmtINRFull(totalConsideration)],
+                  ["Total Investment",      fmtINRFull(totalInvestment)],
+                ].map(([lbl, val]) => (
+                  <div key={lbl}>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{lbl}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={labelStyle}>Parties</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Buyer Name">
+                <input style={inp} value={bond.buyerName} onChange={e => setBond({ ...bond, buyerName: e.target.value })} placeholder="Your name" />
+              </Field>
+              <Field label="Seller Name">
+                <input style={inp} value={bond.sellerName} onChange={e => setBond({ ...bond, sellerName: e.target.value })} placeholder="e.g. Ambium Finserve" />
+              </Field>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── PPF ── */}
       {sub === "ppf" && (
@@ -339,7 +457,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     switch (sub) {
       case "fd":    return <FDSection   items={state.fixedDeposits}     removeItem={removeItem} onAdd={onAdd} />;
       case "rd":    return <RDSection   items={state.recurringDeposits} removeItem={removeItem} onAdd={onAdd} />;
-      case "bond":  return <BondSection items={state.bonds}             removeItem={removeItem} onAdd={onAdd} />;
+      case "bond":  return <BondSection items={state.bonds}             removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "ppf":   return <PPFSection  items={state.ppf}               removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} onAdd={onAdd} />;
       case "epf":   return <EPFSection  items={state.epf || []}         removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
@@ -409,6 +527,158 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     </div>
   );
 };
+
+/* ── Edit Bond Modal ────────────────────────────────────────────────── */
+function EditBondModal({ bond: initial, onClose, onSave }: any) {
+  const labelStyle = { fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.12em", color: THEME.muted, marginTop: 16, marginBottom: 4, borderTop: `1px solid ${THEME.line}`, paddingTop: 12 };
+  const [bond, setBond] = useState({
+    name: initial.name || "",
+    issuer: initial.issuer || "",
+    isin: initial.isin || "",
+    securityNature: initial.securityNature || "",
+    orderId: initial.orderId || "",
+    faceValuePerUnit: initial.faceValuePerUnit != null ? String(initial.faceValuePerUnit) : "",
+    numberOfUnits: initial.numberOfUnits != null ? String(initial.numberOfUnits) : "",
+    coupon: initial.coupon != null ? String(initial.coupon) : "",
+    ytmRate: initial.ytmRate != null ? String(initial.ytmRate) : "",
+    maturityDate: initial.maturityDate || "",
+    orderDate: initial.orderDate || today(),
+    principalRepayment: initial.principalRepayment || "At Maturity",
+    interestPaymentDate: initial.interestPaymentDate || "Annually",
+    cleanPricePerUnit: initial.cleanPricePerUnit != null ? String(initial.cleanPricePerUnit) : "",
+    accruedInterestPerUnit: initial.accruedInterestPerUnit != null ? String(initial.accruedInterestPerUnit) : "",
+    brokerage: initial.brokerage != null ? String(initial.brokerage) : "0",
+    stampDuty: initial.stampDuty != null ? String(initial.stampDuty) : "0",
+    buyerName: initial.buyerName || "",
+    sellerName: initial.sellerName || "",
+  });
+
+  const units = Number(bond.numberOfUnits) || 0;
+  const fvpu  = Number(bond.faceValuePerUnit) || 0;
+  const cppu  = Number(bond.cleanPricePerUnit) || 0;
+  const aipu  = Number(bond.accruedInterestPerUnit) || 0;
+  const brok  = Number(bond.brokerage) || 0;
+  const sdut  = Number(bond.stampDuty) || 0;
+  const totalPrincipal     = units * fvpu;
+  const totalAccrued       = units * aipu;
+  const totalConsideration = units * cppu + totalAccrued;
+  const totalInvestment    = totalConsideration + brok + sdut;
+
+  const handleSave = () => {
+    if (!bond.name || !bond.coupon) return;
+    onSave({
+      ...bond,
+      faceValue: totalPrincipal || Number(bond.faceValuePerUnit) || 0,
+      totalPrincipalAmount: totalPrincipal,
+      totalAccruedInterest: totalAccrued,
+      totalConsideration,
+      totalInvestmentAmount: totalInvestment,
+    });
+  };
+
+  return (
+    <Modal title="Edit Bond" onClose={onClose}>
+      <div style={{ ...labelStyle, marginTop: 0, borderTop: "none", paddingTop: 0 }}>Bond Identity</div>
+      <Field label="Bond / Product Name *">
+        <input style={inp} value={bond.name} onChange={e => setBond({ ...bond, name: e.target.value })} placeholder="e.g. IIFL Samasta Mar'25" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Issuer">
+          <input style={inp} value={bond.issuer} onChange={e => setBond({ ...bond, issuer: e.target.value })} placeholder="e.g. IIFL, NHAI" />
+        </Field>
+        <Field label="Security Nature">
+          <input style={inp} value={bond.securityNature} onChange={e => setBond({ ...bond, securityNature: e.target.value })} placeholder="Senior Secured Bond" />
+        </Field>
+        <Field label="ISIN">
+          <input style={inp} value={bond.isin} onChange={e => setBond({ ...bond, isin: e.target.value })} placeholder="INE413U07335" />
+        </Field>
+        <Field label="Order ID">
+          <input style={inp} value={bond.orderId} onChange={e => setBond({ ...bond, orderId: e.target.value })} placeholder="1514021" />
+        </Field>
+      </div>
+
+      <div style={labelStyle}>Financial Terms</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Face Value per Unit (₹)">
+          <input style={inp} type="number" value={bond.faceValuePerUnit} onChange={e => setBond({ ...bond, faceValuePerUnit: e.target.value })} placeholder="1000" />
+        </Field>
+        <Field label="Number of Units">
+          <input style={inp} type="number" value={bond.numberOfUnits} onChange={e => setBond({ ...bond, numberOfUnits: e.target.value })} placeholder="10" />
+        </Field>
+        <Field label="Coupon Rate (% p.a.) *">
+          <input style={inp} type="number" value={bond.coupon} onChange={e => setBond({ ...bond, coupon: e.target.value })} placeholder="9.6" step="0.01" />
+        </Field>
+        <Field label="YTM Rate (% after brokerage)">
+          <input style={inp} type="number" value={bond.ytmRate} onChange={e => setBond({ ...bond, ytmRate: e.target.value })} placeholder="11.25" step="0.01" />
+        </Field>
+        <Field label="Maturity Date">
+          <input style={inp} type="date" value={bond.maturityDate} onChange={e => setBond({ ...bond, maturityDate: e.target.value })} />
+        </Field>
+        <Field label="Order Date">
+          <input style={inp} type="date" value={bond.orderDate} onChange={e => setBond({ ...bond, orderDate: e.target.value })} />
+        </Field>
+        <Field label="Principal Repayment">
+          <select style={inp} value={bond.principalRepayment} onChange={e => setBond({ ...bond, principalRepayment: e.target.value })}>
+            <option>At Maturity</option>
+            <option>Installments</option>
+          </select>
+        </Field>
+        <Field label="Interest Payment">
+          <select style={inp} value={bond.interestPaymentDate} onChange={e => setBond({ ...bond, interestPaymentDate: e.target.value })}>
+            <option>Annually</option>
+            <option>Semi-Annually</option>
+            <option>Quarterly</option>
+            <option>Monthly</option>
+            <option>At Maturity</option>
+          </select>
+        </Field>
+      </div>
+
+      <div style={labelStyle}>Transaction Details</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Clean Price per Unit (₹)">
+          <input style={inp} type="number" value={bond.cleanPricePerUnit} onChange={e => setBond({ ...bond, cleanPricePerUnit: e.target.value })} placeholder="991.087" step="0.001" />
+        </Field>
+        <Field label="Accrued Interest per Unit (₹)">
+          <input style={inp} type="number" value={bond.accruedInterestPerUnit} onChange={e => setBond({ ...bond, accruedInterestPerUnit: e.target.value })} placeholder="47.8685" step="0.0001" />
+        </Field>
+        <Field label="Brokerage incl. GST (₹)">
+          <input style={inp} type="number" value={bond.brokerage} onChange={e => setBond({ ...bond, brokerage: e.target.value })} placeholder="0" />
+        </Field>
+        <Field label="Stamp Duty (₹)">
+          <input style={inp} type="number" value={bond.stampDuty} onChange={e => setBond({ ...bond, stampDuty: e.target.value })} placeholder="0" />
+        </Field>
+      </div>
+
+      {(units > 0 || cppu > 0) && (
+        <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {[
+            ["Total Principal",        fmtINRFull(totalPrincipal)],
+            ["Total Accrued Interest", fmtINRFull(totalAccrued)],
+            ["Total Consideration",    fmtINRFull(totalConsideration)],
+            ["Total Investment",       fmtINRFull(totalInvestment)],
+          ].map(([lbl, val]) => (
+            <div key={lbl}>
+              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{lbl}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{val}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={labelStyle}>Parties</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Buyer Name">
+          <input style={inp} value={bond.buyerName} onChange={e => setBond({ ...bond, buyerName: e.target.value })} placeholder="Your name" />
+        </Field>
+        <Field label="Seller Name">
+          <input style={inp} value={bond.sellerName} onChange={e => setBond({ ...bond, sellerName: e.target.value })} placeholder="e.g. Ambium Finserve" />
+        </Field>
+      </div>
+      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
 
 /* ── Investment-specific empty state ────────────────────────────────── */
 function InvestmentEmptyState({ icon: Icon, gradient, dotColor, title, description, pills, buttonLabel, onAdd }: any) {
@@ -526,39 +796,167 @@ const RDSection = ({ items, removeItem, onAdd }: any) => (
 );
 
 /* ── Bond Section ───────────────────────────────────────────────────── */
-const BondSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={FileText}
-          gradient="linear-gradient(135deg,#92400e 0%,#d97706 100%)"
-          dotColor="#d97706"
-          title="No Bonds Added Yet"
-          description="Track government bonds, SGBs, and corporate bonds — face value, coupon rate, and maturity date."
-          pills={["Govt / SGB Bonds", "Corporate Bonds", "Coupon Rate", "Maturity Date"]}
-          buttonLabel="Add Bond"
-          onAdd={onAdd}
+function BondSection({ items, removeItem, updateItem, onAdd }: any) {
+  const [editBond, setEditBond] = useState<any>(null);
+
+  const totalInvested = items.reduce((s: number, b: any) =>
+    s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0), 0);
+  const annualIncome = items.reduce((s: number, b: any) => {
+    const principal = Number(b.totalPrincipalAmount || 0) ||
+      (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0));
+    return s + (principal * Number(b.coupon || 0)) / 100;
+  }, 0);
+
+  const maturityCountdown = (dateStr: string) => {
+    if (!dateStr) return null;
+    const days = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+    if (days < 0) return { text: "Matured", color: THEME.muted };
+    if (days <= 30) return { text: `${days}d left`, color: THEME.rust };
+    if (days <= 365) return { text: `${Math.ceil(days / 30)}m left`, color: "#d97706" };
+    const yrs = Math.floor(days / 365);
+    const mos = Math.ceil((days % 365) / 30);
+    return { text: `${yrs}y ${mos}m`, color: THEME.muted };
+  };
+
+  const BOND_AMBER = "#d97706";
+  const lbl = { fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 3 };
+
+  return (
+    <div className="animate-fade-in-up">
+      {items.length === 0
+        ? <InvestmentEmptyState
+            icon={FileText}
+            gradient="linear-gradient(135deg,#92400e 0%,#d97706 100%)"
+            dotColor="#d97706"
+            title="No Bonds Added Yet"
+            description="Track government bonds, SGBs, and corporate bonds with full order slip details — coupon rate, YTM, maturity, and investment breakdown."
+            pills={["Senior Secured", "Govt / SGB", "Coupon & YTM", "Order Details"]}
+            buttonLabel="Add Bond"
+            onAdd={onAdd}
+          />
+        : (
+          <>
+            {/* Summary strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+              {[
+                { label: "Total Invested", value: fmtINRFull(totalInvested), color: BOND_AMBER },
+                { label: "Annual Coupon", value: fmtINRFull(annualIncome), color: THEME.sage },
+                { label: "Bonds Held", value: String(items.length), color: THEME.accent },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bond cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
+              {items.map((b: any) => {
+                const investmentAmt = Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0);
+                const ml = maturityCountdown(b.maturityDate);
+                const annualCoupon = ((Number(b.totalPrincipalAmount || 0) ||
+                  (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0))) * Number(b.coupon || 0)) / 100;
+                const charges = Number(b.brokerage || 0) + Number(b.stampDuty || 0);
+
+                return (
+                  <Card key={b.id} style={{ padding: 22, borderTop: `3px solid ${BOND_AMBER}` }}>
+
+                    {/* Header: badges + actions */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, flex: 1, marginRight: 8 }}>
+                        {b.securityNature && <Badge variant="gold" style={{ fontSize: 9 }}>{b.securityNature}</Badge>}
+                        {b.issuer && <Badge variant="muted" style={{ fontSize: 9 }}>{b.issuer}</Badge>}
+                      </div>
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                        <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditBond(b)} />
+                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("bonds", b.id)} />
+                      </div>
+                    </div>
+
+                    {/* Bond name + ISIN */}
+                    <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, marginBottom: 2, lineHeight: 1.25 }}>{b.name}</div>
+                    {b.isin
+                      ? <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 14, fontFamily: "monospace", letterSpacing: "0.04em" }}>{b.isin}</div>
+                      : <div style={{ marginBottom: 14 }} />}
+
+                    {/* Investment amount (primary) */}
+                    <div style={lbl}>Total Investment</div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: BOND_AMBER, letterSpacing: "-0.02em", marginBottom: 16 }}>
+                      <Prv>{fmtINRFull(investmentAmt)}</Prv>
+                    </div>
+
+                    {/* Key metrics — 4 amber pills */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 14 }}>
+                      {[
+                        ["Coupon", b.coupon ? `${b.coupon}%` : "—"],
+                        ["YTM", b.ytmRate ? `${b.ytmRate}%` : "—"],
+                        ["Units", b.numberOfUnits || "—"],
+                        ["FV/Unit", b.faceValuePerUnit ? fmtINR(b.faceValuePerUnit) : "—"],
+                      ].map(([l, v]) => (
+                        <div key={l} style={{ padding: "8px 6px", background: "rgba(217,119,6,0.06)", borderRadius: 8, border: "1px solid rgba(217,119,6,0.14)", textAlign: "center" as const }}>
+                          <div style={{ ...lbl, marginBottom: 3 }}>{l}</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Maturity + Annual Income row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 0", borderTop: `1px solid ${THEME.line}`, borderBottom: `1px solid ${THEME.line}`, marginBottom: 14 }}>
+                      <div>
+                        <div style={lbl}>Maturity Date</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{b.maturityDate || "—"}</div>
+                        {ml && <div style={{ fontSize: 10, fontWeight: 700, color: ml.color, marginTop: 2 }}>{ml.text}</div>}
+                      </div>
+                      <div>
+                        <div style={lbl}>Annual Income</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>{annualCoupon > 0 ? fmtINRFull(annualCoupon) : "—"}</div>
+                        {b.interestPaymentDate && <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>{b.interestPaymentDate}</div>}
+                      </div>
+                    </div>
+
+                    {/* Investment breakdown — 3 col */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                      {[
+                        ["Principal", b.totalPrincipalAmount],
+                        ["Accrued Int.", b.totalAccruedInterest],
+                        ["Consideration", b.totalConsideration],
+                      ].map(([label, val]) => (
+                        <div key={label as string}>
+                          <div style={lbl}>{label}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}>
+                            {val ? fmtINRFull(val) : "—"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer meta row */}
+                    <div style={{ paddingTop: 10, borderTop: `1px solid ${THEME.line}`, display: "flex", flexWrap: "wrap" as const, gap: "3px 14px" }}>
+                      {b.principalRepayment && <span style={{ fontSize: 10, color: THEME.muted }}>Principal: <span style={{ color: THEME.ink, fontWeight: 600 }}>{b.principalRepayment}</span></span>}
+                      {charges > 0 && <span style={{ fontSize: 10, color: THEME.muted }}>Charges: <span style={{ color: THEME.ink, fontWeight: 600 }}>{fmtINRFull(charges)}</span></span>}
+                      {b.orderId && <span style={{ fontSize: 10, color: THEME.muted }}>Order #: <span style={{ color: THEME.ink, fontWeight: 600 }}>{b.orderId}</span></span>}
+                      {b.orderDate && <span style={{ fontSize: 10, color: THEME.muted }}>Ordered: <span style={{ color: THEME.ink, fontWeight: 600 }}>{b.orderDate}</span></span>}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
+        )}
+      {editBond && (
+        <EditBondModal
+          bond={editBond}
+          onClose={() => setEditBond(null)}
+          onSave={(updated: any) => {
+            updateItem("bonds", editBond.id, updated);
+            setEditBond(null);
+          }}
         />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((b: any) => (
-            <Card key={b.id} style={{ padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <Badge variant="gold">{b.issuer || "Bond"}</Badge>
-                <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("bonds", b.id)} />
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>{b.name}</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>{fmtINRFull(b.faceValue)}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div style={{ fontSize: 11, color: THEME.muted }}>Coupon: <span style={{ color: THEME.accent, fontWeight: 700 }}>{b.coupon}%</span></div>
-                <div style={{ fontSize: 11, color: THEME.muted }}>Maturity: <span style={{ color: THEME.ink, fontWeight: 700 }}>{b.maturityDate || "—"}</span></div>
-              </div>
-            </Card>
-          ))}
-        </div>
       )}
-  </div>
-);
+    </div>
+  );
+}
 
 /* ── PPF Transaction Modal ───────────────────────────────────────────── */
 function PPFTransactionModal({ onClose, onSave, initial }: any) {
@@ -925,19 +1323,49 @@ const NPSSection = ({ items, removeItem, onAdd }: any) => (
 
 /* ── EPF Account Card ────────────────────────────────────────────────── */
 const EPF_TX_TYPES = [
-  { value: "employee_contribution", label: "Employee Contribution", color: "#6366f1" },
-  { value: "employer_contribution", label: "Employer Contribution", color: "#0ea5e9" },
-  { value: "interest_credit",       label: "Interest Credit (EPFO)", color: "#22c55e" },
-  { value: "withdrawal",            label: "Withdrawal",             color: "#ef4444" },
+  { value: "monthly_contribution",  label: "Monthly Contribution (Passbook)", color: "#8b5cf6" },
+  { value: "employee_contribution", label: "Employee Contribution",           color: "#6366f1" },
+  { value: "employer_contribution", label: "Employer Contribution",           color: "#0ea5e9" },
+  { value: "interest_credit",       label: "Interest Credit (EPFO)",          color: "#22c55e" },
+  { value: "withdrawal",            label: "Withdrawal",                      color: "#ef4444" },
 ];
 
 function EPFTransactionModal({ onClose, onSave, initial }: any) {
-  const [form, setForm] = useState(initial || { date: today(), type: "employee_contribution", amount: "", note: "" });
-  const valid = form.amount && Number(form.amount) > 0;
+  const [form, setForm] = useState(() => {
+    if (!initial) return {
+      date: today(), type: "monthly_contribution", amount: "",  note: "",
+      wageMonth: "", particulars: "", epfWages: "", epsWages: "",
+      employeeShare: "", employerShare: "", pensionShare: "",
+    };
+    return {
+      date: initial.date || today(),
+      type: initial.type || "monthly_contribution",
+      amount: initial.amount != null ? String(initial.amount) : "",
+      note: initial.note || "",
+      wageMonth: initial.wageMonth || "",
+      particulars: initial.particulars || "",
+      epfWages: initial.epfWages != null ? String(initial.epfWages) : "",
+      epsWages: initial.epsWages != null ? String(initial.epsWages) : "",
+      employeeShare: initial.employeeShare != null ? String(initial.employeeShare) : "",
+      employerShare: initial.employerShare != null ? String(initial.employerShare) : "",
+      pensionShare: initial.pensionShare != null ? String(initial.pensionShare) : "",
+    };
+  });
+
+  const isMonthly = form.type === "monthly_contribution";
+  const isInterest = form.type === "interest_credit";
+  const monthlyHasAmount = Number(form.employeeShare || 0) > 0 || Number(form.employerShare || 0) > 0 || Number(form.pensionShare || 0) > 0;
+  const interestHasAmount = Number(form.employeeShare || 0) > 0 || Number(form.employerShare || 0) > 0;
+  const valid = isMonthly
+    ? (!!form.wageMonth && monthlyHasAmount)
+    : isInterest
+    ? interestHasAmount
+    : (!!form.amount && Number(form.amount) > 0);
+
   return (
     <Modal title={initial ? "Edit Transaction" : "Add EPF Transaction"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Date">
+        <Field label="Transaction Date">
           <input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
         </Field>
         <Field label="Type">
@@ -946,12 +1374,69 @@ function EPFTransactionModal({ onClose, onSave, initial }: any) {
           </select>
         </Field>
       </div>
-      <Field label="Amount (₹)">
-        <input style={inp} type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="e.g. 5000" min="1" />
-      </Field>
-      <Field label="Note (optional)">
-        <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. April 2025 contribution" />
-      </Field>
+
+      {isMonthly ? (
+        <>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 11, color: "#818cf8", marginBottom: 4 }}>
+            Enter one row from your EPFO passbook — each wage month is one entry.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Wage Month *">
+              <input style={inp} value={form.wageMonth} onChange={e => setForm({ ...form, wageMonth: e.target.value })} placeholder="e.g. Apr-2021" />
+            </Field>
+            <Field label="Particulars">
+              <input style={inp} value={form.particulars} onChange={e => setForm({ ...form, particulars: e.target.value })} placeholder="Cont. For Due-Month 052021" />
+            </Field>
+            <Field label="EPF Wages (₹)">
+              <input style={inp} type="number" value={form.epfWages} onChange={e => setForm({ ...form, epfWages: e.target.value })} placeholder="15000" />
+            </Field>
+            <Field label="EPS Wages (₹)">
+              <input style={inp} type="number" value={form.epsWages} onChange={e => setForm({ ...form, epsWages: e.target.value })} placeholder="15000" />
+            </Field>
+            <Field label="Employee Share 12% (₹)">
+              <input style={inp} type="number" value={form.employeeShare} onChange={e => setForm({ ...form, employeeShare: e.target.value })} placeholder="1800" />
+            </Field>
+            <Field label="Employer Share 3.67% (₹)">
+              <input style={inp} type="number" value={form.employerShare} onChange={e => setForm({ ...form, employerShare: e.target.value })} placeholder="550" />
+            </Field>
+            <Field label="Pension Share 8.33% (₹)">
+              <input style={inp} type="number" value={form.pensionShare} onChange={e => setForm({ ...form, pensionShare: e.target.value })} placeholder="1250" />
+            </Field>
+          </div>
+        </>
+      ) : isInterest ? (
+        <>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)", fontSize: 11, color: "#16a34a", marginBottom: 4 }}>
+            EPFO credits interest separately to Employee PF and Employer PF — enter both splits exactly as shown in your passbook.
+          </div>
+          <Field label="Period / Label (optional)">
+            <input style={inp} value={form.particulars} onChange={e => setForm({ ...form, particulars: e.target.value })} placeholder="e.g. Int. Updated upto 31/03/2026" />
+          </Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <Field label="Employee PF Interest (₹)">
+              <input style={inp} type="number" value={form.employeeShare} onChange={e => setForm({ ...form, employeeShare: e.target.value })} placeholder="668" />
+            </Field>
+            <Field label="Employer PF Interest (₹)">
+              <input style={inp} type="number" value={form.employerShare} onChange={e => setForm({ ...form, employerShare: e.target.value })} placeholder="204" />
+            </Field>
+            <Field label="Pension Interest (₹)">
+              <input style={inp} type="number" value={form.pensionShare} onChange={e => setForm({ ...form, pensionShare: e.target.value })} placeholder="0" />
+            </Field>
+          </div>
+          <Field label="Note (optional)">
+            <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. EPFO Interest FY 2025-26 @ 8.25%" />
+          </Field>
+        </>
+      ) : (
+        <>
+          <Field label="Amount (₹)">
+            <input style={inp} type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="e.g. 5000" min="1" />
+          </Field>
+          <Field label="Note (optional)">
+            <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. April 2025 contribution" />
+          </Field>
+        </>
+      )}
       <ModalActions onSave={() => valid && onSave(form)} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Transaction"} />
     </Modal>
   );
@@ -1095,79 +1580,301 @@ function EPFCsvPanel({ onImport }: any) {
   );
 }
 
-function EPFAccountCard({ p, removeItem, updateItem }: any) {
-  const [txs, setTxs] = useState<any[]>(p.transactions || []);
-  const [showLedger, setShowLedger] = useState(false);
-  const [showTxModal, setShowTxModal] = useState(false);
-  const [editTx, setEditTx] = useState<any>(null);
-  const [showCsvImport, setShowCsvImport] = useState(false);
-
-  const sorted = [...txs].sort((a, b) => b.date.localeCompare(a.date));
-
-  const byType = (t: string) => txs.filter(x => x.type === t).reduce((s, x) => s + Number(x.amount), 0);
-  const totalEmployee = byType("employee_contribution");
-  const totalEmployer = byType("employer_contribution");
-  const totalInterest = byType("interest_credit");
-  const totalWithdrawal = byType("withdrawal");
-
-  const persist = (updated: any[]) => { setTxs(updated); updateItem("epf", p.id, { transactions: updated }); };
-  const saveTx = (form: any) => {
-    const updated = editTx
-      ? txs.map(t => t.id === editTx.id ? { ...form, id: editTx.id } : t)
-      : [...txs, { ...form, id: uid() }];
-    persist(updated); setShowTxModal(false); setEditTx(null);
+/* ── Add / Edit Establishment (Service History) ─────────────────────── */
+function AddEstablishmentModal({ onClose, onSave, initial }: any) {
+  const [form, setForm] = useState(initial || {
+    employerName: "", estId: "", memberId: "", joiningDate: "", exitDate: "", ncpDays: "0",
+  });
+  const calcService = () => {
+    if (!form.joiningDate) return "";
+    const from = new Date(form.joiningDate);
+    const to   = form.exitDate ? new Date(form.exitDate) : new Date();
+    let yrs = to.getFullYear() - from.getFullYear();
+    let mos = to.getMonth()    - from.getMonth();
+    let dys = to.getDate()     - from.getDate();
+    if (dys < 0) { mos--; dys += 30; }
+    if (mos < 0) { yrs--; mos += 12; }
+    return `${yrs} Years ${mos} Months ${dys} Days`;
   };
-  const removeTx = (id: string) => persist(txs.filter(t => t.id !== id));
-  const importRows = (rows: any[]) => { persist([...txs, ...rows]); setShowCsvImport(false); };
+  const svc = calcService();
+  return (
+    <Modal title={initial ? "Edit Establishment" : "Add Establishment (Service History)"} onClose={onClose}>
+      <Field label="Employer / Organisation Name *">
+        <input style={inp} value={form.employerName} onChange={e => setForm({ ...form, employerName: e.target.value })} placeholder="e.g. SAROJ LANDMARK REALTY LLP" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Establishment ID (Est Id)">
+          <input style={inp} value={form.estId} onChange={e => setForm({ ...form, estId: e.target.value })} placeholder="e.g. KDMAL1612627000" />
+        </Field>
+        <Field label="Member ID">
+          <input style={inp} value={form.memberId} onChange={e => setForm({ ...form, memberId: e.target.value })} placeholder="e.g. KDMAL16126270000010147" />
+        </Field>
+        <Field label="Joining Date">
+          <input style={inp} type="date" value={form.joiningDate} onChange={e => setForm({ ...form, joiningDate: e.target.value })} />
+        </Field>
+        <Field label="Exit Date (blank = currently working)">
+          <input style={inp} type="date" value={form.exitDate} onChange={e => setForm({ ...form, exitDate: e.target.value })} />
+        </Field>
+        <Field label="NCP Days">
+          <input style={inp} type="number" value={form.ncpDays} onChange={e => setForm({ ...form, ncpDays: e.target.value })} placeholder="0" min="0" />
+        </Field>
+        {svc && (
+          <div style={{ display: "flex", flexDirection: "column" as const, justifyContent: "flex-end", paddingBottom: 2 }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>Total Service</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{svc}</div>
+          </div>
+        )}
+      </div>
+      <ModalActions onSave={() => form.employerName.trim() && onSave(form)} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Establishment"} />
+    </Modal>
+  );
+}
 
+function EditEPFModal({ epf: initial, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    uan: initial.uan || initial.accountNumber || "",
+    employer: initial.employer || initial.bank || "",
+    balance: initial.balance != null ? String(initial.balance) : "",
+  });
+  const valid = form.balance !== "" && Number(form.balance) >= 0;
+  return (
+    <Modal title="Edit EPF Account" onClose={onClose}>
+      <Field label="UAN (Universal Account Number)">
+        <input style={inp} value={form.uan} onChange={e => setForm({ ...form, uan: e.target.value })} placeholder="12-digit UAN" maxLength={12} />
+      </Field>
+      <Field label="Employer / Company Name">
+        <input style={inp} value={form.employer} onChange={e => setForm({ ...form, employer: e.target.value })} placeholder="e.g. Infosys, TCS, Your Company Ltd." />
+      </Field>
+      <Field label="Current EPF Corpus (₹)">
+        <input style={inp} type="number" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} placeholder="500000" min="0" />
+      </Field>
+      <ModalActions onSave={() => valid && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
+
+function EPFAccountCard({ p, removeItem, updateItem }: any) {
+  const [txs, setTxs]               = useState<any[]>(p.transactions   || []);
+  const [ests, setEsts]             = useState<any[]>(p.establishments  || []);
+  const [showLedger, setShowLedger] = useState(false);
+  const [showTxModal, setShowTxModal]   = useState(false);
+  const [editTx, setEditTx]             = useState<any>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showEditAccount, setShowEditAccount] = useState(false);
+  const [showEstModal, setShowEstModal] = useState(false);
+  const [editEst, setEditEst]           = useState<any>(null);
+
+  // Sync local state when parent data changes (e.g. after fetchAllData refresh)
+  useEffect(() => {
+    setTxs(p.transactions  || []);
+    setEsts(p.establishments || []);
+  }, [p.id]);
+
+  /* ── helpers ── */
   const typeInfo = (t: string) => EPF_TX_TYPES.find(x => x.value === t) || { label: t, color: THEME.muted };
   const btnGhost = { background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px" } as const;
 
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const fmtMY   = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "—";
+  const calcService = (join: string, exit: string) => {
+    if (!join) return "—";
+    const from = new Date(join); const to = exit ? new Date(exit) : new Date();
+    let yrs = to.getFullYear() - from.getFullYear();
+    let mos = to.getMonth()    - from.getMonth();
+    let dys = to.getDate()     - from.getDate();
+    if (dys < 0) { mos--; dys += 30; } if (mos < 0) { yrs--; mos += 12; }
+    return `${yrs}Y ${mos}M ${dys}D`;
+  };
+
+  /* ── stats ── */
+  const byType = (t: string) => txs.filter(x => x.type === t).reduce((s, x) => s + Number(x.amount || 0), 0);
+  const monthlyRows = txs.filter(x => x.type === "monthly_contribution");
+  const totalEmployee  = byType("employee_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
+  const totalEmployer  = byType("employer_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const totalPension   = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+  const interestRows = txs.filter(x => x.type === "interest_credit");
+  const totalInterest = interestRows.reduce((s, x) => {
+    if (x.employeeShare !== undefined || x.employerShare !== undefined)
+      return s + Number(x.employeeShare || 0) + Number(x.employerShare || 0);
+    return s + Number(x.amount || 0);
+  }, 0);
+  const totalWithdrawal = byType("withdrawal");
+
   const stats = [
-    { label: "Employee", value: totalEmployee, color: "#6366f1" },
-    { label: "Employer", value: totalEmployer, color: "#0ea5e9" },
-    { label: "Interest (EPFO)", value: totalInterest, color: THEME.sage },
-    { label: "Withdrawn", value: totalWithdrawal, color: THEME.rust },
+    { label: "Employee (12%)",   value: totalEmployee,  color: "#6366f1" },
+    { label: "Employer (3.67%)", value: totalEmployer,  color: "#0ea5e9" },
+    ...(totalPension   > 0 ? [{ label: "Pension (8.33%)",   value: totalPension,   color: "#f59e0b" }] : []),
+    ...(totalInterest  > 0 ? [{ label: "Interest (EPFO)",   value: totalInterest,  color: THEME.sage }] : []),
+    ...(totalWithdrawal > 0 ? [{ label: "Withdrawn",         value: totalWithdrawal, color: THEME.rust }] : []),
   ].filter(s => s.value > 0);
+
+  /* ── refs to avoid stale closures when both arrays are updated close together ── */
+  const txsRef  = React.useRef(txs);
+  const estsRef = React.useRef(ests);
+  txsRef.current  = txs;
+  estsRef.current = ests;
+
+  /* ── persist ── */
+  const persistTxs  = (updated: any[]) => { setTxs(updated);  updateItem("epf", p.id, { transactions: updated,         establishments: estsRef.current }); };
+  const persistEsts = (updated: any[]) => { setEsts(updated); updateItem("epf", p.id, { transactions: txsRef.current,  establishments: updated         }); };
+
+  const saveTx = (form: any) => {
+    let entry: any;
+    if (form.type === "monthly_contribution") {
+      entry = {
+        date:          form.date,
+        type:          form.type,
+        wageMonth:     form.wageMonth,
+        particulars:   form.particulars   || "",
+        epfWages:      Number(form.epfWages      || 0),
+        epsWages:      Number(form.epsWages      || 0),
+        employeeShare: Number(form.employeeShare || 0),
+        employerShare: Number(form.employerShare || 0),
+        pensionShare:  Number(form.pensionShare  || 0),
+        amount:        Number(form.employeeShare || 0),
+        note:          form.note || "",
+      };
+    } else if (form.type === "interest_credit") {
+      const empInt = Number(form.employeeShare || 0);
+      const erInt  = Number(form.employerShare  || 0);
+      const penInt = Number(form.pensionShare   || 0);
+      entry = {
+        date:          form.date,
+        type:          form.type,
+        particulars:   form.particulars || "",
+        employeeShare: empInt,
+        employerShare: erInt,
+        pensionShare:  penInt,
+        amount:        empInt + erInt,
+        note:          form.note || "",
+      };
+    } else {
+      entry = {
+        date:   form.date,
+        type:   form.type,
+        amount: Number(form.amount || 0),
+        note:   form.note || "",
+      };
+    }
+    const updated = editTx
+      ? txs.map(t => t.id === editTx.id ? { ...entry, id: editTx.id } : t)
+      : [...txs, { ...entry, id: uid() }];
+    persistTxs(updated); setShowTxModal(false); setEditTx(null);
+  };
+  const removeTx = (id: string) => persistTxs(txs.filter(t => t.id !== id));
+  const importRows = (rows: any[]) => { persistTxs([...txs, ...rows]); setShowCsvImport(false); };
+
+  const saveEst = (form: any) => {
+    const clean = { ...form, ncpDays: Number(form.ncpDays || 0) };
+    const updated = editEst
+      ? ests.map(e => e.id === editEst.id ? { ...clean, id: editEst.id } : e)
+      : [...ests, { ...clean, id: uid() }];
+    persistEsts(updated); setShowEstModal(false); setEditEst(null);
+  };
+  const removeEst = (id: string) => persistEsts(ests.filter(e => e.id !== id));
+
+  /* ── sorted ledger split ── */
+  const sortedTxs     = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const passbookRows  = sortedTxs.filter(t => t.type === "monthly_contribution" || t.type === "interest_credit");
+  const regularRows   = sortedTxs.filter(t => t.type !== "monthly_contribution" && t.type !== "interest_credit");
+  const sortedEsts    = [...ests].sort((a, b) => (b.joiningDate || "").localeCompare(a.joiningDate || ""));
 
   return (
     <Card style={{ padding: 20 }}>
-      {/* Header */}
+
+      {/* ── Account Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
           <Badge variant="accent">EPF Account</Badge>
-          {(p.employer || p.bank) && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-              Employer: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span>
-            </div>
-          )}
-          {(p.uan || p.accountNumber) && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
-              UAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span>
-            </div>
-          )}
+          {(p.employer || p.bank) && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>Employer: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span></div>}
+          {(p.uan || p.accountNumber) && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>UAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span></div>}
         </div>
-        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("epf", p.id)} />
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setShowEditAccount(true)} />
+          <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("epf", p.id)} />
+        </div>
       </div>
 
-      {/* Balance */}
+      {/* ── Corpus ── */}
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Corpus</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em" }}>{fmtINRFull(p.balance)}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em", marginBottom: 20 }}>
+        <Prv>{fmtINRFull(p.balance)}</Prv>
+      </div>
 
-      {/* Stats from transactions */}
+      {/* ── Service History ── */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em" }}>Service History</div>
+          <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: "#6366f1", borderColor: "rgba(99,102,241,0.3)" }}
+            onClick={() => { setEditEst(null); setShowEstModal(true); }}>
+            <Plus size={11} /> Add Employer
+          </button>
+        </div>
+
+        {ests.length === 0 ? (
+          <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(99,102,241,0.04)", border: "1px dashed rgba(99,102,241,0.2)", fontSize: 11, color: THEME.muted, textAlign: "center" as const }}>
+            Add your EPFO service history — Est ID, Member ID, Joining &amp; Exit dates
+          </div>
+        ) : (
+          <div style={{ position: "relative", paddingLeft: 32 }}>
+            <div style={{ position: "absolute", left: 11, top: 12, bottom: 12, width: 2, background: "rgba(99,102,241,0.2)", borderRadius: 2 }} />
+            {sortedEsts.map((est, idx) => {
+              const isCurrent = !est.exitDate;
+              const dateLabel = isCurrent
+                ? `${fmtMY(est.joiningDate)} — Present`
+                : `${fmtMY(est.joiningDate)} — ${fmtMY(est.exitDate)}`;
+              return (
+                <div key={est.id} style={{ position: "relative", marginBottom: idx < sortedEsts.length - 1 ? 14 : 0 }}>
+                  <div style={{ position: "absolute", left: -32, top: 10, width: 22, height: 22, borderRadius: "50%", background: isCurrent ? "#6366f1" : "rgba(99,102,241,0.15)", border: `2px solid ${isCurrent ? "#6366f1" : "rgba(99,102,241,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: isCurrent ? "#fff" : "#6366f1" }}>
+                    {idx + 1}
+                  </div>
+                  <div style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: isCurrent ? "#3730a3" : "rgba(128,128,128,0.1)", color: isCurrent ? "#fff" : THEME.muted }}>
+                        {dateLabel}
+                      </div>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        <button onClick={() => { setEditEst(est); setShowEstModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, display: "flex" }}><Pencil size={11} /></button>
+                        <button onClick={() => removeEst(est.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4, display: "flex" }}><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.02em" }}>{est.employerName}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto 1fr", gap: "4px 10px", fontSize: 10 }}>
+                      <span style={{ color: THEME.muted }}>Est Id</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600, fontFamily: "monospace" }}>{est.estId || "—"}</span>
+                      <span style={{ color: THEME.muted }}>Joining</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{fmtDate(est.joiningDate)}</span>
+                      <span style={{ color: THEME.muted }}>Member Id</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600, fontFamily: "monospace" }}>{est.memberId || "—"}</span>
+                      <span style={{ color: THEME.muted }}>Exit</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{est.exitDate ? fmtDate(est.exitDate) : "—"}</span>
+                      <span style={{ color: THEME.muted }}>NCP Days</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{est.ncpDays || "0"} Days</span>
+                      <span style={{ color: THEME.muted }}>Total Service</span>
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{calcService(est.joiningDate, est.exitDate)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Contribution Stats ── */}
       {stats.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 16 }}>
           {stats.map(s => (
             <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
-              <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{fmtINR(s.value)}</div>
+              <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{fmtINR(s.value)}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Action buttons */}
-      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" as const }}>
+      {/* ── Action Buttons ── */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
         <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setShowCsvImport(false); }}>
           <Plus size={13} /> Add Transaction
         </button>
@@ -1181,61 +1888,152 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         )}
       </div>
 
-      {/* CSV Panel */}
+      {/* ── CSV Panel ── */}
       {showCsvImport && (
         <div style={{ marginTop: 16 }}>
           <EPFCsvPanel onImport={(rows: any[]) => { importRows(rows); setShowCsvImport(false); }} />
         </div>
       )}
 
-      {/* Ledger */}
+      {/* ── Ledger ── */}
       {showLedger && txs.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>Transaction Ledger</div>
-          <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: "rgba(128,128,128,0.06)" }}>
-                  {["Date","Type","Amount","Note",""].map((h, i) => (
-                    <th key={i} style={{ padding: "8px 10px", textAlign: i >= 3 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map(t => {
-                  const ti = typeInfo(t.type);
-                  const isOut = t.type === "withdrawal";
-                  return (
-                    <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
-                      <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date}</td>
-                      <td style={{ padding: "8px 10px" }}>
-                        <span style={{ fontWeight: 700, fontSize: 11, color: ti.color }}>{ti.label}</span>
-                      </td>
-                      <td style={{ padding: "8px 10px", fontWeight: 800, color: isOut ? THEME.rust : ti.color }}>
-                        {isOut ? "-" : "+"}{fmtINR(t.amount)}
-                      </td>
-                      <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.note || "—"}</td>
-                      <td style={{ padding: "8px 10px", textAlign: "right" as const }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={12} /></button>
-                          <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={12} /></button>
-                        </div>
-                      </td>
+
+          {/* Passbook (monthly_contribution) table */}
+          {passbookRows.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>
+                EPFO Passbook ({passbookRows.length} entries)
+              </div>
+              <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ overflowX: "auto" as const }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 11, minWidth: 640 }}>
+                    <thead>
+                      <tr style={{ background: "rgba(99,102,241,0.06)" }}>
+                        {[
+                          ["Wage Month / Description", false], ["Trans. Date", false], ["Particulars / Note", false],
+                          ["EPF Wages", true], ["EPS Wages", true],
+                          ["Emp. Share\n12%", true], ["Empr. Share\n3.67%", true], ["Pension\n8.33%", true], ["", false],
+                        ].map(([h, right], i) => (
+                          <th key={i} style={{ padding: "7px 10px", textAlign: right ? "right" as const : "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {passbookRows.map(t => {
+                        const isIntRow = t.type === "interest_credit";
+                        const descLabel = isIntRow
+                          ? (t.particulars || `Int. Updated upto ${new Date(t.date).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })}`)
+                          : (t.wageMonth || "—");
+                        const empVal = isIntRow
+                          ? (t.employeeShare !== undefined ? t.employeeShare : t.amount)
+                          : (t.employeeShare || 0);
+                        const erVal  = t.employerShare || 0;
+                        const penVal = t.pensionShare  || 0;
+                        return (
+                          <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}`, background: isIntRow ? "rgba(34,197,94,0.04)" : undefined }}>
+                            <td style={{ padding: "6px 10px", fontWeight: 700, color: isIntRow ? "#16a34a" : THEME.ink }}>{descLabel}</td>
+                            <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{t.date || "—"}</td>
+                            <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{isIntRow ? (t.note || "—") : (t.particulars || "—")}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && t.epfWages) ? fmtINR(t.epfWages) : "—"}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && t.epsWages) ? fmtINR(t.epsWages) : "—"}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? "#16a34a" : "#6366f1" }}>{fmtINR(empVal)}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? "#16a34a" : "#0ea5e9" }}>{fmtINR(erVal)}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? THEME.muted : "#f59e0b" }}>{fmtINR(penVal)}</td>
+                            <td style={{ padding: "6px 10px" }}>
+                              <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
+                                <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={11} /></button>
+                                <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={11} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ borderTop: `2px solid ${THEME.line}`, background: "rgba(99,102,241,0.04)" }}>
+                        <td colSpan={3} style={{ padding: "7px 10px", fontWeight: 700, fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const }}>Total</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epfWages || 0), 0))}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epsWages || 0), 0))}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#6366f1" }}>{fmtINR(passbookRows.reduce((s, t) => {
+                          if (t.type === "interest_credit") return s + Number(t.employeeShare !== undefined ? t.employeeShare : t.amount || 0);
+                          return s + Number(t.employeeShare || 0);
+                        }, 0))}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#0ea5e9" }}>{fmtINR(passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0))}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#f59e0b" }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.pensionShare || 0), 0))}</td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Regular transactions */}
+          {regularRows.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>
+                Other Transactions ({regularRows.length})
+              </div>
+              <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                      {["Date","Type","Amount","Note",""].map((h, i) => (
+                        <th key={i} style={{ padding: "8px 10px", textAlign: i >= 2 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
+                      ))}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {regularRows.map(t => {
+                      const ti = typeInfo(t.type);
+                      const isOut = t.type === "withdrawal";
+                      return (
+                        <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                          <td style={{ padding: "8px 10px", color: THEME.muted }}>{t.date}</td>
+                          <td style={{ padding: "8px 10px" }}><span style={{ fontWeight: 700, fontSize: 11, color: ti.color }}>{ti.label}</span></td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 800, color: isOut ? THEME.rust : ti.color }}>{isOut ? "-" : "+"}{fmtINR(t.amount)}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" as const, color: THEME.muted }}>{t.note || "—"}</td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                              <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={12} /></button>
+                              <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {showTxModal && (
         <EPFTransactionModal
-          initial={editTx ? { date: editTx.date, type: editTx.type, amount: String(editTx.amount), note: editTx.note || "" } : undefined}
+          initial={editTx}
           onClose={() => { setShowTxModal(false); setEditTx(null); }}
           onSave={saveTx}
+        />
+      )}
+      {showEstModal && (
+        <AddEstablishmentModal
+          initial={editEst}
+          onClose={() => { setShowEstModal(false); setEditEst(null); }}
+          onSave={saveEst}
+        />
+      )}
+      {showEditAccount && (
+        <EditEPFModal
+          epf={p}
+          onClose={() => setShowEditAccount(false)}
+          onSave={(updated: any) => {
+            updateItem("epf", p.id, { ...updated, transactions: txs, establishments: ests });
+            setShowEditAccount(false);
+          }}
         />
       )}
     </Card>
@@ -1340,7 +2138,8 @@ const MFSection = ({ items, removeItem, onAdd }: any) => (
 /* ── Yield Tracker ──────────────────────────────────────────────────── */
 const YieldTracker = ({ state }: any) => {
   const fdInterest = state.fixedDeposits.reduce((s: number, f: any) => s + (Number(f.principal) * Number(f.rate)) / 100, 0);
-  const bondInterest = state.bonds.reduce((s: number, b: any) => s + (Number(b.faceValue) * Number(b.coupon)) / 100, 0);
+  const bondInterest = state.bonds.reduce((s: number, b: any) =>
+    s + (Number(b.totalPrincipalAmount || b.faceValue || 0) * Number(b.coupon || 0)) / 100, 0);
   const totalAnnual = fdInterest + bondInterest;
 
   return (

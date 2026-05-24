@@ -596,14 +596,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const now = new Date();
     const yearStr = `${now.getFullYear()}`;
     const ytdTxns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(yearStr));
-    const ytdIncome = ytdTxns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const ytdExpense = ytdTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ytdTxnIncome = ytdTxns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    // Income ledger is the authoritative source (mirrors App.tsx explicitIncome priority)
+    const ytdIncomeLedger = (state.income || [])
+      .filter((i: any) => i.date && i.date.startsWith(yearStr))
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const ytdIncome = ytdIncomeLedger > 0 ? ytdIncomeLedger : ytdTxnIncome;
+    const ytdTxnExpense = ytdTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    // Rent payments tracked via rentedProperties.payments are not debit transactions
+    const ytdRentPaid = (state.rentedProperties || []).reduce((sum: number, p: any) =>
+      sum + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(yearStr))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0), 0);
+    const ytdExpense = ytdTxnExpense + ytdRentPaid;
     const ytdSavings = ytdIncome - ytdExpense;
     const ytdSavingsRate = ytdIncome > 0 ? (ytdSavings / ytdIncome) * 100 : 0;
     const monthsElapsed = now.getMonth() + 1;
     const monthName = now.toLocaleString("en-IN", { month: "short" });
     return { ytdIncome, ytdExpense, ytdSavings, ytdSavingsRate, monthsElapsed, monthName };
-  }, [state.transactions]);
+  }, [state.transactions, state.income, state.rentedProperties]);
 
   const passiveIncomeData = useMemo(() => {
     const rentalMonthly = (state.rentalProperties || [])

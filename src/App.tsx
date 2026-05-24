@@ -794,7 +794,7 @@ function FinanceDashboard() {
       );
     }, 0);
     const bondValue = sState.bonds.reduce(
-      (s, b) => s + Number(b.faceValue || 0),
+      (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
       0
     );
     const ppfValue = sState.ppf.reduce((s, p) => s + Number(p.balance || 0), 0);
@@ -1252,7 +1252,7 @@ function FinanceDashboard() {
         if (key === "loansTaken" || key === "loansGiven") { finalItem.lender_borrower = item.lender; delete finalItem.lender; }
 
         // Prevent Postgres type errors: convert empty strings to null, numeric strings to numbers
-        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","ratio_n","ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term","expected_maturity_amount","policy_term"]);
+        const NUMERIC_COLS = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","ratio_n","ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term","expected_maturity_amount","policy_term","ytm_rate","face_value_per_unit","number_of_units","clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest","total_consideration","brokerage","stamp_duty","total_investment_amount"]);
         const cleanItem = { id: newId, user_id: userId, ...finalItem };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
@@ -1431,7 +1431,7 @@ function FinanceDashboard() {
         if (key === "ppf" && patch.institution !== undefined) { finalPatch.bank = patch.institution || ""; delete finalPatch.institution; }
         if (key === "epf") { if (patch.employer !== undefined) { finalPatch.bank = patch.employer || ""; delete finalPatch.employer; } if (patch.uan !== undefined) { finalPatch.account_number = patch.uan || ""; delete finalPatch.uan; } }
 
-        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","market_cap","term","premium_paying_term","expected_maturity_amount","policy_term"]);
+        const NUMERIC_COLS_U = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","annual_fee","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","municipal_tax","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","market_cap","term","premium_paying_term","expected_maturity_amount","policy_term","ytm_rate","face_value_per_unit","number_of_units","clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest","total_consideration","brokerage","stamp_duty","total_investment_amount"]);
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
           else if (NUMERIC_COLS_U.has(k) && typeof finalPatch[k] === "string" && finalPatch[k] !== null) {
@@ -1496,7 +1496,7 @@ function FinanceDashboard() {
     const userId = session?.user?.id;
     if (!userId || userId === "offline-user") return;
 
-    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","expected_maturity_amount","policy_term","premium_paying_term"]);
+    const NUMERIC = new Set(["target_amount","current_amount","balance","principal","rate","units","current_nav","invested","qty","current_price","avg_price","monthly","monthly_limit","tenure_months","face_value","coupon","outstanding","emi","card_limit","amount","years","sum_assured","annual_premium","premium_paid","cover_amount","monthly_rent","security_deposit","deposit_returned","buy_price","sell_price","buy_nav","sell_nav","total_installments","profit","net_worth","expected_maturity_amount","policy_term","premium_paying_term","ytm_rate","face_value_per_unit","number_of_units","clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest","total_consideration","brokerage","stamp_duty","total_investment_amount"]);
 
     const cleanItem = (obj: any) => {
       const r: any = {};
