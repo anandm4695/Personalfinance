@@ -1700,10 +1700,20 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   }, 0);
   const totalWithdrawal = byType("withdrawal");
 
+  // Compute closing balances from passbook (like EPFO passbook "Closing Balance" row)
+  const empInterest = interestRows.reduce((s, x) => {
+    if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
+    return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
+  }, 0);
+  const erInterest       = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const closingEmployee  = totalEmployee + empInterest;
+  const closingEmployer  = totalEmployer + erInterest;
+  const closingPension   = totalPension;
+  const closingTotal     = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
+  const hasPassbook      = txs.some(t => t.type === "monthly_contribution" || t.type === "interest_credit");
+  const displayCorpus    = hasPassbook ? closingTotal : Number(p.balance || 0);
+
   const stats = [
-    { label: "Employee (12%)",   value: totalEmployee,  color: "#6366f1" },
-    { label: "Employer (3.67%)", value: totalEmployer,  color: "#0ea5e9" },
-    ...(totalPension   > 0 ? [{ label: "Pension (8.33%)",   value: totalPension,   color: "#f59e0b" }] : []),
     ...(totalInterest  > 0 ? [{ label: "Interest (EPFO)",   value: totalInterest,  color: THEME.sage }] : []),
     ...(totalWithdrawal > 0 ? [{ label: "Withdrawn",         value: totalWithdrawal, color: THEME.rust }] : []),
   ].filter(s => s.value > 0);
@@ -1796,10 +1806,28 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       </div>
 
       {/* ── Corpus ── */}
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Total Corpus</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em", marginBottom: 20 }}>
-        <Prv>{fmtINRFull(p.balance)}</Prv>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
+        Total Corpus{hasPassbook && <span style={{ fontSize: 10, color: THEME.sage, marginLeft: 6, fontWeight: 600 }}>auto-calculated from passbook</span>}
       </div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em", marginBottom: hasPassbook ? 10 : 20 }}>
+        <Prv>{fmtINRFull(displayCorpus)}</Prv>
+      </div>
+      {hasPassbook && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(99,102,241,0.2)", background: "rgba(99,102,241,0.04)" }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employee PF</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#6366f1" }}><Prv>{fmtINR(closingEmployee)}</Prv></div>
+          </div>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(14,165,233,0.2)", background: "rgba(14,165,233,0.04)" }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employer PF</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(closingEmployer)}</Prv></div>
+          </div>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>EPS (Pension)</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}><Prv>{fmtINR(closingPension)}</Prv></div>
+          </div>
+        </div>
+      )}
 
       {/* ── Service History ── */}
       <div style={{ marginBottom: 20 }}>
@@ -1861,7 +1889,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         )}
       </div>
 
-      {/* ── Contribution Stats ── */}
+      {/* ── Interest / Withdrawal Stats ── */}
       {stats.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 16 }}>
           {stats.map(s => (
