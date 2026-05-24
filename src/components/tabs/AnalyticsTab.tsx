@@ -861,7 +861,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <HeroStat label="Stocks" value={metrics.stockValue} />
                 <HeroStat label="PPF / NPS / EPF" value={metrics.ppfValue + metrics.npsValue + metrics.epfValue} />
                 <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
-                <HeroStat label="Loans Taken" value={metrics.totalLiabilities - metrics.ccOutstanding} negative />
+                <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative />
                 <HeroStat label="Subs / Mo" value={metrics.subTotal} negative />
               </div>
             </Card>
