@@ -2092,29 +2092,47 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         <div style={{ marginTop: 16 }}>
 
           {/* Passbook (monthly_contribution) table */}
-          {passbookRows.length > 0 && (
+          {passbookRows.length > 0 && (() => {
+            /* show Establishment column only when service history exists */
+            const showEstCol = ests.length > 0;
+            const estMap: Record<string, any> = {};
+            ests.forEach((e: any) => { estMap[e.id] = e; });
+            /* assign a distinct color per establishment (cycle through palette) */
+            const EST_COLORS = ["#6366f1","#0ea5e9","#f59e0b","#ec4899","#8b5cf6","#10b981"];
+            const estColorMap: Record<string, string> = {};
+            sortedEsts.forEach((e: any, i: number) => { estColorMap[e.id] = EST_COLORS[i % EST_COLORS.length]; });
+
+            const totalSpan = showEstCol ? 4 : 3;
+            return (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>
                 EPFO Passbook ({passbookRows.length} entries)
               </div>
               <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ overflowX: "auto" as const }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 11, minWidth: 640 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 11, minWidth: showEstCol ? 760 : 640 }}>
                     <thead>
                       <tr style={{ background: "rgba(99,102,241,0.06)" }}>
-                        {[
-                          ["Wage Month / Description", false], ["Trans. Date", false], ["Particulars / Note", false],
-                          ["EPF Wages", true], ["EPS Wages", true],
-                          ["Emp. Share\n12%", true], ["Empr. Share\n3.67%", true], ["Pension\n8.33%", true], ["", false],
-                        ].map(([h, right], i) => (
-                          <th key={i} style={{ padding: "7px 10px", textAlign: right ? "right" as const : "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{h}</th>
-                        ))}
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Wage Month / Description</th>
+                        {showEstCol && (
+                          <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Establishment</th>
+                        )}
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Trans. Date</th>
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Particulars / Note</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPF Wages</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPS Wages</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Emp. Share\n12%"}</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Empr. Share\n3.67%"}</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Pension\n8.33%"}</th>
+                        <th style={{ padding: "7px 10px" }} />
                       </tr>
                     </thead>
                     <tbody>
                       {passbookRows.map(t => {
                         const isIntRow      = t.type === "interest_credit";
                         const isTransferRow = t.type === "transfer_in";
+                        const linkedEst     = t.estId ? estMap[t.estId] : null;
+                        const estColor      = t.estId ? (estColorMap[t.estId] || "#6366f1") : THEME.muted;
                         const descLabel = isTransferRow
                           ? `⇒ Transfer In — ${t.fromEmployer || "Previous Employer"}`
                           : isIntRow
@@ -2133,6 +2151,21 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         return (
                           <tr key={t.id} style={{ borderTop: isTransferRow ? `2px dashed rgba(16,185,129,0.4)` : `1px solid ${THEME.line}`, background: rowBg }}>
                             <td style={{ padding: "6px 10px", fontWeight: 700, color: txColor }}>{descLabel}</td>
+                            {showEstCol && (
+                              <td style={{ padding: "6px 10px" }}>
+                                {linkedEst ? (
+                                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 7px", borderRadius: 5, background: `${estColor}18`, border: `1px solid ${estColor}40`, maxWidth: 130 }}>
+                                    <div style={{ width: 5, height: 5, borderRadius: "50%", background: estColor, flexShrink: 0 }} />
+                                    <span style={{ fontSize: 9, fontWeight: 700, color: estColor, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}
+                                      title={linkedEst.employerName}>
+                                      {linkedEst.employerName.length > 14 ? linkedEst.employerName.slice(0, 13) + "…" : linkedEst.employerName}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: 9, color: THEME.muted }}>—</span>
+                                )}
+                              </td>
+                            )}
                             <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{t.date || "—"}</td>
                             <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{isTransferRow ? (t.note || "Form 13 Transfer") : isIntRow ? (t.note || "—") : (t.particulars || "—")}</td>
                             <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && !isTransferRow && t.epfWages) ? fmtINR(t.epfWages) : "—"}</td>
@@ -2152,7 +2185,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `2px solid ${THEME.line}`, background: "rgba(99,102,241,0.04)" }}>
-                        <td colSpan={3} style={{ padding: "7px 10px", fontWeight: 700, fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const }}>Total</td>
+                        <td colSpan={totalSpan} style={{ padding: "7px 10px", fontWeight: 700, fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const }}>Total</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epfWages || 0), 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epsWages || 0), 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#6366f1" }}>{fmtINR(passbookRows.reduce((s, t) => {
@@ -2169,7 +2202,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Regular transactions */}
           {regularRows.length > 0 && (
