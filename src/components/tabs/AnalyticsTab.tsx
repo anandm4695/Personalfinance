@@ -508,6 +508,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         }
       }
     });
+    // FD maturities within 30 days
+    (state.fixedDeposits || []).filter((f: any) => f.maturityDate).forEach((f: any) => {
+      const ms = new Date(f.maturityDate).getTime();
+      const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+      if (daysLeft >= 0 && ms <= plus30Ms) {
+        dues.push({
+          name: `${f.bank || "FD"} Matures`,
+          amount: Number(f.principal || 0),
+          daysLeft,
+          date: f.maturityDate,
+          isFdMaturity: true,
+        });
+      }
+    });
     dues.sort((a, b) => a.daysLeft - b.daysLeft);
 
     const saved = metrics.monthIncome - metrics.monthExpense;
@@ -813,7 +827,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <HeroStat label="Fixed Deposits" value={metrics.fdValue} />
                 <HeroStat label="Mutual Funds" value={metrics.mfValue} />
                 <HeroStat label="Stocks" value={metrics.stockValue} />
-                <HeroStat label="PPF + NPS" value={metrics.ppfValue + metrics.npsValue} />
+                <HeroStat label="PPF / NPS / EPF" value={metrics.ppfValue + metrics.npsValue + metrics.epfValue} />
                 <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
                 <HeroStat label="Loans Taken" value={metrics.totalLiabilities - metrics.ccOutstanding} negative />
                 <HeroStat label="Subs / Mo" value={metrics.subTotal} negative />
@@ -850,18 +864,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </Card>
 
-              {/* 3. LIQUIDITY SCORE */}
+              {/* 3. LIQUIDITY SCORE — uses liquidAssets (cash + MF + stocks), not just cash */}
               <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Liquidity Score</div>
                 <div>
                   {(() => {
-                    const liquid = metrics.cashInBanks;
-                    const locked = metrics.totalAssets - liquid;
+                    const liquid = metrics.liquidAssets;
+                    const locked = metrics.lockedAssets;
                     const ratio = metrics.totalAssets > 0 ? (liquid / metrics.totalAssets) * 100 : 0;
+                    const ratioColor = ratio >= 30 ? THEME.sage : ratio >= 15 ? THEME.gold : THEME.rust;
                     return (
                       <>
-                        <div style={{ fontSize: 38, fontWeight: 900, color: THEME.accent, lineHeight: 1, marginBottom: 16, letterSpacing: "-0.02em" }}>{ratio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
-                        <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5, fontWeight: 500 }}>Liquid {fmtINRFull(liquid)} · Locked {fmtINRFull(locked)}</div>
+                        <div style={{ fontSize: 38, fontWeight: 900, color: ratioColor, lineHeight: 1, marginBottom: 10, letterSpacing: "-0.02em" }}>{ratio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
+                        <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, fontWeight: 500 }}>
+                          Cash {fmtINRFull(metrics.cashInBanks)}<br />
+                          MF+Stocks {fmtINRFull(metrics.mfValue + metrics.stockValue)}<br />
+                          Locked {fmtINRFull(locked)}
+                        </div>
                       </>
                     );
                   })()}
@@ -933,15 +952,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>No major dues coming up</div>
               ) : (
                 <div style={{ display: "grid", gap: 12, flex: 1, alignContent: "flex-start" }}>
-                  {dashboardData.dues.slice(0, 4).map((d, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 12, background: "rgba(128,128,128,0.04)" }}>
+                  {dashboardData.dues.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 12, background: d.isFdMaturity ? "rgba(52,211,153,0.04)" : "rgba(128,128,128,0.04)", border: d.isFdMaturity ? `1px solid ${THEME.sage}22` : "none" }}>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{d.name}</div>
                         <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{d.date}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 15, fontWeight: 800 }}>{fmtINR(d.amount)}</div>
-                        <Badge variant={d.daysLeft <= 5 ? "rust" : "gold"} style={{ fontSize: 10, marginTop: 4 }}>{d.daysLeft}d left</Badge>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: d.isFdMaturity ? THEME.sage : THEME.ink }}>{fmtINR(d.amount)}</div>
+                        {d.isFdMaturity
+                          ? <Badge variant="sage" style={{ fontSize: 10, marginTop: 4 }}>Matures in {d.daysLeft}d</Badge>
+                          : <Badge variant={d.daysLeft <= 5 ? "rust" : "gold"} style={{ fontSize: 10, marginTop: 4 }}>{d.daysLeft}d left</Badge>
+                        }
                       </div>
                     </div>
                   ))}
@@ -1096,28 +1118,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </Card>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 28 }}>
-            {/* Monthly Income vs Expense */}
+            {/* Monthly Income vs Expense — uses unique gradient IDs (gIncome2/gExpense2) to avoid conflict with Monthly P&L chart above */}
             <Card style={{ padding: 24 }}>
               <div className="section-label">Monthly Income vs Expense</div>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={trendData.slice(-6)}>
                   <defs>
-                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gIncome2" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
                       <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
                     </linearGradient>
-                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gExpense2" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
                       <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.4} />
                     </linearGradient>
+                    <filter id="glow-sage2" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.sage} floodOpacity="0.4" />
+                    </filter>
+                    <filter id="glow-rust2" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.rust} floodOpacity="0.4" />
+                    </filter>
                   </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                   <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
                   <Legend iconType="circle" />
-                  <Bar dataKey="income" name="Income" fill="url(#gIncome)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage)" }} />
-                  <Bar dataKey="expense" name="Expense" fill="url(#gExpense)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust)" }} />
+                  <Bar dataKey="income" name="Income" fill="url(#gIncome2)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage2)" }} />
+                  <Bar dataKey="expense" name="Expense" fill="url(#gExpense2)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust2)" }} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>

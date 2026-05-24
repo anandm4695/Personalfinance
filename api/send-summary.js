@@ -89,24 +89,31 @@ function computeSummary(state) {
   const creditLimit = activeCards.reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0);
   const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;
   const loanOutstanding = (state.loansTaken || []).reduce((s, l) => s + (Number(l.outstanding || l.principal) || 0), 0);
-  const rentalAssets = (state.rentalProperties || []).reduce((s, r) => s + (Number(r.propertyValue || 0)), 0);
+  const rentalAssets = (state.rentalProperties || []).reduce((s, r) => s + (Number(r.propertyValue || r.property_value || 0)), 0);
   const netWorth = bankTotal + investTotal + rentalAssets - creditOutstanding - loanOutstanding;
 
   // ── Cash flow (current month) ──────────────────────────────────────────────
+  // Transactions are stored with positive amounts and a type field ("credit"/"debit").
+  // Older fallback: negative amounts for expenses — support both patterns.
   const monthTxns = (state.transactions || []).filter(t => {
     const d = new Date(t.date);
     return d.getMonth() === m && d.getFullYear() === y;
   });
-  const monthExpense = monthTxns.filter(t => Number(t.amount) < 0).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-  const monthIncome = (state.income || [])
+  const isDebit = t => t.type === "debit" || (!t.type && Number(t.amount) < 0);
+  const isCredit = t => t.type === "credit" || (!t.type && Number(t.amount) > 0);
+  const monthExpense = monthTxns.filter(isDebit).reduce((s, t) => s + Math.abs(Number(t.amount || 0)), 0);
+  // Income: explicit income ledger (if populated) → else credit transactions
+  const explicitIncome = (state.income || [])
     .filter(i => { const d = new Date(i.date || `${y}-${String(m + 1).padStart(2, "0")}-01`); return d.getMonth() === m && d.getFullYear() === y; })
     .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const txnIncome = monthTxns.filter(isCredit).reduce((s, t) => s + Math.abs(Number(t.amount || 0)), 0);
+  const monthIncome = explicitIncome > 0 ? explicitIncome : txnIncome;
   const netSavings = monthIncome - monthExpense;
   const savingsPct = monthIncome > 0 ? Math.round((netSavings / monthIncome) * 100) : 0;
 
   // ── Top spending categories this month ────────────────────────────────────
   const catMap = {};
-  monthTxns.filter(t => Number(t.amount) < 0).forEach(t => {
+  monthTxns.filter(isDebit).forEach(t => {
     const cat = t.category || "Other";
     catMap[cat] = (catMap[cat] || 0) + Math.abs(Number(t.amount));
   });
@@ -130,14 +137,25 @@ function computeSummary(state) {
 
   const dues = [];
 
-  // Subscriptions
-  (state.subscriptions || []).filter(s => s.status !== "cancelled").forEach(s => {
-    const cycleMs = s.cycle === "monthly" ? 30 : s.cycle === "annual" ? 365 : 30;
-    const next = new Date(s.nextDue || s.startDate || today.toISOString());
+  // Subscriptions — app stores renewal date as renewalDate
+  (state.subscriptions || []).filter(s => !s.paused && s.status !== "cancelled").forEach(s => {
+    const next = new Date(s.renewalDate || s.nextDue || s.startDate || today.toISOString());
     next.setUTCHours(0, 0, 0, 0);
     const nextMs = next.getTime();
     if (nextMs >= todayMs && nextMs <= in7Ms) {
       dues.push({ date: next, label: s.name, amount: Number(s.amount) || 0, type: "sub" });
+    }
+  });
+
+  // Rent dues for rented properties
+  (state.rentedProperties || []).filter(p => Number(p.monthlyRent || 0) > 0).forEach(p => {
+    const dueDay = Number(p.dueDay || p.due_day || 5);
+    const curMonthStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}`;
+    const paidCurrent = (p.payments || []).some(pay => pay.date && pay.date.startsWith(curMonthStr));
+    if (!paidCurrent) {
+      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay));
+      if (d.getTime() >= todayMs && d.getTime() <= in7Ms)
+        dues.push({ date: d, label: `${p.propertyName || p.property_name || "Rent"}`, amount: Number(p.monthlyRent || p.monthly_rent || 0), type: "emi" });
     }
   });
 
@@ -495,7 +513,7 @@ function generateHTML(summary, frequency, recipientName) {
 
 // ── Fetch all state from Supabase (service role) ──────────────────────────────
 async function fetchStateFromSupabase(supabase, userId) {
-  const [banks, txns, mfs, stks, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems, income] =
+  const [banks, txns, mfs, stks, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems, rentals] =
     await Promise.all([
       supabase.from("bank_accounts").select("*").eq("user_id", userId),
       supabase.from("transactions").select("*").eq("user_id", userId),
@@ -511,9 +529,10 @@ async function fetchStateFromSupabase(supabase, userId) {
       supabase.from("budgets").select("*").eq("user_id", userId),
       supabase.from("subscriptions").select("*").eq("user_id", userId),
       supabase.from("reminders").select("*").eq("user_id", userId),
-      supabase.from("income").select("*").eq("user_id", userId).catch(() => ({ data: [] })),
+      supabase.from("rental_properties").select("*").eq("user_id", userId).catch(() => ({ data: [] })),
     ]);
 
+  const rentalData = rentals.data || [];
   return {
     bankAccounts: banks.data || [],
     transactions: txns.data || [],
@@ -530,8 +549,15 @@ async function fetchStateFromSupabase(supabase, userId) {
     goals: gls.data || [],
     budgets: (bdgts.data || []).map(b => ({ ...b, monthly: b.monthly_limit ?? b.monthly })),
     subscriptions: subs.data || [],
-    reminders: rems.data || [],
-    income: income.data || [],
+    reminders: (rems.data || []).map(r => ({ ...r, date: r.reminder_date ?? r.date })),
+    income: [],
+    rentalProperties: rentalData.filter(x => x.property_type === "out").map(r => ({
+      ...r, rent: r.monthly_rent, propertyValue: Number(r.property_value || 0),
+    })),
+    rentedProperties: rentalData.filter(x => x.property_type === "in").map(r => ({
+      ...r, monthlyRent: r.monthly_rent, dueDay: r.due_day,
+      payments: r.payments || [],
+    })),
   };
 }
 
