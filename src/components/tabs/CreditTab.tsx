@@ -1663,7 +1663,7 @@ function InformalPersonForm({ personLabel, onSave, onClose }: any) {
       <Field label="Owner / Profile"><select style={input} value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })}>{PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <Field label={`${personLabel} Name`}><input style={input} value={f.person} placeholder="e.g. Raj, Mom" onChange={(e) => setF({ ...f, person: e.target.value })} /></Field>
       <Field label="Note (optional)"><input style={input} value={f.note} placeholder="e.g. for house repairs" onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
-      <ModalActions onSave={() => f.person && onSave({ id: `il-${Date.now()}`, ...f })} onClose={onClose} saveLabel="Add" />
+      <ModalActions onSave={() => f.person && onSave({ ...f })} onClose={onClose} saveLabel="Add" />
     </>
   );
 }
