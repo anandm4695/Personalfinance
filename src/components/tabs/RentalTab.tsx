@@ -25,7 +25,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
   // Ledger state
   const [expandedLedger, setExpandedLedger] = useState<string | null>(null);
-  const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction" | "deposit_in" | "deposit_out"; property: any } | null>(null);
+  const [showLogModal, setShowLogModal] = useState<{ type: "payment" | "receipt" | "deduction" | "deposit_in" | "deposit_out"; property: any; editing?: any } | null>(null);
 
   // CSV Import state
   const [showCsvImport, setShowCsvImport] = useState<string | null>(null);
@@ -120,6 +120,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
   };
 
+  const handleEditPayment = (p: any, editingId: string, paymentData: any) => {
+    const updatedPayments = (p.payments || []).map((pay: any) =>
+      pay.id === editingId ? { ...paymentData, id: editingId } : pay
+    );
+    updateItem("rentedProperties", p.id, { ...p, payments: updatedPayments });
+    setShowLogModal(null);
+  };
+
   const handleAddReceipt = (p: any, receiptData: any) => {
     const updatedReceipts = [...(p.receipts || []), { ...receiptData, id: Math.random().toString(36).substr(2, 9) }];
     updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
@@ -151,6 +159,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const handleRemoveDepositIn = (p: any, depositId: string) => {
     const updated = (p.depositTransactions || []).filter((tx: any) => tx.id !== depositId);
     updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+  };
+
+  const handleEditDepositIn = (p: any, editingId: string, depositData: any) => {
+    const updated = (p.depositTransactions || []).map((tx: any) =>
+      tx.id === editingId ? { ...depositData, id: editingId } : tx
+    );
+    updateItem("rentedProperties", p.id, { ...p, depositTransactions: updated });
+    setShowLogModal(null);
   };
 
   const handleAddDepositOut = (p: any, depositData: any) => {
@@ -1045,8 +1061,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </div>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Paid: {r.date}</div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => setShowLogModal({ type: "payment", property: p, editing: r })}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}
+                                    >
+                                      <Pencil size={12} />
+                                    </button>
                                     <button
                                       onClick={() => handleRemovePayment(p, r.id)}
                                       style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
@@ -1092,8 +1114,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </div>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => setShowLogModal({ type: "deposit_in", property: p, editing: r })}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}
+                                    >
+                                      <Pencil size={12} />
+                                    </button>
                                     <button
                                       onClick={() => handleRemoveDepositIn(p, r.id)}
                                       style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
@@ -1131,14 +1159,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         />
       )}
 
-      {/* Log Payment Modal (Rented In) */}
+      {/* Log / Edit Payment Modal (Rented In) */}
       {showLogModal && showLogModal.type === "payment" && (
         <RentalReceiptModal
-          title="Log Rent Payment"
+          title={showLogModal.editing ? "Edit Rent Payment" : "Log Rent Payment"}
           amountLabel="Amount Paid (₹)"
-          saveLabel="Log Payment"
+          saveLabel={showLogModal.editing ? "Update Payment" : "Log Payment"}
+          initial={showLogModal.editing}
           onClose={() => setShowLogModal(null)}
-          onSave={(data) => handleAddPayment(showLogModal.property, data)}
+          onSave={(data: any) => showLogModal.editing
+            ? handleEditPayment(showLogModal.property, showLogModal.editing.id, data)
+            : handleAddPayment(showLogModal.property, data)}
         />
       )}
 
@@ -1161,14 +1192,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         />
       )}
 
-      {/* Log Deposit Payment Modal (Rented In) */}
+      {/* Log / Edit Deposit Payment Modal (Rented In) */}
       {showLogModal && showLogModal.type === "deposit_in" && (
         <RentalDepositTxModal
-          title="Log Deposit Payment (Rent In)"
+          title={showLogModal.editing ? "Edit Deposit Payment" : "Log Deposit Payment (Rent In)"}
           amountLabel="Deposit Amount Paid (₹)"
-          saveLabel="Log Deposit Payment"
+          saveLabel={showLogModal.editing ? "Update Deposit" : "Log Deposit Payment"}
+          initial={showLogModal.editing}
           onClose={() => setShowLogModal(null)}
-          onSave={(data) => handleAddDepositIn(showLogModal.property, data)}
+          onSave={(data: any) => showLogModal.editing
+            ? handleEditDepositIn(showLogModal.property, showLogModal.editing.id, data)
+            : handleAddDepositIn(showLogModal.property, data)}
         />
       )}
 

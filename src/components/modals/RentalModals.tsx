@@ -314,27 +314,32 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
 /* ══════════════════════════════════════════════════════════════════
    RentalReceiptModal
 ══════════════════════════════════════════════════════════════════ */
-export function RentalReceiptModal({ onClose, onSave }: any) {
+export function RentalReceiptModal({ onClose, onSave, initial, title, amountLabel, saveLabel }: any) {
   const now = new Date();
   const defaultMonth = now.toISOString().slice(0, 7);
-  const [f, setF] = useState({ month: defaultMonth, amount: "", date: today(), note: "" });
+  const [f, setF] = useState({
+    month:  initial?.month  || defaultMonth,
+    amount: initial?.amount ? String(initial.amount) : "",
+    date:   initial?.date   || today(),
+    note:   initial?.note   || "",
+  });
   return (
-    <Modal title="Log Rent Receipt" onClose={onClose}>
+    <Modal title={title || "Log Rent Receipt"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Month (YYYY-MM)">
           <input style={input} type="month" value={f.month} onChange={(e) => setF({ ...f, month: e.target.value })} />
         </Field>
-        <Field label="Amount Received (₹)">
+        <Field label={amountLabel || "Amount Received (₹)"}>
           <input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="25000" />
         </Field>
-        <Field label="Date Received">
+        <Field label="Date">
           <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
         </Field>
         <Field label="Note (optional)">
           <input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. cash / UPI" />
         </Field>
       </div>
-      <ModalActions onSave={() => f.month && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel="Log Receipt" />
+      <ModalActions onSave={() => f.month && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel={saveLabel || "Log Receipt"} />
     </Modal>
   );
 }
@@ -796,8 +801,12 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
    RentalDepositTxModal — for logging partial security deposits
    (received or paid, YYYY-MM-DD + amount + description)
    ══════════════════════════════════════════════════════════════════ */
-export function RentalDepositTxModal({ title, saveLabel, onClose, onSave }: any) {
-  const [f, setF] = useState({ amount: "", date: today(), note: "" });
+export function RentalDepositTxModal({ title, saveLabel, onClose, onSave, initial }: any) {
+  const [f, setF] = useState({
+    amount: initial?.amount ? String(initial.amount) : "",
+    date:   initial?.date   || today(),
+    note:   initial?.note   || "",
+  });
   return (
     <Modal title={title || "Log Deposit Transaction"} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
