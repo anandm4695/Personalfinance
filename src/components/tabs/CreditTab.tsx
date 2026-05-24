@@ -336,7 +336,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                   },
                   {
                     label: "Available",
-                    sub: totalLimit > 0 ? `${100 - utilPct}% of limit free` : "No cards yet",
+                    sub: totalLimit > 0 ? `${100 - utilPct}% of limit free` : (activeCards.length === 0 && state.creditCards.length > 0 ? "All cards closed" : "No cards yet"),
                     value: fmtINRFull(totalAvailable),
                     color: THEME.sage,
                     borderColor: "var(--t-sage)",
@@ -585,7 +585,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               </div>
 
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
-              <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>•••• •••• •••• {c.last4 || "****"}</div>
+              <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>•••• •••• •••• {c.last4 || "••••"}</div>
               {isClosed && c.closedDate && (
                 <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
                   Closed on {new Date(c.closedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -597,8 +597,8 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Limit</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div></div>
               </div>
               <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
-                <div>Bill Date: <strong>{c.billDate || "—"}th</strong></div>
-                <div>Due Day: <strong>{c.dueDay || "—"}th</strong></div>
+                <div>Bill Date: <strong>{c.billDate ? `${c.billDate}th` : "—"}</strong></div>
+                <div>Due Day: <strong>{c.dueDay ? `${c.dueDay}th` : "—"}</strong></div>
                 <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
                 <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
               </div>
@@ -608,9 +608,9 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               {!isClosed && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
-                    <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : THEME.gold, borderRadius: 2 }} />
+                    <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, borderRadius: 2 }} />
                   </div>
-                  <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : "rgba(245,239,227,0.6)", marginTop: 6 }}>{util.toFixed(1)}% utilization</div>
+                  <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, marginTop: 6 }}>{util.toFixed(1)}% utilization</div>
                 </div>
               )}
 
@@ -645,8 +645,27 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
 
 function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   const { ccTransactionCategories: cats } = useMasterData();
-  const [txs, setTxs] = useState(card.transactions || []);
+
+  // If the card has a manually-entered outstanding but no ledger transactions yet,
+  // seed the ledger with an "Opening Balance" entry so the outstanding is not lost
+  // when the user adds their first transaction.
+  const initTxs = React.useMemo(() => {
+    const existing = card.transactions || [];
+    if (existing.length === 0 && Number(card.outstanding) > 0) {
+      return [{ id: `ob-${card.id}`, date: today(), merchant: "Opening Balance", amount: String(card.outstanding), category: "General" }];
+    }
+    return existing;
+  }, []);
+
+  const [txs, setTxs] = useState(initTxs);
   const [showAdd, setShowAdd] = useState(false);
+
+  // Persist the auto-generated opening balance on first render
+  React.useEffect(() => {
+    if ((card.transactions || []).length === 0 && Number(card.outstanding) > 0) {
+      onUpdate(initTxs);
+    }
+  }, []);
   const [newTx, setNewTx] = useState({ date: today(), merchant: "", amount: "", category: cats[0] || "General" });
   const [editId, setEditId] = useState<string | null>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
