@@ -952,10 +952,21 @@ function FinanceDashboard() {
     const lockedAssets = fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
-    
+
+    // FOIR: total monthly EMI / monthly income — safe lending threshold is <40%
+    const totalMonthlyEMI = (sState.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
+    const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
+
+    // Credit utilization: cc outstanding / cc total limit
+    const totalCCLimit = (sState.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((s, c) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
+    const creditUtilization = totalCCLimit > 0 ? (ccOutstanding / totalCCLimit) * 100 : 0;
+
+    // Bug fix: new regime FY 2025-26 applies ₹75,000 standard deduction before slab computation
     const taxDue = sState.profile.regime === "old"
       ? calcTaxOld(annualIncome).total
-      : calcTaxNew(annualIncome).total;
+      : calcTaxNew(Math.max(0, annualIncome - 75000)).total;
 
     const expenseBreakdownMap = monthTxns
       .filter((t) => t.type === "debit")
@@ -1025,6 +1036,10 @@ function FinanceDashboard() {
       totalGoalRemaining,
       overallGoalPct,
       goalsCompleted,
+      totalMonthlyEMI,
+      foir,
+      totalCCLimit,
+      creditUtilization,
       stockSectorBreakdown: (() => {
         const sectors: Record<string, number> = {};
         sState.stocks.forEach((s: any) => {
@@ -1173,7 +1188,9 @@ function FinanceDashboard() {
       }
     });
     // Advance tax upcoming (within 30 days)
-    const advDates = [`${now.getFullYear()}-06-15`, `${now.getFullYear()}-09-15`, `${now.getFullYear()}-12-15`, `${now.getFullYear()}-03-15`];
+    // FY runs Apr–Mar, so Q4 (15 Mar) is always in fyStart+1 year
+    const advFyStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const advDates = [`${advFyStart}-06-15`, `${advFyStart}-09-15`, `${advFyStart}-12-15`, `${advFyStart + 1}-03-15`];
     advDates.forEach((d) => {
       const days = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000);
       if (days >= 0 && days <= 30) list.push({ level: "info", title: `Advance tax due on ${d}`, detail: "Log payment in Tax Vault", tab: "tax" });
@@ -1187,6 +1204,22 @@ function FinanceDashboard() {
       const days = Math.ceil((new Date(s.renewalDate).getTime() - now.getTime()) / 86400000);
       if (days >= 0 && days <= 7) list.push({ level: "info", title: `${s.name} renews in ${days}d`, detail: fmtINRFull(s.amount), tab: "subs" });
     });
+    // Credit card utilization
+    const totalCCLimitForAlert = state.creditCards
+      .filter((c) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((s, c) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
+    if (totalCCLimitForAlert > 0 && metrics.ccOutstanding > 0) {
+      const util = (metrics.ccOutstanding / totalCCLimitForAlert) * 100;
+      if (util > 75) list.push({ level: "error", title: `Credit utilization at ${util.toFixed(0)}%`, detail: `${fmtINRFull(metrics.ccOutstanding)} used of ${fmtINRFull(totalCCLimitForAlert)} limit — may hurt credit score`, tab: "credit" });
+      else if (util > 40) list.push({ level: "warn", title: `Credit utilization ${util.toFixed(0)}%`, detail: "Keep utilization below 30% to protect your credit score", tab: "credit" });
+    }
+    // FOIR: loan EMI burden vs income
+    const totalEMIForAlert = state.loansTaken.reduce((s, l) => s + Number(l.emi || 0), 0);
+    if (metrics.monthIncome > 0 && totalEMIForAlert > 0) {
+      const foirPct = (totalEMIForAlert / metrics.monthIncome) * 100;
+      if (foirPct > 50) list.push({ level: "error", title: `EMI burden ${foirPct.toFixed(0)}% of income`, detail: `${fmtINRFull(totalEMIForAlert)}/mo EMIs is very high — severe cash flow risk`, tab: "credit" });
+      else if (foirPct > 40) list.push({ level: "warn", title: `High FOIR: ${foirPct.toFixed(0)}%`, detail: "EMI payments exceed 40% of monthly income — reduce debt", tab: "credit" });
+    }
     const filteredList = list.filter(a => {
       const dismissUntil = state.dismissedAlerts?.[a.title];
       return !(dismissUntil && dismissUntil > Date.now());

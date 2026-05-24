@@ -601,6 +601,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if ((state.sips || []).length === 0 && metrics.monthIncome > 0)
       insights.push({ icon: Zap, title: "No Active SIPs", value: "Consider starting a monthly mutual fund SIP", color: "#6366f1", bg: "rgba(99,102,241,0.07)" });
 
+    // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
+    const totalEMISmart = (state.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    if (metrics.monthIncome > 0 && totalEMISmart > 0) {
+      const foirPct = (totalEMISmart / metrics.monthIncome) * 100;
+      if (foirPct > 50) insights.push({ icon: AlertTriangle, title: "EMI Burden Critical", value: `${foirPct.toFixed(0)}% FOIR — reduce debt urgently`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      else if (foirPct > 40) insights.push({ icon: AlertTriangle, title: "High EMI Burden", value: `${foirPct.toFixed(0)}% FOIR · keep under 40%`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+    }
+
+    // Credit card utilization — above 30% can hurt credit score
+    const totalCCLimitSmart = (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((s: number, c: any) => s + Number(c.limit || c.cardLimit || 0), 0);
+    if (totalCCLimitSmart > 0 && metrics.ccOutstanding > 0) {
+      const utilPct = (metrics.ccOutstanding / totalCCLimitSmart) * 100;
+      if (utilPct > 50) insights.push({ icon: AlertTriangle, title: "High Credit Utilization", value: `${utilPct.toFixed(0)}% used · aim for below 30%`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+    }
+
     if (insights.length === 0 && metrics.netWorth > 0)
       insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
 
@@ -644,13 +661,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const taxData80C = useMemo(() => {
     const limit = 150000;
-    const now = new Date();
-    const yearStr = `${now.getFullYear()}`;
+    // Bug fix: filter by FY start date (Apr 1 of FY start year), not calendar year
+    // e.g. FY 2025-26 → contributions from 2025-04-01 onwards count
+    const fyParts = (state.profile?.fy || "").split("-");
+    const fyStartYear = Number(fyParts[0]) || new Date().getFullYear() - 1;
+    const fyStartStr = `${fyStartYear}-04-01`;
+    const fyEndStr = `${fyStartYear + 1}-03-31`;
     const elss = (state.mutualFunds || [])
       .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
     const ppfThisYear = (state.ppfLedger || [])
-      .filter((t: any) => t.date && t.date.startsWith(yearStr) && t.type !== "withdrawal")
+      .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ppfAnnual = ppfThisYear > 0 ? ppfThisYear :
       (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
@@ -658,7 +679,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const total = Math.min(elss + ppfAnnual + licPremium, limit);
     const remaining = Math.max(0, limit - total);
     return { elss, ppfAnnual, licPremium, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
-  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic]);
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.profile?.fy]);
 
   const goalHealth = useMemo(() => {
     const now = new Date();
@@ -697,6 +718,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome), color: THEME.sage },
           { label: "Monthly Spend", value: fmtINRFull(metrics.monthExpense), color: THEME.ink },
           { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+          ...(momNetWorthDelta ? [{
+            label: "MoM Change",
+            value: `${momNetWorthDelta.delta >= 0 ? "+" : ""}${fmtINRFull(momNetWorthDelta.delta)}`,
+            color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
+          }] : []),
+          ...(metrics.foir > 0 ? [{
+            label: "FOIR",
+            value: `${metrics.foir.toFixed(0)}%`,
+            color: metrics.foir > 50 ? THEME.rust : metrics.foir > 40 ? THEME.gold : THEME.sage,
+          }] : []),
         ];
         return (
           <div style={{ background: "transparent", overflowX: "auto", marginBottom: 24 }} className="no-scrollbar">
