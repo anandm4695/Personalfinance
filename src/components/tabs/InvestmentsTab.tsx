@@ -1327,15 +1327,17 @@ const EPF_TX_TYPES = [
   { value: "employee_contribution", label: "Employee Contribution",           color: "#6366f1" },
   { value: "employer_contribution", label: "Employer Contribution",           color: "#0ea5e9" },
   { value: "interest_credit",       label: "Interest Credit (EPFO)",          color: "#22c55e" },
+  { value: "transfer_in",           label: "Transfer In (from Previous Employer)", color: "#10b981" },
   { value: "withdrawal",            label: "Withdrawal",                      color: "#ef4444" },
 ];
 
-function EPFTransactionModal({ onClose, onSave, initial }: any) {
+function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: any) {
   const [form, setForm] = useState(() => {
     if (!initial) return {
-      date: today(), type: "monthly_contribution", amount: "",  note: "",
+      date: today(), type: "monthly_contribution", amount: "", note: "",
       wageMonth: "", particulars: "", epfWages: "", epsWages: "",
       employeeShare: "", employerShare: "", pensionShare: "",
+      estId: "", fromEmployer: "",
     };
     return {
       date: initial.date || today(),
@@ -1349,12 +1351,15 @@ function EPFTransactionModal({ onClose, onSave, initial }: any) {
       employeeShare: initial.employeeShare != null ? String(initial.employeeShare) : "",
       employerShare: initial.employerShare != null ? String(initial.employerShare) : "",
       pensionShare: initial.pensionShare != null ? String(initial.pensionShare) : "",
+      estId: initial.estId || "",
+      fromEmployer: initial.fromEmployer || "",
     };
   });
 
-  const isMonthly = form.type === "monthly_contribution";
+  const isMonthly  = form.type === "monthly_contribution";
   const isInterest = form.type === "interest_credit";
-  const monthlyHasAmount = Number(form.employeeShare || 0) > 0 || Number(form.employerShare || 0) > 0 || Number(form.pensionShare || 0) > 0;
+  const isTransfer = form.type === "transfer_in";
+  const monthlyHasAmount  = Number(form.employeeShare || 0) > 0 || Number(form.employerShare || 0) > 0 || Number(form.pensionShare || 0) > 0;
   const interestHasAmount = Number(form.employeeShare || 0) > 0 || Number(form.employerShare || 0) > 0;
   const valid = isMonthly
     ? (!!form.wageMonth && monthlyHasAmount)
@@ -1374,6 +1379,20 @@ function EPFTransactionModal({ onClose, onSave, initial }: any) {
           </select>
         </Field>
       </div>
+
+      {/* Establishment tag — shown for monthly/interest when establishments exist */}
+      {!isTransfer && establishments.length > 0 && (
+        <Field label="Link to Establishment (optional)">
+          <select style={inp} value={form.estId} onChange={e => setForm({ ...form, estId: e.target.value })}>
+            <option value="">— Not tagged —</option>
+            {[...establishments].sort((a, b) => (b.joiningDate || "").localeCompare(a.joiningDate || "")).map((est: any) => (
+              <option key={est.id} value={est.id}>
+                {est.employerName}{est.exitDate ? ` (exited)` : " (current)"}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       {isMonthly ? (
         <>
@@ -1425,6 +1444,43 @@ function EPFTransactionModal({ onClose, onSave, initial }: any) {
           </div>
           <Field label="Note (optional)">
             <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. EPFO Interest FY 2025-26 @ 8.25%" />
+          </Field>
+        </>
+      ) : isTransfer ? (
+        <>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.25)", fontSize: 11, color: "#059669", marginBottom: 4 }}>
+            Record EPF balance transferred from your previous employer (Form 13). The amount will be credited to your current PF account.
+          </div>
+          <Field label="From Employer (Previous Company Name)">
+            <input style={inp} value={form.fromEmployer} onChange={e => setForm({ ...form, fromEmployer: e.target.value })} placeholder="e.g. Infosys Ltd." />
+          </Field>
+          {establishments.length > 0 && (
+            <Field label="Credit To Establishment (optional)">
+              <select style={inp} value={form.estId} onChange={e => setForm({ ...form, estId: e.target.value })}>
+                <option value="">— Not tagged —</option>
+                {[...establishments].filter((e: any) => !e.exitDate).map((est: any) => (
+                  <option key={est.id} value={est.id}>{est.employerName} (current)</option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <Field label="Total Transfer Amount (₹) *">
+            <input style={inp} type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="e.g. 42500" min="1" />
+          </Field>
+          <div style={{ marginBottom: 4, fontSize: 11, color: THEME.muted }}>Optional: enter the split as shown in your EPFO passbook Transfer-In entry</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <Field label="Employee PF (₹)">
+              <input style={inp} type="number" value={form.employeeShare} onChange={e => setForm({ ...form, employeeShare: e.target.value })} placeholder="20468" />
+            </Field>
+            <Field label="Employer PF (₹)">
+              <input style={inp} type="number" value={form.employerShare} onChange={e => setForm({ ...form, employerShare: e.target.value })} placeholder="6254" />
+            </Field>
+            <Field label="Pension (EPS) (₹)">
+              <input style={inp} type="number" value={form.pensionShare} onChange={e => setForm({ ...form, pensionShare: e.target.value })} placeholder="13750" />
+            </Field>
+          </div>
+          <Field label="Note (optional)">
+            <input style={inp} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. Form 13 transfer — approved 15 Sep 2022" />
           </Field>
         </>
       ) : (
@@ -1657,12 +1713,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const [txs, setTxs]               = useState<any[]>(p.transactions   || []);
   const [ests, setEsts]             = useState<any[]>(p.establishments  || []);
   const [showLedger, setShowLedger] = useState(false);
-  const [showTxModal, setShowTxModal]   = useState(false);
-  const [editTx, setEditTx]             = useState<any>(null);
-  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showTxModal, setShowTxModal]         = useState(false);
+  const [editTx, setEditTx]                   = useState<any>(null);
+  const [showCsvImport, setShowCsvImport]     = useState(false);
   const [showEditAccount, setShowEditAccount] = useState(false);
-  const [showEstModal, setShowEstModal] = useState(false);
-  const [editEst, setEditEst]           = useState<any>(null);
+  const [showEstModal, setShowEstModal]       = useState(false);
+  const [editEst, setEditEst]                 = useState<any>(null);
+  const [transferPrefill, setTransferPrefill] = useState<any>(null);
 
   // Sync local state when parent data changes (e.g. after fetchAllData refresh)
   useEffect(() => {
@@ -1688,16 +1745,18 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
   /* ── stats ── */
   const byType = (t: string) => txs.filter(x => x.type === t).reduce((s, x) => s + Number(x.amount || 0), 0);
-  const monthlyRows = txs.filter(x => x.type === "monthly_contribution");
+  const monthlyRows   = txs.filter(x => x.type === "monthly_contribution");
+  const interestRows  = txs.filter(x => x.type === "interest_credit");
+  const transferRows  = txs.filter(x => x.type === "transfer_in");
   const totalEmployee  = byType("employee_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
   const totalEmployer  = byType("employer_contribution") + monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
   const totalPension   = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-  const interestRows = txs.filter(x => x.type === "interest_credit");
-  const totalInterest = interestRows.reduce((s, x) => {
+  const totalInterest  = interestRows.reduce((s, x) => {
     if (x.employeeShare !== undefined || x.employerShare !== undefined)
       return s + Number(x.employeeShare || 0) + Number(x.employerShare || 0);
     return s + Number(x.amount || 0);
   }, 0);
+  const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
   const totalWithdrawal = byType("withdrawal");
 
   // Compute closing balances from passbook (like EPFO passbook "Closing Balance" row)
@@ -1705,17 +1764,26 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
     if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
     return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
   }, 0);
-  const erInterest       = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
-  const closingEmployee  = totalEmployee + empInterest;
-  const closingEmployer  = totalEmployer + erInterest;
-  const closingPension   = totalPension;
+  const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  // transfer_in breakdown: use splits if provided, else bucket into employee share
+  const transferInEmp = transferRows.reduce((s, x) => {
+    const splits = Number(x.employeeShare || 0) + Number(x.employerShare || 0) + Number(x.pensionShare || 0);
+    return s + (splits > 0 ? Number(x.employeeShare || 0) : Number(x.amount || 0));
+  }, 0);
+  const transferInEr  = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare  || 0), 0);
+
+  const closingEmployee  = totalEmployee + empInterest + transferInEmp;
+  const closingEmployer  = totalEmployer + erInterest  + transferInEr;
+  const closingPension   = totalPension  + transferInPen;
   const closingTotal     = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
-  const hasPassbook      = txs.some(t => t.type === "monthly_contribution" || t.type === "interest_credit");
+  const hasPassbook      = txs.some(t => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in");
   const displayCorpus    = hasPassbook ? closingTotal : Number(p.balance || 0);
 
   const stats = [
-    ...(totalInterest  > 0 ? [{ label: "Interest (EPFO)",   value: totalInterest,  color: THEME.sage }] : []),
-    ...(totalWithdrawal > 0 ? [{ label: "Withdrawn",         value: totalWithdrawal, color: THEME.rust }] : []),
+    ...(totalInterest   > 0 ? [{ label: "Interest (EPFO)",          value: totalInterest,   color: THEME.sage }] : []),
+    ...(totalTransferIn > 0 ? [{ label: "Transfer In",              value: totalTransferIn, color: "#10b981"  }] : []),
+    ...(totalWithdrawal > 0 ? [{ label: "Withdrawn",                value: totalWithdrawal, color: THEME.rust }] : []),
   ].filter(s => s.value > 0);
 
   /* ── refs to avoid stale closures when both arrays are updated close together ── */
@@ -1734,6 +1802,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       entry = {
         date:          form.date,
         type:          form.type,
+        estId:         form.estId || "",
         wageMonth:     form.wageMonth,
         particulars:   form.particulars   || "",
         epfWages:      Number(form.epfWages      || 0),
@@ -1751,6 +1820,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       entry = {
         date:          form.date,
         type:          form.type,
+        estId:         form.estId || "",
         particulars:   form.particulars || "",
         employeeShare: empInt,
         employerShare: erInt,
@@ -1758,10 +1828,27 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         amount:        empInt + erInt,
         note:          form.note || "",
       };
+    } else if (form.type === "transfer_in") {
+      const empT  = Number(form.employeeShare || 0);
+      const erT   = Number(form.employerShare  || 0);
+      const penT  = Number(form.pensionShare   || 0);
+      const total = Number(form.amount || 0) || (empT + erT + penT);
+      entry = {
+        date:          form.date,
+        type:          form.type,
+        estId:         form.estId || "",
+        fromEmployer:  form.fromEmployer || "",
+        employeeShare: empT,
+        employerShare: erT,
+        pensionShare:  penT,
+        amount:        total,
+        note:          form.note || "",
+      };
     } else {
       entry = {
         date:   form.date,
         type:   form.type,
+        estId:  form.estId || "",
         amount: Number(form.amount || 0),
         note:   form.note || "",
       };
@@ -1785,8 +1872,8 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
   /* ── sorted ledger split ── */
   const sortedTxs     = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  const passbookRows  = sortedTxs.filter(t => t.type === "monthly_contribution" || t.type === "interest_credit");
-  const regularRows   = sortedTxs.filter(t => t.type !== "monthly_contribution" && t.type !== "interest_credit");
+  const passbookRows  = sortedTxs.filter(t => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in");
+  const regularRows   = sortedTxs.filter(t => t.type !== "monthly_contribution" && t.type !== "interest_credit" && t.type !== "transfer_in");
   const sortedEsts    = [...ests].sort((a, b) => (b.joiningDate || "").localeCompare(a.joiningDate || ""));
 
   return (
@@ -1851,6 +1938,27 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               const dateLabel = isCurrent
                 ? `${fmtMY(est.joiningDate)} — Present`
                 : `${fmtMY(est.joiningDate)} — ${fmtMY(est.exitDate)}`;
+
+              /* per-establishment closing balance */
+              const estTxs      = txs.filter(t => t.estId === est.id);
+              const estEmpC     = estTxs.filter(x => x.type === "monthly_contribution" || x.type === "employee_contribution")
+                .reduce((s, x) => s + Number(x.employeeShare || x.amount || 0), 0);
+              const estErC      = estTxs.filter(x => x.type === "monthly_contribution" || x.type === "employer_contribution")
+                .reduce((s, x) => s + Number(x.employerShare || 0), 0);
+              const estPenC     = estTxs.filter(x => x.type === "monthly_contribution")
+                .reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+              const estIntEmp   = estTxs.filter(x => x.type === "interest_credit")
+                .reduce((s, x) => s + Number(x.employeeShare !== undefined ? x.employeeShare : x.amount || 0), 0);
+              const estIntEr    = estTxs.filter(x => x.type === "interest_credit")
+                .reduce((s, x) => s + Number(x.employerShare || 0), 0);
+              const estTransIn  = estTxs.filter(x => x.type === "transfer_in")
+                .reduce((s, x) => s + Number(x.amount || 0), 0);
+              const estClosing  = estEmpC + estErC + estPenC + estIntEmp + estIntEr + estTransIn;
+              const estHasTxs   = estTxs.length > 0;
+
+              /* transfer-in already recorded for this establishment */
+              const alreadyTransferred = txs.some(t => t.type === "transfer_in" && t.fromEmployer === est.employerName);
+
               return (
                 <div key={est.id} style={{ position: "relative", marginBottom: idx < sortedEsts.length - 1 ? 14 : 0 }}>
                   <div style={{ position: "absolute", left: -32, top: 10, width: 22, height: 22, borderRadius: "50%", background: isCurrent ? "#6366f1" : "rgba(99,102,241,0.15)", border: `2px solid ${isCurrent ? "#6366f1" : "rgba(99,102,241,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: isCurrent ? "#fff" : "#6366f1" }}>
@@ -1881,6 +1989,62 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                       <span style={{ color: THEME.muted }}>Total Service</span>
                       <span style={{ color: THEME.ink, fontWeight: 600 }}>{calcService(est.joiningDate, est.exitDate)}</span>
                     </div>
+
+                    {/* per-establishment closing balance (only if transactions tagged to this est) */}
+                    {estHasTxs && (
+                      <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", textAlign: "center" as const }}>
+                          <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Emp PF</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "#6366f1" }}><Prv>{fmtINR(estEmpC + estIntEmp)}</Prv></div>
+                        </div>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(14,165,233,0.05)", border: "1px solid rgba(14,165,233,0.15)", textAlign: "center" as const }}>
+                          <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Er PF</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(estErC + estIntEr)}</Prv></div>
+                        </div>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.15)", textAlign: "center" as const }}>
+                          <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Pension</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b" }}><Prv>{fmtINR(estPenC)}</Prv></div>
+                        </div>
+                      </div>
+                    )}
+                    {estHasTxs && (
+                      <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted }}>
+                          Closing Balance: <span style={{ fontWeight: 800, color: isCurrent ? "#6366f1" : THEME.ink }}><Prv>{fmtINR(estClosing)}</Prv></span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transfer Balance button — shown for exited establishments */}
+                    {!isCurrent && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${THEME.line}` }}>
+                        {alreadyTransferred ? (
+                          <div style={{ fontSize: 10, color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                            <CheckCircle2 size={12} /> Transfer In recorded
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setTransferPrefill({
+                                type:         "transfer_in",
+                                date:         est.exitDate || today(),
+                                fromEmployer: est.employerName,
+                                amount:       String(estClosing || ""),
+                                employeeShare: String(estEmpC + estIntEmp || ""),
+                                employerShare: String(estErC  + estIntEr  || ""),
+                                pensionShare:  String(estPenC || ""),
+                                note:         `Form 13 transfer from ${est.employerName}`,
+                                estId:        "",
+                              });
+                              setShowTxModal(true);
+                            }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.06)", color: "#059669", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                          >
+                            <Repeat size={11} /> Record Transfer to New Employer
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1903,7 +2067,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
       {/* ── Action Buttons ── */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-        <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setShowCsvImport(false); }}>
+        <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setTransferPrefill(null); setShowCsvImport(false); }}>
           <Plus size={13} /> Add Transaction
         </button>
         <button style={{ ...btnGhost, color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
@@ -1949,28 +2113,36 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                     </thead>
                     <tbody>
                       {passbookRows.map(t => {
-                        const isIntRow = t.type === "interest_credit";
-                        const descLabel = isIntRow
+                        const isIntRow      = t.type === "interest_credit";
+                        const isTransferRow = t.type === "transfer_in";
+                        const descLabel = isTransferRow
+                          ? `⇒ Transfer In — ${t.fromEmployer || "Previous Employer"}`
+                          : isIntRow
                           ? (t.particulars || `Int. Updated upto ${new Date(t.date).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })}`)
                           : (t.wageMonth || "—");
                         const empVal = isIntRow
                           ? (t.employeeShare !== undefined ? t.employeeShare : t.amount)
+                          : isTransferRow
+                          ? (Number(t.employeeShare || 0) > 0 ? t.employeeShare : t.amount)
                           : (t.employeeShare || 0);
                         const erVal  = t.employerShare || 0;
                         const penVal = t.pensionShare  || 0;
+                        const rowBg  = isTransferRow ? "rgba(16,185,129,0.06)" : isIntRow ? "rgba(34,197,94,0.04)" : undefined;
+                        const txColor = isTransferRow ? "#059669" : isIntRow ? "#16a34a" : THEME.ink;
+                        const numColor = (base: string) => isTransferRow ? "#059669" : isIntRow ? "#16a34a" : base;
                         return (
-                          <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}`, background: isIntRow ? "rgba(34,197,94,0.04)" : undefined }}>
-                            <td style={{ padding: "6px 10px", fontWeight: 700, color: isIntRow ? "#16a34a" : THEME.ink }}>{descLabel}</td>
+                          <tr key={t.id} style={{ borderTop: isTransferRow ? `2px dashed rgba(16,185,129,0.4)` : `1px solid ${THEME.line}`, background: rowBg }}>
+                            <td style={{ padding: "6px 10px", fontWeight: 700, color: txColor }}>{descLabel}</td>
                             <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{t.date || "—"}</td>
-                            <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{isIntRow ? (t.note || "—") : (t.particulars || "—")}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && t.epfWages) ? fmtINR(t.epfWages) : "—"}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && t.epsWages) ? fmtINR(t.epsWages) : "—"}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? "#16a34a" : "#6366f1" }}>{fmtINR(empVal)}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? "#16a34a" : "#0ea5e9" }}>{fmtINR(erVal)}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: isIntRow ? THEME.muted : "#f59e0b" }}>{fmtINR(penVal)}</td>
+                            <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{isTransferRow ? (t.note || "Form 13 Transfer") : isIntRow ? (t.note || "—") : (t.particulars || "—")}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && !isTransferRow && t.epfWages) ? fmtINR(t.epfWages) : "—"}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && !isTransferRow && t.epsWages) ? fmtINR(t.epsWages) : "—"}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: numColor("#6366f1") }}>{fmtINR(empVal)}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: numColor("#0ea5e9") }}>{fmtINR(erVal)}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: (isIntRow || isTransferRow) ? THEME.muted : "#f59e0b" }}>{fmtINR(penVal)}</td>
                             <td style={{ padding: "6px 10px" }}>
                               <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
-                                <button onClick={() => { setEditTx(t); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={11} /></button>
+                                <button onClick={() => { setEditTx(t); setTransferPrefill(null); setShowTxModal(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}><Pencil size={11} /></button>
                                 <button onClick={() => removeTx(t.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}><Trash2 size={11} /></button>
                               </div>
                             </td>
@@ -1985,6 +2157,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epsWages || 0), 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#6366f1" }}>{fmtINR(passbookRows.reduce((s, t) => {
                           if (t.type === "interest_credit") return s + Number(t.employeeShare !== undefined ? t.employeeShare : t.amount || 0);
+                          if (t.type === "transfer_in") return s + Number(Number(t.employeeShare || 0) > 0 ? t.employeeShare : t.amount || 0);
                           return s + Number(t.employeeShare || 0);
                         }, 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#0ea5e9" }}>{fmtINR(passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0))}</td>
@@ -2042,8 +2215,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
       {showTxModal && (
         <EPFTransactionModal
-          initial={editTx}
-          onClose={() => { setShowTxModal(false); setEditTx(null); }}
+          initial={transferPrefill || editTx}
+          establishments={ests}
+          onClose={() => { setShowTxModal(false); setEditTx(null); setTransferPrefill(null); }}
           onSave={saveTx}
         />
       )}
