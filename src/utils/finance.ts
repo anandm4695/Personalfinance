@@ -60,15 +60,21 @@ export const monthsBetween = (d1: string, d2: string) => {
 };
 
 export const getCCDueDate = (c: any, referenceDate?: Date) => {
-  if (c.dueDate) return c.dueDate;
-  if (!c.dueDay) return null;
-  const day = parseInt(c.dueDay, 10);
-  // day=0 or NaN would silently roll back to the previous month — guard explicitly
-  if (isNaN(day) || day < 1 || day > 31) return null;
+  // Prefer computed due date from dueDay over a stored dueDate.
+  // A stored dueDate can go stale (e.g. card's dueDay changed but old dueDate was never cleared).
+  // If dueDay is present, always compute the next occurrence from it.
   const now = referenceDate || new Date();
-  let d = new Date(now.getFullYear(), now.getMonth(), day);
-  if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
-  return getLocalDateString(d);
+  if (c.dueDay) {
+    const day = parseInt(c.dueDay, 10);
+    if (!isNaN(day) && day >= 1 && day <= 31) {
+      let d = new Date(now.getFullYear(), now.getMonth(), day);
+      if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
+      return getLocalDateString(d);
+    }
+  }
+  // Fall back to the stored dueDate only when no dueDay is set
+  if (c.dueDate) return c.dueDate;
+  return null;
 };
 
 export const autoCateg = (note: string): string | null => {

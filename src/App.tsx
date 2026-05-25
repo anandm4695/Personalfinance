@@ -55,7 +55,7 @@ import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 // Modular Imports
 import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PROFILES } from "./utils/constants";
 import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
-import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal } from "./utils/finance";
+import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal, getLocalDateString } from "./utils/finance";
 
 
 // Tab Imports
@@ -85,8 +85,19 @@ import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
 
 
+// Indian fiscal year: April 1 to March 31
+// Returns "2025-26" format based on the current calendar month
+const getCurrentFY = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed; April = 3
+  const fyStart = month >= 3 ? year : year - 1;
+  const fyEndShort = String(fyStart + 1).slice(-2);
+  return `${fyStart}-${fyEndShort}`;
+};
+
 const DEFAULT_STATE = {
-  profile: { name: "there", fy: "2025-26", regime: "new", savingsTarget: 20 },
+  profile: { name: "there", fy: getCurrentFY(), regime: "new", savingsTarget: 20 },
   bankAccounts: [], transactions: [], fixedDeposits: [], recurringDeposits: [],
   bonds: [], ppf: [], nps: [], epf: [], lic: [], termPlans: [], investmentPlans: [], mutualFunds: [], stocks: [],
   demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
@@ -116,9 +127,19 @@ function FinanceDashboard() {
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
   const [subTab, setSubTab] = useState(null);
+  const [marketDataTs, setMarketDataTs] = useState<number | null>(null);
   const [marketData, setMarketData] = useState<any>(() => {
-    const saved = localStorage.getItem("finance_market_data");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem("finance_market_data");
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const { _ts, ...data } = parsed;
+      // Expire cache after 8 hours so users don't see stale prices indefinitely
+      if (_ts && Date.now() - _ts > 8 * 3600 * 1000) return {};
+      return data;
+    } catch {
+      return {};
+    }
   });
   const [fetchingPrices, setFetchingPrices] = useState(false);
   const fetchingRef = useRef(false);
@@ -514,9 +535,11 @@ function FinanceDashboard() {
       const res = await fetch(`/api/stock-price?symbols=${groups.join(",")}`);
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
+      const ts = Date.now();
+      setMarketDataTs(ts);
       setMarketData((prev: any) => {
         const next = { ...prev, ...data };
-        localStorage.setItem("finance_market_data", JSON.stringify(next));
+        localStorage.setItem("finance_market_data", JSON.stringify({ ...next, _ts: ts }));
         return next;
       });
 
@@ -999,8 +1022,11 @@ function FinanceDashboard() {
         return acc;
       }, {});
 
-    if (rentPaidThisMonth > 0) {
-      expenseBreakdownMap["Rent"] = (expenseBreakdownMap["Rent"] || 0) + rentPaidThisMonth;
+    // Add rental-ledger rent only when there are no "Rent"-categorised debit transactions
+    // for the month. If the user already logged rent in the bank transactions tab, adding
+    // rentPaidThisMonth on top would double-count the same outflow.
+    if (rentPaidThisMonth > 0 && !expenseBreakdownMap["Rent"]) {
+      expenseBreakdownMap["Rent"] = rentPaidThisMonth;
     }
 
     const expenseBreakdown = Object.keys(expenseBreakdownMap).map((k) => ({
@@ -1123,7 +1149,7 @@ function FinanceDashboard() {
     [metrics]
   );
 
-  // Monthly trend for last 12 months — uses filtered transactions to respect profile filter
+  // Monthly trend for last 12 months — mirrors monthExpense by including rental payments
   const trendData = useMemo(() => {
     const arr = [];
     const now = new Date();
@@ -1137,13 +1163,21 @@ function FinanceDashboard() {
       const inc = txns
         .filter((t) => t.type === "credit")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
-      const exp = txns
+      const txnExp = txns
         .filter((t) => t.type === "debit")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
+      // Include rent paid via rental ledger (rentedProperties.payments) so the
+      // trend chart stays consistent with the monthExpense metric on the dashboard.
+      const rentExp = (filteredState.rentedProperties || []).reduce((sum, p) => {
+        return sum + (p.payments || [])
+          .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      }, 0);
+      const exp = txnExp + rentExp;
       arr.push({ month: label, income: inc, expense: exp, net: inc - exp });
     }
     return arr;
-  }, [filteredState.transactions]);
+  }, [filteredState.transactions, filteredState.rentedProperties]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -1286,12 +1320,47 @@ function FinanceDashboard() {
     if (metrics.monthIncome > 0 && metrics.monthExpense > 0 && metrics.savingsRate < 10) {
       list.push({ level: "warn", title: `Low savings rate: ${metrics.savingsRate.toFixed(0)}%`, detail: `Saving only ${metrics.savingsRate.toFixed(0)}% of monthly income. Target 20%+ for long-term financial security.`, tab: "analytics" });
     }
+    // Insurance premium due within 30 days
+    // Compute next annual due date from the policy start date's anniversary
+    const getNextAnniversary = (startDateStr: string): string | null => {
+      if (!startDateStr) return null;
+      const start = new Date(startDateStr);
+      if (isNaN(start.getTime())) return null;
+      const thisYear = new Date(now.getFullYear(), start.getMonth(), start.getDate());
+      const candidate = thisYear <= now
+        ? new Date(now.getFullYear() + 1, start.getMonth(), start.getDate())
+        : thisYear;
+      return getLocalDateString(candidate);
+    };
+    const allPolicies = [
+      ...(state.lic || []).map((p: any) => ({ name: p.planName || "LIC Policy", start: p.commencementDate, premium: p.annualPremium, expiry: p.maturityDate })),
+      ...(state.termPlans || []).map((p: any) => ({ name: p.planName || "Term Plan", start: p.startDate, premium: p.annualPremium, expiry: p.expiryDate })),
+      ...(state.investmentPlans || []).map((p: any) => ({ name: p.planName || "Investment Plan", start: p.commencementDate, premium: p.annualPremium, expiry: p.maturityDate })),
+    ];
+    allPolicies.forEach((pol) => {
+      if (!pol.premium || Number(pol.premium) <= 0) return;
+      if (pol.expiry && new Date(pol.expiry) < now) return; // expired policy
+      const nextDue = getNextAnniversary(pol.start);
+      if (!nextDue) return;
+      const daysToRenew = Math.ceil((new Date(nextDue).getTime() - now.getTime()) / 86400000);
+      if (daysToRenew >= 0 && daysToRenew <= 30) {
+        const lvl = daysToRenew <= 7 ? "error" : "warn";
+        list.push({ level: lvl, title: `${pol.name} premium due in ${daysToRenew}d`, detail: `Annual premium: ${fmtINRFull(pol.premium)} — due on ${nextDue}`, tab: "insurance" });
+      }
+    });
+    // Low bank balance alert — flag accounts below ₹5,000
+    state.bankAccounts.forEach((acc: any) => {
+      const bal = Number(acc.balance || 0);
+      if (bal > 0 && bal < 5000) {
+        list.push({ level: "warn", title: `Low balance: ${acc.bankName || "Bank account"}`, detail: `${fmtINRFull(bal)} remaining — consider topping up`, tab: "banks" });
+      }
+    });
     const filteredList = list.filter(a => {
       const dismissUntil = state.dismissedAlerts?.[a.title];
       return !(dismissUntil && dismissUntil > Date.now());
     });
     return filteredList;
-  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, state.termPlans, state.lic, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, metrics.savingsRate, state.dismissedAlerts, state.profile?.regime]);
+  }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, state.termPlans, state.lic, state.investmentPlans, state.bankAccounts, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, metrics.savingsRate, state.dismissedAlerts, state.profile?.regime]);
 
   const TABLE_MAP: Record<string, string> = {
     bankAccounts: "bank_accounts", transactions: "transactions", mutualFunds: "mutual_funds",
@@ -1723,8 +1792,8 @@ function FinanceDashboard() {
           }
 
           // 2. PHASE 2: Reset Profile & Settings to Defaults in DB
-          await supabase.from("profiles").update({ 
-            name: "there", fy: "2025-26", regime: "new", savings_target: 20 
+          await supabase.from("profiles").update({
+            name: "there", fy: getCurrentFY(), regime: "new", savings_target: 20
           }).eq("user_id", userId);
           
           await supabase.from("user_settings").update({ 
@@ -2361,7 +2430,7 @@ function FinanceDashboard() {
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} marketData={marketData} fetchLivePrices={fetchLivePrices} fetchingPrices={fetchingPrices} />}
+            {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} marketData={marketData} fetchLivePrices={fetchLivePrices} fetchingPrices={fetchingPrices} marketDataTs={marketDataTs} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}

@@ -290,7 +290,7 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [], marketData, fetchLivePrices, fetchingPrices }: any) {
+export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [], marketData, fetchLivePrices, fetchingPrices, marketDataTs }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
@@ -446,15 +446,29 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
         sub="Live portfolio tracking and brokerage management"
         rightElement={
           <div style={{ display: "flex", gap: 12 }}>
-            <Button 
-              variant="ghost" 
-              icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}
-              onClick={handleRefresh} 
-              disabled={fetchingPrices}
-              style={{ minWidth: 120, justifyContent: "center" }}
-            >
-              {fetchingPrices ? "Updating…" : "Live Refresh"}
-            </Button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+              <Button
+                variant="ghost"
+                icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={fetchingPrices}
+                style={{ minWidth: 120, justifyContent: "center" }}
+              >
+                {fetchingPrices ? "Updating…" : "Live Refresh"}
+              </Button>
+              {marketDataTs && !fetchingPrices && (
+                <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
+                  {(() => {
+                    const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
+                    if (diffMin < 1) return "Updated just now";
+                    if (diffMin === 1) return "Updated 1 min ago";
+                    if (diffMin < 60) return `Updated ${diffMin} min ago`;
+                    const hrs = Math.floor(diffMin / 60);
+                    return `Updated ${hrs}h ago`;
+                  })()}
+                </span>
+              )}
+            </div>
             {state.stocks.length > 0 && (
               <Button variant="accent" icon={<Plus size={14} />} onClick={() => { setStockDefaults(null); setShowStock(true); }}>
                 Add Scrip
