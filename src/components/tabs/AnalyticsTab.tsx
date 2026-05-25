@@ -41,7 +41,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, getCCDueDate } from "../../utils/finance";
+import { fmtINR, fmtINRFull, getCCDueDate, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -226,7 +226,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           const now = new Date();
           const m = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
           const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
-          const currentVal = months * Number(r.monthly || 0);
+          const currentVal = months > 0 ? rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), months) : 0;
           return {
             name: r.bank || "RD",
             sub: `${fmtINR(r.monthly || 0)}/mo · ${months}/${r.tenureMonths || 0} m`,
@@ -1156,34 +1156,33 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </Card>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 28 }}>
-            {/* Monthly Income vs Expense — uses unique gradient IDs (gIncome2/gExpense2) to avoid conflict with Monthly P&L chart above */}
+            {/* Monthly Net Savings — shows net (income minus expense) per month */}
             <Card style={{ padding: 24 }}>
-              <div className="section-label">Monthly Income vs Expense</div>
+              <div className="section-label">Monthly Net Savings</div>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={trendData.slice(-6)}>
                   <defs>
-                    <linearGradient id="gIncome2" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gNetPos" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.3} />
                     </linearGradient>
-                    <linearGradient id="gExpense2" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gNetNeg" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.3} />
                     </linearGradient>
-                    <filter id="glow-sage2" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.sage} floodOpacity="0.4" />
-                    </filter>
-                    <filter id="glow-rust2" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.rust} floodOpacity="0.4" />
+                    <filter id="glow-net" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={THEME.accent} floodOpacity="0.4" />
                     </filter>
                   </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                   <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={fmtINR} tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v: any) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
-                  <Legend iconType="circle" />
-                  <Bar dataKey="income" name="Income" fill="url(#gIncome2)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-sage2)" }} />
-                  <Bar dataKey="expense" name="Expense" fill="url(#gExpense2)" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-rust2)" }} />
+                  <Tooltip formatter={(v: any) => [fmtINRFull(v), "Net Savings"]} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: "1px solid var(--t-line)", borderRadius: 12, boxShadow: "var(--shadow-xl)" }} />
+                  <Bar dataKey="net" name="Net Savings" radius={[4, 4, 0, 0]} style={{ filter: "url(#glow-net)" }}>
+                    {trendData.slice(-6).map((entry: any, index: number) => (
+                      <Cell key={index} fill={entry.net >= 0 ? THEME.sage : THEME.rust} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </Card>
