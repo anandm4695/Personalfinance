@@ -1,6 +1,6 @@
 // @ts-nocheck
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, AlertTriangle, Lightbulb, Zap, ArrowRight, ShieldCheck } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Bot, User, AlertTriangle, Copy, Check, Trash2, Sparkles, ShieldCheck, ArrowRight } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
@@ -11,29 +11,217 @@ interface AIAssistantTabProps {
   metrics: any;
 }
 
+// ── Inline markdown parser: **bold**, *italic*, `code` ──────────────────────
+const parseInline = (text: string): React.ReactNode => {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return <strong key={i} style={{ fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+        if (part.startsWith("*") && part.endsWith("*"))
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        if (part.startsWith("`") && part.endsWith("`"))
+          return (
+            <code key={i} style={{
+              background: "rgba(99,102,241,0.12)", padding: "2px 6px",
+              borderRadius: 4, fontFamily: "ui-monospace, monospace", fontSize: 12
+            }}>{part.slice(1, -1)}</code>
+          );
+        return <React.Fragment key={i}>{part}</React.Fragment>;
+      })}
+    </>
+  );
+};
+
+// ── Block markdown renderer ─────────────────────────────────────────────────
+const MarkdownRenderer = ({ text }: { text: string }) => {
+  const lines = text.split("\n");
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Fenced code block
+    if (line.startsWith("```")) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      nodes.push(
+        <pre key={`code-${i}`} style={{
+          background: "var(--surface-1, rgba(0,0,0,0.06))", padding: "12px 16px",
+          borderRadius: 10, overflowX: "auto", fontSize: 12, lineHeight: 1.5,
+          margin: "10px 0", border: `1px solid ${THEME.line}`
+        }}>
+          <code style={{ fontFamily: "ui-monospace, monospace" }}>{codeLines.join("\n")}</code>
+        </pre>
+      );
+      i++;
+      continue;
+    }
+
+    // H1
+    if (line.startsWith("# ")) {
+      nodes.push(
+        <div key={i} style={{ fontWeight: 800, fontSize: 17, marginTop: 14, marginBottom: 6 }}>
+          {parseInline(line.slice(2))}
+        </div>
+      );
+      i++; continue;
+    }
+    // H2
+    if (line.startsWith("## ")) {
+      nodes.push(
+        <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 12, marginBottom: 5, color: THEME.ink }}>
+          {parseInline(line.slice(3))}
+        </div>
+      );
+      i++; continue;
+    }
+    // H3
+    if (line.startsWith("### ")) {
+      nodes.push(
+        <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 10, marginBottom: 4 }}>
+          {parseInline(line.slice(4))}
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(line.trim())) {
+      nodes.push(<hr key={i} style={{ border: "none", borderTop: `1px solid ${THEME.line}`, margin: "10px 0" }} />);
+      i++; continue;
+    }
+
+    // Bullet list — collect consecutive
+    if (/^[-*+] /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*+] /.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*+] /, ""));
+        i++;
+      }
+      nodes.push(
+        <ul key={`ul-${i}`} style={{ margin: "6px 0", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 3 }}>
+          {items.map((item, idx) => (
+            <li key={idx} style={{ lineHeight: 1.65, fontSize: 14 }}>{parseInline(item)}</li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+\. /.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\. /, ""));
+        i++;
+      }
+      nodes.push(
+        <ol key={`ol-${i}`} style={{ margin: "6px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 3 }}>
+          {items.map((item, idx) => (
+            <li key={idx} style={{ lineHeight: 1.65, fontSize: 14 }}>{parseInline(item)}</li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    // Empty line → spacer
+    if (line.trim() === "") {
+      nodes.push(<div key={i} style={{ height: 6 }} />);
+      i++; continue;
+    }
+
+    // Plain paragraph
+    nodes.push(
+      <p key={i} style={{ margin: 0, lineHeight: 1.7, fontSize: 14 }}>
+        {parseInline(line)}
+      </p>
+    );
+    i++;
+  }
+
+  return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{nodes}</div>;
+};
+
+// ── Animated typing dots ────────────────────────────────────────────────────
+const TypingIndicator = () => (
+  <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "4px 2px" }}>
+    {[0, 1, 2].map(n => (
+      <span key={n} style={{
+        width: 7, height: 7, borderRadius: "50%", background: THEME.muted, display: "block",
+        animation: "ai-typing 1.2s ease-in-out infinite",
+        animationDelay: `${n * 0.2}s`
+      }} />
+    ))}
+  </div>
+);
+
+// ── Suggestions ─────────────────────────────────────────────────────────────
+const SUGGESTIONS = [
+  "How can I improve my savings rate?",
+  "Should I prepay my loan or invest the surplus?",
+  "Am I diversified enough?",
+  "How much should I keep as an emergency fund?",
+  "Which tax-saving investments should I consider?",
+  "Am I on track for retirement?",
+];
+
+// ── Main component ───────────────────────────────────────────────────────────
 export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }) => {
   const [messages, setMessages] = useState<{ role: "model" | "user"; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<any>(null);
+  const isFirstRef = useRef(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const apiKey = state?.settings?.geminiApiKey || "";
 
+  const WELCOME: { role: "model"; text: string } = {
+    role: "model",
+    text: "Hello! I'm your **AI Financial Advisor**.\n\nI've analysed your anonymised financial snapshot. Ask me anything — savings strategy, debt management, investment allocation, tax planning, or retirement goals.\n\nOr pick a suggestion below to get started.",
+  };
+
+  // Restore session from sessionStorage on mount
+  useEffect(() => {
+    if (!apiKey) return;
+    try {
+      const saved = sessionStorage.getItem("ai_advisor_messages");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          isFirstRef.current = false;
+          return;
+        }
+      }
+    } catch {}
+    setMessages([WELCOME]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]);
+
+  // Persist to sessionStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem("ai_advisor_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Scroll to bottom on new message or loading change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  useEffect(() => {
-    if (messages.length === 0 && apiKey) {
-      setMessages([
-        {
-          role: "model",
-          text: "Hello! I am your AI Financial Advisor. I have analyzed your anonymized financial state. How can I help you today? Try asking about ways to improve your savings rate, how to reduce your debt, or where to invest.",
-        },
-      ]);
-    }
-  }, [apiKey, messages.length]);
 
   const fmtCr = (n: number) => {
     const abs = Math.abs(n);
@@ -43,20 +231,24 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     return `₹${Math.round(abs)}`;
   };
 
-  const generateContext = () => {
-    const topExpenses = (metrics.expenseBreakdown || []).slice(0, 5).map((e: any) => `  • ${e.name}: ${fmtCr(e.value)}`).join("\n") || "  No data";
+  const generateContext = useCallback(() => {
+    const topExpenses = (metrics.expenseBreakdown || []).slice(0, 5)
+      .map((e: any) => `  • ${e.name}: ${fmtCr(e.value)}`).join("\n") || "  No data";
     const goals = (state.goals || []).slice(0, 5).map((g: any) => {
-      const pct = Number(g.targetAmount) > 0 ? Math.round((Number(g.currentAmount) / Number(g.targetAmount)) * 100) : 0;
+      const pct = Number(g.targetAmount) > 0
+        ? Math.round((Number(g.currentAmount) / Number(g.targetAmount)) * 100) : 0;
       return `  • ${g.name}: ${pct}% of ${fmtCr(Number(g.targetAmount))} (target: ${g.targetDate || "—"})`;
     }).join("\n") || "  No goals set";
-    const subs = (state.subscriptions || []).filter((s: any) => !s.paused).slice(0, 5).map((s: any) => `  • ${s.name}: ${fmtCr(Number(s.amount))}/${s.cycle}`).join("\n") || "  None";
-    const loans = (state.loansTaken || []).map((l: any) => `  • ${l.type || "Loan"} @ ${l.rate || "?"}%: ${fmtCr(Number(l.outstanding || 0))} outstanding, EMI ${fmtCr(Number(l.emi || 0))}`).join("\n") || "  No loans";
+    const subs = (state.subscriptions || []).filter((s: any) => !s.paused).slice(0, 5)
+      .map((s: any) => `  • ${s.name}: ${fmtCr(Number(s.amount))}/${s.cycle}`).join("\n") || "  None";
+    const loans = (state.loansTaken || [])
+      .map((l: any) => `  • ${l.type || "Loan"} @ ${l.rate || "?"}%: ${fmtCr(Number(l.outstanding || 0))} outstanding, EMI ${fmtCr(Number(l.emi || 0))}`)
+      .join("\n") || "  No loans";
     const regime = state.profile?.regime === "old" ? "Old Regime" : "New Regime (FY 2025-26)";
 
     return `You are a highly professional, expert financial advisor for an Indian user.
-Analyze their financial state and give concise, hyper-personalized, actionable advice.
-Format responses with markdown (bold headings, bullet points). Be specific with numbers.
-Do NOT include PII or actual account numbers.
+Analyse their financial state and give concise, hyper-personalised, actionable advice.
+Use markdown (## bold headings, bullet points). Be specific with numbers. No PII.
 
 == FINANCIAL SNAPSHOT ==
 Net Worth:        ${fmtCr(metrics.netWorth || 0)}
@@ -91,35 +283,38 @@ ${subs}
 
 == GOALS PROGRESS ==
 ${goals}`;
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metrics, state]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !apiKey) return;
-    
-    const userText = input.trim();
+  const handleSend = async (prefill?: string) => {
+    const userText = (prefill ?? input).trim();
+    if (!userText || !apiKey || loading) return;
+
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", text: userText }]);
+    setMessages(prev => [...prev, { role: "user", text: userText }]);
     setLoading(true);
     setError(null);
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      
-      const prompt = `
-${generateContext()}
 
-USER QUESTION:
-${userText}
-      `;
-      
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-      
-      setMessages((prev) => [...prev, { role: "model", text: responseText }]);
+      // First message: create a new chat session and prepend full financial context
+      if (!chatRef.current) {
+        chatRef.current = model.startChat();
+        isFirstRef.current = true;
+      }
+
+      const payload = isFirstRef.current
+        ? `${generateContext()}\n\nUSER QUESTION:\n${userText}`
+        : userText;
+
+      isFirstRef.current = false;
+
+      const result = await chatRef.current.sendMessage(payload);
+      setMessages(prev => [...prev, { role: "model", text: result.response.text() }]);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An error occurred while communicating with Gemini.");
+      setError(err?.message || "Failed to reach Gemini. Check your API key in Settings.");
     } finally {
       setLoading(false);
     }
@@ -132,144 +327,267 @@ ${userText}
     }
   };
 
-  const SUGGESTIONS = [
-    "How can I improve my savings rate?",
-    "Should I prepay my loans or invest?",
-    "Are my investments diversified enough?",
-  ];
+  const clearChat = () => {
+    chatRef.current = null;
+    isFirstRef.current = true;
+    setMessages([WELCOME]);
+    setError(null);
+    sessionStorage.removeItem("ai_advisor_messages");
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  };
 
+  const copyMessage = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
+    }).catch(() => {});
+  };
+
+  const hasUserMessages = messages.some(m => m.role === "user");
+
+  // ── No API key: setup screen ──────────────────────────────────────────────
   if (!apiKey) {
     return (
       <div className="tab-content-enter animate-fade-in-up">
-        <SectionTitle sub="Get hyper-personalized insights from your AI Financial Advisor">
+        <SectionTitle sub="Get hyper-personalised insights from your AI Financial Advisor">
           AI Advisor
         </SectionTitle>
-        <Card style={{ padding: 40, textAlign: "center", border: `1.5px dashed ${THEME.line}` }}>
-          <div style={{ width: 64, height: 64, borderRadius: 20, background: "rgba(14, 165, 233, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", color: "#0ea5e9" }}>
-            <Bot size={32} />
+        <Card style={{ padding: 48, textAlign: "center", border: `1.5px dashed ${THEME.line}` }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: "linear-gradient(135deg, rgba(14,165,233,0.1), rgba(99,102,241,0.1))",
+            border: `1.5px solid rgba(14,165,233,0.2)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 20px", color: "#0ea5e9"
+          }}>
+            <Sparkles size={32} />
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: THEME.ink, marginBottom: 12 }}>Unlock AI Financial Advice</h2>
-          <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 500, margin: "0 auto 24px", lineHeight: 1.6 }}>
-            To protect your privacy and ensure you have full control over your data, we require you to provide your own Gemini API Key. Your financial context is anonymized before being sent to Google's API.
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginBottom: 12 }}>
+            Unlock AI Financial Advice
+          </h2>
+          <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 480, margin: "0 auto 28px", lineHeight: 1.7 }}>
+            Connect your own free Gemini API key to get hyper-personalised financial advice.
+            Your data is anonymised locally before every API call — nothing sensitive leaves your device.
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
             <a
               href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noreferrer"
+              target="_blank" rel="noreferrer"
               style={{
-                display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px",
-                borderRadius: 12, background: "var(--t-paper)", color: THEME.ink, border: `1.5px solid ${THEME.line}`,
-                fontSize: 14, fontWeight: 600, textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px",
+                borderRadius: 12, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)",
+                color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none",
+                boxShadow: "0 4px 16px rgba(14,165,233,0.25)"
               }}
             >
-              Get Free API Key <ArrowRight size={16} />
+              Get Free Gemini API Key <ArrowRight size={16} />
             </a>
+            <span style={{ fontSize: 13, color: THEME.muted }}>
+              Then paste it in <strong>Settings → AI Advisor</strong>
+            </span>
           </div>
-          <div style={{ marginTop: 20, fontSize: 13, color: THEME.muted }}>
-            Once you have the key, add it in the <strong>Settings &gt; AI Advisor</strong> tab.
+          <div style={{
+            marginTop: 28, padding: "12px 18px", borderRadius: 12,
+            background: "rgba(14,165,233,0.06)", border: `1px solid rgba(14,165,233,0.15)`,
+            display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13, color: THEME.muted
+          }}>
+            <ShieldCheck size={15} style={{ color: "#0ea5e9", flexShrink: 0 }} />
+            Context is anonymised before each request · API key stored only on this device
           </div>
         </Card>
       </div>
     );
   }
 
+  // ── Chat interface ────────────────────────────────────────────────────────
   return (
-    <div className="tab-content-enter animate-fade-in-up" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", maxHeight: 900 }}>
-      <SectionTitle sub="Powered by Gemini. Your data is contextualized locally.">
+    <div
+      className="tab-content-enter animate-fade-in-up"
+      style={{
+        display: "flex", flexDirection: "column",
+        height: "calc(100dvh - 110px)", minHeight: 500, maxHeight: 920
+      }}
+    >
+      <SectionTitle sub="Powered by Gemini 2.5 Flash · Context anonymised locally · Multi-turn">
         AI Advisor
       </SectionTitle>
 
-      <Card style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", border: `1.5px solid ${THEME.line}`, background: "var(--surface-0)" }}>
-        
-        {/* Header */}
-        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 12, background: "var(--t-paper)" }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <Bot size={20} />
+      <Card style={{
+        flex: 1, display: "flex", flexDirection: "column",
+        overflow: "hidden", border: `1.5px solid ${THEME.line}`, minHeight: 0
+      }}>
+
+        {/* ── Header ── */}
+        <div style={{
+          padding: "13px 18px", borderBottom: `1px solid ${THEME.line}`,
+          display: "flex", alignItems: "center", gap: 12,
+          background: "var(--t-paper)", flexShrink: 0
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+            background: "linear-gradient(135deg,#0ea5e9,#3b82f6)",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#fff"
+          }}>
+            <Bot size={19} />
           </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>Gemini Advisor</div>
-            <div style={{ fontSize: 12, color: THEME.sage, display: "flex", alignItems: "center", gap: 4 }}>
-              <ShieldCheck size={12} /> Privacy Preserved
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, lineHeight: 1.2 }}>
+              Gemini Advisor
+            </div>
+            <div style={{ fontSize: 11, color: THEME.sage, display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
+              <ShieldCheck size={11} />
+              Privacy preserved · multi-turn conversation
             </div>
           </div>
+          {hasUserMessages && (
+            <button
+              onClick={clearChat}
+              title="Clear conversation"
+              style={{
+                padding: "5px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`,
+                background: "transparent", color: THEME.muted, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600,
+                transition: "all 0.15s"
+              }}
+            >
+              <Trash2 size={13} /> Clear
+            </button>
+          )}
         </div>
 
-        {/* Chat Area */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 24 }}>
+        {/* ── Messages ── */}
+        <div style={{
+          flex: 1, overflowY: "auto", padding: "20px 18px 8px",
+          display: "flex", flexDirection: "column", gap: 18, minHeight: 0
+        }}>
           {messages.map((msg, i) => {
             const isUser = msg.role === "user";
             return (
-              <div key={i} style={{ display: "flex", flexDirection: isUser ? "row-reverse" : "row", gap: 12, alignItems: "flex-end" }}>
+              <div
+                key={i}
+                className="animate-fade-in-up"
+                style={{ display: "flex", flexDirection: isUser ? "row-reverse" : "row", gap: 10, alignItems: "flex-start" }}
+              >
+                {/* Avatar */}
                 <div style={{
-                  width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                  width: 30, height: 30, borderRadius: 9, flexShrink: 0, marginTop: 2,
                   background: isUser ? THEME.ink : "linear-gradient(135deg,#0ea5e9,#3b82f6)",
                   display: "flex", alignItems: "center", justifyContent: "center", color: "#fff"
                 }}>
-                  {isUser ? <User size={16} /> : <Bot size={16} />}
+                  {isUser ? <User size={14} /> : <Bot size={14} />}
                 </div>
-                <div style={{
-                  maxWidth: "75%",
-                  padding: "12px 16px",
-                  borderRadius: 16,
-                  borderBottomRightRadius: isUser ? 4 : 16,
-                  borderBottomLeftRadius: !isUser ? 4 : 16,
-                  background: isUser ? THEME.ink : "var(--t-paper)",
-                  color: isUser ? "var(--surface-0)" : THEME.ink,
-                  border: isUser ? "none" : `1px solid ${THEME.line}`,
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  boxShadow: "var(--shadow-sm)"
-                }}>
-                  {/* Basic markdown parsing (bold/newlines) for display */}
-                  {msg.text.split("\n").map((line, idx) => (
-                    <div key={idx} style={{ minHeight: line ? "auto" : 8 }}>
-                      {line.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight: 800;">$1</span>')
-                           .replace(/\*(.*?)\*/g, '<span style="font-style: italic;">$1</span>')
-                           .replace(/# (.*?)$/g, '<span style="font-size: 16px; font-weight: 800;">$1</span>')
-                           .split('<span').map((part, pIdx) => 
-                             pIdx === 0 ? part : <span key={pIdx} dangerouslySetInnerHTML={{ __html: "<span" + part }} />
-                           )}
-                    </div>
-                  ))}
+
+                {/* Bubble + copy */}
+                <div style={{ maxWidth: "80%", position: "relative", paddingBottom: isUser ? 0 : 16 }}>
+                  <div style={{
+                    padding: "11px 15px", borderRadius: 15,
+                    borderTopRightRadius: isUser ? 3 : 15,
+                    borderTopLeftRadius: isUser ? 15 : 3,
+                    background: isUser
+                      ? "linear-gradient(135deg, var(--t-ink), color-mix(in srgb, var(--t-ink) 80%, #3b82f6))"
+                      : "var(--t-paper)",
+                    color: isUser ? "#fff" : THEME.ink,
+                    border: isUser ? "none" : `1px solid ${THEME.line}`,
+                    boxShadow: "var(--shadow-sm)",
+                    wordBreak: "break-word"
+                  }}>
+                    {isUser
+                      ? <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>{msg.text}</p>
+                      : <MarkdownRenderer text={msg.text} />
+                    }
+                  </div>
+                  {/* Copy button on AI messages */}
+                  {!isUser && (
+                    <button
+                      onClick={() => copyMessage(msg.text, i)}
+                      style={{
+                        position: "absolute", bottom: 0, right: 8,
+                        padding: "3px 8px", borderRadius: 6,
+                        border: `1px solid ${THEME.line}`,
+                        background: "var(--t-paper)",
+                        color: copiedIdx === i ? THEME.sage : THEME.muted,
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+                        fontSize: 11, fontWeight: 600, transition: "all 0.15s"
+                      }}
+                    >
+                      {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
+                      {copiedIdx === i ? "Copied!" : "Copy"}
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
-          
+
+          {/* Typing indicator */}
           {loading && (
-            <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-                <Bot size={16} />
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0, marginTop: 2,
+                background: "linear-gradient(135deg,#0ea5e9,#3b82f6)",
+                display: "flex", alignItems: "center", justifyContent: "center", color: "#fff"
+              }}>
+                <Bot size={14} />
               </div>
-              <div style={{ padding: "12px 16px", borderRadius: 16, borderBottomLeftRadius: 4, background: "var(--t-paper)", border: `1px solid ${THEME.line}`, fontSize: 14, color: THEME.muted, display: "flex", gap: 4 }}>
-                <span className="animate-pulse">●</span>
-                <span className="animate-pulse" style={{ animationDelay: "200ms" }}>●</span>
-                <span className="animate-pulse" style={{ animationDelay: "400ms" }}>●</span>
+              <div style={{
+                padding: "13px 17px", borderRadius: 15, borderTopLeftRadius: 3,
+                background: "var(--t-paper)", border: `1px solid ${THEME.line}`,
+                boxShadow: "var(--shadow-sm)"
+              }}>
+                <TypingIndicator />
               </div>
             </div>
           )}
-          
+
+          {/* Error */}
           {error && (
-            <div style={{ display: "flex", gap: 8, padding: 12, background: "rgba(239,68,68,0.1)", borderRadius: 8, color: THEME.rust, fontSize: 13, alignItems: "center" }}>
-              <AlertTriangle size={16} /> {error}
+            <div style={{
+              display: "flex", gap: 10, padding: "13px 16px",
+              background: "rgba(220,38,38,0.07)", borderRadius: 12,
+              border: `1px solid rgba(220,38,38,0.18)`,
+              color: THEME.rust, fontSize: 13, alignItems: "flex-start"
+            }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 3 }}>Gemini API error</div>
+                <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{error}</div>
+                <button
+                  onClick={() => setError(null)}
+                  style={{
+                    marginTop: 8, padding: "4px 10px", borderRadius: 6,
+                    border: `1px solid rgba(220,38,38,0.25)`, background: "transparent",
+                    color: THEME.rust, fontSize: 12, cursor: "pointer", fontWeight: 600
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
+
           <div ref={bottomRef} />
         </div>
 
-        {/* Input Area */}
-        <div style={{ padding: 20, background: "var(--t-paper)", borderTop: `1px solid ${THEME.line}` }}>
-          {messages.length <= 1 && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto" }} className="no-scrollbar">
+        {/* ── Input area ── */}
+        <div style={{
+          padding: "10px 18px 14px",
+          background: "var(--t-paper)", borderTop: `1px solid ${THEME.line}`, flexShrink: 0
+        }}>
+          {/* Suggestions — visible until first user message */}
+          {!hasUserMessages && (
+            <div
+              style={{ display: "flex", gap: 7, marginBottom: 10, overflowX: "auto", paddingBottom: 2 }}
+              className="no-scrollbar"
+            >
               {SUGGESTIONS.map(sug => (
                 <button
                   key={sug}
-                  onClick={() => setInput(sug)}
+                  onClick={() => handleSend(sug)}
+                  disabled={loading}
                   style={{
-                    padding: "6px 12px", borderRadius: 20, border: `1px solid ${THEME.line}`,
+                    padding: "5px 12px", borderRadius: 20, border: `1px solid ${THEME.line}`,
                     background: "var(--surface-0)", color: THEME.ink, fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0
+                    cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.15s"
                   }}
                 >
                   {sug}
@@ -277,37 +595,48 @@ ${userText}
               ))}
             </div>
           )}
-          
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+
+          <div style={{ display: "flex", gap: 9, alignItems: "flex-end" }}>
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask for advice, insights, or planning..."
+              placeholder="Ask about savings, investments, tax planning, debt…"
+              disabled={loading}
+              autoFocus
               style={{
-                flex: 1, padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${THEME.line}`,
-                background: "var(--surface-0)", color: THEME.ink, fontSize: 14, fontFamily: "inherit",
-                resize: "none", outline: "none", minHeight: 52, maxHeight: 120
+                flex: 1, padding: "11px 14px", borderRadius: 12,
+                border: `1.5px solid ${input.trim() ? "var(--t-accent, #4F46E5)" : THEME.line}`,
+                background: "var(--surface-0)", color: THEME.ink, fontSize: 14,
+                fontFamily: "inherit", resize: "none", outline: "none",
+                minHeight: 46, maxHeight: 120, lineHeight: 1.5,
+                transition: "border-color 0.15s", overflowY: "auto"
               }}
-              rows={input.split("\n").length > 1 ? Math.min(input.split("\n").length, 4) : 1}
+              rows={Math.min(Math.max(input.split("\n").length, 1), 4)}
             />
             <button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={loading || !input.trim()}
               style={{
-                width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-                background: input.trim() && !loading ? THEME.ink : "var(--t-paper)",
-                color: input.trim() && !loading ? "var(--surface-0)" : THEME.muted,
-                border: input.trim() && !loading ? "none" : `1px solid ${THEME.line}`,
-                display: "flex", alignItems: "center", justifyContent: "center", cursor: input.trim() && !loading ? "pointer" : "not-allowed",
-                transition: "all 0.2s"
+                width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+                background: input.trim() && !loading
+                  ? "linear-gradient(135deg,#0ea5e9,#3b82f6)"
+                  : "var(--surface-0)",
+                color: input.trim() && !loading ? "#fff" : THEME.muted,
+                border: input.trim() && !loading ? "none" : `1.5px solid ${THEME.line}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: input.trim() && !loading ? "pointer" : "not-allowed",
+                transition: "all 0.2s",
+                boxShadow: input.trim() && !loading ? "0 4px 12px rgba(14,165,233,0.28)" : "none"
               }}
             >
-              <Send size={20} />
+              <Send size={17} />
             </button>
           </div>
-          <div style={{ textAlign: "center", fontSize: 11, color: THEME.muted, marginTop: 12 }}>
-            AI-generated advice is for informational purposes only. Do not consider it as formal financial or legal advice.
+
+          <div style={{ textAlign: "center", fontSize: 11, color: THEME.muted, marginTop: 9, lineHeight: 1.4 }}>
+            AI-generated advice is informational only · Not a substitute for professional financial guidance
           </div>
         </div>
       </Card>
