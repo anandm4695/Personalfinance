@@ -181,20 +181,14 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
         i = ci; // advance past optional blank separator
         const itemText = tl.replace(/^\d+\. /, "");
         i++;
-        // Absorb sub-bullets — look past ONE blank line (Gemini often inserts one)
+        // Absorb sub-bullets — skip blank lines freely, stop at any non-blank non-bullet line
         const subs: string[] = [];
         let j = i;
-        if (j < rawLines.length && rawLines[j].trim() === "") {
-          const peek = j + 1 < rawLines.length ? rawLines[j + 1].trimStart() : "";
-          if (peek && /^[-*+] /.test(peek) && !/^\d+\. /.test(peek) && !/^#/.test(peek)) {
-            j++; // skip blank line before sub-bullets
-          }
-        }
         while (j < rawLines.length) {
           const sl = rawLines[j].trimStart();
-          if (!sl || /^#/.test(sl) || /^\d+\. /.test(sl)) break;
-          if (/^[-*+] /.test(sl)) { subs.push(sl.replace(/^[-*+] /, "")); j++; }
-          else break;
+          if (!sl) { j++; continue; }
+          if (/^[-*+] /.test(sl)) { subs.push(sl.replace(/^[-*+] /, "")); j++; continue; }
+          break;
         }
         if (subs.length > 0) i = j; // advance past consumed sub-bullets
         items.push({ text: itemText, subs });
