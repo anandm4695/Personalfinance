@@ -16,9 +16,23 @@ create table if not exists public.activity_logs (
 -- RLS: each user can only read/write their own logs
 alter table public.activity_logs enable row level security;
 
-create policy if not exists "activity_logs_own"
-  on public.activity_logs
-  using (user_id = auth.uid());
+-- CREATE POLICY has no IF NOT EXISTS in PostgreSQL; use DO block to skip if already present
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename  = 'activity_logs'
+      and policyname = 'activity_logs_own'
+  ) then
+    execute $pol$
+      create policy "activity_logs_own"
+        on public.activity_logs
+        using (user_id = auth.uid())
+    $pol$;
+  end if;
+end;
+$$;
 
 -- Fast lookup by user and time (most common query pattern)
 create index if not exists activity_logs_user_time_idx
