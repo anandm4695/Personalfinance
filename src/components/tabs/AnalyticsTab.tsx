@@ -625,11 +625,39 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       if (utilPct > 50) insights.push({ icon: AlertTriangle, title: "High Credit Utilization", value: `${utilPct.toFixed(0)}% used · aim for below 30%`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
     }
 
+    // Loan payoff timeline — nearest-to-payoff loan (highest EMI-to-outstanding ratio)
+    const activeLoans = (state.loansTaken || []).filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0);
+    if (activeLoans.length > 0) {
+      const withMonths = activeLoans.map((l: any) => {
+        const outstanding = Number(l.outstanding || 0);
+        const emi = Number(l.emi || 0);
+        const rate = Number(l.interestRate || 0) / 12 / 100;
+        let months: number;
+        if (rate === 0) {
+          months = Math.ceil(outstanding / emi);
+        } else {
+          // n = -ln(1 - r*P/EMI) / ln(1+r)
+          const ratio = rate * outstanding / emi;
+          months = ratio >= 1 ? 9999 : Math.ceil(-Math.log(1 - ratio) / Math.log(1 + rate));
+        }
+        return { name: l.loanName || l.bank || "Loan", months, outstanding };
+      }).filter((l: any) => l.months < 9999);
+
+      if (withMonths.length > 0) {
+        withMonths.sort((a: any, b: any) => a.months - b.months);
+        const soonest = withMonths[0];
+        const yrs = Math.floor(soonest.months / 12);
+        const mo = soonest.months % 12;
+        const timeStr = yrs > 0 ? `${yrs}y ${mo}m` : `${mo} mo`;
+        insights.push({ icon: CheckCircle2, title: `${soonest.name} payoff in ${timeStr}`, value: `${fmtINR(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`, color: THEME.accent, bg: "color-mix(in srgb, var(--t-accent) 7%, transparent)" });
+      }
+    }
+
     if (insights.length === 0 && metrics.netWorth > 0)
       insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
 
     return insights;
-  }, [metrics, state.income, state.transactions, state.termPlans, state.sips, dashboardData]);
+  }, [metrics, state.income, state.transactions, state.termPlans, state.sips, state.loansTaken, dashboardData]);
 
   const ytdData = useMemo(() => {
     const now = new Date();

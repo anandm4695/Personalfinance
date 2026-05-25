@@ -779,6 +779,29 @@ function FinanceDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally omit other deps — runs once after initial load
 
+  // Auto-advance overdue subscription renewal dates based on their billing cycle
+  useEffect(() => {
+    if (!loaded) return;
+    const todayD = new Date(today());
+    const toAdvance = state.subscriptions.filter((s: any) => {
+      if (!s.renewalDate || s.paused) return false;
+      return new Date(s.renewalDate) < todayD;
+    });
+    if (toAdvance.length === 0) return;
+    toAdvance.forEach((s: any) => {
+      let d = new Date(s.renewalDate);
+      // Advance until the renewal date is in the future
+      while (d < todayD) {
+        if (s.cycle === "yearly") d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
+        else if (s.cycle === "quarterly") d = new Date(d.getFullYear(), d.getMonth() + 3, d.getDate());
+        else d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      }
+      const newDate = getLocalDateString(d);
+      updateItem("subscriptions", s.id, { renewalDate: newDate });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   const filteredState = useMemo(() => {
     if (activeProfile === "all") return state;
     const filterByOwner = (arr: any[]) => (Array.isArray(arr) ? arr : []).filter((item) => item.owner === activeProfile);

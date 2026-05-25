@@ -311,7 +311,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           {sub === "cc" && (
             <>
               {(() => {
-                const activeCards = state.creditCards.filter((c: any) => c.status !== "closed");
+                const activeCards = state.creditCards.filter((c: any) => (c.status || "active").toLowerCase() !== "closed");
                 const totalLimit = activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0);
                 const totalOutstandingCC = activeCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0);
                 const totalAvailable = totalLimit - totalOutstandingCC;
@@ -556,8 +556,8 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const [closingId, setClosingId] = useState<string | null>(null);
   const [closeDate, setCloseDate] = useState(today());
 
-  const activeCards = items.filter((c: any) => c.status !== "closed");
-  const closedCards = items.filter((c: any) => c.status === "closed");
+  const activeCards = items.filter((c: any) => (c.status || "active").toLowerCase() !== "closed");
+  const closedCards = items.filter((c: any) => (c.status || "active").toLowerCase() === "closed");
   const displayCards = viewMode === "active" ? activeCards : closedCards;
   const selectedCard = items.find((c: any) => c.id === selectedLedger);
 
@@ -596,7 +596,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
 
       <Grid>
         {displayCards.map((c: any) => {
-          const isClosed = c.status === "closed";
+          const isClosed = (c.status || "active").toLowerCase() === "closed";
           const util = Number(c.limit) ? (Number(c.outstanding) / Number(c.limit)) * 100 : 0;
           return (
             <div
@@ -996,8 +996,8 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
     return { loaded, spent, balance: loaded - spent };
   };
 
-  const activeCards = items.filter((p: any) => p.status !== "closed");
-  const closedCards = items.filter((p: any) => p.status === "closed");
+  const activeCards = items.filter((p: any) => (p.status || "active").toLowerCase() !== "closed");
+  const closedCards = items.filter((p: any) => (p.status || "active").toLowerCase() === "closed");
   const displayCards = viewMode === "active" ? activeCards : closedCards;
 
   if (!items.length) return <PrepaidEmptyState onAdd={onAdd} />;
@@ -1032,7 +1032,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
 
       <Grid>
         {displayCards.map((p: any) => {
-          const isClosed = p.status === "closed";
+          const isClosed = (p.status || "active").toLowerCase() === "closed";
           const { loaded, spent, balance } = computeStats(p.transactions);
           const txnCount = (p.transactions || []).length;
           const name = p.cardName || p.name || p.provider || "Prepaid Card";
@@ -1545,7 +1545,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
 function CCModal({ onClose, onSave, initial = null }: any) {
   const { ccNetworks } = useMasterData();
   const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "" });
-  const isClosed = f.status === "closed";
+  const isClosed = (f.status || "active").toLowerCase() === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>

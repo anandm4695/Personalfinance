@@ -43,7 +43,7 @@ interface CalculatorsTabProps {
 }
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
-  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection">("emi");
+  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection">("emi");
 
   // ── 1. EMI CALCULATOR STATE & LOGIC ──
   const [emiP, setEmiP] = useState("1000000");
@@ -98,6 +98,50 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
     ];
   }, [sipResult]);
 
+
+  // ── 2b. STEP-UP SIP STATE & LOGIC ──
+  const [stepSipAmt, setStepSipAmt] = useState("10000");
+  const [stepSipStep, setStepSipStep] = useState("10");   // % annual step-up
+  const [stepSipYrs, setStepSipYrs] = useState("10");
+  const [stepSipRate, setStepSipRate] = useState("12");
+
+  const stepSipResult = useMemo(() => {
+    const m0 = Math.max(0, Number(stepSipAmt) || 0);
+    const stepPct = Math.max(0, Number(stepSipStep) || 0) / 100;
+    const years = Math.max(1, Number(stepSipYrs) || 1);
+    const r = Math.max(0, (Number(stepSipRate) || 0) / 12 / 100);
+
+    let corpus = 0;
+    let invested = 0;
+    const yearlyData: { year: number; corpus: number; invested: number }[] = [];
+
+    for (let y = 0; y < years; y++) {
+      const monthly = m0 * Math.pow(1 + stepPct, y);
+      const monthsRemaining = (years - y) * 12;
+      // FV of this year's SIP tranche (annuity due) at the end of full tenure
+      const trancheFV = r === 0
+        ? monthly * 12 * (monthsRemaining / 12)   // simplified: flat growth fallback
+        : monthly * ((Math.pow(1 + r, 12) - 1) / r) * (1 + r) * Math.pow(1 + r, (years - y - 1) * 12);
+      corpus += trancheFV;
+      invested += monthly * 12;
+      yearlyData.push({ year: y + 1, corpus: Math.round(corpus), invested: Math.round(invested) });
+    }
+
+    // Compare with flat SIP (same starting amount, no step-up)
+    const flatN = years * 12;
+    const flatCorpus = r === 0 ? m0 * flatN : m0 * ((Math.pow(1 + r, flatN) - 1) / r) * (1 + r);
+    const flatInvested = m0 * flatN;
+
+    return {
+      corpus: Math.round(corpus),
+      invested: Math.round(invested),
+      gains: Math.round(Math.max(0, corpus - invested)),
+      flatCorpus: Math.round(flatCorpus),
+      flatInvested: Math.round(flatInvested),
+      extraGains: Math.round(Math.max(0, corpus - flatCorpus)),
+      yearlyData
+    };
+  }, [stepSipAmt, stepSipStep, stepSipYrs, stepSipRate]);
 
   // ── 3. CAGR CALCULATOR STATE & LOGIC ──
   const [cagrInvested, setCagrInvested] = useState("100000");
@@ -185,7 +229,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
       percentOnTrack,
       safeWithdrawalRate,
       yrsToRet,
-      yrsInRet
+      yrsInRet,
+      realPostReturn,
+      infl,
+      postRet
     };
   }, [fireAge, fireRetireAge, fireExpense, firePortfolio, fireSavings, fireInflation, firePreReturn, firePostReturn, fireLifeExp]);
 
@@ -465,6 +512,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
         {[
           { id: "emi", label: "EMI Calculator", icon: Clock },
           { id: "sip", label: "SIP Returns", icon: TrendingUp },
+          { id: "step-sip", label: "Step-Up SIP", icon: Sparkles },
           { id: "cagr", label: "CAGR Calculator", icon: BarChart2 },
           { id: "fire", label: "FIRE Planner", icon: Flame },
           { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
@@ -600,6 +648,97 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
           </>
         )}
 
+        {/* ── 2b. STEP-UP SIP CALCULATOR ── */}
+        {calcTab === "step-sip" && (
+          <>
+            <div className="bento-col-5">
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Sparkles size={18} color={THEME.gold} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Step-Up SIP Parameters</div>
+                </div>
+                {inpRow("Starting Monthly SIP (₹)", stepSipAmt, setStepSipAmt)}
+                {sliderRow("Annual Step-Up %", stepSipStep, setStepSipStep, 0, 50, 1, "%")}
+                {sliderRow("Investment Period", stepSipYrs, setStepSipYrs, 1, 40, 1, " years")}
+                {sliderRow("Expected Annual Return", stepSipRate, setStepSipRate, 4, 30, 0.5, "%")}
+
+                <div className="divider" style={{ margin: "20px 0 16px" }} />
+                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
+                  A Step-Up SIP increases your monthly investment by a fixed % each year, matching salary hikes and compounding wealth faster than a flat SIP.
+                </div>
+              </Card>
+            </div>
+
+            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Key results */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: "color-mix(in srgb, var(--t-accent) 8%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Final Corpus</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>{fmtINRFull(stepSipResult.corpus)}</div>
+                </div>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(128,128,128,0.04)", border: `1.5px solid ${THEME.line}` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Total Invested</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.invested)}</div>
+                </div>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: "color-mix(in srgb, var(--t-sage) 8%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Net Gains</div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(stepSipResult.gains)}</div>
+                </div>
+              </div>
+
+              {/* vs Flat SIP comparison */}
+              <Card style={{ padding: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 14 }}>Step-Up vs Flat SIP Comparison</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "color-mix(in srgb, var(--t-gold) 7%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-gold) 20%, transparent)` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Step-Up SIP Corpus</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>{fmtINRFull(stepSipResult.corpus)}</div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.invested)}</div>
+                  </div>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1.5px solid ${THEME.line}` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Flat SIP Corpus</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.flatCorpus)}</div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.flatInvested)}</div>
+                  </div>
+                </div>
+                {stepSipResult.extraGains > 0 && (
+                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: "color-mix(in srgb, var(--t-sage) 6%, transparent)", border: `1px solid color-mix(in srgb, var(--t-sage) 15%, transparent)`, fontSize: 12.5, fontWeight: 700, color: THEME.sage, display: "flex", alignItems: "center", gap: 8 }}>
+                    <TrendingUp size={14} />
+                    Step-Up earns {fmtINRFull(stepSipResult.extraGains)} more than flat SIP over {stepSipYrs} years
+                  </div>
+                )}
+              </Card>
+
+              {/* Growth chart */}
+              <Card style={{ padding: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 14 }}>Year-by-Year Growth</div>
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={stepSipResult.yearlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gStepCorpus" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={THEME.accent} stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gStepInvested" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.muted} stopOpacity={0.2} />
+                          <stop offset="100%" stopColor={THEME.muted} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                      <XAxis dataKey="year" tick={{ fontSize: 10, fill: "var(--t-muted)" }} tickFormatter={(v) => `Y${v}`} />
+                      <YAxis tickFormatter={fmtINR} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
+                      <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line, fontSize: 12 }} />
+                      <Area type="monotone" dataKey="corpus" name="Corpus" stroke={THEME.accent} strokeWidth={2.5} fill="url(#gStepCorpus)" />
+                      <Area type="monotone" dataKey="invested" name="Invested" stroke={THEME.muted} strokeWidth={1.5} fill="url(#gStepInvested)" strokeDasharray="4 2" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
+
         {/* ── 3. CAGR CALCULATOR ── */}
         {calcTab === "cagr" && (
           <>
@@ -665,6 +804,28 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
             </div>
             
             <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Negative real return warning */}
+              {fireResult.realPostReturn < 0 && (
+                <div style={{
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  background: "rgba(234,179,8,0.08)",
+                  border: `1.5px solid ${THEME.gold}55`,
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: THEME.gold,
+                  lineHeight: 1.5
+                }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>
+                    Inflation ({(fireResult.infl * 100).toFixed(1)}%) exceeds post-retirement yield ({(fireResult.postRet * 100).toFixed(1)}%) — real returns are negative ({(fireResult.realPostReturn * 100).toFixed(1)}%). The required corpus shown may be unrealistically large. Consider raising post-retirement yield assumption above the inflation rate.
+                  </span>
+                </div>
+              )}
+
               {/* Tracker Card */}
               <Card style={{ padding: 24, borderLeft: `4px solid ${fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
