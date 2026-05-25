@@ -166,19 +166,40 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       continue;
     }
 
-    // Numbered list — preserve actual start number so interrupted lists
-    // (e.g. "3. ..." after a bullet block) don't reset to "1."
+    // Numbered list — each item greedily absorbs trailing sub-bullets so
+    // "2. Foo\n- sub\n- sub\n3. Bar" renders as one <ol> with nested <ul>,
+    // and the actual start number is preserved so "3." doesn't reset to "1.".
     if (/^\d+\. /.test(line)) {
       const startNum = parseInt(line.match(/^(\d+)\./)[1], 10);
-      const items: string[] = [];
-      while (i < rawLines.length && /^\d+\. /.test(rawLines[i].trimStart())) {
-        items.push(rawLines[i].trimStart().replace(/^\d+\. /, ""));
+      const items: { text: string; subs: string[] }[] = [];
+      while (i < rawLines.length) {
+        const tl = rawLines[i].trimStart();
+        if (!/^\d+\. /.test(tl)) break;
+        const itemText = tl.replace(/^\d+\. /, "");
         i++;
+        // Absorb any bullet lines immediately following this numbered item
+        const subs: string[] = [];
+        while (i < rawLines.length) {
+          const sl = rawLines[i].trimStart();
+          if (!sl || /^#/.test(sl) || /^\d+\. /.test(sl)) break;
+          if (/^[-*+] /.test(sl)) { subs.push(sl.replace(/^[-*+] /, "")); i++; }
+          else break;
+        }
+        items.push({ text: itemText, subs });
       }
       nodes.push(
-        <ol key={`ol-${i}`} start={startNum} style={{ margin: "2px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 4 }}>
+        <ol key={`ol-${i}`} start={startNum} style={{ margin: "2px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 6 }}>
           {items.map((item, idx) => (
-            <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
+            <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>
+              {parseInline(item.text)}
+              {item.subs.length > 0 && (
+                <ul style={{ margin: "4px 0 2px", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {item.subs.map((s, si) => (
+                    <li key={si} style={{ lineHeight: 1.65, fontSize: 14 }}>{parseInline(s)}</li>
+                  ))}
+                </ul>
+              )}
+            </li>
           ))}
         </ol>
       );
