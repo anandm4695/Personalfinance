@@ -166,25 +166,37 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       continue;
     }
 
-    // Numbered list — each item greedily absorbs trailing sub-bullets so
-    // "2. Foo\n- sub\n- sub\n3. Bar" renders as one <ol> with nested <ul>,
-    // and the actual start number is preserved so "3." doesn't reset to "1.".
+    // Numbered list — items stay in one <ol> even when separated by blank lines;
+    // sub-bullets are absorbed into their parent <li> even when Gemini puts a
+    // blank line between the numbered item and its bullets.
     if (/^\d+\. /.test(line)) {
       const startNum = parseInt(line.match(/^(\d+)\./)[1], 10);
       const items: { text: string; subs: string[] }[] = [];
       while (i < rawLines.length) {
-        const tl = rawLines[i].trimStart();
+        // Skip one blank line between numbered items so the whole list stays together
+        let ci = i;
+        if (rawLines[ci]?.trim() === "") ci++;
+        const tl = ci < rawLines.length ? rawLines[ci].trimStart() : "";
         if (!/^\d+\. /.test(tl)) break;
+        i = ci; // advance past optional blank separator
         const itemText = tl.replace(/^\d+\. /, "");
         i++;
-        // Absorb any bullet lines immediately following this numbered item
+        // Absorb sub-bullets — look past ONE blank line (Gemini often inserts one)
         const subs: string[] = [];
-        while (i < rawLines.length) {
-          const sl = rawLines[i].trimStart();
+        let j = i;
+        if (j < rawLines.length && rawLines[j].trim() === "") {
+          const peek = j + 1 < rawLines.length ? rawLines[j + 1].trimStart() : "";
+          if (peek && /^[-*+] /.test(peek) && !/^\d+\. /.test(peek) && !/^#/.test(peek)) {
+            j++; // skip blank line before sub-bullets
+          }
+        }
+        while (j < rawLines.length) {
+          const sl = rawLines[j].trimStart();
           if (!sl || /^#/.test(sl) || /^\d+\. /.test(sl)) break;
-          if (/^[-*+] /.test(sl)) { subs.push(sl.replace(/^[-*+] /, "")); i++; }
+          if (/^[-*+] /.test(sl)) { subs.push(sl.replace(/^[-*+] /, "")); j++; }
           else break;
         }
+        if (subs.length > 0) i = j; // advance past consumed sub-bullets
         items.push({ text: itemText, subs });
       }
       nodes.push(
