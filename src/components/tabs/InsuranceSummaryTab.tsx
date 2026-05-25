@@ -11,6 +11,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 const INSURER_LOGOS: Record<string, string> = {
   lic: "licindia.in",
@@ -782,6 +783,20 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     setEditPolicy(null);
   };
 
+  const hasPolicies = state.lic.length > 0 || state.termPlans.length > 0 || (state.investmentPlans || []).length > 0;
+  
+  const premiumData = [
+    { name: "LIC Premiums", value: licAnnualPremium, color: THEME.rust },
+    { name: "Term Premiums", value: termAnnualPremium, color: THEME.accent },
+    { name: "Investment Premiums", value: investAnnualPremium, color: THEME.sage }
+  ].filter(d => d.value > 0);
+
+  const coverageData = [
+    { name: "LIC Cover", value: totalLICAssured, color: THEME.rust },
+    { name: "Term Cover", value: totalTermCover, color: THEME.accent },
+    { name: "Investment Maturity", value: totalInvestMaturity, color: THEME.sage }
+  ].filter(d => d.value > 0);
+
   return (
     <div className="tab-content-enter">
       <SectionTitle 
@@ -804,6 +819,62 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         <StatCard icon={<Sparkles />} label="Investment Maturity" value={fmtINRFull(totalInvestMaturity)} color={THEME.sage} sub="Endowment & ULIP receivables" />
         <StatCard icon={<Zap />} label="Cover Adequacy" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} color={adequacyColor} sub={adequacyLabel} />
       </div>
+
+      {hasPolicies && (
+        <Card style={{ marginBottom: 24, padding: 24 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 20, fontWeight: 800 }}>Portfolio Visual Analytics</div>
+          <div className="bento-grid">
+            <div className="bento-col-6">
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 12, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em" }}>Premium Cost Allocation</div>
+              <div style={{ height: 200, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={premiumData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {premiumData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="bento-col-6">
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 12, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em" }}>Protection Coverage Mix</div>
+              <div style={{ height: 200, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={coverageData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {coverageData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* LIC SECTION */}
       <Card style={{ marginBottom: 24, padding: 24 }}>

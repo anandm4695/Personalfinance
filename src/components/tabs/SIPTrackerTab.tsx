@@ -12,6 +12,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
 
 
@@ -43,6 +44,64 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
   const totalMonthly = sipsWithCalc.reduce((s: number, sip: any) => s + Number(sip.amount || 0), 0);
   const totalInvested = sipsWithCalc.reduce((s: number, sip: any) => s + sip.totalInvested, 0);
   const totalProjected = sipsWithCalc.reduce((s: number, sip: any) => s + sip.projectedCorpus, 0);
+
+  // Generate 10-year monthly compounding projection data for Recharts AreaChart
+  const projectionChartData = useMemo(() => {
+    if (sipsWithCalc.length === 0) return [];
+    
+    const years = 10;
+    const r = (Number(sipProjRate) || 12) / 12 / 100; // monthly interest rate
+    const chartPoints = [];
+    
+    let currentInvested = totalInvested;
+    let currentWealth = sipsWithCalc.reduce((s: number, sip: any) => s + sip.currentCorpus, 0);
+    
+    chartPoints.push({
+      year: "Today",
+      "Cumulative Invested": Math.round(currentInvested),
+      "Projected Wealth": Math.round(currentWealth)
+    });
+    
+    for (let year = 1; year <= years; year++) {
+      // Simulate 12 compounding months
+      for (let month = 1; month <= 12; month++) {
+        sipsWithCalc.forEach((sip: any) => {
+          const isQuarterly = sip.frequency === "quarterly";
+          const totalInst = Number(sip.totalInstallments || 0);
+          const currentElapsedMonths = monthsBetween(sip.startDate, todayStr);
+          const monthsRunningFromNow = (year - 1) * 12 + month;
+          const totalMonthsAtPoint = currentElapsedMonths + monthsRunningFromNow;
+          
+          if (isQuarterly) {
+            // Quarterly SIP contribution logic
+            const isContributionMonth = totalMonthsAtPoint % 3 === 0;
+            const currentInstallmentNumber = Math.floor(totalMonthsAtPoint / 3);
+            if (currentInstallmentNumber <= totalInst && isContributionMonth) {
+              currentInvested += Number(sip.amount || 0);
+              currentWealth += Number(sip.amount || 0);
+            }
+          } else {
+            // Monthly SIP contribution logic
+            if (totalMonthsAtPoint <= totalInst) {
+              currentInvested += Number(sip.amount || 0);
+              currentWealth += Number(sip.amount || 0);
+            }
+          }
+        });
+        
+        // Compound the overall wealth by 1 month of returns
+        currentWealth = currentWealth * (1 + r);
+      }
+      
+      chartPoints.push({
+        year: `Yr ${year}`,
+        "Cumulative Invested": Math.round(currentInvested),
+        "Projected Wealth": Math.round(currentWealth)
+      });
+    }
+    
+    return chartPoints;
+  }, [sipsWithCalc, sipProjRate, totalInvested, todayStr]);
 
   return (
     <div className="tab-content-enter">
@@ -91,18 +150,46 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       </div>
 
       {sipsWithCalc.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", marginBottom: 20, gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(128,128,128,0.04)", padding: "4px 14px", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
-            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Projection rate:</span>
-            <input 
-              style={{ width: 44, fontSize: 13, background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, padding: 0, textAlign: "center" }} 
-              type="number" 
-              value={sipProjRate} 
-              onChange={(e) => setSipProjRate(e.target.value)} 
-            />
-            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>% p.a.</span>
+        <Card style={{ marginBottom: 28, padding: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, fontWeight: 800, marginBottom: 4 }}>Wealth Growth Projection</div>
+              <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>10-Year Systematic Compounding Projection @{sipProjRate}% expected yield</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(128,128,128,0.04)", padding: "4px 14px", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Expected Yield:</span>
+              <input 
+                style={{ width: 44, fontSize: 13, background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, padding: 0, textAlign: "center" }} 
+                type="number" 
+                value={sipProjRate} 
+                onChange={(e) => setSipProjRate(e.target.value)} 
+              />
+              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>% p.a.</span>
+            </div>
           </div>
-        </div>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={projectionChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={THEME.muted} stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor={THEME.muted} stopOpacity={0.01}/>
+                  </linearGradient>
+                  <linearGradient id="colorWealth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="year" stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => fmtINRFull(v)} />
+                <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: THEME.card, borderColor: THEME.line, borderRadius: 10, color: THEME.ink }} />
+                <Legend verticalAlign="top" height={36} />
+                <Area type="monotone" dataKey="Cumulative Invested" stroke={THEME.muted} strokeWidth={2} fillOpacity={1} fill="url(#colorInvested)" />
+                <Area type="monotone" dataKey="Projected Wealth" stroke={THEME.sage} strokeWidth={2.5} fillOpacity={1} fill="url(#colorWealth)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
       )}
 
       {sipsWithCalc.length === 0 ? (
