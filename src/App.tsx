@@ -213,7 +213,8 @@ function FinanceDashboard() {
       if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
       if (updates.geminiApiKey !== undefined) dbUpdates.gemini_api_key = updates.geminiApiKey;
 
-      await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
+      const { error: settErr } = await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
+      if (settErr) console.error("updateSettings DB error:", settErr.message, dbUpdates);
     }
 
     // Log setting changes
