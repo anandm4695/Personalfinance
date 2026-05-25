@@ -84,26 +84,29 @@ const parseInline = (text: string): React.ReactNode => {
 
 // ── Block markdown renderer ─────────────────────────────────────────────────
 const MarkdownRenderer = ({ text }: { text: string }) => {
-  const lines = text.split("\n");
+  const rawLines = text.split("\n");
   const nodes: React.ReactNode[] = [];
   let i = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
+  while (i < rawLines.length) {
+    // trimStart so indented lines (e.g. "   - sub bullet" or "   **label:**")
+    // are recognised as list items / paragraphs instead of falling through as
+    // literal text. Trailing whitespace is handled per-check via .trim().
+    const line = rawLines[i].trimStart();
 
     // Fenced code block
     if (line.startsWith("```")) {
       const codeLines: string[] = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith("```")) {
-        codeLines.push(lines[i]);
+      while (i < rawLines.length && !rawLines[i].trimStart().startsWith("```")) {
+        codeLines.push(rawLines[i]);
         i++;
       }
       nodes.push(
         <pre key={`code-${i}`} style={{
           background: "var(--surface-1, rgba(0,0,0,0.06))", padding: "12px 16px",
-          borderRadius: 10, overflowX: "auto", fontSize: 12, lineHeight: 1.5,
-          margin: "10px 0", border: `1px solid ${THEME.line}`
+          borderRadius: 10, overflowX: "auto", fontSize: 13, lineHeight: 1.6,
+          margin: "4px 0", border: `1px solid ${THEME.line}`
         }}>
           <code style={{ fontFamily: "ui-monospace, monospace" }}>{codeLines.join("\n")}</code>
         </pre>
@@ -115,7 +118,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     // H1
     if (line.startsWith("# ")) {
       nodes.push(
-        <div key={i} style={{ fontWeight: 800, fontSize: 17, marginTop: 14, marginBottom: 6 }}>
+        <div key={i} style={{ fontWeight: 800, fontSize: 17, marginTop: 6, marginBottom: 2 }}>
           {parseInline(line.slice(2))}
         </div>
       );
@@ -124,7 +127,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     // H2
     if (line.startsWith("## ")) {
       nodes.push(
-        <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 12, marginBottom: 5, color: THEME.ink }}>
+        <div key={i} style={{ fontWeight: 700, fontSize: 15, marginTop: 4, marginBottom: 2, color: THEME.ink }}>
           {parseInline(line.slice(3))}
         </div>
       );
@@ -133,7 +136,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     // H3
     if (line.startsWith("### ")) {
       nodes.push(
-        <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 10, marginBottom: 4 }}>
+        <div key={i} style={{ fontWeight: 600, fontSize: 14, marginTop: 4, marginBottom: 2 }}>
           {parseInline(line.slice(4))}
         </div>
       );
@@ -142,19 +145,19 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
     // Horizontal rule
     if (/^[-*_]{3,}$/.test(line.trim())) {
-      nodes.push(<hr key={i} style={{ border: "none", borderTop: `1px solid ${THEME.line}`, margin: "10px 0" }} />);
+      nodes.push(<hr key={i} style={{ border: "none", borderTop: `1px solid ${THEME.line}`, margin: "6px 0" }} />);
       i++; continue;
     }
 
-    // Bullet list — collect consecutive
+    // Bullet list — collect consecutive (trimStart lets indented bullets work)
     if (/^[-*+] /.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[-*+] /.test(lines[i])) {
-        items.push(lines[i].replace(/^[-*+] /, ""));
+      while (i < rawLines.length && /^[-*+] /.test(rawLines[i].trimStart())) {
+        items.push(rawLines[i].trimStart().replace(/^[-*+] /, ""));
         i++;
       }
       nodes.push(
-        <ul key={`ul-${i}`} style={{ margin: "6px 0", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 3 }}>
+        <ul key={`ul-${i}`} style={{ margin: "2px 0", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
           {items.map((item, idx) => (
             <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
           ))}
@@ -163,15 +166,15 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       continue;
     }
 
-    // Numbered list
+    // Numbered list (trimStart lets indented numbered items work)
     if (/^\d+\. /.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\. /.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\. /, ""));
+      while (i < rawLines.length && /^\d+\. /.test(rawLines[i].trimStart())) {
+        items.push(rawLines[i].trimStart().replace(/^\d+\. /, ""));
         i++;
       }
       nodes.push(
-        <ol key={`ol-${i}`} style={{ margin: "6px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 3 }}>
+        <ol key={`ol-${i}`} style={{ margin: "2px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 4 }}>
           {items.map((item, idx) => (
             <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
           ))}
@@ -182,7 +185,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
     // Empty line → spacer
     if (line.trim() === "") {
-      nodes.push(<div key={i} style={{ height: 6 }} />);
+      nodes.push(<div key={i} style={{ height: 4 }} />);
       i++; continue;
     }
 
@@ -195,7 +198,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     i++;
   }
 
-  return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{nodes}</div>;
+  return <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{nodes}</div>;
 };
 
 // ── Animated typing dots ────────────────────────────────────────────────────
@@ -266,10 +269,15 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     }
   }, [messages]);
 
-  // Scroll to bottom on new message or loading change
+  // Scroll to bottom only when a new message arrives or typing indicator appears.
+  // Do NOT re-scroll when loading → false; that would snap the user back to bottom
+  // while they're reading an earlier part of a long response.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages]);
+  useEffect(() => {
+    if (loading) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [loading]);
 
   const fmtCr = (n: number) => {
     const abs = Math.abs(n);
@@ -526,9 +534,9 @@ ${goals}`;
                 </div>
 
                 {/* Bubble + copy */}
-                <div style={{ maxWidth: isUser ? "78%" : "93%", position: "relative", paddingBottom: isUser ? 0 : 16 }}>
+                <div style={{ maxWidth: isUser ? "78%" : "93%", display: "flex", flexDirection: "column", gap: 5 }}>
                   <div style={{
-                    padding: "11px 15px", borderRadius: 15,
+                    padding: "12px 16px", borderRadius: 15,
                     borderTopRightRadius: isUser ? 3 : 15,
                     borderTopLeftRadius: isUser ? 15 : 3,
                     background: isUser
@@ -537,30 +545,32 @@ ${goals}`;
                     color: isUser ? "#fff" : THEME.ink,
                     border: isUser ? "none" : `1px solid ${THEME.line}`,
                     boxShadow: "var(--shadow-sm)",
-                    wordBreak: "break-word"
+                    wordBreak: "break-word",
+                    userSelect: "text"
                   }}>
                     {isUser
-                      ? <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65 }}>{msg.text}</p>
+                      ? <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7 }}>{msg.text}</p>
                       : <MarkdownRenderer text={msg.text} />
                     }
                   </div>
-                  {/* Copy button on AI messages */}
+                  {/* Copy button sits BELOW the bubble in normal flow — never overlaps text */}
                   {!isUser && (
-                    <button
-                      onClick={() => copyMessage(msg.text, i)}
-                      style={{
-                        position: "absolute", bottom: 0, right: 8,
-                        padding: "3px 8px", borderRadius: 6,
-                        border: `1px solid ${THEME.line}`,
-                        background: "var(--t-paper)",
-                        color: copiedIdx === i ? THEME.sage : THEME.muted,
-                        cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
-                        fontSize: 11, fontWeight: 600, transition: "all 0.15s"
-                      }}
-                    >
-                      {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
-                      {copiedIdx === i ? "Copied!" : "Copy"}
-                    </button>
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        onClick={() => copyMessage(msg.text, i)}
+                        style={{
+                          padding: "3px 10px", borderRadius: 6,
+                          border: `1px solid ${THEME.line}`,
+                          background: "var(--t-paper)",
+                          color: copiedIdx === i ? THEME.sage : THEME.muted,
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+                          fontSize: 11, fontWeight: 600, transition: "all 0.15s"
+                        }}
+                      >
+                        {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
+                        {copiedIdx === i ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -652,7 +662,6 @@ ${goals}`;
               onKeyDown={handleKeyDown}
               placeholder="Ask about savings, investments, tax planning, debt…"
               disabled={loading}
-              autoFocus
               style={{
                 flex: 1, padding: "11px 14px", borderRadius: 12,
                 border: `1.5px solid ${input.trim() ? "var(--t-accent, #4F46E5)" : THEME.line}`,
