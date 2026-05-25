@@ -903,11 +903,58 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   );
 }
 
+// ─── Section: AI Advisor ──────────────────────────────────────────────────────
+function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
+  const inp: any = {
+    width: "100%", padding: "10px 14px", boxSizing: "border-box",
+    background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`,
+    borderRadius: 10, color: THEME.ink, fontSize: 14, outline: "none",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>🤖</span>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>AI Financial Advisor</div>
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480 }}>
+              Configure your Gemini API key to enable the AI Financial Advisor. Your data will be anonymized before being sent to Google's Gemini API for personalized insights and advice.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>API Settings</div>
+          <Field label="Gemini API Key">
+            <input
+              style={inp}
+              type="password"
+              placeholder="AIzaSy..."
+              value={geminiApiKey || ""}
+              onChange={e => updateSettings({ geminiApiKey: e.target.value })}
+            />
+          </Field>
+          <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
+            You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none" }}>Google AI Studio</a>.
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const TOP_TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "profile",    label: "Profile",    icon: User },
   { id: "masterdata", label: "Master Data", icon: Tags },
+  { id: "ai",         label: "AI Advisor", icon: Settings },
   { id: "email",      label: "Email Reports", icon: Settings },
   { id: "data",       label: "Data & Account", icon: Settings },
 ];
@@ -915,7 +962,7 @@ const TOP_TABS = [
 export function SettingsTab({
   state, exportJSON, onRestoreBackup, resetAll, onSignOut,
   cleanupOrphaned,
-  updateProfile,
+  updateProfile, updateSettings,
   accentKey, setAccentKey,
   masterData, updateMasterData,
   emailSettings, updateEmailSettings,
@@ -947,6 +994,10 @@ export function SettingsTab({
 
       {tab === "masterdata" && (
         <MasterDataSection masterData={masterData} updateMasterData={updateMasterData} />
+      )}
+
+      {tab === "ai" && (
+        <AIAssistantSection geminiApiKey={state?.settings?.geminiApiKey} updateSettings={updateSettings} />
       )}
 
       {tab === "email" && (

@@ -9,6 +9,7 @@
   ],
   "main": "src/index.tsx",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
     "lucide-react": "1.8.0",

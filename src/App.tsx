@@ -46,6 +46,7 @@ import {
   Briefcase,
   Eye,
   EyeOff,
+  Bot,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -74,6 +75,7 @@ import { BudgetTab } from "./components/tabs/BudgetTab";
 import { RemindersTab } from "./components/tabs/RemindersTab";
 import { CalculatorsTab } from "./components/tabs/CalculatorsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
+import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
 
 // Modal Imports
 import { QuickAddModal } from "./components/modals/QuickAddModal";
@@ -97,7 +99,8 @@ const DEFAULT_STATE = {
   settings: {
     darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
     radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone",
-    emailEnabled: false, emailFrequency: "weekly", emailDay: 1, emailHour: 8, emailAddress: ""
+    emailEnabled: false, emailFrequency: "weekly", emailDay: 1, emailHour: 8, emailAddress: "",
+    geminiApiKey: ""
   }
 };
 
@@ -166,7 +169,7 @@ function FinanceDashboard() {
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
   const { 
-    darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle 
+    darkMode, accentKey, density, sidebarNav, radiusKey, fontKey, bgStyle, animSpeed, chartStyle, geminiApiKey 
   } = settings;
 
   const logActivity = useCallback(async (actionType: string, description: string, metadata?: any) => {
@@ -208,6 +211,7 @@ function FinanceDashboard() {
       if (updates.emailDay !== undefined) dbUpdates.email_day = updates.emailDay;
       if (updates.emailHour !== undefined) dbUpdates.email_hour = updates.emailHour;
       if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
+      if (updates.geminiApiKey !== undefined) dbUpdates.gemini_api_key = updates.geminiApiKey;
 
       await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
     }
@@ -1730,6 +1734,7 @@ function FinanceDashboard() {
       title: "Overview",
       items: [
         { id: "analytics", label: "Executive Dashboard", icon: PieIcon },
+        { id: "ai", label: "AI Advisor", icon: Bot },
         { id: "txnhistory", label: "Global Ledger", icon: History },
       ]
     },
@@ -2329,6 +2334,7 @@ function FinanceDashboard() {
             {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
+            {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
             {tab === "calculators" && <CalculatorsTab metrics={metrics} />}
             {tab === "settings" && (
@@ -2342,6 +2348,7 @@ function FinanceDashboard() {
                 onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
                 cleanupOrphaned={cleanupOrphanedCorporateActions}
                 updateProfile={updateProfile}
+                updateSettings={updateSettings}
                 darkMode={darkMode} toggleDarkMode={() => updateSettings({ darkMode: !darkMode })}
                 accentKey={accentKey} setAccentKey={(v) => updateSettings({ accentKey: v })}
                 density={density} setDensity={(v) => updateSettings({ density: v })}

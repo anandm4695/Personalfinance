@@ -362,6 +362,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     { id: "planning", label: "Planning", icon: Activity },
     { id: "spending", label: "Spending", icon: CreditCard },
     { id: "calendar", label: "Calendar", icon: Calendar },
+    { id: "habits", label: "Habits & Rewards", icon: Flame },
   ];
 
   const netWorthTrend = useMemo(() => {
@@ -2874,6 +2875,89 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </>
               );
             })()}
+          </Card>
+        </div>
+      )}
+
+      {/* ────────────────── SUB-TAB: HABITS & REWARDS ────────────────── */}
+      {sub === "habits" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Streaks & Badges */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${dashboardData.streak >= 3 ? THEME.sage : THEME.line}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: dashboardData.streak >= 3 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
+                {dashboardData.streak >= 3 ? "🔥" : "⏳"}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Savings Champion</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{dashboardData.streak} Month Streak</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Save more than you spend for 3+ months.</div>
+              </div>
+            </Card>
+
+            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${metrics.totalLiabilities === 0 ? THEME.sage : THEME.line}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: metrics.totalLiabilities === 0 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
+                {metrics.totalLiabilities === 0 ? "🕊️" : "⛓️"}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Debt Free</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{metrics.totalLiabilities === 0 ? "Achieved" : "In Progress"}</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Pay off all active loans.</div>
+              </div>
+            </Card>
+
+            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${dashboardData.subScores[3].score >= 20 ? THEME.sage : THEME.line}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: dashboardData.subScores[3].score >= 20 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
+                {dashboardData.subScores[3].score >= 20 ? "🌟" : "🌱"}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Diversification Master</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{dashboardData.subScores[3].score >= 20 ? "Achieved" : "In Progress"}</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Invest in MFs, Stocks, FDs, and PPF.</div>
+              </div>
+            </Card>
+            
+            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${metrics.netWorth >= 1000000 ? THEME.sage : THEME.line}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: metrics.netWorth >= 1000000 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
+                {metrics.netWorth >= 10000000 ? "👑" : metrics.netWorth >= 1000000 ? "💎" : "🎯"}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Net Worth Milestone</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
+                  {metrics.netWorth >= 10000000 ? "₹1 Cr+ Club" : metrics.netWorth >= 1000000 ? "₹10L+ Club" : "Building Wealth"}
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Reach your next big milestone.</div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Peer Benchmarking */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>Peer Benchmarking</div>
+              <div style={{ fontSize: 13, color: THEME.muted }}>Compare your financial habits with community averages.</div>
+            </div>
+            
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { name: "Savings Rate", You: metrics.savingsRate, Average: 15, Top10: 40 },
+                  { name: "Debt-to-Asset", You: metrics.debtToAssetRatio, Average: 35, Top10: 10 }
+                ]} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.line} />
+                  <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => v + "%"} />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                    contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)" }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20 }} iconType="circle" />
+                  <Bar dataKey="You" fill={THEME.accent} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="Average" fill={THEME.muted} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="Top10" fill={THEME.sage} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </div>
       )}
