@@ -62,8 +62,10 @@ export const monthsBetween = (d1: string, d2: string) => {
 export const getCCDueDate = (c: any, referenceDate?: Date) => {
   if (c.dueDate) return c.dueDate;
   if (!c.dueDay) return null;
-  const now = referenceDate || new Date();
   const day = parseInt(c.dueDay, 10);
+  // day=0 or NaN would silently roll back to the previous month — guard explicitly
+  if (isNaN(day) || day < 1 || day > 31) return null;
+  const now = referenceDate || new Date();
   let d = new Date(now.getFullYear(), now.getMonth(), day);
   if (d <= now) d = new Date(now.getFullYear(), now.getMonth() + 1, day);
   return getLocalDateString(d);
@@ -94,7 +96,9 @@ export const autoCateg = (note: string): string | null => {
 
 export const calcCAGR = (invested: number, current: number, buyDate: string): number | null => {
   if (!buyDate || invested <= 0 || current <= 0) return null;
-  const years = (Date.now() - new Date(buyDate).getTime()) / (365.25 * 24 * 3600 * 1000);
+  const msElapsed = Date.now() - new Date(buyDate).getTime();
+  if (isNaN(msElapsed) || msElapsed <= 0) return null; // future date or invalid date string
+  const years = msElapsed / (365.25 * 24 * 3600 * 1000);
   if (years < 0.08) return null;
   return (Math.pow(current / invested, 1 / years) - 1) * 100;
 };

@@ -196,7 +196,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           (t.category || "Uncategorized") === catName
       )
       .map((t: any) => ({
-        name: t.description || "Expense",
+        name: t.note || t.description || "Expense",
         sub: t.date,
         value: Number(t.amount || 0),
       }))

@@ -35,31 +35,62 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     }
   }, [apiKey, messages.length]);
 
+  const fmtCr = (n: number) => {
+    const abs = Math.abs(n);
+    if (abs >= 1e7) return `₹${(abs / 1e7).toFixed(2)}Cr`;
+    if (abs >= 1e5) return `₹${(abs / 1e5).toFixed(1)}L`;
+    if (abs >= 1000) return `₹${(abs / 1000).toFixed(0)}K`;
+    return `₹${Math.round(abs)}`;
+  };
+
   const generateContext = () => {
-    return `
-You are a highly professional, expert financial advisor for an Indian user.
-Analyze their financial state and give concise, hyper-personalized, actionable advice. Format your responses with markdown (bolding, bullet points).
+    const topExpenses = (metrics.expenseBreakdown || []).slice(0, 5).map((e: any) => `  • ${e.name}: ${fmtCr(e.value)}`).join("\n") || "  No data";
+    const goals = (state.goals || []).slice(0, 5).map((g: any) => {
+      const pct = Number(g.targetAmount) > 0 ? Math.round((Number(g.currentAmount) / Number(g.targetAmount)) * 100) : 0;
+      return `  • ${g.name}: ${pct}% of ${fmtCr(Number(g.targetAmount))} (target: ${g.targetDate || "—"})`;
+    }).join("\n") || "  No goals set";
+    const subs = (state.subscriptions || []).filter((s: any) => !s.paused).slice(0, 5).map((s: any) => `  • ${s.name}: ${fmtCr(Number(s.amount))}/${s.cycle}`).join("\n") || "  None";
+    const loans = (state.loansTaken || []).map((l: any) => `  • ${l.type || "Loan"} @ ${l.rate || "?"}%: ${fmtCr(Number(l.outstanding || 0))} outstanding, EMI ${fmtCr(Number(l.emi || 0))}`).join("\n") || "  No loans";
+    const regime = state.profile?.regime === "old" ? "Old Regime" : "New Regime (FY 2025-26)";
+
+    return `You are a highly professional, expert financial advisor for an Indian user.
+Analyze their financial state and give concise, hyper-personalized, actionable advice.
+Format responses with markdown (bold headings, bullet points). Be specific with numbers.
 Do NOT include PII or actual account numbers.
 
-USER METRICS:
-- Net Worth: ₹${metrics.netWorth}
-- Monthly Income: ₹${metrics.monthIncome}
-- Monthly Expenses: ₹${metrics.monthExpense}
-- Savings Rate: ${metrics.savingsRate.toFixed(1)}%
-- Debt-to-Asset Ratio: ${metrics.debtToAssetRatio.toFixed(1)}%
-- FOIR (EMI Burden): ${metrics.foir.toFixed(1)}%
+== FINANCIAL SNAPSHOT ==
+Net Worth:        ${fmtCr(metrics.netWorth || 0)}
+Monthly Income:   ${fmtCr(metrics.monthIncome || 0)}
+Monthly Expenses: ${fmtCr(metrics.monthExpense || 0)}
+Monthly Savings:  ${fmtCr((metrics.monthIncome || 0) - (metrics.monthExpense || 0))} (${(metrics.savingsRate || 0).toFixed(1)}% rate)
+Tax Regime:       ${regime}
 
-ASSETS SNAPSHOT:
-- Cash/Banks: ₹${metrics.cashInBanks}
-- Mutual Funds: ${state.mutualFunds?.length || 0} funds
-- Stocks: ${state.stocks?.length || 0} stocks
-- FDs: ${state.fixedDeposits?.length || 0} deposits
-- PPF/NPS: ${state.ppf?.length > 0 || state.nps?.length > 0 ? "Yes" : "No"}
+== ASSETS ==
+Cash / Banks:     ${fmtCr(metrics.cashInBanks || 0)}
+Mutual Funds:     ${fmtCr(metrics.mfValue || 0)} (${state.mutualFunds?.length || 0} funds, invested ${fmtCr(metrics.mfInvested || 0)})
+Stocks:           ${fmtCr(metrics.stockValue || 0)} (${state.stocks?.length || 0} stocks, invested ${fmtCr(metrics.stockInvested || 0)})
+Fixed Deposits:   ${fmtCr(metrics.fdValue || 0)}
+PPF:              ${fmtCr(metrics.ppfValue || 0)}
+EPF:              ${fmtCr(metrics.epfValue || 0)}
+NPS:              ${fmtCr(metrics.npsValue || 0)}
+Total Assets:     ${fmtCr(metrics.totalAssets || 0)}
 
-LIABILITIES SNAPSHOT:
-- Active Loans: ${state.loansTaken?.length || 0}
-- Total Loan Outstanding: ₹${metrics.totalLiabilities}
-`;
+== LIABILITIES ==
+Credit Cards:     ${fmtCr(metrics.ccOutstanding || 0)} outstanding (util ${(metrics.creditUtilization || 0).toFixed(0)}%)
+Loans:
+${loans}
+Total Liabilities: ${fmtCr(metrics.totalLiabilities || 0)}
+FOIR:              ${(metrics.foir || 0).toFixed(1)}%
+Debt-to-Asset:     ${(metrics.debtToAssetRatio || 0).toFixed(1)}%
+
+== TOP EXPENSES THIS MONTH ==
+${topExpenses}
+
+== ACTIVE SUBSCRIPTIONS ==
+${subs}
+
+== GOALS PROGRESS ==
+${goals}`;
   };
 
   const handleSend = async () => {

@@ -593,20 +593,26 @@ function FinanceDashboard() {
   }, [fetchAllData, session, showToast]);
 
 
-  // Global mouse tracker for Spotlight effect
+  // Global mouse tracker for Spotlight effect — throttled with rAF to avoid per-frame thrashing
   useEffect(() => {
+    let rafId: number | null = null;
     const handleMouseMove = (e: MouseEvent) => {
-      const cards = document.querySelectorAll('.spotlight-wrapper') as NodeListOf<HTMLElement>;
-      cards.forEach((card) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const cards = document.querySelectorAll('.spotlight-wrapper') as NodeListOf<HTMLElement>;
+        cards.forEach((card) => {
+          const rect = card.getBoundingClientRect();
+          card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+          card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+        });
       });
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Keyboard shortcut for Command Palette (Cmd+K / Ctrl+K)
@@ -1808,8 +1814,10 @@ function FinanceDashboard() {
       }
     });
     state.mutualFunds.forEach((m) => {
-      if ((m.scheme || "").toLowerCase().includes(q)) {
-        results.push({ type: "Mutual Fund", name: m.scheme, detail: fmtINRFull(Number(m.units) * Number(m.currentNav)), tab: "investments" });
+      const mfName = m.name || m.scheme || "";
+      if (mfName.toLowerCase().includes(q)) {
+        const currentValue = Number(m.units || 0) * Number(m.currentNav || 0) || Number(m.invested || 0);
+        results.push({ type: "Mutual Fund", name: mfName, detail: fmtINRFull(currentValue), tab: "investments" });
       }
     });
     state.goals.forEach((g) => {
@@ -1915,7 +1923,7 @@ function FinanceDashboard() {
     >
       {/* ── SIDEBAR NAVIGATION ── */}
       <aside
-          className="glass"
+          className="glass app-sidebar"
           style={{
             width: 280,
             borderRight: `1px solid ${THEME.line}`,
@@ -2320,6 +2328,15 @@ function FinanceDashboard() {
             transition: "filter 0.3s ease",
           }}
         >
+          {/* Missing DB tables warning — shown globally so user knows what to fix */}
+          {missingTables.length > 0 && (
+            <div style={{ marginBottom: 24, padding: "12px 18px", background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.3)", borderRadius: 12, display: "flex", alignItems: "center", gap: 12, color: THEME.gold, fontSize: 13, fontWeight: 600 }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <span>
+                Missing DB {missingTables.length === 1 ? "table" : "tables"}: <code style={{ fontFamily: "monospace", background: "rgba(234,179,8,0.12)", padding: "1px 6px", borderRadius: 4 }}>{missingTables.join(", ")}</code> — run the corresponding SQL migration in Supabase to restore full functionality.
+              </span>
+            </div>
+          )}
           <div key={tab} className="tab-content-enter">
             {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} setState={setState} marketData={marketData} />}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
@@ -2381,8 +2398,10 @@ function FinanceDashboard() {
         </footer>
       </div>
 
-      {/* ── MOBILE BOTTOM NAVIGATION ── */}
-      {!sidebarNav && (() => {
+      {/* ── MOBILE BOTTOM NAVIGATION ──
+          Always rendered; CSS hides it on desktop (display:none by default, display:flex at ≤768px).
+          Previously gated on !sidebarNav which left mobile users with no nav when sidebarNav=true. */}
+      {(() => {
         const mobileNavTabs = [
           { id: "analytics",   label: "Analytics", icon: PieIcon },
           { id: "banks",       label: "Banks",     icon: Landmark },
@@ -2398,7 +2417,7 @@ function FinanceDashboard() {
               return (
                 <button
                   key={t.id}
-                  onClick={() => { setTab(t.id); if (t.children) setSubTab(t.children[0].id); else setSubTab(null); }}
+                  onClick={() => { setTab(t.id); setSubTab(null); }}
                   style={{
                     background: "none",
                     border: "none",

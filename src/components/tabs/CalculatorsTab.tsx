@@ -329,7 +329,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
         monthsTaken = m;
       }
 
-      const interestSaved = Math.max(0, totalInterestNormal - cumulativeInterestPrepay - Math.min(lumpsum, loanBal));
+      const interestSaved = Math.max(0, totalInterestNormal - cumulativeInterestPrepay);
       const monthsFreed = N - monthsTaken;
 
       // After loan ends early, invest the freed EMI amount for remaining months

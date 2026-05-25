@@ -13,11 +13,13 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_ADDR = `Personal Finance <${FROM_EMAIL}>`;
 
 // ── Supabase admin client (service role bypasses RLS) ─────────────────────────
+// VITE_ prefix is Vercel-set for the frontend build; API routes also see it.
+// SUPABASE_URL is the conventional non-prefixed fallback for pure server use.
 function getSupabase() {
-  return createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env vars not configured (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)");
+  return createClient(url, key);
 }
 
 // ── IST offset helpers ─────────────────────────────────────────────────────────

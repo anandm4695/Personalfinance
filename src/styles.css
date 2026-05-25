@@ -967,6 +967,8 @@ input[type="date"].form-input {
     --app-font-size:  13px;
   }
   .mobile-bottom-nav { display: flex; }
+  /* Sidebar uses inline display:flex — override it on mobile so the full width goes to content */
+  .app-sidebar { display: none !important; }
   .fab {
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     right: 16px;
