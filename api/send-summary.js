@@ -92,7 +92,7 @@ function computeSummary(state) {
 
   const investTotal = mfTotal + stockTotal + fdTotal + rdTotal + ppfTotal + npsTotal + epfTotal + bondsTotal;
 
-  const activeCards = (state.creditCards || []).filter(c => (c.status || "active") !== "closed");
+  const activeCards = (state.creditCards || []).filter(c => (c.status || "active").toLowerCase() !== "closed");
   const creditOutstanding = activeCards.reduce((s, c) => s + (Number(c.outstanding) || 0), 0);
   const creditLimit = activeCards.reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0);
   const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;

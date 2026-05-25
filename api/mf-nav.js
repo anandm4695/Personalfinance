@@ -21,6 +21,7 @@ module.exports = async function handler(req, res) {
 
   const { code } = req.query;
   if (!code) return res.status(400).json({ error: "code required" });
+  if (!/^\d+$/.test(String(code).trim())) return res.status(400).json({ error: "code must be numeric" });
 
   try {
     const data = await fetchJson(`https://api.mfapi.in/mf/${String(code).trim()}`);
