@@ -12,26 +12,74 @@ interface AIAssistantTabProps {
 }
 
 // ── Inline markdown parser: **bold**, *italic*, `code` ──────────────────────
+// Character-based scanner so *label:** (Gemini's inconsistent bold-close) is
+// treated as bold rather than leaving a stray * on screen.
 const parseInline = (text: string): React.ReactNode => {
-  const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**"))
-          return <strong key={i} style={{ fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
-        if (part.startsWith("*") && part.endsWith("*"))
-          return <em key={i}>{part.slice(1, -1)}</em>;
-        if (part.startsWith("`") && part.endsWith("`"))
-          return (
-            <code key={i} style={{
-              background: "rgba(99,102,241,0.12)", padding: "2px 6px",
-              borderRadius: 4, fontFamily: "ui-monospace, monospace", fontSize: 12
-            }}>{part.slice(1, -1)}</code>
-          );
-        return <React.Fragment key={i}>{part}</React.Fragment>;
-      })}
-    </>
-  );
+  const nodes: React.ReactNode[] = [];
+  let pos = 0;
+  let buf = "";
+  let k = 0;
+
+  const flush = () => {
+    if (buf) { nodes.push(<React.Fragment key={k++}>{buf}</React.Fragment>); buf = ""; }
+  };
+
+  while (pos < text.length) {
+    const c = text[pos];
+    const c2 = text[pos + 1];
+
+    // Bold: **text**
+    if (c === "*" && c2 === "*") {
+      const end = text.indexOf("**", pos + 2);
+      if (end !== -1) {
+        flush();
+        nodes.push(<strong key={k++} style={{ fontWeight: 700 }}>{text.slice(pos + 2, end)}</strong>);
+        pos = end + 2;
+        continue;
+      }
+    }
+
+    // Italic: *text*  — if closing * is followed by another *, consume both
+    // so *label:** renders as bold "label:" instead of italic + stray *
+    if (c === "*" && c2 !== "*") {
+      const end = text.indexOf("*", pos + 1);
+      if (end !== -1) {
+        const content = text.slice(pos + 1, end);
+        flush();
+        if (text[end + 1] === "*") {
+          // *text:** → treat as bold (Gemini's mixed marker)
+          nodes.push(<strong key={k++} style={{ fontWeight: 700 }}>{content}</strong>);
+          pos = end + 2;
+        } else {
+          nodes.push(<em key={k++}>{content}</em>);
+          pos = end + 1;
+        }
+        continue;
+      }
+    }
+
+    // Inline code: `text`
+    if (c === "`") {
+      const end = text.indexOf("`", pos + 1);
+      if (end !== -1) {
+        flush();
+        nodes.push(
+          <code key={k++} style={{
+            background: "rgba(99,102,241,0.12)", padding: "2px 6px",
+            borderRadius: 4, fontFamily: "ui-monospace, monospace", fontSize: 12
+          }}>{text.slice(pos + 1, end)}</code>
+        );
+        pos = end + 1;
+        continue;
+      }
+    }
+
+    buf += c;
+    pos++;
+  }
+
+  flush();
+  return <>{nodes}</>;
 };
 
 // ── Block markdown renderer ─────────────────────────────────────────────────
@@ -108,7 +156,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       nodes.push(
         <ul key={`ul-${i}`} style={{ margin: "6px 0", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 3 }}>
           {items.map((item, idx) => (
-            <li key={idx} style={{ lineHeight: 1.65, fontSize: 14 }}>{parseInline(item)}</li>
+            <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
           ))}
         </ul>
       );
@@ -125,7 +173,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       nodes.push(
         <ol key={`ol-${i}`} style={{ margin: "6px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 3 }}>
           {items.map((item, idx) => (
-            <li key={idx} style={{ lineHeight: 1.65, fontSize: 14 }}>{parseInline(item)}</li>
+            <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
           ))}
         </ol>
       );
@@ -140,7 +188,7 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
 
     // Plain paragraph
     nodes.push(
-      <p key={i} style={{ margin: 0, lineHeight: 1.7, fontSize: 14 }}>
+      <p key={i} style={{ margin: 0, lineHeight: 1.75, fontSize: 15 }}>
         {parseInline(line)}
       </p>
     );
@@ -478,7 +526,7 @@ ${goals}`;
                 </div>
 
                 {/* Bubble + copy */}
-                <div style={{ maxWidth: "80%", position: "relative", paddingBottom: isUser ? 0 : 16 }}>
+                <div style={{ maxWidth: isUser ? "78%" : "93%", position: "relative", paddingBottom: isUser ? 0 : 16 }}>
                   <div style={{
                     padding: "11px 15px", borderRadius: 15,
                     borderTopRightRadius: isUser ? 3 : 15,
