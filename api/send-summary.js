@@ -131,9 +131,46 @@ function computeSummary(state) {
     .map(([cat, amt]) => ({ cat, amt }));
 
   // ── Budget health ─────────────────────────────────────────────────────────
-  const budgetStatus = (state.budgets || []).map(b => {
+  const curMonthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
+  
+  // Group budgets by category
+  const categoriesMap = {};
+  (state.budgets || []).forEach(b => {
+    const cat = b.category;
+    if (!categoriesMap[cat]) categoriesMap[cat] = [];
+    categoriesMap[cat].push(b);
+  });
+  
+  const filteredBudgets = [];
+  Object.keys(categoriesMap).forEach(cat => {
+    const list = categoriesMap[cat];
+    const specific = list.find(b => b.budgetMonth === curMonthStr || b.budget_month === curMonthStr);
+    if (specific) {
+      filteredBudgets.push(specific);
+    } else {
+      const baseline = list.find(b => !b.budgetMonth && !b.budget_month);
+      if (baseline) {
+        filteredBudgets.push(baseline);
+      } else {
+        const prior = list
+          .filter(b => (b.budgetMonth && b.budgetMonth < curMonthStr) || (b.budget_month && b.budget_month < curMonthStr))
+          .sort((a, b) => {
+            const mA = a.budgetMonth || a.budget_month || "";
+            const mB = b.budgetMonth || b.budget_month || "";
+            return mB.localeCompare(mA);
+          });
+        if (prior.length > 0) {
+          filteredBudgets.push(prior[0]);
+        } else if (list.length > 0) {
+          filteredBudgets.push(list[0]);
+        }
+      }
+    }
+  });
+
+  const budgetStatus = filteredBudgets.map(b => {
     const spent = catMap[b.category] || 0;
-    const limit = Number(b.monthly || b.monthlyLimit) || 0;
+    const limit = Number(b.monthly || b.monthlyLimit || b.monthly_limit || 0);
     const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
     return { category: b.category, spent, limit, pct, over: pct > 100 };
   }).sort((a, b) => b.pct - a.pct);

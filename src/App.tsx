@@ -103,7 +103,7 @@ const DEFAULT_STATE = {
   bonds: [], ppf: [], nps: [], epf: [], lic: [], termPlans: [], investmentPlans: [], mutualFunds: [], stocks: [],
   demat: [], creditCards: [], prepaidCards: [], loansTaken: [], loansGiven: [],
   informalBorrowed: [], informalLent: [], rentalProperties: [], rentedProperties: [],
-  subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [],
+  subscriptions: [], goals: [], income: [], taxPayments: [], budgets: [], recurringExpenses: [],
   reminders: [], stockSells: [], mfSells: [], netWorthHistory: [], sips: [],
   corporateActions: [],
   dismissedAlerts: {},
@@ -131,7 +131,7 @@ const NUMERIC_COLS = new Set([
   "ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term",
   "expected_maturity_amount","policy_term","ytm_rate","face_value_per_unit","number_of_units",
   "clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest",
-  "total_consideration","brokerage","stamp_duty","total_investment_amount","market_cap"
+  "total_consideration","brokerage","stamp_duty","total_investment_amount","market_cap","due_day"
 ]);
 
 // ================== MAIN APP ==================
@@ -417,7 +417,7 @@ function FinanceDashboard() {
     try {
       const [
         prof, sett, banks, txns, mfs, stks, demats, fds, rds, bnds, pn, ccs, pcs, lns, gls, bdgts, subs, rems,
-        licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct, taxP, incomeQ
+        licP, termP, investP, infLns, rentP, sipsQ, stSells, mfSells, nwh, corpAct, taxP, incomeQ, recExp
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -449,6 +449,7 @@ function FinanceDashboard() {
         supabase.from("corporate_actions").select("*").eq("user_id", userId),
         supabase.from("tax_payments").select("*").eq("user_id", userId),
         supabase.from("income_entries").select("*").eq("user_id", userId),
+        supabase.from("recurring_expenses").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -527,6 +528,7 @@ function FinanceDashboard() {
           } : {}),
           ...(!taxP.error && taxP.data != null ? { taxPayments: snakeToCamel(taxP.data) } : {}),
           ...(!incomeQ.error && incomeQ.data != null ? { income: snakeToCamel(incomeQ.data) } : {}),
+          ...(!recExp.error && recExp.data != null ? { recurringExpenses: snakeToCamel(recExp.data) } : {}),
         };
       });
     } catch (e) {
@@ -864,6 +866,7 @@ function FinanceDashboard() {
       income: filterByOwner(state.income),
       taxPayments: filterByOwner(state.taxPayments),
       budgets: filterByOwner(state.budgets),
+      recurringExpenses: filterByOwner(state.recurringExpenses || []),
       sips: filterByOwner(state.sips),
       stockSells: filterByOwner(state.stockSells || []),
       mfSells: filterByOwner(state.mfSells || []),
@@ -1420,7 +1423,7 @@ function FinanceDashboard() {
     stocks: "stocks", demat: "demat_accounts", fixedDeposits: "fixed_deposits",
     recurringDeposits: "recurring_deposits", bonds: "bonds", ppf: "ppf_nps", nps: "ppf_nps", epf: "ppf_nps",
     creditCards: "credit_cards", prepaidCards: "prepaid_cards", loansTaken: "loans", loansGiven: "loans",
-    goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders",
+    goals: "goals", budgets: "budgets", subscriptions: "subscriptions", reminders: "reminders", recurringExpenses: "recurring_expenses",
     lic: "lic_policies", termPlans: "term_plans", investmentPlans: "investment_plans",
     informalBorrowed: "informal_loans", informalLent: "informal_loans",
     rentalProperties: "rental_properties", rentedProperties: "rental_properties",
@@ -1761,6 +1764,7 @@ function FinanceDashboard() {
       ...push("loans",               data.loansGiven,  () => ({ is_lent: true  })),
       ...push("goals",               data.goals),
       ...push("budgets",             data.budgets,      item => ({ monthly_limit: item.monthlyLimit ?? item.monthly ?? null, monthly: undefined })),
+      ...push("recurring_expenses",  data.recurringExpenses),
       ...push("subscriptions",       data.subscriptions),
       ...push("reminders",           data.reminders,    item => ({ reminder_date: item.reminderDate ?? item.date ?? null, date: undefined })),
       ...push("lic_policies",        data.lic),
