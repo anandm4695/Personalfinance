@@ -52,14 +52,24 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
   // Month navigation helpers
   const handlePrevMonth = () => {
     const [y, m] = selectedMonth.split("-").map(Number);
-    const prevDate = new Date(y, m - 2, 1);
-    setSelectedMonth(prevDate.toISOString().slice(0, 7));
+    let newM = m - 1;
+    let newY = y;
+    if (newM < 1) {
+      newM = 12;
+      newY = y - 1;
+    }
+    setSelectedMonth(`${newY}-${String(newM).padStart(2, "0")}`);
   };
 
   const handleNextMonth = () => {
     const [y, m] = selectedMonth.split("-").map(Number);
-    const nextDate = new Date(y, m, 1);
-    setSelectedMonth(nextDate.toISOString().slice(0, 7));
+    let newM = m + 1;
+    let newY = y;
+    if (newM > 12) {
+      newM = 1;
+      newY = y + 1;
+    }
+    setSelectedMonth(`${newY}-${String(newM).padStart(2, "0")}`);
   };
 
   const selectedMonthLabel = useMemo(() => {
