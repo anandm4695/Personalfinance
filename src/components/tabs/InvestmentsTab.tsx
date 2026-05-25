@@ -21,7 +21,7 @@ import {
   List,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today, uid } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today, uid, monthsBetween } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Card } from "../ui/Card";
@@ -90,7 +90,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   const [nps, setNps] = useState({ tier: "I", pran: "", balance: "" });
   // ── EPF State ──
   const [epf, setEpf] = useState({ uan: "", employer: "", balance: "" });
-  const [mf, setMf] = useState({ name: "", category: "Equity", investedValue: "", currentValue: "", units: "", currentNav: "" });
+  const [mf, setMf] = useState({ name: "", category: "Equity", invested: "", units: "", currentNav: "" });
 
   const handleSave = () => {
     switch (sub) {
@@ -134,7 +134,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         onSave("epf", epf);
         break;
       case "mf":
-        if (!mf.name || !mf.investedValue) return;
+        if (!mf.name || !mf.invested) return;
         onSave("mutualFunds", mf);
         break;
       default:
@@ -376,10 +376,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Amount Invested (₹)">
-              <input style={inp} type="number" value={mf.investedValue} onChange={e => setMf({ ...mf, investedValue: e.target.value })} placeholder="100000" />
-            </Field>
-            <Field label="Current Value (₹)">
-              <input style={inp} type="number" value={mf.currentValue} onChange={e => setMf({ ...mf, currentValue: e.target.value })} placeholder="115000" />
+              <input style={inp} type="number" value={mf.invested} onChange={e => setMf({ ...mf, invested: e.target.value })} placeholder="100000" />
             </Field>
             <Field label="Units Held">
               <input style={inp} type="number" value={mf.units} onChange={e => setMf({ ...mf, units: e.target.value })} placeholder="1234.56" step="0.01" />
@@ -435,17 +432,17 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.mutualFunds?.reduce((s: number, x: any) => s + (Number(x.investedValue) || 0), 0) || 0) +
+    (state.mutualFunds?.reduce((s: number, x: any) => s + (Number(x.invested || x.investedValue) || 0), 0) || 0) +
     (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
 
-  const totalCurrent = 
-    (state.fixedDeposits?.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0) || 0) + // Approximating principal as current for now
-    (state.recurringDeposits?.reduce((s: number, x: any) => s + (Number(x.monthly) * (Number(x.tenureMonths) || 0)), 0) || 0) +
+  const totalCurrent =
+    (state.fixedDeposits?.reduce((s: number, x: any) => s + fdMaturity(Number(x.principal), Number(x.rate), Number(x.years)), 0) || 0) +
+    (state.recurringDeposits?.reduce((s: number, x: any) => s + rdMaturity(Number(x.monthly), Number(x.rate), Number(x.tenureMonths)), 0) || 0) +
     (state.bonds?.reduce((s: number, x: any) => s + (Number(x.faceValue) || 0), 0) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.mutualFunds?.reduce((s: number, x: any) => s + (Number(x.currentValue) || Number(x.investedValue) || 0), 0) || 0) +
+    (state.mutualFunds?.reduce((s: number, x: any) => s + ((Number(x.units || 0) * Number(x.currentNav || 0)) || Number(x.invested || x.investedValue) || 0), 0) || 0) +
     (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
 
   const netGain = totalCurrent - totalPrincipal;
@@ -768,6 +765,8 @@ const RDSection = ({ items, removeItem, onAdd }: any) => (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((r: any) => {
             const maturity = rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths));
+            const elapsed = r.startDate ? monthsBetween(r.startDate, today()) : 0;
+            const progressPct = Math.min(100, Math.max(0, (elapsed / (Number(r.tenureMonths) || 1)) * 100));
             return (
               <Card key={r.id} style={{ padding: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
@@ -781,7 +780,7 @@ const RDSection = ({ items, removeItem, onAdd }: any) => (
                   {r.rate}% p.a. · {r.tenureMonths} months
                 </div>
                 <div className="progress-track" style={{ marginBottom: 12 }}>
-                  <div className="progress-fill" style={{ width: "40%", background: THEME.accent }} />
+                  <div className="progress-fill" style={{ width: `${progressPct}%`, background: THEME.accent }} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                   <span style={{ color: THEME.muted }}>Projected Maturity</span>
@@ -2346,8 +2345,8 @@ const MFSection = ({ items, removeItem, onAdd }: any) => (
       : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((m: any) => {
-            const current = Number(m.currentValue) || (Number(m.units) * Number(m.currentNav));
-            const invested = Number(m.investedValue) || 0;
+            const current = (Number(m.units || 0) * Number(m.currentNav || 0)) || 0;
+            const invested = Number(m.invested || m.investedValue) || 0;
             const pnl = current - invested;
             const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
             return (

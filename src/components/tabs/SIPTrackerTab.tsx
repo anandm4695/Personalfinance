@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Activity, TrendingUp, Repeat, Sparkles, Plus, Trash2 } from "lucide-react";
+import { Activity, TrendingUp, Repeat, Sparkles, Plus, Trash2, Pencil } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -17,8 +17,9 @@ import { EmptyState } from "../ui/EmptyState";
 
 
 
-export function SIPTrackerTab({ state, addItem, removeItem, metrics }: any) {
+export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
+  const [editSip, setEditSip] = useState<any>(null);
   const todayStr = today();
   const [sipProjRate, setSipProjRate] = useState("12");
 
@@ -153,7 +154,10 @@ export function SIPTrackerTab({ state, addItem, removeItem, metrics }: any) {
                 </div>
 
                 {/* Actions */}
-                <div style={{ flexShrink: 0 }}>
+                <div style={{ flexShrink: 0, display: "flex", gap: 2 }}>
+                  <Button variant="ghost" size="sm" onClick={() => setEditSip(sip)} style={{ padding: 6, color: THEME.accent }}>
+                    <Pencil size={14} />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => removeItem("sips", sip.id)} style={{ padding: 6, color: THEME.rust }}>
                     <Trash2 size={14} />
                   </Button>
@@ -170,15 +174,24 @@ export function SIPTrackerTab({ state, addItem, removeItem, metrics }: any) {
           onSave={(v: any) => { addItem("sips", v); setShow(false); }}
         />
       )}
+      {editSip && (
+        <SIPModal
+          initial={editSip}
+          onClose={() => setEditSip(null)}
+          onSave={(v: any) => { updateItem("sips", editSip.id, v); setEditSip(null); }}
+        />
+      )}
     </div>
   );
 }
 
-function SIPModal({ onClose, onSave }: any) {
+function SIPModal({ onClose, onSave, initial }: any) {
   const { mfCategories } = useMasterData();
-  const [f, setF] = useState({ owner: "self", scheme: "", fundType: mfCategories[0] || "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
+  const [f, setF] = useState(initial
+    ? { owner: initial.owner || "self", scheme: initial.scheme || "", fundType: initial.fundType || mfCategories[0] || "Equity", amount: String(initial.amount || ""), frequency: initial.frequency || "monthly", startDate: initial.startDate || today(), totalInstallments: String(initial.totalInstallments || "12") }
+    : { owner: "self", scheme: "", fundType: mfCategories[0] || "Equity", amount: "", frequency: "monthly", startDate: today(), totalInstallments: "12" });
   return (
-    <Modal title="Add SIP" onClose={onClose}>
+    <Modal title={initial ? "Edit SIP" : "Add SIP"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select className="form-input" value={f.owner} onChange={e => setF({...f, owner: e.target.value})}>
           {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -211,7 +224,7 @@ function SIPModal({ onClose, onSave }: any) {
           <input className="form-input" type="number" value={f.totalInstallments} onChange={(e) => setF({ ...f, totalInstallments: e.target.value })} />
         </Field>
       </div>
-      <ModalActions onSave={() => f.scheme && f.amount && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => f.scheme && f.amount && onSave(f)} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add SIP"} />
     </Modal>
   );
 }
