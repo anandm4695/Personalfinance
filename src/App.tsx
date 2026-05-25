@@ -431,7 +431,15 @@ function FinanceDashboard() {
           // Only overwrite each array if the query succeeded (no error + data is not null)
           ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
-          ...(!mfs.error && mfs.data != null ? { mutualFunds: snakeToCamel(mfs.data) } : {}),
+          ...(!mfs.error && mfs.data != null ? {
+            // Normalize: DB uses `scheme`/`type` but UI form saves with `name`/`category`.
+            // Always expose `name` and `category` so all display and search code works uniformly.
+            mutualFunds: snakeToCamel(mfs.data).map((m: any) => ({
+              ...m,
+              name: m.name || m.scheme || "",
+              category: m.category || m.type || "",
+            }))
+          } : {}),
           ...(!stks.error && stks.data != null ? { stocks: snakeToCamel(stks.data) } : {}),
           ...(!demats.error && demats.data != null ? { demat: snakeToCamel(demats.data) } : {}),
           ...(!fds.error && fds.data != null ? { fixedDeposits: snakeToCamel(fds.data) } : {}),
@@ -1325,6 +1333,11 @@ function FinanceDashboard() {
     if (key === "loansGiven") finalItem.is_lent = true;
     if (key === "budgets") { finalItem.monthly_limit = item.monthly; delete finalItem.monthly; }
     if (key === "reminders") { finalItem.reminder_date = item.date; delete finalItem.date; }
+    if (key === "mutualFunds") {
+      // Form uses `name`/`category` but DB has `scheme NOT NULL`/`type`
+      if (finalItem.name !== undefined) { finalItem.scheme = finalItem.name; delete finalItem.name; }
+      if (finalItem.category !== undefined) { finalItem.type = finalItem.category; delete finalItem.category; }
+    }
     if (key === "informalBorrowed") finalItem.direction = "borrowed";
     if (key === "informalLent") finalItem.direction = "lent";
     if (key === "rentalProperties" || key === "rentedProperties") {
@@ -1513,9 +1526,13 @@ function FinanceDashboard() {
             delete finalPatch.property_type;
           }
         }
-        if (key === "budgets" && patch.monthly) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
-        if (key === "reminders" && patch.date) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
-        
+        if (key === "budgets" && patch.monthly !== undefined) { finalPatch.monthly_limit = patch.monthly; delete finalPatch.monthly; }
+        if (key === "reminders" && patch.date !== undefined) { finalPatch.reminder_date = patch.date; delete finalPatch.date; }
+        if (key === "mutualFunds") {
+          if (patch.name !== undefined) { finalPatch.scheme = patch.name; delete finalPatch.name; }
+          if (patch.category !== undefined) { finalPatch.type = patch.category; delete finalPatch.category; }
+        }
+
         // Specific field mapping for updates
         if (key === "creditCards") { if (patch.limit !== undefined) { finalPatch.card_limit = patch.limit; } delete finalPatch.limit; }
         if ((key === "loansTaken" || key === "loansGiven") && patch.lender) { finalPatch.lender_borrower = patch.lender; delete finalPatch.lender; }
@@ -1612,7 +1629,7 @@ function FinanceDashboard() {
       data.settings && supabase.from("user_settings").upsert({ ...cleanItem(camelToSnake(data.settings)), user_id: userId }),
       ...push("bank_accounts",      data.bankAccounts),
       ...push("transactions",        data.transactions),
-      ...push("mutual_funds",        data.mutualFunds),
+      ...push("mutual_funds",        data.mutualFunds, item => ({ scheme: item.name || item.scheme || "", type: item.category || item.type || null, name: undefined, category: undefined })),
       ...push("stocks",              data.stocks),
       ...push("demat_accounts",      data.demat),
       ...push("fixed_deposits",      data.fixedDeposits),
