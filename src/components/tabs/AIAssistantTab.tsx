@@ -166,15 +166,17 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
       continue;
     }
 
-    // Numbered list (trimStart lets indented numbered items work)
+    // Numbered list — preserve actual start number so interrupted lists
+    // (e.g. "3. ..." after a bullet block) don't reset to "1."
     if (/^\d+\. /.test(line)) {
+      const startNum = parseInt(line.match(/^(\d+)\./)[1], 10);
       const items: string[] = [];
       while (i < rawLines.length && /^\d+\. /.test(rawLines[i].trimStart())) {
         items.push(rawLines[i].trimStart().replace(/^\d+\. /, ""));
         i++;
       }
       nodes.push(
-        <ol key={`ol-${i}`} style={{ margin: "2px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 4 }}>
+        <ol key={`ol-${i}`} start={startNum} style={{ margin: "2px 0", paddingLeft: 22, display: "flex", flexDirection: "column", gap: 4 }}>
           {items.map((item, idx) => (
             <li key={idx} style={{ lineHeight: 1.7, fontSize: 15 }}>{parseInline(item)}</li>
           ))}
