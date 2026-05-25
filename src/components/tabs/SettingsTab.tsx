@@ -576,6 +576,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"" | "ok" | "err">("");
   const [errMsg, setErrMsg] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [health, setHealth] = useState<any>(null);
 
   const inp: any = {
     width: "100%", padding: "10px 14px", boxSizing: "border-box",
@@ -597,10 +599,24 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
       });
       const json = await res.json();
       if (res.ok && json.sent) { setSendStatus("ok"); }
-      else { setSendStatus("err"); setErrMsg(json.error || "Unknown error"); }
+      else {
+        setSendStatus("err");
+        setErrMsg(json.hint ? `${json.error} — ${json.hint}` : (json.error || "Unknown error"));
+      }
     } catch (e: any) {
       setSendStatus("err"); setErrMsg(e.message);
-    } finally { setSending(false); setTimeout(() => setSendStatus(""), 5000); }
+    } finally { setSending(false); setTimeout(() => setSendStatus(""), 8000); }
+  }
+
+  async function handleCheckConfig() {
+    setChecking(true); setHealth(null);
+    try {
+      const res = await fetch("/api/send-summary?action=healthcheck");
+      const json = await res.json();
+      setHealth(json);
+    } catch (e: any) {
+      setHealth({ error: e.message });
+    } finally { setChecking(false); }
   }
 
   const freqOptions: { value: string; label: string; desc: string }[] = [
@@ -789,11 +805,97 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 </span>
               )}
               {sendStatus === "err" && (
-                <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600 }}>
+                <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600, maxWidth: 480 }}>
                   ✕ {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
                 </span>
               )}
             </div>
+          </Card>
+
+          {/* Configuration diagnostics */}
+          <Card style={{ padding: 24, border: `1px solid ${THEME.line}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Configuration Check</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Diagnose why emails may not be delivering</div>
+              </div>
+              <button
+                onClick={handleCheckConfig}
+                disabled={checking}
+                style={{
+                  padding: "8px 18px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
+                  background: "var(--t-paper)", color: THEME.ink, fontWeight: 600, fontSize: 13,
+                  cursor: checking ? "default" : "pointer", fontFamily: "inherit",
+                  opacity: checking ? 0.6 : 1,
+                }}
+              >
+                {checking ? "Checking…" : "Check Config"}
+              </button>
+            </div>
+
+            {health && !health.error && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  {
+                    ok: health.resendKey,
+                    label: "Resend API Key",
+                    pass: "Configured in Vercel",
+                    fail: "Missing — add Resend_Email_API to Vercel Environment Variables",
+                  },
+                  {
+                    ok: health.supabaseServiceKey,
+                    label: "Supabase Service Role Key",
+                    pass: "Configured in Vercel",
+                    fail: "Missing — add SUPABASE_SERVICE_ROLE_KEY to Vercel (get from Supabase → Project Settings → API)",
+                  },
+                  {
+                    ok: health.supabaseUrl,
+                    label: "Supabase URL",
+                    pass: "Configured",
+                    fail: "Missing VITE_SUPABASE_URL",
+                  },
+                  {
+                    ok: !health.usingTestDomain,
+                    label: "From Email (Sender)",
+                    pass: `Using ${health.fromEmail}`,
+                    fail: `Using test sender (onboarding@resend.dev) — this can ONLY deliver to the email you registered with Resend. Set RESEND_FROM_EMAIL in Vercel to your verified domain sender (e.g. noreply@yourdomain.com) to send to any address.`,
+                  },
+                  {
+                    ok: health.ready,
+                    label: "Overall Status",
+                    pass: "Ready to send emails",
+                    fail: "Not fully configured — fix the issues above",
+                  },
+                ].map(row => (
+                  <div key={row.label} style={{
+                    display: "flex", gap: 10, alignItems: "flex-start",
+                    padding: "10px 12px", borderRadius: 8,
+                    background: row.ok ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
+                    border: `1px solid ${row.ok ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
+                  }}>
+                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{row.ok ? "✅" : "❌"}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{row.label}</div>
+                      <div style={{ fontSize: 12, color: row.ok ? THEME.sage : THEME.rust, marginTop: 2, lineHeight: 1.5 }}>
+                        {row.ok ? row.pass : row.fail}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {health?.error && (
+              <div style={{ fontSize: 13, color: THEME.rust }}>
+                Could not reach API: {health.error}
+              </div>
+            )}
+
+            {!health && !checking && (
+              <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
+                Click "Check Config" to see what's configured and what's missing in Vercel.
+              </div>
+            )}
           </Card>
         </>
       )}

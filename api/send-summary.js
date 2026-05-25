@@ -6,6 +6,12 @@ const { createClient } = require("@supabase/supabase-js");
 const RESEND_KEY = process.env.Resend_Email_API || process.env.RESEND_API_KEY;
 const resend = new Resend(RESEND_KEY);
 
+// Allow a verified custom domain via RESEND_FROM_EMAIL env var.
+// If unset, falls back to the Resend test sender which can ONLY deliver
+// to the email address used to register the Resend account.
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+const FROM_ADDR = `Personal Finance <${FROM_EMAIL}>`;
+
 // ── Supabase admin client (service role bypasses RLS) ─────────────────────────
 function getSupabase() {
   return createClient(
@@ -212,7 +218,7 @@ function computeSummary(state) {
   if (savingsPct < 20 && monthIncome > 0) alerts.push({ type: "info", msg: `Savings rate this month: ${savingsPct}% — aim for 20%+` });
 
   return {
-    netWorth, bankTotal, investTotal, mfTotal, stockTotal, fdTotal,
+    netWorth, bankTotal, investTotal, mfTotal, stockTotal, fdTotal, rdTotal,
     creditOutstanding, creditLimit, creditUtil, loanOutstanding,
     monthExpense, monthIncome, netSavings, savingsPct,
     topCats, budgetStatus, dues, goals, alerts,
@@ -223,11 +229,12 @@ function computeSummary(state) {
 // ── HTML email template ──────────────────────────────────────────────────────
 function generateHTML(summary, frequency, recipientName) {
   const {
-    netWorth, bankTotal, investTotal, mfTotal, stockTotal, fdTotal,
+    netWorth, bankTotal, investTotal, mfTotal, stockTotal, fdTotal, rdTotal,
     creditOutstanding, creditUtil, activeCardCount, activeCards,
     monthExpense, monthIncome, netSavings, savingsPct,
     topCats, dues, goals, alerts, budgetStatus,
   } = summary;
+  const fdRdTotal = (fdTotal || 0) + (rdTotal || 0);
 
   const ist = nowIST();
   const dateStr = ist.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -437,7 +444,7 @@ function generateHTML(summary, frequency, recipientName) {
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       ${mfTotal > 0 ? statBox("Mutual Funds", fmtINR(mfTotal), `${pct(mfTotal, investTotal)}% of portfolio`) : ""}
       ${stockTotal > 0 ? statBox("Stocks", fmtINR(stockTotal), `${pct(stockTotal, investTotal)}% of portfolio`) : ""}
-      ${fdTotal > 0 ? statBox("FDs & RDs", fmtINR(fdTotal), "Fixed income") : ""}
+      ${fdRdTotal > 0 ? statBox("FDs & RDs", fmtINR(fdRdTotal), "Fixed income") : ""}
     </tr></table>
   </td></tr>` : ""}
 
@@ -600,10 +607,26 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  // ── Health check — called by Settings UI to diagnose config ───────────────
+  if (req.method === "GET" && req.query?.action === "healthcheck") {
+    const isTestDomain = FROM_EMAIL === "onboarding@resend.dev";
+    return res.status(200).json({
+      resendKey: !!RESEND_KEY,
+      supabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseUrl: !!process.env.VITE_SUPABASE_URL,
+      fromEmail: FROM_EMAIL,
+      usingTestDomain: isTestDomain,
+      testDomainWarning: isTestDomain
+        ? "onboarding@resend.dev can only deliver to the email address you used to register with Resend. Set RESEND_FROM_EMAIL in Vercel env vars to a verified domain sender to send to any address."
+        : null,
+      ready: !!RESEND_KEY && !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+  }
+
   const isCron = req.method === "GET";
   const isManual = req.method === "POST";
 
-  // ── Auth check ────────────────────────────────────────────────────────────
+  // ── Cron auth ─────────────────────────────────────────────────────────────
   if (isCron) {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers["authorization"];
@@ -617,34 +640,52 @@ module.exports = async function handler(req, res) {
       // ── Manual "Send Test" from Settings UI ─────────────────────────────
       const { state, emailTo, frequency, recipientName } = req.body || {};
       if (!state || !emailTo) return res.status(400).json({ error: "state and emailTo required" });
-      if (!RESEND_KEY) return res.status(500).json({ error: "Resend API key not configured" });
+      if (!RESEND_KEY) return res.status(500).json({ error: "Resend API key not configured. Add Resend_Email_API to Vercel environment variables." });
 
       const summary = computeSummary(state);
       const freq = frequency || "weekly";
       const html = generateHTML(summary, freq, recipientName || "there");
       const subject = buildSubject(freq, summary.netWorth);
 
-      const { error } = await resend.emails.send({
-        from: "Personal Finance <onboarding@resend.dev>",
+      const { data: sendData, error } = await resend.emails.send({
+        from: FROM_ADDR,
         to: emailTo,
         subject,
         html,
       });
 
-      if (error) return res.status(500).json({ error: error.message });
-      return res.status(200).json({ sent: true, to: emailTo });
+      if (error) {
+        console.error("[send-summary] Resend error:", error);
+        return res.status(500).json({
+          error: error.message,
+          hint: FROM_EMAIL === "onboarding@resend.dev"
+            ? "You are using the test sender (onboarding@resend.dev). It can only send to the email you registered with Resend. Set RESEND_FROM_EMAIL in Vercel to a verified domain."
+            : null,
+        });
+      }
+      return res.status(200).json({ sent: true, to: emailTo, id: sendData?.id });
     }
 
     if (isCron) {
-      // ── Scheduled cron: check all users' schedules ───────────────────────
-      if (!RESEND_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return res.status(500).json({ error: "Missing Resend API key or SUPABASE_SERVICE_ROLE_KEY" });
+      // ── Scheduled cron ───────────────────────────────────────────────────
+      if (!RESEND_KEY) {
+        console.error("[send-summary] MISSING: Resend_Email_API not set in Vercel env vars");
+        return res.status(500).json({ error: "Resend API key not configured" });
+      }
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error("[send-summary] MISSING: SUPABASE_SERVICE_ROLE_KEY not set in Vercel env vars");
+        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured" });
       }
 
       const supabase = getSupabase();
-      const { data: allSettings } = await supabase
+      const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
         .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address");
+
+      if (settErr) {
+        console.error("[send-summary] Failed to fetch user_settings:", settErr.message);
+        return res.status(500).json({ error: `DB error: ${settErr.message}. Run migration 29_email_settings.sql in Supabase.` });
+      }
 
       const results = [];
       for (const row of allSettings || []) {
@@ -653,27 +694,34 @@ module.exports = async function handler(req, res) {
         const freq = row.email_frequency || "weekly";
         if (!shouldSendNow(row, freq)) continue;
 
-        const state = await fetchStateFromSupabase(supabase, row.user_id);
-        const summary = computeSummary(state);
-        const html = generateHTML(summary, freq, "there");
-        const subject = buildSubject(freq, summary.netWorth);
+        try {
+          const state = await fetchStateFromSupabase(supabase, row.user_id);
+          const summary = computeSummary(state);
+          const html = generateHTML(summary, freq, "there");
+          const subject = buildSubject(freq, summary.netWorth);
 
-        const { error } = await resend.emails.send({
-          from: "Personal Finance <onboarding@resend.dev>",
-          to: row.email_address,
-          subject,
-          html,
-        });
+          const { error } = await resend.emails.send({
+            from: FROM_ADDR,
+            to: row.email_address,
+            subject,
+            html,
+          });
 
-        results.push({ userId: row.user_id, sent: !error, error: error?.message });
+          if (error) console.error(`[send-summary] Failed for user ${row.user_id}:`, error.message);
+          results.push({ userId: row.user_id, email: row.email_address, sent: !error, error: error?.message });
+        } catch (userErr) {
+          console.error(`[send-summary] Error processing user ${row.user_id}:`, userErr.message);
+          results.push({ userId: row.user_id, sent: false, error: userErr.message });
+        }
       }
 
-      return res.status(200).json({ processed: results.length, results });
+      console.log(`[send-summary] Cron complete. Processed: ${results.length}, Sent: ${results.filter(r => r.sent).length}`);
+      return res.status(200).json({ processed: results.length, sent: results.filter(r => r.sent).length, results });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
-    console.error("[send-summary]", err);
+    console.error("[send-summary] Unhandled error:", err);
     return res.status(500).json({ error: err.message });
   }
 };
