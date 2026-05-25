@@ -110,7 +110,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
     const fyStartStr = `${fyStartYear}-04-01`;
     const fyEndStr = `${fyStartYear + 1}-03-31`;
     const elss = (state.mutualFunds || [])
-      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
+      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr)
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
     const ppfThisYear = (state.ppfLedger || [])
       .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")

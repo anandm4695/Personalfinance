@@ -567,12 +567,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const smartInsights = useMemo(() => {
     const insights: any[] = [];
-    const explicitIncome = (state.income || []).reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+    const now2 = new Date();
+    const fyStartYear2 = now2.getMonth() >= 3 ? now2.getFullYear() : now2.getFullYear() - 1;
+    const fyStart2 = new Date(`${fyStartYear2}-04-01`);
+    const explicitIncome = (state.income || [])
+      .filter((i: any) => new Date(i.date) >= fyStart2)
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const txnIncome = (state.transactions || [])
-      .filter((t: any) => t.type === "credit")
+      .filter((t: any) => t.type === "credit" && t.date && new Date(t.date) >= fyStart2)
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const annualizedCurrentMonth = (metrics?.monthIncome || 0) * 12;
-    const annualIncome = explicitIncome || annualizedCurrentMonth || txnIncome || 0;
+    // Correct priority: explicit ledger → FY-to-date txns → annualised current month
+    const annualIncome = explicitIncome || txnIncome || annualizedCurrentMonth || 0;
     
     const totalTermCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
     const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;

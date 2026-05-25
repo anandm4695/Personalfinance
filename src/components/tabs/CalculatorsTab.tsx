@@ -5,6 +5,7 @@ import {
   TrendingUp,
   Clock,
   Briefcase,
+  BarChart2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -46,6 +47,19 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
     const corpus = r === 0 ? m * n : m * (Math.pow(1 + r, n) - 1) / r * (1 + r);
     return { corpus, invested: m * n, gains: corpus - m * n };
   }, [sipAmt, sipYrs, sipRate]);
+
+  // CAGR Calculator
+  const [cagrInvested, setCagrInvested] = useState("100000");
+  const [cagrCurrent, setCagrCurrent] = useState("200000");
+  const [cagrYears, setCagrYears] = useState("5");
+  const cagrResult = useMemo(() => {
+    const inv = Number(cagrInvested) || 0;
+    const curr = Number(cagrCurrent) || 0;
+    const yrs = Number(cagrYears) || 0;
+    if (inv <= 0 || curr <= 0 || yrs <= 0) return { cagr: null, absoluteReturn: 0, absolutePct: 0 };
+    const cagr = (Math.pow(curr / inv, 1 / yrs) - 1) * 100;
+    return { cagr, absoluteReturn: curr - inv, absolutePct: ((curr - inv) / inv) * 100 };
+  }, [cagrInvested, cagrCurrent, cagrYears]);
 
   // Net Worth Projection
   const [nwpSavings, setNwpSavings] = useState("30000");
@@ -136,6 +150,32 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
             {resultRow("Estimated Corpus", sipResult.corpus, true)}
             {resultRow("Total Invested", sipResult.invested)}
             {resultRow("Wealth Gain", sipResult.gains)}
+          </div>
+        </Card>
+
+        <Card style={{ padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <BarChart2 size={18} color={THEME.rust} />
+            <div style={{ fontSize: 16, fontWeight: 700 }}>CAGR Calculator</div>
+          </div>
+          {inpRow("Amount Invested (₹)", cagrInvested, setCagrInvested)}
+          {inpRow("Current / Final Value (₹)", cagrCurrent, setCagrCurrent)}
+          {inpRow("Holding Period (years)", cagrYears, setCagrYears)}
+          <div style={{ marginTop: 20, padding: 16, background: "rgba(128,128,128,0.04)", borderRadius: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
+              <span style={{ color: THEME.muted }}>CAGR</span>
+              <span style={{ fontWeight: 800, fontSize: 22, color: cagrResult.cagr !== null && cagrResult.cagr >= 0 ? THEME.sage : THEME.rust }}>
+                {cagrResult.cagr !== null ? `${cagrResult.cagr.toFixed(2)}%` : "—"}
+              </span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
+              <span style={{ color: THEME.muted }}>Absolute Return</span>
+              <span style={{ fontWeight: 600, color: cagrResult.absoluteReturn >= 0 ? THEME.sage : THEME.rust }}>{fmtINRFull(cagrResult.absoluteReturn)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 14 }}>
+              <span style={{ color: THEME.muted }}>Return %</span>
+              <span style={{ fontWeight: 600, color: cagrResult.absolutePct >= 0 ? THEME.sage : THEME.rust }}>{cagrResult.absolutePct.toFixed(1)}%</span>
+            </div>
           </div>
         </Card>
 

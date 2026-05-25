@@ -132,7 +132,11 @@ export const calcTaxNew = (income: number) => {
       prev = limit;
     } else break;
   }
+  // Section 87A rebate: zero tax if taxable income ≤ ₹12L
   if (income <= 1200000) tax = 0;
+  // Marginal relief (FY 2025-26): for income 12L–~13.1L, cap tax at (income − 12L)
+  // so taxpayers just above the rebate cliff are never worse off by ₹1 extra income
+  else if (income < 1500000) tax = Math.min(tax, income - 1200000);
   const cess = tax * 0.04;
   return { tax, cess, total: tax + cess };
 };

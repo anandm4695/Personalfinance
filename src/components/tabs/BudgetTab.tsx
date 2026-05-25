@@ -130,6 +130,18 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             sub={`${fmtINRFull(totalBudget)} of ${fmtINRFull(metrics.monthIncome)} income`}
           />
         )}
+        {metrics?.monthIncome > 0 && (() => {
+          const unallocated = metrics.monthIncome - totalBudget;
+          return (
+            <StatCard
+              icon={<Wallet />}
+              label="Unallocated Income"
+              value={fmtINRFull(Math.abs(unallocated))}
+              color={unallocated < 0 ? THEME.rust : unallocated < metrics.monthIncome * 0.1 ? THEME.gold : THEME.sage}
+              sub={unallocated < 0 ? "Budget exceeds income" : `${((unallocated / metrics.monthIncome) * 100).toFixed(0)}% not yet budgeted`}
+            />
+          );
+        })()}
       </div>
 
       {totalBudget > 0 && (() => {
@@ -294,9 +306,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
   );
 }
 
-export function BudgetModal({ onClose, onSave, initialValues = null }: any) {
+export function BudgetModal({ onClose, onSave, initialValues = null, existing = [] }: any) {
   const { transactionCategories: allCats } = useMasterData();
-  const [f, setF] = useState(initialValues ? { owner: initialValues.owner || "self", category: initialValues.category || allCats[0], monthly: initialValues.monthly || "" } : { owner: "self", category: allCats[0], monthly: "" });
+  // Filter out categories already budgeted (except the one being edited)
+  const availableCats = allCats.filter((c: string) => !existing.includes(c));
+  const defaultCat = initialValues?.category || availableCats[0] || allCats[0];
+  const [f, setF] = useState(initialValues ? { owner: initialValues.owner || "self", category: initialValues.category, monthly: initialValues.monthly || "" } : { owner: "self", category: defaultCat, monthly: "" });
   return (
     <Modal title={initialValues ? "Edit Budget" : "Add Budget"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -306,7 +321,9 @@ export function BudgetModal({ onClose, onSave, initialValues = null }: any) {
       </Field>
       <Field label="Category">
         <select className="form-input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
-          {allCats.map((c) => <option key={c}>{c}</option>)}
+          {initialValues && <option key={initialValues.category}>{initialValues.category}</option>}
+          {availableCats.filter((c: string) => !initialValues || c !== initialValues.category).map((c: string) => <option key={c}>{c}</option>)}
+          {availableCats.length === 0 && !initialValues && <option disabled>All categories budgeted</option>}
         </select>
       </Field>
       <Field label="Monthly Limit (₹)">
