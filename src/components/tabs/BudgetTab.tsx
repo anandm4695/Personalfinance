@@ -288,7 +288,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {/* Chevron Navigation */}
-          <div style={{ display: "flex", background: "var(--t-line)", borderRadius: 10, padding: 3, border: "1px solid var(--t-line)" }}>
+          <div style={{ display: "flex", background: "var(--t-line)", borderRadius: 10, padding: 3, border: "1px solid var(--t-line)", alignItems: "center" }}>
             <Button variant="ghost" size="sm" onClick={handlePrevMonth} style={{ padding: 6, borderRadius: 8, height: "auto" }}>
               <ChevronLeft size={16} />
             </Button>
@@ -300,6 +300,28 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
               <ChevronRight size={16} />
             </Button>
           </div>
+
+          {/* Today Shortcut Button */}
+          {selectedMonth !== new Date().toISOString().slice(0, 7) && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))} 
+              style={{ 
+                border: "1px solid var(--t-line)", 
+                borderRadius: 10, 
+                fontSize: 12, 
+                fontWeight: 700, 
+                padding: "6px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              <Calendar size={13} />
+              Go to Today
+            </Button>
+          )}
         </div>
 
         {/* Sub Navigation Segmented Control */}
