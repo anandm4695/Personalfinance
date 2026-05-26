@@ -297,16 +297,21 @@ function FinanceDashboard() {
   }, [logActivity, session]);
 
   const updateDismissedAlerts = useCallback(async (newDismissed: Record<string, number>) => {
-    setState(s => ({
-      ...s,
-      dismissedAlerts: newDismissed
-    }));
+    let mergedMaster: any = null;
+    setState(s => {
+      mergedMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _dismissedAlerts: newDismissed };
+      return {
+        ...s,
+        dismissedAlerts: newDismissed,
+        masterData: mergedMaster
+      };
+    });
 
     const userId = session?.user?.id;
-    if (userId && userId !== "offline-user") {
+    if (userId && userId !== "offline-user" && mergedMaster) {
       const { error: settErr } = await supabase.from("user_settings").upsert({
         user_id: userId,
-        dismissed_alerts: newDismissed
+        master_data: mergedMaster
       });
       if (settErr) console.error("updateDismissedAlerts DB error:", settErr.message);
     }
@@ -496,7 +501,7 @@ function FinanceDashboard() {
             settings: snakeToCamel({ ...sett.data, master_data: undefined, dismissed_alerts: undefined }),
             ...(sett.data.master_data ? { masterData: { ...DEFAULT_MASTER_DATA, ...sett.data.master_data } } : {}),
           } : {}),
-          ...(sett.data?.dismissed_alerts ? { dismissedAlerts: sett.data.dismissed_alerts } : {}),
+          ...(sett.data?.master_data?._dismissedAlerts ? { dismissedAlerts: sett.data.master_data._dismissedAlerts } : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
           ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
