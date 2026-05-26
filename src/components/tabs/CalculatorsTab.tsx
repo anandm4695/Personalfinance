@@ -44,7 +44,8 @@ interface CalculatorsTabProps {
 }
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
-  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress">("emi");
+  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress" | "monte-carlo">("emi");
+  const [monteVolatility, setMonteVolatility] = useState("10");
 
   // ── 1. EMI CALCULATOR STATE & LOGIC ──
   const [emiP, setEmiP] = useState("1000000");
@@ -173,6 +174,104 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const [firePreReturn, setFirePreReturn] = useState("12");
   const [firePostReturn, setFirePostReturn] = useState("8");
   const [fireLifeExp, setFireLifeExp] = useState("85");
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MONTE CARLO RETIREMENT SIMULATOR (RELEASE 5)
+     ══════════════════════════════════════════════════════════════════════ */
+  const monteCarloResult = useMemo(() => {
+    if (calcTab !== "monte-carlo") return null;
+
+    const startAge = Number(fireRetireAge) || 55;
+    const endAge = Number(fireLifeExp) || 85;
+    const yrsInRet = Math.max(1, endAge - startAge);
+
+    const initialCorpus = Number(firePortfolio) || Number(metrics?.netWorth) || 1000000;
+    const startMonthlyExpense = Number(fireExpense) || 50000;
+    const annualInflation = (Number(fireInflation) || 6) / 100;
+    const avgPostReturn = (Number(firePostReturn) || 8) / 100;
+    const portfolioVol = (Number(monteVolatility) || 10) / 100;
+
+    const numSimulations = 500;
+    const years = yrsInRet;
+    
+    const balances: number[][] = Array.from({ length: years + 1 }, () => []);
+    
+    for (let s = 0; s < numSimulations; s++) {
+      balances[0].push(initialCorpus);
+    }
+
+    let successCount = 0;
+
+    const getGaussianRandom = () => {
+      let u = 0, v = 0;
+      while(u === 0) u = Math.random(); 
+      while(v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    };
+
+    for (let s = 0; s < numSimulations; s++) {
+      let corpus = initialCorpus;
+      let monthlyExpense = startMonthlyExpense;
+
+      for (let y = 1; y <= years; y++) {
+        monthlyExpense = monthlyExpense * (1 + annualInflation);
+        const annualExpense = monthlyExpense * 12;
+
+        if (corpus > 0) {
+          const normalRand = getGaussianRandom();
+          const annualReturn = avgPostReturn + portfolioVol * normalRand;
+          corpus = Math.max(0, (corpus - annualExpense) * (1 + annualReturn));
+        } else {
+          corpus = 0;
+        }
+
+        balances[y].push(corpus);
+      }
+
+      if (corpus > 0) {
+        successCount++;
+      }
+    }
+
+    const successProbability = (successCount / numSimulations) * 100;
+
+    const chartData = [];
+    for (let y = 0; y <= years; y++) {
+      const yearBalances = [...balances[y]];
+      yearBalances.sort((a, b) => a - b);
+
+      const p10Idx = Math.floor(numSimulations * 0.10);
+      const p50Idx = Math.floor(numSimulations * 0.50);
+      const p90Idx = Math.floor(numSimulations * 0.90);
+
+      chartData.push({
+        year: startAge + y,
+        "Worst Case (10th %)": Math.round(yearBalances[p10Idx]),
+        "Expected Case (50th %)": Math.round(yearBalances[p50Idx]),
+        "Best Case (90th %)": Math.round(yearBalances[p90Idx]),
+      });
+    }
+
+    let totalYearsLasted = 0;
+    for (let s = 0; s < numSimulations; s++) {
+      let zeroYear = years;
+      for (let y = 0; y <= years; y++) {
+        if (balances[y][s] <= 0) {
+          zeroYear = y;
+          break;
+        }
+      }
+      totalYearsLasted += zeroYear;
+    }
+    const avgYearsLasted = totalYearsLasted / numSimulations;
+
+    return {
+      successProbability,
+      avgYearsLasted,
+      chartData,
+      yrsInRet
+    };
+  }, [calcTab, fireRetireAge, fireLifeExp, firePortfolio, fireExpense, fireInflation, firePostReturn, monteVolatility, metrics?.netWorth]);
 
   const fireResult = useMemo(() => {
     const curAge = Math.max(1, Number(fireAge) || 30);
@@ -574,7 +673,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
           { id: "loan-invest", label: "Loan vs Invest", icon: ArrowRightLeft },
           { id: "projection", label: "Wealth Projection", icon: Briefcase },
-          { id: "stress", label: "Runway Stress Tester", icon: Shield }
+          { id: "stress", label: "Runway Stress Tester", icon: Shield },
+          { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles }
         ].map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
@@ -1492,6 +1592,133 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     Expense ({fmtINR(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs ({fmtINR(stressResult.activeEMIs)}/mo)
                   </div>
 
+                </div>
+              </Card>
+
+            </div>
+          </>
+        )}
+
+        {calcTab === "monte-carlo" && monteCarloResult && (
+          <>
+            <div className="bento-col-5">
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Sparkles size={18} color={THEME.accent} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Stochastic Parameters</div>
+                </div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {inpRow("Current Age", fireAge, setFireAge)}
+                  {inpRow("Retirement Age", fireRetireAge, setFireRetireAge)}
+                </div>
+                {inpRow("Current Expenses (₹/mo)", fireExpense, setFireExpense)}
+                {inpRow("Retirement Corpus (₹)", firePortfolio, setFirePortfolio)}
+                
+                <div className="divider" style={{ margin: "20px 0 16px" }} />
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>Economic & Risk Assumptions</div>
+                
+                {sliderRow("Inflation Rate", fireInflation, setFireInflation, 1, 15, 0.5, "%")}
+                {sliderRow("Post-Retire Return (Mean)", firePostReturn, setFirePostReturn, 4, 18, 0.5, "%")}
+                {sliderRow("Portfolio Volatility (Std Dev)", monteVolatility, setMonteVolatility, 2, 25, 0.5, "%")}
+                {sliderRow("Planned Life Expectancy", fireLifeExp, setFireLifeExp, 60, 100, 1, " yrs")}
+              </Card>
+            </div>
+
+            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              
+              {/* SUCCESS SCORE CARD */}
+              {(() => {
+                const score = monteCarloResult.successProbability;
+                const statusColor = score >= 80 ? THEME.sage : score >= 50 ? THEME.gold : THEME.rust;
+                const statusText = score >= 80 ? "High Success Rate" : score >= 50 ? "Moderate Sequence Risk" : "High Failure Risk";
+                
+                return (
+                  <Card style={{ padding: 24, borderLeft: `4px solid ${statusColor}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>FIRE Longevity Success Score</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, marginTop: 4, color: statusColor }}>
+                          {score.toFixed(1)}% Success
+                        </div>
+                      </div>
+                      <Badge variant={score >= 80 ? "sage" : score >= 50 ? "gold" : "rust"} style={{ fontSize: 11, fontWeight: 800 }}>
+                        {statusText}
+                      </Badge>
+                    </div>
+
+                    <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 12 }}>
+                      <div style={{ height: "100%", width: `${score}%`, background: statusColor, borderRadius: 5, transition: "width 0.4s ease" }} />
+                    </div>
+
+                    <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
+                      ⏱️ Out of <b>500 randomized market sequences</b>, your portfolio survived standard withdrawals in <b>{Math.round(score * 5)}</b> runs. 
+                      On average, your assets will sustain you for <b>{monteCarloResult.avgYearsLasted.toFixed(1)} years</b> out of your <b>{monteCarloResult.yrsInRet} planned years</b> in retirement.
+                    </div>
+                  </Card>
+                );
+              })()}
+
+              {/* DYNAMIC PROBABILITY BAND CHART */}
+              <Card style={{ padding: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em", marginBottom: 16 }}>
+                  Monte Carlo Wealth Projections (Probability Bands)
+                </div>
+
+                <div style={{ height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monteCarloResult.chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="bestColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01}/>
+                        </linearGradient>
+                        <linearGradient id="expectedColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={THEME.gold} stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor={THEME.gold} stopOpacity={0.01}/>
+                        </linearGradient>
+                        <linearGradient id="worstColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={THEME.rust} stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor={THEME.rust} stopOpacity={0.01}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
+                      <XAxis dataKey="year" stroke={THEME.muted} fontSize={11} tickLine={false} />
+                      <YAxis 
+                        stroke={THEME.muted} 
+                        fontSize={11} 
+                        tickLine={false} 
+                        tickFormatter={(v) => v >= 10000000 ? `${(v/10000000).toFixed(1)}Cr` : v >= 100000 ? `${(v/100000).toFixed(0)}L` : v} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ background: THEME.paper, border: `1.5px solid ${THEME.line}`, borderRadius: 10, fontSize: 12, color: THEME.ink }}
+                        formatter={(val) => fmtINRFull(Number(val))}
+                      />
+                      <Area type="monotone" dataKey="Best Case (90th %)" stroke={THEME.sage} strokeWidth={2} fillOpacity={1} fill="url(#bestColor)" />
+                      <Area type="monotone" dataKey="Expected Case (50th %)" stroke={THEME.gold} strokeWidth={2} fillOpacity={1} fill="url(#expectedColor)" />
+                      <Area type="monotone" dataKey="Worst Case (10th %)" stroke={THEME.rust} strokeWidth={2} fillOpacity={1} fill="url(#worstColor)" />
+                      <ReferenceLine y={0} stroke={THEME.rust} strokeWidth={1.5} strokeDasharray="4 4" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* CFO STOCHASTIC ADVISORY CARD */}
+              <Card style={{ padding: 20, borderLeft: `4px solid ${THEME.accent}` }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--t-accent) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Info size={18} color={THEME.accent} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}>
+                      Sequence of Returns Risk (CFO Advisory)
+                    </h4>
+                    <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                      Stochastic models fluctuate annual post-retirement returns based on standard deviations (volatility). 
+                      Even if your average return satisfies standard FIRE requirements, experiencing negative returns in the **first 3-5 years** of retirement can permanently deplete your portfolio. 
+                      Aim for a Success Score **above 85%** to survive worst-case historical sequence risks.
+                    </p>
+                  </div>
                 </div>
               </Card>
 
