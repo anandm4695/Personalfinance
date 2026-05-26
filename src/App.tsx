@@ -721,73 +721,62 @@ function FinanceDashboard() {
     if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
     const getNotificationIcon = (type: "credit" | "subscription" | "reminder") => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = 128;
-        canvas.height = 128;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return "/logo.png";
-
-        const fillStyles = {
-          credit: "#4F46E5",
-          subscription: "#D97706",
-          reminder: "#059669"
-        };
-        const emojis = {
-          credit: "💳",
-          subscription: "🔄",
-          reminder: "🔔"
-        };
-
-        const radius = 28;
-        ctx.fillStyle = fillStyles[type] || "#4F46E5";
-        ctx.beginPath();
-        if (ctx.roundRect) {
-          ctx.roundRect(0, 0, 128, 128, radius);
-        } else {
-          ctx.rect(0, 0, 128, 128);
-        }
-        ctx.fill();
-
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        ctx.font = "72px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        
-        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 4;
-
-        ctx.fillText(emojis[type] || "🔔", 64, 66);
-
-        return canvas.toDataURL("image/png");
-      } catch (e) {
-        console.warn("Failed to generate canvas notification icon, falling back", e);
-        return "/logo.png";
-      }
+      // Safari and some browser engines strictly block Data URLs in push notifications.
+      // We use ultra-reliable, high-resolution public HTTPS PNG assets as the primary source,
+      // with a local fallback to the main app logo.
+      const icons = {
+        credit: "https://img.icons8.com/color/128/bank-card.png",
+        subscription: "https://img.icons8.com/color/128/circular-arrows.png",
+        reminder: "https://img.icons8.com/color/128/bell.png"
+      };
+      return icons[type] || "/logo.png";
     };
 
     const todayStr = today();
     const soon: { title: string; body: string; type: "credit" | "subscription" | "reminder" }[] = [];
     const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - new Date(todayStr).getTime()) / 86400000);
+
     state.reminders.forEach((r) => {
       if (!r.date) return;
       const d = daysLeft(r.date);
-      if (d >= 0 && d <= 3) soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`, type: "reminder" });
+      if (d >= 0 && d <= 3) {
+        const title = r.title;
+        // Keep dismissed alerts from appearing on refresh
+        const isDismissed = state.dismissedAlerts?.[title] > Date.now();
+        if (!isDismissed) {
+          soon.push({ title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`, type: "reminder" });
+        }
+      }
     });
+
     state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (!dueDate) return;
       const d = daysLeft(dueDate);
-      if (d >= 0 && d <= 3) soon.push({ title: `${c.issuer} bill due`, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`, type: "credit" });
+      if (d >= 0 && d <= 3) {
+        const title = `${c.issuer} bill due`;
+        // Check both alert-style and push-style dismissed titles
+        const isDismissed = (state.dismissedAlerts?.[title] > Date.now()) || 
+                            (state.dismissedAlerts?.[`${c.issuer} CC due in ${d}d`] > Date.now());
+        if (!isDismissed) {
+          soon.push({ title, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`, type: "credit" });
+        }
+      }
     });
+
     state.subscriptions.filter((s) => s.renewalDate && !s.paused).forEach((s) => {
       const d = daysLeft(s.renewalDate);
-      if (d >= 0 && d <= 3) soon.push({ title: `${s.name} renewal`, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "subscription" });
+      if (d >= 0 && d <= 3) {
+        const title = `${s.name} renewal`;
+        // Check both alert-style and push-style dismissed titles
+        const isDismissed = (state.dismissedAlerts?.[title] > Date.now()) || 
+                            (state.dismissedAlerts?.[`${s.name} renews in ${d}d`] > Date.now());
+        if (!isDismissed) {
+          soon.push({ title, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "subscription" });
+        }
+      }
     });
+
     soon.forEach(({ title, body, type }) => {
       try { new Notification(title, { body, icon: getNotificationIcon(type) }); } catch {}
     });
