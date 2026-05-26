@@ -2461,7 +2461,7 @@ function FinanceDashboard() {
                           <button
                             onClick={() => {
                               const newDismissed = { ...(state.dismissedAlerts || {}) };
-                              alerts.forEach(a => { newDismissed[a.title] = Infinity; });
+                              alerts.forEach(a => { newDismissed[a.title] = 253402300799000; });
                               updateDismissedAlerts(newDismissed);
                             }}
                             style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}
@@ -2530,7 +2530,7 @@ function FinanceDashboard() {
                                   e.stopPropagation();
                                   updateDismissedAlerts({
                                     ...(state.dismissedAlerts || {}),
-                                    [a.title]: Infinity
+                                    [a.title]: 253402300799000
                                   });
                                 }}
                                 style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
