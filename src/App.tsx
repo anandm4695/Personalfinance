@@ -296,6 +296,23 @@ function FinanceDashboard() {
     logActivity("UPDATE_PROFILE", "Updated user profile", updates);
   }, [logActivity, session]);
 
+  const updateDismissedAlerts = useCallback(async (newDismissed: Record<string, number>) => {
+    setState(s => ({
+      ...s,
+      dismissedAlerts: newDismissed
+    }));
+
+    const userId = session?.user?.id;
+    if (userId && userId !== "offline-user") {
+      const { error: settErr } = await supabase.from("user_settings").upsert({
+        user_id: userId,
+        dismissed_alerts: newDismissed
+      });
+      if (settErr) console.error("updateDismissedAlerts DB error:", settErr.message);
+    }
+  }, [session]);
+
+
   const [activeProfile, setActiveProfile] = useState<string>("all");
   const [toasts, setToasts] = useState<{id:string;msg:string;type:string}[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<{message:string;onConfirm:()=>void}|null>(null);
@@ -308,6 +325,7 @@ function FinanceDashboard() {
 
   // 2. Aggressive Cleanup of Legacy Dummy Data
   useEffect(() => {
+    if (isAuthChecking) return;
     const saved = loadState();
     const isDummy = (s: any) => {
       if (!s) return false;
@@ -323,7 +341,7 @@ function FinanceDashboard() {
       setState(DEFAULT_STATE);
       // We don't reload here to avoid infinite loops if DEFAULT_STATE still looks 'dummy'
     }
-  }, [session]);
+  }, [session, isAuthChecking]);
 
   useEffect(() => {
     try {
@@ -475,9 +493,10 @@ function FinanceDashboard() {
           ...currentState,
           ...(prof.data ? { profile: snakeToCamel(prof.data) } : {}),
           ...(sett.data ? {
-            settings: snakeToCamel({ ...sett.data, master_data: undefined }),
+            settings: snakeToCamel({ ...sett.data, master_data: undefined, dismissed_alerts: undefined }),
             ...(sett.data.master_data ? { masterData: { ...DEFAULT_MASTER_DATA, ...sett.data.master_data } } : {}),
           } : {}),
+          ...(sett.data?.dismissed_alerts ? { dismissedAlerts: sett.data.dismissed_alerts } : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
           ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
@@ -2385,11 +2404,9 @@ function FinanceDashboard() {
                         {alerts.length > 0 && (
                           <button
                             onClick={() => {
-                              setState((s: any) => {
-                                const newDismissed = { ...(s.dismissedAlerts || {}) };
-                                alerts.forEach(a => { newDismissed[a.title] = Infinity; });
-                                return { ...s, dismissedAlerts: newDismissed };
-                              });
+                              const newDismissed = { ...(state.dismissedAlerts || {}) };
+                              alerts.forEach(a => { newDismissed[a.title] = Infinity; });
+                              updateDismissedAlerts(newDismissed);
                             }}
                             style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}
                             title="Clear All"
@@ -2440,7 +2457,10 @@ function FinanceDashboard() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setState((s: any) => ({ ...s, dismissedAlerts: { ...(s.dismissedAlerts || {}), [a.title]: Date.now() + 24 * 60 * 60 * 1000 } }));
+                                  updateDismissedAlerts({
+                                    ...(state.dismissedAlerts || {}),
+                                    [a.title]: Date.now() + 24 * 60 * 60 * 1000
+                                  });
                                 }}
                                 style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
                                 title="Snooze 24h"
@@ -2452,7 +2472,10 @@ function FinanceDashboard() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setState((s: any) => ({ ...s, dismissedAlerts: { ...(s.dismissedAlerts || {}), [a.title]: Infinity } }));
+                                  updateDismissedAlerts({
+                                    ...(state.dismissedAlerts || {}),
+                                    [a.title]: Infinity
+                                  });
                                 }}
                                 style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
                                 title="Clear"
