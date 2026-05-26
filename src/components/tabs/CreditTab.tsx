@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet, Sparkles, RefreshCw, Calendar, Target, Shield, BookOpen } from "lucide-react";
+import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, Download, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet, Sparkles, RefreshCw, Calendar, Target, Shield, BookOpen } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
@@ -269,6 +269,11 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
   const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
   const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
 
+  // Existing shared group names — passed to modals for datalist suggestions
+  const existingGroups: string[] = [...new Set(
+    state.creditCards.filter((c: any) => c.sharedGroup).map((c: any) => c.sharedGroup as string)
+  )];
+
   const subs = [
     { id: "cc", label: "Credit Cards", icon: CreditCard },
     { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
@@ -313,7 +318,16 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
             <>
               {(() => {
                 const activeCards = state.creditCards.filter((c: any) => (c.status || "active").toLowerCase() !== "closed");
-                const totalLimit = activeCards.reduce((acc: any, c: any) => acc + (Number(c.limit) || 0), 0);
+                // For shared-pool cards, count the pool limit once (max across group), not the sum of sub-limits
+                const groupPools: Record<string, number> = {};
+                activeCards.forEach((c: any) => {
+                  if (c.sharedGroup) {
+                    groupPools[c.sharedGroup] = Math.max(groupPools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+                  }
+                });
+                const totalLimit =
+                  activeCards.filter((c: any) => !c.sharedGroup).reduce((acc: number, c: any) => acc + (Number(c.limit) || 0), 0) +
+                  (Object.values(groupPools) as number[]).reduce((acc: number, v: number) => acc + v, 0);
                 const totalOutstandingCC = activeCards.reduce((acc: any, c: any) => acc + (Number(c.outstanding) || 0), 0);
                 const totalAvailable = totalLimit - totalOutstandingCC;
                 const utilPct = totalLimit > 0 ? Math.round((totalOutstandingCC / totalLimit) * 100) : 0;
@@ -349,23 +363,36 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                 ];
 
                 return (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
-                    {statCards.map((s) => (
-                      <StatCard
-                        key={s.label}
-                        label={s.label}
-                        value={s.value}
-                        sub={s.sub}
-                        icon={s.icon}
-                        color={s.color}
-                        borderColor={s.borderColor}
-                        iconBg={s.iconBg}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 14 }}>
+                      {statCards.map((s) => (
+                        <StatCard
+                          key={s.label}
+                          label={s.label}
+                          value={s.value}
+                          sub={s.sub}
+                          icon={s.icon}
+                          color={s.color}
+                          borderColor={s.borderColor}
+                          iconBg={s.iconBg}
+                        />
+                      ))}
+                    </div>
+                    {activeCards.length > 0 && (
+                      <div style={{ marginBottom: 24, padding: "9px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: utilPct > 30 ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)", border: `1px solid ${utilPct > 30 ? "rgba(239,68,68,0.18)" : "rgba(34,197,94,0.18)"}`, color: utilPct > 30 ? THEME.rust : THEME.sage }}>
+                        {utilPct > 70
+                          ? `⚠ Critical: ${utilPct}% overall utilization — very high. Pay down balances urgently to protect your credit score.`
+                          : utilPct > 30
+                          ? `⚠ ${utilPct}% overall utilization — above the recommended 30% threshold. Reducing this will improve your credit score.`
+                          : utilPct > 0
+                          ? `✓ ${utilPct}% overall utilization — healthy range. Keeping below 30% is great for your credit score.`
+                          : `✓ No outstanding balance — excellent credit utilization.`}
+                      </div>
+                    )}
+                  </>
                 );
               })()}
-              <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} onAdd={() => setModal("cc")} />
+              <CCList items={state.creditCards} onRemove={(id: any) => removeItem("creditCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("creditCards", id, updates)} onAdd={() => setModal("cc")} existingGroups={existingGroups} />
             </>
           )}
           {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} onAdd={() => setModal("prepaid")} />}
@@ -487,12 +514,12 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           {sub === "optimizer" && <DebtPayoffOptimizer state={state} />}
       </div>
 
-      {modal === "cc" && <CCModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("creditCards", v); setModal(null); }} />}
+      {modal === "cc" && <CCModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("creditCards", v); setModal(null); }} existingGroups={existingGroups} />}
       {modal === "prepaid" && <PrepaidModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("prepaidCards", v); setModal(null); }} />}
       {modal === "taken" && <LoanTakenModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("loansTaken", v); setModal(null); }} />}
       {modal === "given" && <LoanGivenModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("loansGiven", v); setModal(null); }} />}
 
-      {editId && sub === "cc" && <CCModal initial={state.creditCards.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("creditCards", editId, v); setEditId(null); }} />}
+      {editId && sub === "cc" && <CCModal initial={state.creditCards.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("creditCards", editId, v); setEditId(null); }} existingGroups={existingGroups} />}
       {editId && sub === "prepaid" && <PrepaidModal initial={state.prepaidCards.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("prepaidCards", editId, v); setEditId(null); }} />}
       {editId && sub === "taken" && <LoanTakenModal initial={state.loansTaken.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansTaken", editId, v); setEditId(null); }} />}
       {editId && sub === "given" && <LoanGivenModal initial={state.loansGiven.find((x: any) => x.id === editId)} onClose={() => setEditId(null)} onSave={(v: any) => { updateItem("loansGiven", editId, v); setEditId(null); }} />}
@@ -552,7 +579,7 @@ function PrepaidEmptyState({ onAdd }: any) {
   );
 }
 
-function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
+function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -564,6 +591,143 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
   const selectedCard = items.find((c: any) => c.id === selectedLedger);
 
   if (!items.length) return <CCEmptyState onAdd={onAdd} />;
+
+  // Partition display cards into ungrouped and shared-pool groups
+  const ungroupedCards: any[] = [];
+  const groupedCards: Record<string, any[]> = {};
+  displayCards.forEach((c: any) => {
+    if (c.sharedGroup) {
+      if (!groupedCards[c.sharedGroup]) groupedCards[c.sharedGroup] = [];
+      groupedCards[c.sharedGroup].push(c);
+    } else {
+      ungroupedCards.push(c);
+    }
+  });
+
+  const renderCard = (c: any) => {
+    const isClosed = (c.status || "active").toLowerCase() === "closed";
+    const util = Number(c.limit) ? (Number(c.outstanding) / Number(c.limit)) * 100 : 0;
+    return (
+      <div
+        key={c.id}
+        style={{
+          ...cardDark,
+          position: "relative",
+          background: isClosed
+            ? `linear-gradient(135deg, #3a3a42 0%, #2a2a32 100%)`
+            : getCardGradient(c.issuer),
+          paddingBottom: isClosed ? 20 : 60,
+          opacity: isClosed ? 0.8 : 1,
+          filter: isClosed ? "grayscale(35%)" : "none",
+        }}
+      >
+        {/* Action buttons */}
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
+          {!isClosed && closingId !== c.id && (
+            <button
+              onClick={() => { setClosingId(c.id); setCloseDate(today()); }}
+              title="Mark card as closed"
+              style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+            >
+              CLOSE CARD
+            </button>
+          )}
+          {isClosed && (
+            <button
+              onClick={() => onUpdateCard(c.id, { status: "active", closedDate: "" })}
+              title="Reactivate card"
+              style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", cursor: "pointer", color: "#6ee7b7", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
+            >
+              REACTIVATE
+            </button>
+          )}
+          <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Edit3 size={14} /></button>
+          <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Trash2 size={14} /></button>
+        </div>
+        {closingId === c.id && (
+          <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(15,15,25,0.97)", border: "1px solid rgba(239,68,68,0.45)", borderRadius: 8, padding: "8px 10px", display: "flex", gap: 6, alignItems: "center", zIndex: 20, boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+            <input type="date" value={closeDate} onChange={e => setCloseDate(e.target.value)}
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 5, color: "#fff", fontSize: 11, padding: "4px 7px", outline: "none" }} />
+            <button onClick={() => { onUpdateCard(c.id, { status: "closed", closedDate: closeDate }); setClosingId(null); }}
+              style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#ff8080", borderRadius: 5, fontSize: 10, fontWeight: 700, padding: "4px 10px", cursor: "pointer" }}>
+              Confirm
+            </button>
+            <button onClick={() => setClosingId(null)}
+              style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", lineHeight: 1 }}>
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Network logo + owner badge */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <CardNetworkLogo network={c.network} />
+          {!isClosed && <OwnerBadge owner={c.owner} />}
+        </div>
+
+        <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
+        <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>•••• •••• •••• {c.last4 || "••••"}</div>
+        {isClosed && c.closedDate && (
+          <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
+            Closed on {new Date(c.closedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20, fontSize: 12 }}>
+          <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Outstanding</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div></div>
+          <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>{c.sharedGroup ? "Sub-Limit" : "Limit"}</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div></div>
+        </div>
+        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
+          <div>Bill Date: <strong>{c.billDate ? `${c.billDate}th` : "—"}</strong></div>
+          <div>Due Day: <strong>{c.dueDay ? `${c.dueDay}th` : "—"}</strong></div>
+          <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
+          <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
+        </div>
+        {c.waiverInfo && <div style={{ marginTop: 12, fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "6px 10px", borderRadius: 6, color: THEME.gold }}>Waiver: {c.waiverInfo}</div>}
+
+        {/* Due-date countdown */}
+        {!isClosed && c.dueDay && (() => {
+          const now = new Date();
+          const dd = Number(c.dueDay);
+          const dueDate = now.getDate() < dd
+            ? new Date(now.getFullYear(), now.getMonth(), dd)
+            : new Date(now.getFullYear(), now.getMonth() + 1, dd);
+          const daysLeft = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const urgentColor = daysLeft <= 3 ? "#ff8080" : daysLeft <= 7 ? "#fbbf24" : "rgba(245,239,227,0.55)";
+          const label = daysLeft <= 0 ? "⚠ Due today!" : daysLeft === 1 ? "⚠ Due tomorrow!" : `Payment due in ${daysLeft} days`;
+          return (
+            <div style={{ marginTop: 10, fontSize: 11, color: urgentColor, fontWeight: daysLeft <= 7 ? 700 : 500 }}>
+              {label}
+            </div>
+          );
+        })()}
+
+        {/* Sub-limit utilization bar — active cards only */}
+        {!isClosed && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
+              <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, borderRadius: 2 }} />
+            </div>
+            <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, marginTop: 6 }}>
+              {util.toFixed(1)}% of {c.sharedGroup ? "sub-limit" : "limit"}
+            </div>
+          </div>
+        )}
+
+        {/* Transactions button */}
+        {!isClosed && (
+          <button onClick={() => setSelectedLedger(c.id)} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.05)", border: "none", borderTop: `1px solid rgba(255,255,255,0.1)`, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <List size={14} /> View Transactions ({c.transactions?.length || 0})
+          </button>
+        )}
+        {isClosed && (c.transactions?.length || 0) > 0 && (
+          <button onClick={() => setSelectedLedger(c.id)} style={{ marginTop: 14, width: "100%", padding: "8px 0", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8, color: "rgba(255,255,255,0.45)", cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <List size={12} /> View History ({c.transactions.length} txns)
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -596,113 +760,65 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
         <EmptyHint text={viewMode === "active" ? "No active credit cards" : "No closed credit cards yet"} />
       )}
 
-      <Grid>
-        {displayCards.map((c: any) => {
-          const isClosed = (c.status || "active").toLowerCase() === "closed";
-          const util = Number(c.limit) ? (Number(c.outstanding) / Number(c.limit)) * 100 : 0;
-          return (
-            <div
-              key={c.id}
-              style={{
-                ...cardDark,
-                position: "relative",
-                background: isClosed
-                  ? `linear-gradient(135deg, #3a3a42 0%, #2a2a32 100%)`
-                  : getCardGradient(c.issuer),
-                paddingBottom: isClosed ? 20 : 60,
-                opacity: isClosed ? 0.8 : 1,
-                filter: isClosed ? "grayscale(35%)" : "none",
-              }}
-            >
-              {/* Action buttons */}
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 6, alignItems: "center" }}>
-                {!isClosed && closingId !== c.id && (
-                  <button
-                    onClick={() => { setClosingId(c.id); setCloseDate(today()); }}
-                    title="Mark card as closed"
-                    style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer", color: "#ff8080", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
-                  >
-                    CLOSE CARD
-                  </button>
-                )}
-                {isClosed && (
-                  <button
-                    onClick={() => onUpdateCard(c.id, { status: "active", closedDate: "" })}
-                    title="Reactivate card"
-                    style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", cursor: "pointer", color: "#6ee7b7", padding: "3px 9px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}
-                  >
-                    REACTIVATE
-                  </button>
-                )}
-                <button onClick={() => onEdit(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Edit3 size={14} /></button>
-                <button onClick={() => onRemove(c.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(245,239,227,0.6)" }}><Trash2 size={14} /></button>
-              </div>
-              {closingId === c.id && (
-                <div style={{ position: "absolute", top: 40, right: 12, background: "rgba(15,15,25,0.97)", border: "1px solid rgba(239,68,68,0.45)", borderRadius: 8, padding: "8px 10px", display: "flex", gap: 6, alignItems: "center", zIndex: 20, boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
-                  <input type="date" value={closeDate} onChange={e => setCloseDate(e.target.value)}
-                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 5, color: "#fff", fontSize: 11, padding: "4px 7px", outline: "none" }} />
-                  <button onClick={() => { onUpdateCard(c.id, { status: "closed", closedDate: closeDate }); setClosingId(null); }}
-                    style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#ff8080", borderRadius: 5, fontSize: 10, fontWeight: 700, padding: "4px 10px", cursor: "pointer" }}>
-                    Confirm
-                  </button>
-                  <button onClick={() => setClosingId(null)}
-                    style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", lineHeight: 1 }}>
-                    ✕
-                  </button>
+      {/* Ungrouped cards render as a flat grid */}
+      {ungroupedCards.length > 0 && (
+        <Grid>
+          {ungroupedCards.map(renderCard)}
+        </Grid>
+      )}
+
+      {/* Shared limit pool sections */}
+      {Object.entries(groupedCards).map(([groupName, cards]) => {
+        const groupLimit = Math.max(...cards.map((c: any) => Number(c.sharedGroupLimit) || 0));
+        const groupOutstanding = cards.reduce((s: number, c: any) => s + (Number(c.outstanding) || 0), 0);
+        const groupUtil = groupLimit > 0 ? (groupOutstanding / groupLimit) * 100 : 0;
+        const groupAvailable = Math.max(0, groupLimit - groupOutstanding);
+        const barColor = groupUtil > 70 ? THEME.rust : groupUtil > 30 ? THEME.gold : THEME.sage;
+        return (
+          <div key={groupName} style={{ marginBottom: 32 }}>
+            {/* Shared pool banner */}
+            <div style={{ marginBottom: 14, padding: "16px 20px", borderRadius: 14, background: "var(--surface-0)", border: `1.5px solid ${barColor}55` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Shared Credit Pool</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.02em" }}>{groupName}</div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{cards.length} card{cards.length !== 1 ? "s" : ""} sharing this pool</div>
                 </div>
-              )}
-
-              {/* Network logo + owner badge */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <CardNetworkLogo network={c.network} />
-                {!isClosed && <OwnerBadge owner={c.owner} />}
-              </div>
-
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
-              <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>•••• •••• •••• {c.last4 || "••••"}</div>
-              {isClosed && c.closedDate && (
-                <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
-                  Closed on {new Date(c.closedDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: barColor, letterSpacing: "-0.02em" }}>{groupUtil.toFixed(0)}%</div>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>of pool used</div>
                 </div>
-              )}
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20, fontSize: 12 }}>
-                <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Outstanding</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div></div>
-                <div><div style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}>Limit</div><div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div></div>
               </div>
-              <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
-                <div>Bill Date: <strong>{c.billDate ? `${c.billDate}th` : "—"}</strong></div>
-                <div>Due Day: <strong>{c.dueDay ? `${c.dueDay}th` : "—"}</strong></div>
-                <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
-                <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
+              <div style={{ height: 8, background: "var(--t-line)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
+                <div style={{ height: "100%", width: `${Math.min(groupUtil, 100)}%`, background: barColor, borderRadius: 4, transition: "width 0.5s ease" }} />
               </div>
-              {c.waiverInfo && <div style={{ marginTop: 12, fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "6px 10px", borderRadius: 6, color: THEME.gold }}>Waiver: {c.waiverInfo}</div>}
-
-              {/* Utilization bar — active cards only */}
-              {!isClosed && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
-                    <div style={{ height: "100%", width: `${Math.min(util, 100)}%`, background: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, borderRadius: 2 }} />
-                  </div>
-                  <div style={{ fontSize: 10, color: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage, marginTop: 6 }}>{util.toFixed(1)}% utilization</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, fontSize: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Pool Limit</div>
+                  <div style={{ fontWeight: 800, color: THEME.ink }}>{groupLimit > 0 ? fmtINRFull(groupLimit) : "Not set"}</div>
                 </div>
-              )}
-
-              {/* Transactions button */}
-              {!isClosed && (
-                <button onClick={() => setSelectedLedger(c.id)} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, background: "rgba(255,255,255,0.05)", border: "none", borderTop: `1px solid rgba(255,255,255,0.1)`, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <List size={14} /> View Transactions ({c.transactions?.length || 0})
-                </button>
-              )}
-              {isClosed && (c.transactions?.length || 0) > 0 && (
-                <button onClick={() => setSelectedLedger(c.id)} style={{ marginTop: 14, width: "100%", padding: "8px 0", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8, color: "rgba(255,255,255,0.45)", cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <List size={12} /> View History ({c.transactions.length} txns)
-                </button>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Combined Used</div>
+                  <div style={{ fontWeight: 800, color: barColor }}>{fmtINRFull(groupOutstanding)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Available</div>
+                  <div style={{ fontWeight: 800, color: THEME.sage }}>{groupLimit > 0 ? fmtINRFull(groupAvailable) : "—"}</div>
+                </div>
+              </div>
+              {groupLimit === 0 && (
+                <div style={{ marginTop: 10, fontSize: 11, color: THEME.gold, background: `${THEME.gold}12`, border: `1px solid ${THEME.gold}30`, borderRadius: 6, padding: "6px 10px" }}>
+                  Set the Pool Limit on any card in this group to track combined utilization.
+                </div>
               )}
             </div>
-          );
-        })}
-      </Grid>
+            <Grid>
+              {cards.map(renderCard)}
+            </Grid>
+          </div>
+        );
+      })}
+
       {selectedLedger && selectedCard && (
         <CCTransactionLedger
           card={selectedCard}
@@ -758,7 +874,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       ? txs.map((t: any) => t.id === editId ? { ...newTx, id: editId } : t)
       : [...txs, { ...newTx, id: uid() }];
     setTxs(updated); onUpdate(updated); setShowAdd(false); setEditId(null);
-    setNewTx({ date: today(), merchant: "", amount: "", category: "General" });
+    setNewTx({ date: today(), merchant: "", amount: "", category: cats[0] || "General" });
   };
 
   const removeTx = (id: any) => { const updated = txs.filter((t: any) => t.id !== id); setTxs(updated); onUpdate(updated); };
@@ -819,6 +935,21 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
     URL.revokeObjectURL(url);
   };
 
+  const downloadCsv = () => {
+    const header = "date,merchant,category,amount";
+    const rows = [...txs]
+      .sort((a: any, b: any) => a.date.localeCompare(b.date))
+      .map((t: any) => `${t.date},"${(t.merchant || "").replace(/"/g, '""')}","${(t.category || "General").replace(/"/g, '""')}",${t.amount}`);
+    const content = [header, ...rows].join("\n");
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(card.issuer || "card").replace(/\s+/g, "_")}_transactions.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Modal title={`${card.issuer} — Transactions`} onClose={onClose} maxWidth={920}>
       {/* Summary tiles */}
@@ -842,8 +973,14 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             onClick={() => { setShowCsvImport(v => !v); setShowAdd(false); }}>
             <Upload size={13} /> Import CSV
           </button>
+          {txs.length > 0 && (
+            <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.sage, borderColor: `${THEME.sage}55` }}
+              onClick={downloadCsv}>
+              <Download size={13} /> Export CSV
+            </button>
+          )}
           <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px" }}
-            onClick={() => { if (showAdd) { setShowAdd(false); setEditId(null); setNewTx({ date: today(), merchant: "", amount: "", category: "General" }); } else { setShowAdd(true); setShowCsvImport(false); } }}>
+            onClick={() => { if (showAdd) { setShowAdd(false); setEditId(null); setNewTx({ date: today(), merchant: "", amount: "", category: cats[0] || "General" }); } else { setShowAdd(true); setShowCsvImport(false); } }}>
             {showAdd ? "Cancel" : <><Plus size={14} /> Add Transaction</>}
           </button>
         </div>
@@ -1524,38 +1661,92 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
 
 function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
   if (!items.length) return <LoanEmptyState type="given" onAdd={onAdd} />;
+  const now = new Date();
+  const totalLent = items.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
+  const totalOutstanding = items.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
+  const overdueItems = items.filter((l: any) => l.dueDate && new Date(l.dueDate) < now && Number(l.outstanding || 0) > 0);
   return (
-    <Grid>
-      {items.map((l: any) => (
-        <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
-          <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.sage }}>Receivable</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.borrower}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: THEME.sage }}>{fmtINRFull(l.outstanding)}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
-            <Stat k="Principal" v={fmtINR(l.principal)} />
-            <Stat k="Rate" v={l.rate ? `${l.rate}%` : "—"} />
-            <Stat k="Given on" v={l.date || "—"} />
-            <Stat k="Due" v={l.dueDate || "—"} />
-          </div>
-          {l.note && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>"{l.note}"</div>}
-        </InvestCard>
-      ))}
-    </Grid>
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard label="Total Lent" value={fmtINRFull(totalLent)} sub={`${items.length} loan${items.length !== 1 ? "s" : ""} given`} color={THEME.sage} borderColor="var(--t-sage)" iconBg="color-mix(in srgb, var(--t-sage) 12%, transparent)" icon={<TrendingUp size={16} />} />
+        <StatCard label="Outstanding" value={fmtINRFull(totalOutstanding)} sub={totalOutstanding > 0 ? "Pending recovery" : "Fully recovered"} color={totalOutstanding > 0 ? THEME.gold : THEME.sage} borderColor={totalOutstanding > 0 ? "var(--t-gold)" : "var(--t-sage)"} iconBg={totalOutstanding > 0 ? "color-mix(in srgb, var(--t-gold) 12%, transparent)" : "color-mix(in srgb, var(--t-sage) 12%, transparent)"} icon={<IndianRupee size={16} />} />
+        <StatCard label="Overdue" value={`${overdueItems.length}`} sub={overdueItems.length > 0 ? "Require follow-up" : "All on schedule"} color={overdueItems.length > 0 ? THEME.rust : THEME.sage} borderColor={overdueItems.length > 0 ? "var(--t-rust)" : "var(--t-sage)"} iconBg={overdueItems.length > 0 ? "color-mix(in srgb, var(--t-rust) 12%, transparent)" : "color-mix(in srgb, var(--t-sage) 12%, transparent)"} icon={<AlertCircle size={16} />} />
+      </div>
+      <Grid>
+        {items.map((l: any) => {
+          const isPaidOff = Number(l.outstanding || 0) === 0;
+          const isOverdue = !isPaidOff && l.dueDate && new Date(l.dueDate) < now;
+          const daysOverdue = isOverdue ? Math.floor((now.getTime() - new Date(l.dueDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          const dueSoon = !isPaidOff && !isOverdue && l.dueDate && Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) <= 7;
+          const daysUntilDue = dueSoon ? Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          return (
+            <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.sage }}>Receivable</div>
+                {isOverdue && <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: THEME.rust, padding: "2px 8px", borderRadius: 99, letterSpacing: "0.05em" }}>{daysOverdue}d OVERDUE</span>}
+                {dueSoon && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.gold, background: `${THEME.gold}20`, border: `1px solid ${THEME.gold}44`, padding: "2px 8px", borderRadius: 99 }}>Due in {daysUntilDue}d</span>}
+                {isPaidOff && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.08em" }}>SETTLED</span>}
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.borrower}</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : isOverdue ? THEME.rust : THEME.sage }}>{fmtINRFull(l.outstanding)}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
+                <Stat k="Principal" v={fmtINR(l.principal)} />
+                <Stat k="Rate" v={l.rate ? `${l.rate}%` : "—"} />
+                <Stat k="Given on" v={l.date || "—"} />
+                <Stat k="Due" v={l.dueDate || "—"} />
+              </div>
+              {l.note && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>"{l.note}"</div>}
+            </InvestCard>
+          );
+        })}
+      </Grid>
+    </div>
   );
 }
 
-function CCModal({ onClose, onSave, initial = null }: any) {
+function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) {
   const { ccNetworks } = useMasterData();
-  const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "" });
+  const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "", sharedGroup: "", sharedGroupLimit: "" });
   const isClosed = (f.status || "active").toLowerCase() === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}><Field label="Issuer"><input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" /></Field><Field label="Network"><select style={input} value={f.network} onChange={(e) => setF({ ...f, network: e.target.value })}>{ccNetworks.map((n: string) => <option key={n}>{n}</option>)}</select></Field></div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}><Field label="Last 4 digits"><input style={input} maxLength={4} value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value })} /></Field><Field label="Credit Limit"><input style={input} type="number" value={f.limit} onChange={(e) => setF({ ...f, limit: e.target.value })} /></Field><Field label="Outstanding"><input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} /></Field></div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}><Field label="Last 4 digits"><input style={input} maxLength={4} value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value })} /></Field><Field label="Card Sub-Limit"><input style={input} type="number" value={f.limit} onChange={(e) => setF({ ...f, limit: e.target.value })} placeholder={f.sharedGroup ? "Individual sub-limit" : "Credit limit"} /></Field><Field label="Outstanding"><input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Statement Date (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 20" value={f.billDate} onChange={(e) => setF({ ...f, billDate: e.target.value })} /></Field><Field label="Due Day (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 10" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Annual Fee"><input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} /></Field><Field label="Helpline Number"><input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" /></Field></div>
       <Field label="Waiver Details"><textarea style={{ ...input, height: 60, resize: "none" }} value={f.waiverInfo} onChange={(e) => setF({ ...f, waiverInfo: e.target.value })} placeholder="e.g. Spend 1L in a year to waive off annual fee" /></Field>
+
+      {/* Shared Limit Pool */}
+      <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Shared Credit Pool (Optional)</div>
+        <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12, lineHeight: 1.55 }}>
+          Some banks allocate one shared pool across multiple cards (e.g., HDFC primary + add-on, or SBI Simply Click + Elite sharing a limit). Group them here — the app tracks combined utilisation against the pool, not individual sub-limits.
+        </div>
+        <datalist id="cc-shared-group-list">
+          {existingGroups.filter((g: string) => g).map((g: string) => <option key={g} value={g} />)}
+        </datalist>
+        <Field label="Pool Name (leave blank if this card has its own independent limit)">
+          <input
+            style={input}
+            value={f.sharedGroup || ""}
+            onChange={e => setF({ ...f, sharedGroup: e.target.value })}
+            placeholder="e.g. HDFC Shared Pool, SBI Family"
+            list="cc-shared-group-list"
+          />
+        </Field>
+        {f.sharedGroup && (
+          <Field label="Total Pool Credit Limit (₹) — the combined limit shared across all cards in this pool">
+            <input
+              style={input}
+              type="number"
+              value={f.sharedGroupLimit || ""}
+              onChange={e => setF({ ...f, sharedGroupLimit: e.target.value })}
+              placeholder="e.g. 500000"
+            />
+          </Field>
+        )}
+      </div>
 
       {/* Card Status */}
       <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 4 }}>
@@ -1817,7 +2008,7 @@ function DebtPayoffOptimizer({ state }: any) {
       type: l.type || "Loan",
       outstanding: Number(l.outstanding) || 0,
       emi: Number(l.emi) || 0,
-      rate: Number(l.rate) || Number(l.roi) || Number(l.interestRate) || 8.5,
+      rate: (() => { const v = l.rate ?? l.roi ?? l.interestRate; return (v != null && v !== "") ? Number(v) : 8.5; })(),
       monthsRemaining: Number(l.monthsRemaining) || 0,
       principal: Number(l.principal) || Number(l.outstanding) || 0
     })).filter(l => l.outstanding > 0);

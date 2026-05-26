@@ -134,7 +134,8 @@ const NUMERIC_COLS = new Set([
   "ratio_m","old_qty","new_qty","old_avg_price","new_avg_price","term","premium_paying_term",
   "expected_maturity_amount","policy_term","ytm_rate","face_value_per_unit","number_of_units",
   "clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest",
-  "total_consideration","brokerage","stamp_duty","total_investment_amount","market_cap","due_day"
+  "total_consideration","brokerage","stamp_duty","total_investment_amount","market_cap","due_day",
+  "shared_group_limit"
 ]);
 
 // ================== MAIN APP ==================
@@ -1849,6 +1850,7 @@ function FinanceDashboard() {
       ...push("mf_sells",            data.mfSells),
       ...push("corporate_actions",   data.corporateActions),
       ...push("tax_payments",        data.taxPayments),
+      ...push("income_entries",      data.income),
       ...(data.netWorthHistory || []).map(entry =>
         supabase.from("net_worth_history").upsert(
           { user_id: userId, month: entry.month, net_worth: entry.netWorth ?? entry.net_worth ?? 0 },

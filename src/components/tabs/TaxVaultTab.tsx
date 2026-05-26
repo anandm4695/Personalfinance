@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { 
-  Calculator, Shield, History, Plus, Trash2, Calendar, Target, 
-  CheckCircle2, TrendingUp, HelpCircle, Sparkles, BookOpen, 
-  Percent, RefreshCw, ArrowLeftRight, Info, AlertTriangle 
+import {
+  Calculator, Shield, History, Plus, Trash2, Calendar, Target,
+  CheckCircle2, TrendingUp, HelpCircle, Sparkles, BookOpen,
+  Percent, RefreshCw, ArrowLeftRight, Info, AlertTriangle, Download
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, calcTaxNew, calcTaxOld, today, uid } from "../../utils/finance";
@@ -65,6 +65,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
   const [activeRegime, setActiveRegime] = useState<"new" | "old">(state.profile.regime || "new");
   const [showModal, setShowModal] = useState(false);
   const [subTab, setSubTab] = useState<"income" | "capitalGains">("income");
+  const [incomeOverride, setIncomeOverride] = useState<string>("");
   const [simulatedHarvestIds, setSimulatedHarvestIds] = useState<string[]>([]);
 
   // 1. FY date range helper
@@ -91,7 +92,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
       const buyPrice = Number(s.buyPrice) || 0;
       const sellPrice = Number(s.sellPrice) || 0;
       const qty = Number(s.qty) || 0;
-      const profit = Number(s.profit) != null ? Number(s.profit) : (sellPrice - buyPrice) * qty;
+      const profit = (s.profit != null && s.profit !== "") ? Number(s.profit) : (sellPrice - buyPrice) * qty;
 
       let days = 0;
       if (s.buyDate && s.sellDate) {
@@ -119,7 +120,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
       const buyNav = Number(m.buyNav) || Number(m.avgPrice) || 0;
       const sellNav = Number(m.sellNav) || Number(m.sellPrice) || 0;
       const qty = Number(m.qty) || Number(m.units) || 0;
-      const profit = Number(m.profit) != null ? Number(m.profit) : (sellNav - buyNav) * qty;
+      const profit = (m.profit != null && m.profit !== "") ? Number(m.profit) : (sellNav - buyNav) * qty;
 
       let days = 0;
       if (m.buyDate && m.sellDate) {
@@ -330,6 +331,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
       `  Gross Tax Liability    : ${fmtINRFull(currentTotalTax)}`,
       `  TDS Already Deducted   : ${fmtINRFull(totalTDS)}`,
       `  Advance Tax Paid       : ${fmtINRFull(totalAdvancePaid)}`,
+      `  Self-Assessment Paid   : ${fmtINRFull(totalSelfAssessment)}`,
       `  Remaining Liability    : ${fmtINRFull(remainingAdvance)}`,
       ``,
       `REGIME COMPARISON`,
@@ -374,19 +376,24 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
       hra: 0,
       homeLoan: 0,
       nps: 0,
+      d80CCD2: 0,
+      d80G: 0,
+      d80E: 0,
     };
   });
 
   const setDed = (key: string, val: string) =>
     setDeductions(prev => ({ ...prev, [key]: Number(val) || 0 }));
 
-  const annualIncome = metrics.annualIncome || (metrics.monthIncome || 0) * 12;
+  const detectedIncome = metrics.annualIncome || (metrics.monthIncome || 0) * 12;
+  const annualIncome = incomeOverride !== "" ? (Number(incomeOverride) || 0) : detectedIncome;
 
   const taxableNew = Math.max(0, annualIncome - STD_DED_NEW);
   const taxNew = calcTaxNew(taxableNew);
 
   const totalOldDeductions = STD_DED_OLD + deductions.d80C + deductions.d80D +
-    deductions.hra + deductions.homeLoan + deductions.nps;
+    deductions.hra + deductions.homeLoan + deductions.nps +
+    (deductions.d80CCD2 || 0) + (deductions.d80G || 0) + (deductions.d80E || 0);
   const taxOld = calcTaxOld(annualIncome, totalOldDeductions);
 
   const currentTotalTax = activeRegime === "new" ? taxNew.total : taxOld.total;
@@ -394,10 +401,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
   const taxPayments = state.taxPayments || [];
   const totalTDS = taxPayments.filter((p: any) => p.type === "TDS").reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
   const totalAdvancePaid = taxPayments.filter((p: any) => p.type === "Advance Tax").reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-  const totalPaidSoFar = totalTDS + totalAdvancePaid;
+  const totalSelfAssessment = taxPayments.filter((p: any) => p.type === "Self-Assessment").reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const totalPaidSoFar = totalTDS + totalAdvancePaid + totalSelfAssessment;
 
   const netLiability = Math.max(0, currentTotalTax - totalTDS);
-  const remainingAdvance = Math.max(0, netLiability - totalAdvancePaid);
+  const remainingAdvance = Math.max(0, netLiability - totalAdvancePaid - totalSelfAssessment);
   const isAdvanceTaxApplicable = netLiability > 10000;
 
   const progressPct = currentTotalTax > 0
@@ -411,8 +419,23 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
     { q: "Q4", due: "15 Mar", pct: 100, amt: netLiability * 1.00 },
   ];
 
+  const downloadCGCsv = () => {
+    const header = "name,type,buy_date,sell_date,holding_days,buy_price,sell_price,qty,profit,gain_type";
+    const rows = realizedGainsData.allSells.map((s: any) =>
+      `"${String(s.name || "").replace(/"/g, '""')}","${s.type}",${s.buyDate || ""},${s.sellDate || ""},${s.days},${s.buyPrice},${s.sellPrice},${s.qty},${s.profit},${s.isLtcg ? "LTCG" : "STCG"}`
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `capital_gains_FY${state.profile.fy || "2025-26"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSavePayment = (data: any) => {
-    addItem("taxPayments", { ...data, id: uid() });
+    addItem("taxPayments", data);
     setShowModal(false);
   };
 
@@ -503,7 +526,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 <div style={{ height: 8, background: "rgba(255,255,255,0.15)", borderRadius: 10, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${progressPct}%`, background: "#fff", boxShadow: "0 0 15px rgba(255,255,255,0.3)", borderRadius: 10 }} />
                 </div>
-                <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
+                <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
                   <div>
                     <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>TDS Deducted</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{fmtINRFull(totalTDS)}</div>
@@ -513,6 +536,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                     <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Advance Paid</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{fmtINRFull(totalAdvancePaid)}</div>
                   </div>
+                  {totalSelfAssessment > 0 && <>
+                    <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+                    <div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Self-Assessment</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{fmtINRFull(totalSelfAssessment)}</div>
+                    </div>
+                  </>}
                 </div>
               </div>
             </Card>
@@ -645,6 +675,40 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
             );
           })()}
 
+          {/* ── ITR FILING DEADLINE BANNER ── */}
+          {(() => {
+            const itrDeadline = new Date(fyStartYear + 1, 6, 31); // July 31 of the assessment year
+            const now = new Date();
+            const daysToITR = Math.ceil((itrDeadline.getTime() - now.getTime()) / 86400000);
+            const dueDateStr = itrDeadline.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+            if (daysToITR < -30) return null; // past deadline by >30 days, don't show
+            const isOverdue = daysToITR < 0;
+            const isUrgent = daysToITR >= 0 && daysToITR <= 30;
+            const bannerColor = isOverdue ? THEME.rust : isUrgent ? "#f59e0b" : THEME.sage;
+            const bannerBg = isOverdue ? "rgba(239,68,68,0.05)" : isUrgent ? "rgba(245,158,11,0.05)" : "rgba(52,211,153,0.05)";
+            return (
+              <div style={{ padding: "14px 20px", borderRadius: 12, background: bannerBg, border: `1.5px solid ${bannerColor}30`, display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: `${bannerColor}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Calendar size={22} color={bannerColor} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                    ITR Filing Deadline — AY {fyStartYear + 1}-{String(fyStartYear + 2).slice(-2)} · {dueDateStr}
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3, fontWeight: 600 }}>
+                    {isOverdue
+                      ? `Filing was due ${Math.abs(daysToITR)} days ago. File immediately to avoid penalty u/s 234F (up to ₹5,000).`
+                      : `${daysToITR} day${daysToITR === 1 ? "" : "s"} remaining to file your Income Tax Return (non-audit salaried). Keep Form 16 and AIS ready.`}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: bannerColor, lineHeight: 1 }}>{Math.abs(daysToITR)}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: bannerColor, textTransform: "uppercase" }}>{isOverdue ? "days late" : "days left"}</div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── TAX PAYMENTS LOG ── */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>Payment Log & TDS</h3>
@@ -686,15 +750,70 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
             <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>Tax Planning & Deductions</h3>
           </div>
           <Card style={{ padding: 32 }}>
+            {/* Income Source Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: `1.5px solid ${THEME.line}` }}>
+              <Field label="Annual Income (for tax computation)">
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder={detectedIncome > 0 ? `Auto-detected: ${Math.round(detectedIncome).toLocaleString("en-IN")}` : "Enter annual income"}
+                  value={incomeOverride}
+                  onChange={e => setIncomeOverride(e.target.value)}
+                />
+              </Field>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
+                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, lineHeight: 1.5 }}>
+                  {incomeOverride !== "" ? (
+                    <span style={{ color: THEME.gold }}>⚡ Using manual override: {fmtINRFull(Number(incomeOverride) || 0)}/yr</span>
+                  ) : detectedIncome > 0 ? (
+                    <span>Auto-detected from transactions & income ledger: <b style={{ color: THEME.ink }}>{fmtINRFull(detectedIncome)}/yr</b></span>
+                  ) : (
+                    <span style={{ color: THEME.rust }}>No income detected — enter annual income manually above</span>
+                  )}
+                  {incomeOverride !== "" && (
+                    <button onClick={() => setIncomeOverride("")} style={{ marginLeft: 8, background: "none", border: "none", color: THEME.muted, cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>Reset to auto</button>
+                  )}
+                </div>
+                {annualIncome > 0 && (
+                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: activeRegime === "new" ? THEME.sage : THEME.accent }}>
+                    {activeRegime === "new" && annualIncome - STD_DED_NEW <= 1200000
+                      ? "✓ New regime: ₹0 tax (87A rebate applies — income within ₹12L threshold)"
+                      : `Taxable income (${activeRegime === "new" ? "new" : "old"}): ${fmtINRFull(activeRegime === "new" ? Math.max(0, annualIncome - STD_DED_NEW) : Math.max(0, annualIncome - totalOldDeductions))}`}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
               <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, borderBottom: `1.5px solid ${THEME.line}`, paddingBottom: 16 }}>
                 <Target size={18} color={THEME.accent} />
                 <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.accent }}>Estimated Deductions (Old Regime)</span>
               </div>
 
-              <Field label="80C — LIC, ELSS, PPF (max ₹1.5L)">
-                <input className="form-input" type="number" value={deductions.d80C} onChange={e => setDed("d80C", e.target.value)} />
-              </Field>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <Field label="80C — LIC, ELSS, PPF (max ₹1.5L)">
+                  <input className="form-input" type="number" value={deductions.d80C} onChange={e => setDed("d80C", e.target.value)} />
+                </Field>
+                {/* 80C utilization gauge */}
+                {(() => {
+                  const used = Math.min(Number(deductions.d80C) || 0, 150000);
+                  const pct = Math.min(100, (used / 150000) * 100);
+                  const remaining = Math.max(0, 150000 - used);
+                  const barColor = pct >= 100 ? THEME.sage : pct >= 60 ? THEME.gold : THEME.rust;
+                  return (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                        <span style={{ color: barColor }}>{pct.toFixed(0)}% utilized · {fmtINRFull(used)} of ₹1.5L limit</span>
+                        <span>{remaining > 0 ? `${fmtINRFull(remaining)} more room` : "Fully utilized ✓"}</span>
+                      </div>
+                      <div style={{ height: 5, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 4, transition: "width 0.3s" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <Field label="80D — Health Insurance (max ₹25K)">
                 <input className="form-input" type="number" value={deductions.d80D} onChange={e => setDed("d80D", e.target.value)} />
               </Field>
@@ -704,8 +823,17 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
               <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)">
                 <input className="form-input" type="number" value={deductions.homeLoan} onChange={e => setDed("homeLoan", e.target.value)} />
               </Field>
-              <Field label="NPS — 80CCD(1B) (max ₹50K)">
+              <Field label="NPS Self — 80CCD(1B) (max ₹50K)">
                 <input className="form-input" type="number" value={deductions.nps} onChange={e => setDed("nps", e.target.value)} />
+              </Field>
+              <Field label="NPS Employer — 80CCD(2) (10% of salary)">
+                <input className="form-input" type="number" value={deductions.d80CCD2 || 0} onChange={e => setDed("d80CCD2", e.target.value)} />
+              </Field>
+              <Field label="80G — Donations to Charities">
+                <input className="form-input" type="number" value={deductions.d80G || 0} onChange={e => setDed("d80G", e.target.value)} />
+              </Field>
+              <Field label="80E — Education Loan Interest">
+                <input className="form-input" type="number" value={deductions.d80E || 0} onChange={e => setDed("d80E", e.target.value)} />
               </Field>
               <Field label="Standard Deduction (Old Regime)">
                 <input className="form-input" type="number" value={STD_DED_OLD} disabled />
@@ -964,7 +1092,17 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
           {/* ── REALIZED CAPITAL GAINS LEDGER ── */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>Realized Transactions Ledger</h3>
-            <Badge variant="muted" style={{ fontWeight: 800 }}>{realizedGainsData.allSells.length} Transactions</Badge>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Badge variant="muted" style={{ fontWeight: 800 }}>{realizedGainsData.allSells.length} Transactions</Badge>
+              {realizedGainsData.allSells.length > 0 && (
+                <button
+                  onClick={downloadCGCsv}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: `1px solid ${THEME.sage}55`, background: "transparent", color: THEME.sage, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                >
+                  <Download size={13} /> Export CSV
+                </button>
+              )}
+            </div>
           </div>
 
           {realizedGainsData.allSells.length === 0 ? (
