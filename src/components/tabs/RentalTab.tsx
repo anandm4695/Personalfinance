@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, FileText, Upload, AlertCircle, Download, Calendar, AlertTriangle } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -149,6 +149,22 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const handleRemoveReceipt = (p: any, receiptId: string) => {
     const updatedReceipts = (p.receipts || []).filter((rec: any) => rec.id !== receiptId);
     updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+  };
+
+  const handleEditReceipt = (p: any, editingId: string, receiptData: any) => {
+    const updatedReceipts = (p.receipts || []).map((rec: any) =>
+      rec.id === editingId ? { ...receiptData, id: editingId } : rec
+    );
+    updateItem("rentalProperties", p.id, { ...p, receipts: updatedReceipts });
+    setShowLogModal(null);
+  };
+
+  const handleEditDeduction = (p: any, editingId: string, deductionData: any) => {
+    const updated = (p.depositDeductions || []).map((d: any) =>
+      d.id === editingId ? { ...deductionData, id: editingId } : d
+    );
+    updateItem("rentalProperties", p.id, { ...p, depositDeductions: updated });
+    setShowLogModal(null);
   };
 
   const handleAddDeduction = (p: any, deductionData: any) => {
@@ -302,9 +318,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {/* Property name + expiry badge */}
                           {(() => {
-                            const today = new Date(); today.setHours(0, 0, 0, 0);
-                            const endDate = p.agreementEnd ? new Date(p.agreementEnd) : null;
-                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / 86400000) : null;
+                            const todayMs = new Date(today() + "T00:00:00").getTime();
+                            const endDate = p.agreementEnd ? new Date(p.agreementEnd + "T00:00:00") : null;
+                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - todayMs) / 86400000) : null;
                             return (
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                                 <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</span>
@@ -436,6 +452,20 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Receipt size={14} />
                           {expandedLedger === p.id ? "Hide Receipt Ledger" : "View Receipt Ledger"}
                         </button>
+                        {(() => {
+                          const currMonth = today().slice(0, 7);
+                          const alreadyLogged = (p.receipts || []).some((r: any) => r.month === currMonth);
+                          if (alreadyLogged) return null;
+                          return (
+                            <button
+                              onClick={() => setShowLogModal({ type: "receipt", property: p })}
+                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.accent}44`, background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`, color: THEME.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                              title={`Quick log rent for ${currMonth}`}
+                            >
+                              <Plus size={11} /> {currMonth}
+                            </button>
+                          );
+                        })()}
                       </div>
 
                       {/* Expanded Ledger Section */}
@@ -637,7 +667,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              {(p.receipts || []).map((r: any) => (
+                              {[...(p.receipts || [])].sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
                                   padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
@@ -649,8 +679,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     </div>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Received: {r.date}</div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>+{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => setShowLogModal({ type: "receipt", property: p, editing: r })}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}
+                                    >
+                                      <Pencil size={12} />
+                                    </button>
                                     <button
                                       onClick={() => handleRemoveReceipt(p, r.id)}
                                       style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
@@ -673,7 +709,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
                             }
                             const loggedMonths = new Set((p.receipts || []).map((r: any) => r.month));
-                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= new Date().toISOString().slice(0, 7));
+                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= today().slice(0, 7));
                             if (missingMonths.length === 0) return null;
                             return (
                               <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`, border: `1px dashed ${THEME.gold}44` }}>
@@ -767,8 +803,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{r.reason}</div>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
+                                    <button
+                                      onClick={() => setShowLogModal({ type: "deduction", property: p, editing: r })}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 2, display: "flex" }}
+                                    >
+                                      <Pencil size={12} />
+                                    </button>
                                     <button
                                       onClick={() => handleRemoveDeduction(p, r.id)}
                                       style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 2, display: "flex" }}
@@ -853,9 +895,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {/* Property name + expiry badge */}
                           {(() => {
-                            const today = new Date(); today.setHours(0, 0, 0, 0);
-                            const endDate = p.agreementEnd ? new Date(p.agreementEnd) : null;
-                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / 86400000) : null;
+                            const todayMs = new Date(today() + "T00:00:00").getTime();
+                            const endDate = p.agreementEnd ? new Date(p.agreementEnd + "T00:00:00") : null;
+                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - todayMs) / 86400000) : null;
                             return (
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                                 <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</span>
@@ -971,7 +1013,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <span style={{ color: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
                             </div>
                             <div style={{ height: 5, borderRadius: 99, background: "rgba(128,128,128,0.12)", overflow: "hidden" }}>
-                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.rust : THEME.rust, transition: "width 0.4s ease" }} />
+                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust, transition: "width 0.4s ease" }} />
                             </div>
                           </div>
                         );
@@ -990,6 +1032,20 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Receipt size={14} />
                           {expandedLedger === p.id ? "Hide Payment Ledger" : "View Payment Ledger"}
                         </button>
+                        {(() => {
+                          const currMonth = today().slice(0, 7);
+                          const alreadyLogged = (p.payments || []).some((r: any) => r.month === currMonth);
+                          if (alreadyLogged) return null;
+                          return (
+                            <button
+                              onClick={() => setShowLogModal({ type: "payment", property: p })}
+                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}44`, background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`, color: THEME.rust, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                              title={`Quick log rent for ${currMonth}`}
+                            >
+                              <Plus size={11} /> {currMonth}
+                            </button>
+                          );
+                        })()}
                       </div>
 
                       {/* Expanded Ledger Section */}
@@ -1191,7 +1247,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              {(p.payments || []).map((r: any) => (
+                              {[...(p.payments || [])].sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
                                   padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
@@ -1233,7 +1289,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
                             }
                             const loggedMonths = new Set((p.payments || []).map((r: any) => r.month));
-                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= new Date().toISOString().slice(0, 7));
+                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= today().slice(0, 7));
                             if (missingMonths.length === 0) return null;
                             return (
                               <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`, border: `1px dashed ${THEME.rust}44` }}>
@@ -1312,6 +1368,27 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       )}
 
+      {/* Net Rental P&L */}
+      {(propertiesOut.length > 0 || propertiesIn.length > 0) && (
+        <div style={{ marginTop: 36, padding: "20px 24px", borderRadius: 16, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+            <TrendingUp size={15} color={THEME.accent} /> Rental P&L · FY {fyLabel}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {[
+              { label: "Income Received", value: outThisFY, color: THEME.sage, sign: "+" },
+              { label: "Rent Paid Out", value: inThisFY, color: THEME.rust, sign: "-" },
+              { label: "Net Cashflow", value: outThisFY - inThisFY, color: outThisFY >= inThisFY ? THEME.sage : THEME.rust, sign: outThisFY >= inThisFY ? "+" : "-" },
+            ].map(({ label, value, color, sign }) => (
+              <div key={label} style={{ padding: "14px 16px", borderRadius: 12, background: `color-mix(in srgb, ${color} 5%, transparent)`, border: `1px solid ${color}22` }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color }}>{label === "Net Cashflow" ? (outThisFY >= inThisFY ? "+" : "-") : sign}{fmtINRFull(Math.abs(value))}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {modalOut.open && (
         <RentalPropertyModal
           initial={modalOut.editing}
@@ -1341,22 +1418,28 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         />
       )}
 
-      {/* Log Receipt Modal (Rented Out) */}
+      {/* Log / Edit Receipt Modal (Rented Out) */}
       {showLogModal && showLogModal.type === "receipt" && (
         <RentalReceiptModal
-          title="Log Rent Receipt"
+          title={showLogModal.editing ? "Edit Rent Receipt" : "Log Rent Receipt"}
           amountLabel="Amount Received (₹)"
-          saveLabel="Log Receipt"
+          saveLabel={showLogModal.editing ? "Update Receipt" : "Log Receipt"}
+          initial={showLogModal.editing}
           onClose={() => setShowLogModal(null)}
-          onSave={(data) => handleAddReceipt(showLogModal.property, data)}
+          onSave={(data: any) => showLogModal.editing
+            ? handleEditReceipt(showLogModal.property, showLogModal.editing.id, data)
+            : handleAddReceipt(showLogModal.property, data)}
         />
       )}
 
-      {/* Log Deduction Modal (Rented Out) */}
+      {/* Log / Edit Deduction Modal (Rented Out) */}
       {showLogModal && showLogModal.type === "deduction" && (
         <RentalDeductionModal
+          initial={showLogModal.editing}
           onClose={() => setShowLogModal(null)}
-          onSave={(data) => handleAddDeduction(showLogModal.property, data)}
+          onSave={(data: any) => showLogModal.editing
+            ? handleEditDeduction(showLogModal.property, showLogModal.editing.id, data)
+            : handleAddDeduction(showLogModal.property, data)}
         />
       )}
 

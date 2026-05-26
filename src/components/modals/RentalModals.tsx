@@ -347,10 +347,14 @@ export function RentalReceiptModal({ onClose, onSave, initial, title, amountLabe
 /* ══════════════════════════════════════════════════════════════════
    RentalDeductionModal
 ══════════════════════════════════════════════════════════════════ */
-export function RentalDeductionModal({ onClose, onSave }: any) {
-  const [f, setF] = useState({ reason: "", amount: "", date: today() });
+export function RentalDeductionModal({ onClose, onSave, initial }: any) {
+  const [f, setF] = useState({
+    reason: initial?.reason || "",
+    amount: initial?.amount ? String(initial.amount) : "",
+    date: initial?.date || today(),
+  });
   return (
-    <Modal title="Add Deposit Deduction" onClose={onClose}>
+    <Modal title={initial ? "Edit Deposit Deduction" : "Add Deposit Deduction"} onClose={onClose}>
       <Field label="Reason">
         <input style={input} value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="e.g. Painting, Repair, Cleaning" />
       </Field>
@@ -362,7 +366,7 @@ export function RentalDeductionModal({ onClose, onSave }: any) {
           <input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
         </Field>
       </div>
-      <ModalActions onSave={() => f.reason && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel="Add Deduction" />
+      <ModalActions onSave={() => f.reason && Number(f.amount) > 0 && onSave(f)} onClose={onClose} saveLabel={initial ? "Update Deduction" : "Add Deduction"} />
     </Modal>
   );
 }
