@@ -18,7 +18,8 @@ import {
   PieChart as PieIcon,
   CheckCircle2,
   AlertTriangle,
-  Info
+  Info,
+  GitBranch
 } from "lucide-react";
 import {
   AreaChart,
@@ -31,12 +32,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  ReferenceLine
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
+import { Badge } from "../ui/Badge";
 
 interface CalculatorsTabProps {
   metrics: any;
@@ -44,8 +47,34 @@ interface CalculatorsTabProps {
 }
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
-  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress" | "monte-carlo">("emi");
+  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress" | "monte-carlo" | "scenario-sandbox">("emi");
   const [monteVolatility, setMonteVolatility] = useState("10");
+
+  // ── Scenario Sandbox State ──
+  const [sandboxSavings, setSandboxSavings] = useState("50000");
+  const [sandboxReturn, setSandboxReturn] = useState("12");
+  const [sandboxYears, setSandboxYears] = useState("15");
+
+  // Sabbatical Scenario
+  const [sabActive, setSabActive] = useState(false);
+  const [sabAge, setSabAge] = useState("35");
+  const [sabDur, setSabDur] = useState("2");
+  const [sabInc, setSabInc] = useState("0");
+  const [sabExp, setSabExp] = useState("20000");
+
+  // Startup Venture Scenario
+  const [startupActive, setStartupActive] = useState(false);
+  const [startupAge, setStartupAge] = useState("37");
+  const [startupCapEx, setStartupCapEx] = useState("500000");
+  const [startupLoss, setStartupLoss] = useState("3");
+  const [startupPayoutAge, setStartupPayoutAge] = useState("42");
+  const [startupPayout, setStartupPayout] = useState("2500000");
+
+  // Property Purchase Scenario
+  const [propActive, setPropActive] = useState(false);
+  const [propAge, setPropAge] = useState("40");
+  const [propDown, setPropDown] = useState("1500000");
+  const [propCarry, setPropCarry] = useState("60000");
 
   // ── 1. EMI CALCULATOR STATE & LOGIC ──
   const [emiP, setEmiP] = useState("1000000");
@@ -272,6 +301,162 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       yrsInRet
     };
   }, [calcTab, fireRetireAge, fireLifeExp, firePortfolio, fireExpense, fireInflation, firePostReturn, monteVolatility, metrics?.netWorth]);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     EXECUTIVE WEALTH SCENARIO PLANNER & LIFESTYLE SANDBOX (RELEASE 6)
+     ══════════════════════════════════════════════════════════════════════ */
+  const sandboxResult = useMemo(() => {
+    if (calcTab !== "scenario-sandbox") return null;
+
+    const startAge = Number(fireAge) || 30;
+    const years = Math.max(5, Math.min(40, Number(sandboxYears) || 15));
+    const expectedReturn = (Number(sandboxReturn) || 12) / 100;
+    const baseSavings = Number(sandboxSavings) || 50000;
+    const initialWealth = Number(firePortfolio) || Number(metrics?.netWorth) || 1000000;
+
+    // Sabbatical
+    const sActive = sabActive;
+    const sAge = Number(sabAge) || 35;
+    const sDur = Number(sabDur) || 2;
+    const sIncPct = (Number(sabInc) || 0) / 100;
+    const sExpExtra = Number(sabExp) || 20000;
+
+    // Startup Venture
+    const stActive = startupActive;
+    const stAge = Number(startupAge) || 37;
+    const stCapEx = Number(startupCapEx) || 500000;
+    const stLossYrs = Number(startupLoss) || 3;
+    const stPayoutAge = Number(startupPayoutAge) || 42;
+    const stPayout = Number(startupPayout) || 2500000;
+
+    // Property Purchase
+    const pActiveVal = propActive;
+    const pAge = Number(propAge) || 40;
+    const pDownPay = Number(propDown) || 1500000;
+    const pCarryCost = Number(propCarry) || 60000;
+
+    const chartData = [];
+    let baseWealth = initialWealth;
+    let sandWealth = initialWealth;
+    let liquidityCrisisYear = -1;
+
+    chartData.push({
+      year: 0,
+      age: startAge,
+      "Baseline Path": Math.round(baseWealth),
+      "Simulated Path": Math.round(sandWealth)
+    });
+
+    for (let t = 1; t <= years; t++) {
+      const curAge = startAge + t;
+
+      // 1. BASELINE CALCULATIONS
+      const annualBaseSavings = baseSavings * 12;
+      baseWealth = baseWealth * (1 + expectedReturn) + annualBaseSavings;
+
+      // 2. SANDBOX CALCULATIONS
+      let yearlySandSavings = baseSavings * 12;
+      let oneTimeOutflows = 0;
+      let oneTimeInflows = 0;
+
+      // Check Sabbatical
+      if (sActive && curAge >= sAge && curAge < sAge + sDur) {
+        const monthlySandSavings = (baseSavings * sIncPct) - sExpExtra;
+        yearlySandSavings = monthlySandSavings * 12;
+      }
+
+      // Check Startup Venture
+      if (stActive) {
+        if (curAge >= stAge && curAge < stAge + stLossYrs) {
+          yearlySandSavings = 0;
+        }
+        if (curAge === stAge) {
+          oneTimeOutflows += stCapEx;
+        }
+        if (curAge === stPayoutAge) {
+          oneTimeInflows += stPayout;
+        }
+      }
+
+      // Check Property Purchase
+      if (pActiveVal) {
+        if (curAge === pAge) {
+          oneTimeOutflows += pDownPay;
+        }
+        if (curAge >= pAge) {
+          yearlySandSavings -= pCarryCost * 12;
+        }
+      }
+
+      // Compound Sandbox Wealth
+      sandWealth = (sandWealth - oneTimeOutflows) * (1 + expectedReturn) + yearlySandSavings + oneTimeInflows;
+      if (sandWealth < 0) {
+        sandWealth = 0;
+        if (liquidityCrisisYear === -1) {
+          liquidityCrisisYear = curAge;
+        }
+      }
+
+      chartData.push({
+        year: t,
+        age: curAge,
+        "Baseline Path": Math.round(baseWealth),
+        "Simulated Path": Math.round(sandWealth)
+      });
+    }
+
+    const endBase = baseWealth;
+    const endSand = sandWealth;
+    const oppCostVal = endBase - endSand;
+
+    const targetCorpus = Number(firePortfolio) || 15000000;
+    
+    const getYearsToTarget = (startNW, annualSave, target) => {
+      if (startNW >= target) return 0;
+      let cw = startNW;
+      for (let y = 1; y <= 50; y++) {
+        cw = cw * (1 + expectedReturn) + annualSave;
+        if (cw >= target) return y;
+      }
+      return 50;
+    };
+
+    const baseYearsNeeded = getYearsToTarget(initialWealth, baseSavings * 12, targetCorpus);
+    const baseFIAge = startAge + baseYearsNeeded;
+
+    let sandYearsNeeded = baseYearsNeeded;
+    if (endSand < targetCorpus) {
+      let cw = endSand;
+      let extraY = 0;
+      for (let y = 1; y <= 50; y++) {
+        cw = cw * (1 + expectedReturn) + baseSavings * 12;
+        if (cw >= targetCorpus) {
+          extraY = y;
+          break;
+        }
+      }
+      sandYearsNeeded = years + extraY;
+    } else {
+      for (let i = 0; i < chartData.length; i++) {
+        if (chartData[i]["Simulated Path"] >= targetCorpus) {
+          sandYearsNeeded = chartData[i].year;
+          break;
+        }
+      }
+    }
+    const sandFIAge = startAge + sandYearsNeeded;
+
+    return {
+      chartData,
+      oppCost: oppCostVal,
+      endBase,
+      endSand,
+      liquidityCrisisAge: liquidityCrisisYear,
+      baseFIAge,
+      sandFIAge,
+      fiAgeGap: sandFIAge - baseFIAge
+    };
+  }, [calcTab, fireAge, sandboxSavings, sandboxReturn, sandboxYears, firePortfolio, metrics?.netWorth, sabActive, sabAge, sabDur, sabInc, sabExp, startupActive, startupAge, startupCapEx, startupLoss, startupPayoutAge, startupPayout, propActive, propAge, propDown, propCarry]);
 
   const fireResult = useMemo(() => {
     const curAge = Math.max(1, Number(fireAge) || 30);
@@ -674,7 +859,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "loan-invest", label: "Loan vs Invest", icon: ArrowRightLeft },
           { id: "projection", label: "Wealth Projection", icon: Briefcase },
           { id: "stress", label: "Runway Stress Tester", icon: Shield },
-          { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles }
+          { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles },
+          { id: "scenario-sandbox", label: "Scenario Sandbox", icon: GitBranch }
         ].map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
@@ -1717,6 +1903,289 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       Stochastic models fluctuate annual post-retirement returns based on standard deviations (volatility). 
                       Even if your average return satisfies standard FIRE requirements, experiencing negative returns in the **first 3-5 years** of retirement can permanently deplete your portfolio. 
                       Aim for a Success Score **above 85%** to survive worst-case historical sequence risks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+            </div>
+          </>
+        )}
+
+        {/* ── 10. EXECUTIVE WEALTH SCENARIO PLANNER & SANDBOX (RELEASE 6) ── */}
+        {calcTab === "scenario-sandbox" && sandboxResult && (
+          <>
+            {/* Left Column: Sandbox Configurator Console */}
+            <div className="bento-col-5" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <GitBranch size={18} color={THEME.accent} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Scenario Configurator</div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {inpRow("Current Age", fireAge, setFireAge)}
+                  {inpRow("Target Corpus (₹)", firePortfolio, setFirePortfolio)}
+                </div>
+                {inpRow("Base Monthly Savings (₹)", sandboxSavings, setSandboxSavings)}
+                
+                <div className="divider" style={{ margin: "16px 0" }} />
+                
+                {sliderRow("Assumed Portfolio Return", sandboxReturn, setSandboxReturn, 2, 22, 0.5, "%")}
+                {sliderRow("Simulation Duration", sandboxYears, setSandboxYears, 5, 25, 1, " yrs")}
+
+                <div className="divider" style={{ margin: "20px 0 16px" }} />
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em", marginBottom: 16 }}>
+                  Alternative Life Presets
+                </div>
+
+                {/* Preset 1: Career Gap / Sabbatical Accordion Card */}
+                <div style={{ 
+                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`, 
+                  borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>✈️</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Career Sabbatical</span>
+                    </div>
+                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={sabActive} 
+                        onChange={(e) => setSabActive(e.target.checked)} 
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span className="slider round" style={{ 
+                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                        backgroundColor: sabActive ? THEME.accent : "#ccc", borderRadius: 34, transition: "0.3s"
+                      }}>
+                        <span style={{ 
+                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
+                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
+                          transform: sabActive ? "translateX(14px)" : "none"
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+                  {sabActive && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {inpRow("Start Age", sabAge, setSabAge)}
+                        {inpRow("Duration (yrs)", sabDur, setSabDur)}
+                      </div>
+                      {sliderRow("Income Factor during Gap", sabInc, setSabInc, 0, 100, 5, "%")}
+                      {inpRow("Extra Expenses (₹/mo)", sabExp, setSabExp)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Preset 2: Startup Venture Accordion Card */}
+                <div style={{ 
+                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`, 
+                  borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>🚀</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Startup Venture</span>
+                    </div>
+                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={startupActive} 
+                        onChange={(e) => setStartupActive(e.target.checked)} 
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span className="slider round" style={{ 
+                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                        backgroundColor: startupActive ? THEME.gold : "#ccc", borderRadius: 34, transition: "0.3s"
+                      }}>
+                        <span style={{ 
+                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
+                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
+                          transform: startupActive ? "translateX(14px)" : "none"
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+                  {startupActive && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {inpRow("Launch Age", startupAge, setStartupAge)}
+                        {inpRow("Launch CapEx (₹)", startupCapEx, setStartupCapEx)}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {inpRow("Salary Loss (yrs)", startupLoss, setStartupLoss)}
+                        {inpRow("Exit Pay Age", startupPayoutAge, setStartupPayoutAge)}
+                      </div>
+                      {inpRow("Projected Exit Pay (₹)", startupPayout, setStartupPayout)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Preset 3: Real Estate Purchase Accordion Card */}
+                <div style={{ 
+                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`, 
+                  borderRadius: 12, padding: 16, transition: "all 0.2s ease" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>🏠</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Real Estate Purchase</span>
+                    </div>
+                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={propActive} 
+                        onChange={(e) => setPropActive(e.target.checked)} 
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span className="slider round" style={{ 
+                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
+                        backgroundColor: propActive ? THEME.rust : "#ccc", borderRadius: 34, transition: "0.3s"
+                      }}>
+                        <span style={{ 
+                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
+                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
+                          transform: propActive ? "translateX(14px)" : "none"
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+                  {propActive && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {inpRow("Purchase Age", propAge, setPropAge)}
+                        {inpRow("Down Payment (₹)", propDown, setPropDown)}
+                      </div>
+                      {inpRow("Annual Carry Costs (₹)", propCarry, setPropCarry)}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Column: Comparative Dashboard Analytics */}
+            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              
+              {/* COMPARATIVE SCORECARD */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+                
+                <Card style={{ padding: 18 }}>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>10-Yr Baseline Wealth</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                    {fmtINRFull(sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)]["Baseline Path"])}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
+                    Est. FI Target Age: <b>{sandboxResult.baseFIAge} yrs</b>
+                  </div>
+                </Card>
+
+                <Card style={{ padding: 18 }}>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>10-Yr Sandbox Wealth</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: sandboxResult.endSand >= sandboxResult.endBase ? THEME.sage : THEME.ink, marginTop: 4 }}>
+                    {fmtINRFull(sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)]["Simulated Path"])}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
+                    Est. FI Target Age: <b>{sandboxResult.sandFIAge} yrs</b>
+                  </div>
+                </Card>
+
+                <Card style={{ padding: 18 }}>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>Net Scenario Drag / Benefit</div>
+                  <div style={{ 
+                    fontSize: 18, fontWeight: 900, 
+                    color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage, marginTop: 4 
+                  }}>
+                    {sandboxResult.oppCost > 0 
+                      ? `-${fmtINRFull(Math.abs(sandboxResult.oppCost))}` 
+                      : `+${fmtINRFull(Math.abs(sandboxResult.oppCost))}`}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage, fontWeight: 700, marginTop: 4 }}>
+                    {sandboxResult.oppCost > 0 
+                      ? `⏱️ Delay: +${sandboxResult.fiAgeGap.toFixed(1)} yrs to FI` 
+                      : `🚀 Accelerated by ${Math.abs(sandboxResult.fiAgeGap).toFixed(1)} yrs`}
+                  </div>
+                </Card>
+              </div>
+
+              {/* INTEGRATED COMPARISON CHART */}
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em" }}>
+                    Wealth Projections Sandbox Overlay
+                  </div>
+                  {sandboxResult.liquidityCrisisAge !== -1 && (
+                    <Badge variant="rust" style={{ animation: "pulse-ring 2s infinite" }}>
+                      ⚠️ Liquidity Shortfall at age {sandboxResult.liquidityCrisisAge}
+                    </Badge>
+                  )}
+                </div>
+
+                <div style={{ height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sandboxResult.chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="baselineColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.01}/>
+                        </linearGradient>
+                        <linearGradient id="sandboxColor" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} stopOpacity={0.01}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
+                      <XAxis dataKey="age" stroke={THEME.muted} fontSize={11} tickLine={false} />
+                      <YAxis 
+                        stroke={THEME.muted} 
+                        fontSize={11} 
+                        tickLine={false} 
+                        tickFormatter={(v) => v >= 10000000 ? `${(v/10000000).toFixed(1)}Cr` : v >= 100000 ? `${(v/100000).toFixed(0)}L` : v} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ background: THEME.paper, border: `1.5px solid ${THEME.line}`, borderRadius: 10, fontSize: 12, color: THEME.ink }}
+                        formatter={(val) => fmtINRFull(Number(val))}
+                      />
+                      <Area type="monotone" dataKey="Baseline Path" stroke={THEME.accent} strokeWidth={2.5} fillOpacity={1} fill="url(#baselineColor)" />
+                      <Area type="monotone" dataKey="Simulated Path" stroke={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} strokeWidth={2.5} fillOpacity={1} fill="url(#sandboxColor)" />
+                      <ReferenceLine y={0} stroke={THEME.rust} strokeWidth={1.5} strokeDasharray="4 4" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* CEO / CFO STRATEGIC ADVISORY */}
+              <Card style={{ padding: 20, borderLeft: `4px solid ${THEME.gold}` }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--t-gold) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Info size={18} color={THEME.gold} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}>
+                      Strategic Sandboxing (CEO & CFO Executive Briefing)
+                    </h4>
+                    <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                      {sandboxResult.oppCost > 0 ? (
+                        <>
+                          Your simulated scenario has an opportunity cost of <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b>. 
+                          This introduces a <b>{sandboxResult.fiAgeGap.toFixed(1)} year delay</b> to reaching your Financial Independence target. 
+                          {sandboxResult.liquidityCrisisAge !== -1 ? (
+                            <span style={{ color: THEME.rust, fontWeight: 700 }}>
+                              {" "}WARNING: Outstanding liabilities/downpayments trigger a liquidity crisis at age {sandboxResult.liquidityCrisisAge}. 
+                              We advise securing a capital buffer of at least 6 months of baseline expenses before initiating this choice.
+                            </span>
+                          ) : (
+                            " Ensure your emergency fund scales to absorb the increased annual carry costs before execution."
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          Your simulated venture compounds wealth <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b> above your baseline projection! 
+                          This accelerates your Financial Independence target age by <b>{Math.abs(sandboxResult.fiAgeGap).toFixed(1)} years</b>, easily offsetting any initial CapEx risk.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
