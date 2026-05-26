@@ -1979,7 +1979,7 @@ function FinanceDashboard() {
     {
       title: "Liabilities & Credit",
       items: [
-        { id: "credit", label: "Credit & Loans", icon: CreditCard, children: [
+        { id: "credit", label: "Credit & Liabilities", icon: CreditCard, children: [
           { id: "cc",       label: "Credit Cards",  icon: CreditCard   },
           { id: "prepaid",  label: "Prepaid Cards", icon: Wallet       },
           { id: "taken",    label: "Loans Taken",   icon: ArrowLeft    },
