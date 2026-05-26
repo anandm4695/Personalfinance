@@ -17,8 +17,8 @@ const FROM_ADDR = `Personal Finance <${FROM_EMAIL}>`;
 // SUPABASE_URL is the conventional non-prefixed fallback for pure server use.
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase env vars not configured (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)");
+  const key = process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env vars not configured (VITE_SUPABASE_URL / SUPABASE_SERVICE_EMAIL_ROLE_KEY)");
   return createClient(url, key);
 }
 
@@ -649,16 +649,17 @@ module.exports = async function handler(req, res) {
   // ── Health check — called by Settings UI to diagnose config ───────────────
   if (req.method === "GET" && req.query?.action === "healthcheck") {
     const isTestDomain = FROM_EMAIL === "onboarding@resend.dev";
+    const hasServiceKey = !!(process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
     return res.status(200).json({
       resendKey: !!RESEND_KEY,
-      supabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseServiceKey: hasServiceKey,
       supabaseUrl: !!process.env.VITE_SUPABASE_URL,
       fromEmail: FROM_EMAIL,
       usingTestDomain: isTestDomain,
       testDomainWarning: isTestDomain
         ? "onboarding@resend.dev can only deliver to the email address you used to register with Resend. Set RESEND_FROM_EMAIL in Vercel env vars to a verified domain sender to send to any address."
         : null,
-      ready: !!RESEND_KEY && !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      ready: !!RESEND_KEY && hasServiceKey,
     });
   }
 
@@ -711,9 +712,9 @@ module.exports = async function handler(req, res) {
         console.error("[send-summary] MISSING: Resend_Email_API not set in Vercel env vars");
         return res.status(500).json({ error: "Resend API key not configured" });
       }
-      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.error("[send-summary] MISSING: SUPABASE_SERVICE_ROLE_KEY not set in Vercel env vars");
-        return res.status(500).json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured" });
+      if (!process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error("[send-summary] MISSING: SUPABASE_SERVICE_EMAIL_ROLE_KEY not set in Vercel env vars");
+        return res.status(500).json({ error: "SUPABASE_SERVICE_EMAIL_ROLE_KEY not configured" });
       }
 
       const supabase = getSupabase();

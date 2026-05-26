@@ -662,7 +662,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
         {enabled && (
           <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.15)", fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
-            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>RESEND_API_KEY</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_ROLE_KEY</code> to your Vercel environment variables. Get a free Resend API key at resend.com — 3,000 free emails/month.
+            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>Resend_Email_API</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_EMAIL_ROLE_KEY</code> to your Vercel environment variables. Get a free Resend API key at resend.com — 3,000 free emails/month.
           </div>
         )}
       </Card>
@@ -846,7 +846,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     ok: health.supabaseServiceKey,
                     label: "Supabase Service Role Key",
                     pass: "Configured in Vercel",
-                    fail: "Missing — add SUPABASE_SERVICE_ROLE_KEY to Vercel (get from Supabase → Project Settings → API)",
+                    fail: "Missing — add SUPABASE_SERVICE_EMAIL_ROLE_KEY to Vercel (get from Supabase → Project Settings → API)",
                   },
                   {
                     ok: health.supabaseUrl,
