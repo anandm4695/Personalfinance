@@ -714,26 +714,39 @@ function FinanceDashboard() {
   // Fire browser push notifications for reminders due within 3 days (runs once per session)
   useEffect(() => {
     if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    const getNotificationIcon = (type: "credit" | "subscription" | "reminder") => {
+      let svg = "";
+      if (type === "credit") {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#6366F1"/><rect x="14" y="20" width="36" height="24" rx="4" fill="none" stroke="#FFFFFF" stroke-width="3"/><line x1="14" y1="27" x2="50" y2="27" stroke="#FFFFFF" stroke-width="3"/><rect x="20" y="34" width="6" height="4" rx="1" fill="#FFFFFF"/></svg>`;
+      } else if (type === "subscription") {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#F59E0B"/><path d="M32 16c-8.8 0-16 7.2-16 16s7.2 16 16 16c4.4 0 8.4-1.8 11.3-4.7l-2.8-2.8c-2.2 2.2-5.2 3.5-8.5 3.5-6.6 0-12-5.4-12-12s5.4-12 12-12c3.3 0 6.3 1.3 8.5 3.5H32v4h16V16h-4v2.5c-2.9-2.9-6.9-4.7-12-4.7z" fill="#FFFFFF"/></svg>`;
+      } else {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#10B981"/><path d="M32 14a12 12 0 0 0-12 12v12l-3 3v2h30v-2l-3-3V26a12 12 0 0 0-12-12zm-4 32a4 4 0 0 0 8 0h-8z" fill="#FFFFFF"/></svg>`;
+      }
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
+
     const todayStr = today();
-    const soon: { title: string; body: string }[] = [];
+    const soon: { title: string; body: string; type: "credit" | "subscription" | "reminder" }[] = [];
     const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - new Date(todayStr).getTime()) / 86400000);
     state.reminders.forEach((r) => {
       if (!r.date) return;
       const d = daysLeft(r.date);
-      if (d >= 0 && d <= 3) soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}` });
+      if (d >= 0 && d <= 3) soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`, type: "reminder" });
     });
     state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (!dueDate) return;
       const d = daysLeft(dueDate);
-      if (d >= 0 && d <= 3) soon.push({ title: `${c.issuer} bill due`, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}` });
+      if (d >= 0 && d <= 3) soon.push({ title: `${c.issuer} bill due`, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`, type: "credit" });
     });
     state.subscriptions.filter((s) => s.renewalDate && !s.paused).forEach((s) => {
       const d = daysLeft(s.renewalDate);
-      if (d >= 0 && d <= 3) soon.push({ title: `${s.name} renewal`, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}` });
+      if (d >= 0 && d <= 3) soon.push({ title: `${s.name} renewal`, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "subscription" });
     });
-    soon.forEach(({ title, body }) => {
-      try { new Notification(title, { body, icon: "/logo.png" }); } catch {}
+    soon.forEach(({ title, body, type }) => {
+      try { new Notification(title, { body, icon: getNotificationIcon(type) }); } catch {}
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally omit other deps — runs once after initial load
