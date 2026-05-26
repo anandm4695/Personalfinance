@@ -1351,11 +1351,12 @@ function FinanceDashboard() {
         list.push({ level: "error", title: `${b.category} over budget`, detail: `Spent ${fmtINRFull(spent)} vs budget ${fmtINRFull(b.monthly)}`, tab: "budget" });
       }
     });
-    // CC due in ≤10 days
+    // CC due in ≤10 days — anchor both ends to local midnight to avoid IST timezone off-by-one
+    const todayMidnight = new Date(today() + "T00:00:00").getTime();
     state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) {
-        const days = Math.ceil((new Date(dueDate).getTime() - now.getTime()) / 86400000);
+        const days = Math.ceil((new Date(dueDate + "T00:00:00").getTime() - todayMidnight) / 86400000);
         if (days >= 0 && days <= 5) list.push({ level: "error", title: `${c.issuer} CC due in ${days}d`, detail: `Outstanding: ${fmtINRFull(c.outstanding)}`, tab: "credit" });
         else if (days > 5 && days <= 10) list.push({ level: "warn", title: `${c.issuer} CC due in ${days}d`, detail: `Outstanding: ${fmtINRFull(c.outstanding)}`, tab: "credit" });
       }
@@ -2651,7 +2652,7 @@ function FinanceDashboard() {
             {tab === "goals" && <GoalsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
-            {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
+            {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
             {tab === "settings" && (
               <SettingsTab

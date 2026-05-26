@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle, Home, Filter, X } from "lucide-react";
+import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle, Home, Filter, X, Car, Heart, IndianRupee, Receipt, Pencil } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -25,6 +25,10 @@ const TYPE_COLORS: Record<string, string> = {
   "Loan Given": THEME.gold,
   "Rent": THEME.rust,
   "Reminder": THEME.accent,
+  "Health": THEME.rust,
+  "Vehicle": THEME.gold,
+  "Tax": THEME.rust,
+  "Bills": THEME.accent,
 };
 
 const TYPE_ICONS: Record<string, any> = {
@@ -41,7 +45,13 @@ const TYPE_ICONS: Record<string, any> = {
   "Loan Given": HandCoins,
   "Rent": Home,
   "Reminder": Bell,
+  "Health": Heart,
+  "Vehicle": Car,
+  "Tax": IndianRupee,
+  "Bills": Receipt,
 };
+
+const MANUAL_CATEGORIES = ["Reminder", "Health", "Vehicle", "Tax", "Bills"];
 
 const TYPE_CATEGORIES = [
   "All",
@@ -58,6 +68,10 @@ const TYPE_CATEGORIES = [
   "Bond",
   "Loan Given",
   "Reminder",
+  "Health",
+  "Vehicle",
+  "Tax",
+  "Bills",
 ];
 
 function fmtDisplayDate(dateStr: string): string {
@@ -67,8 +81,9 @@ function fmtDisplayDate(dateStr: string): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function RemindersTab({ state, addItem, removeItem }: any) {
+export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   const [show, setShow] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
   const [notifPerm, setNotifPerm] = useState<string>(() => {
     try { return localStorage.getItem("finance-notif") || "default"; } catch { return "default"; }
@@ -82,6 +97,7 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
     }
   });
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showAllPast, setShowAllPast] = useState(false);
 
   React.useEffect(() => {
     try {
@@ -126,6 +142,15 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
     }
   };
 
+  const markAllPastDone = () => {
+    const pastKeys = past.map((r) => `${r.id}-${r.date}`);
+    const newKeys = [...new Set([...completedKeys, ...pastKeys])];
+    setCompletedKeys(newKeys);
+    try {
+      localStorage.setItem("finance-completed-reminders", JSON.stringify(newKeys));
+    } catch {}
+  };
+
   const todayStr = today();
 
   const requestNotifications = async () => {
@@ -149,6 +174,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: c.outstanding ? "Outstanding: " + fmtINRFull(c.outstanding) : "Active card",
         date: dueDate,
         type: "Credit Card",
+        amount: Number(c.outstanding || 0),
+        isOutflow: true,
       });
     });
 
@@ -160,6 +187,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: (s.cycle || s.billingCycle || "Monthly") + " · " + fmtINRFull(s.amount),
         date: s.renewalDate,
         type: "Subscription",
+        amount: Number(s.amount || 0),
+        isOutflow: true,
       });
     });
 
@@ -171,6 +200,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: "Principal: " + fmtINRFull(f.principal),
         date: f.maturityDate,
         type: "Fixed Deposit",
+        amount: Number(f.principal || 0),
+        isOutflow: false,
       });
     });
 
@@ -182,6 +213,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: "Face Value: " + fmtINRFull(b.faceValue),
         date: b.maturityDate,
         type: "Bond",
+        amount: 0,
+        isOutflow: false,
       });
     });
 
@@ -193,6 +226,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: "Annual Premium: " + fmtINRFull(l.annualPremium),
         date: l.maturityDate,
         type: "LIC",
+        amount: 0,
+        isOutflow: false,
       });
       if (l.commencementDate) {
         const comm = new Date(l.commencementDate);
@@ -221,6 +256,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               subtitle: `Policy: ${l.policyNumber || "N/A"} · Premium: ${fmtINRFull(l.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "LIC Premium",
+              amount: Number(l.annualPremium || 0),
+              isOutflow: true,
             });
           }
         }
@@ -235,6 +272,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: "Cover: " + fmtINRFull(t.coverAmount),
         date: t.expiryDate,
         type: "Term Plan",
+        amount: 0,
+        isOutflow: false,
       });
       if (t.startDate) {
         const comm = new Date(t.startDate);
@@ -263,6 +302,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               subtitle: `Insurer: ${t.insurer || "N/A"} · Premium: ${fmtINRFull(t.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "Term Premium",
+              amount: Number(t.annualPremium || 0),
+              isOutflow: true,
             });
           }
         }
@@ -278,6 +319,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
           subtitle: "Expected Maturity: " + fmtINRFull(ip.expectedMaturityAmount),
           date: ip.maturityDate,
           type: "Investment Plan",
+          amount: 0,
+          isOutflow: false,
         });
       }
       if (ip.commencementDate) {
@@ -307,6 +350,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               subtitle: `Insurer: ${ip.insurer || "N/A"} · Premium: ${fmtINRFull(ip.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "Investment Premium",
+              amount: Number(ip.annualPremium || 0),
+              isOutflow: true,
             });
           }
         }
@@ -321,6 +366,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         subtitle: "Outstanding: " + fmtINRFull(l.outstanding),
         date: l.dueDate,
         type: "Loan Given",
+        amount: Number(l.outstanding || 0),
+        isOutflow: false,
       });
     });
 
@@ -342,6 +389,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
           subtitle: `Rent: ${fmtINRFull(p.monthlyRent)} · Due on ${dueDay}${["st","nd","rd"][((dueDay+90)%100-10)%10-1]||"th"} of month`,
           date: getLocalDateString(dueDay >= todayD.getDate() ? dueDate : new Date(currentYear, currentMonth + 1, dueDay)),
           type: "Rent",
+          amount: Number(p.monthlyRent || 0),
+          isOutflow: true,
         });
       } else {
         // Already paid — show next month's due
@@ -358,6 +407,8 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
             subtitle: `Rent: ${fmtINRFull(p.monthlyRent)} · This month already paid ✓`,
             date: getLocalDateString(nextDueDate),
             type: "Rent",
+            amount: Number(p.monthlyRent || 0),
+            isOutflow: true,
           });
         }
       }
@@ -365,13 +416,17 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
 
     // ── 10. MANUAL REMINDERS ──
     (state.reminders || []).forEach((r: any) => {
+      const noteParts = [r.note, r.amount ? `Amount: ${fmtINRFull(r.amount)}` : ""].filter(Boolean);
       list.push({
         id: r.id,
         title: r.title,
-        subtitle: r.note || (r.amount ? `Amount: ${fmtINRFull(r.amount)}` : ""),
+        subtitle: noteParts.join(" · "),
         date: r.date,
-        type: "Reminder",
+        type: r.category || "Reminder",
+        amount: Number(r.amount || 0),
+        isOutflow: true,
         manual: true,
+        raw: r,
       });
     });
 
@@ -379,7 +434,6 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
   }, [state]);
 
   const daysLeft = (d: string) => Math.ceil((new Date(d + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) / 86400000);
-  const urgencyColor = (days: number) => days < 0 ? THEME.muted : days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
 
   const partitioned = useMemo(() => {
     const upcomingList: any[] = [];
@@ -411,12 +465,147 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
 
   const { upcoming, past, completed } = partitioned;
 
+  const next30Outflow = useMemo(() => {
+    return upcoming
+      .filter((r) => r.isOutflow && daysLeft(r.date) <= 30)
+      .reduce((s, r) => s + r.amount, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upcoming]);
+
   const availableTypes = useMemo(() => {
     const types = new Set(upcoming.map((r) => r.type));
     return TYPE_CATEGORIES.filter((t) => t === "All" || types.has(t));
   }, [upcoming]);
 
   const filteredUpcoming = activeFilter === "All" ? upcoming : upcoming.filter((r) => r.type === activeFilter);
+
+  // Time bucket grouping
+  const critical = filteredUpcoming.filter((r) => daysLeft(r.date) <= 7);
+  const soon = filteredUpcoming.filter((r) => { const d = daysLeft(r.date); return d > 7 && d <= 30; });
+  const horizon = filteredUpcoming.filter((r) => daysLeft(r.date) > 30);
+
+  const pastToShow = showAllPast ? [...past].reverse() : [...past].reverse().slice(0, 8);
+
+  const renderReminderCard = (r: any, compact = false) => {
+    const days = daysLeft(r.date);
+    const color = TYPE_COLORS[r.type] || THEME.accent;
+    const urgencyCol = days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
+    const urgencyBg = days <= 7 ? `${THEME.rust}15` : days <= 30 ? `${THEME.gold}15` : `${THEME.sage}15`;
+    const Icon = TYPE_ICONS[r.type] || Bell;
+    const daysLabel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
+
+    return (
+      <Card key={r.id + r.date} style={{ padding: compact ? "14px 18px" : "16px 20px", borderLeft: `3px solid ${color}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{
+            width: compact ? 36 : 42, height: compact ? 36 : 42, borderRadius: 12, flexShrink: 0,
+            background: `color-mix(in srgb, ${color} 12%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon size={compact ? 17 : 20} color={color} />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 800, fontSize: compact ? 13 : 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{r.title}</span>
+              <span style={{
+                fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
+                background: `color-mix(in srgb, ${color} 10%, transparent)`,
+                color,
+                textTransform: "uppercase", letterSpacing: "0.06em",
+                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+              }}>{r.type}</span>
+            </div>
+            {r.subtitle && (
+              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <div style={{
+                padding: "4px 14px", borderRadius: 8,
+                background: urgencyBg,
+                border: `1px solid color-mix(in srgb, ${urgencyCol} 20%, transparent)`,
+              }}>
+                <span style={{ fontWeight: 900, fontSize: 15, color: urgencyCol, letterSpacing: "-0.02em" }}>{daysLabel}</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{fmtDisplayDate(r.date)}</div>
+            </div>
+
+            {/* Edit button (manual only) */}
+            {r.manual && updateItem && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingReminder(r.raw)}
+                style={{ padding: 6, color: THEME.muted }}
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </Button>
+            )}
+
+            {/* Complete Checkbox */}
+            <button
+              onClick={() => toggleComplete(r.id, r.date)}
+              title="Mark as Done"
+              style={{
+                width: 34, height: 34, borderRadius: "50%",
+                border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
+                background: "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+                color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
+                transition: "all 0.2s ease-in-out",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderStyle = "solid";
+                e.currentTarget.style.borderColor = THEME.sage;
+                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.background = THEME.sage;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderStyle = "dashed";
+                e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
+                e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Check size={16} strokeWidth={2.5} />
+            </button>
+
+            {/* Delete (manual only) */}
+            {r.manual && (
+              <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
+                <Trash2 size={14} />
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderBucket = (items: any[], label: string, labelColor: string, compact = false) => {
+    if (items.length === 0) return null;
+    return (
+      <div style={{ marginBottom: 32 }}>
+        <div style={{
+          fontSize: 10, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase",
+          marginBottom: 12, color: labelColor,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: labelColor, display: "inline-block", flexShrink: 0 }} />
+          {label} · {items.length}
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {items.map((r) => renderReminderCard(r, compact))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="tab-content-enter">
@@ -444,10 +633,11 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
       </SectionTitle>
 
       {/* ── STAT CARDS ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         <StatCard icon={<Bell />} label="Upcoming Alerts" value={upcoming.length} color={THEME.accent} sub="Reminders within next 365 days" />
         <StatCard icon={<AlertCircle size={20} />} label="Due Soon (7 days)" value={upcoming.filter((r) => daysLeft(r.date) <= 7).length} color={upcoming.filter((r) => daysLeft(r.date) <= 7).length > 0 ? THEME.rust : THEME.sage} sub="Critical window alerts" />
         <StatCard icon={<Trash2 size={20} />} label="Past Due" value={past.length} color={past.length > 0 ? THEME.rust : THEME.muted} sub="Unresolved past alerts" />
+        <StatCard icon={<IndianRupee size={20} />} label="Next 30d Outflow" value={fmtINRFull(next30Outflow)} color={next30Outflow > 0 ? THEME.rust : THEME.muted} sub="Payments due in next 30 days" />
       </div>
 
       {allReminders.length === 0 ? (
@@ -504,16 +694,12 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                     key={t}
                     onClick={() => setActiveFilter(t)}
                     style={{
-                      padding: "5px 14px",
-                      borderRadius: 99,
+                      padding: "5px 14px", borderRadius: 99,
                       border: active ? `1.5px solid ${col}` : `1px solid ${THEME.line}`,
                       background: active ? `color-mix(in srgb, ${col} 12%, transparent)` : "transparent",
                       color: active ? col : THEME.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.18s",
-                      letterSpacing: "0.03em",
+                      fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      transition: "all 0.18s", letterSpacing: "0.03em",
                     }}
                   >
                     {t}
@@ -536,127 +722,40 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
             </div>
           )}
 
-          {/* ── UPCOMING ALERTS ── */}
+          {/* ── TIME-BUCKETED UPCOMING ALERTS ── */}
           {filteredUpcoming.length > 0 && (
             <>
-              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
-                Upcoming · {filteredUpcoming.length} alert{filteredUpcoming.length !== 1 ? "s" : ""}
-                {activeFilter !== "All" && <span style={{ color: TYPE_COLORS[activeFilter] || THEME.accent }}> · {activeFilter}</span>}
-              </div>
-              <div style={{ display: "grid", gap: 10, marginBottom: 40 }}>
-                {filteredUpcoming.map((r) => {
-                  const days = daysLeft(r.date);
-                  const color = TYPE_COLORS[r.type] || urgencyColor(days);
-                  const urgencyColor2 = days <= 7 ? THEME.rust : days <= 30 ? THEME.gold : THEME.sage;
-                  const Icon = TYPE_ICONS[r.type] || Bell;
-                  const daysLabel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
-                  const urgencyBg = days <= 7 ? `${THEME.rust}15` : days <= 30 ? `${THEME.gold}15` : `${THEME.sage}15`;
-                  return (
-                    <Card key={r.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}` }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        {/* Icon Box */}
-                        <div style={{
-                          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-                          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
-                          display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                          <Icon size={20} color={color} />
-                        </div>
- 
-                        {/* Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{r.title}</span>
-                            <span style={{
-                              fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
-                              background: `color-mix(in srgb, ${color} 10%, transparent)`,
-                              color,
-                              textTransform: "uppercase", letterSpacing: "0.06em",
-                              border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-                            }}>{r.type}</span>
-                          </div>
-                          {r.subtitle && (
-                            <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{r.subtitle}</div>
-                          )}
-                        </div>
- 
-                        {/* Actions Flex */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                          {/* Days Badge */}
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                            <div style={{
-                              padding: "4px 14px", borderRadius: 8,
-                              background: urgencyBg,
-                              border: `1px solid color-mix(in srgb, ${urgencyColor2} 20%, transparent)`,
-                            }}>
-                              <span style={{ fontWeight: 900, fontSize: 15, color: urgencyColor2, letterSpacing: "-0.02em" }}>{daysLabel}</span>
-                            </div>
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{fmtDisplayDate(r.date)}</div>
-                          </div>
-
-                          {/* Complete Checkbox */}
-                          <button
-                            onClick={() => toggleComplete(r.id, r.date)}
-                            title="Mark as Done"
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: "50%",
-                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
-                              background: "transparent",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
-                              transition: "all 0.2s ease-in-out",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderStyle = "solid";
-                              e.currentTarget.style.borderColor = THEME.sage;
-                              e.currentTarget.style.color = "#ffffff";
-                              e.currentTarget.style.background = THEME.sage;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderStyle = "dashed";
-                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
-                              e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
-                              e.currentTarget.style.background = "transparent";
-                            }}
-                          >
-                            <Check size={16} strokeWidth={2.5} />
-                          </button>
- 
-                          {/* Delete (manual only) */}
-                          {r.manual && (
-                            <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+              {renderBucket(critical, "Critical — Due within 7 days", THEME.rust)}
+              {renderBucket(soon, "Coming Up — Next 30 days", THEME.gold)}
+              {renderBucket(horizon, "On the Horizon", THEME.muted, true)}
             </>
           )}
- 
+
           {filteredUpcoming.length === 0 && activeFilter !== "All" && (upcoming.length > 0 || past.length > 0) && (
             <div style={{ textAlign: "center", padding: "40px 0", color: THEME.muted, fontSize: 13 }}>
               No upcoming {activeFilter} alerts.
             </div>
           )}
- 
+
           {/* ── PAST DUE ── */}
           {past.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14 }}>
-                Past Due Alerts · {past.length}
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Past Due Alerts · {past.length}</span>
+                <button
+                  onClick={markAllPastDone}
+                  style={{
+                    fontSize: 11, fontWeight: 700, color: THEME.sage, background: "none", border: "none",
+                    cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0,
+                    textTransform: "none", letterSpacing: 0,
+                  }}
+                  title="Mark all past due as done"
+                >
+                  <Check size={11} /> Mark all done
+                </button>
               </div>
               <div style={{ display: "grid", gap: 8 }}>
-                {[...past].reverse().slice(0, 8).map((r) => {
+                {pastToShow.map((r) => {
                   const days = Math.abs(daysLeft(r.date));
                   const Icon = TYPE_ICONS[r.type] || Bell;
                   const color = TYPE_COLORS[r.type] || THEME.muted;
@@ -678,25 +777,19 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                           <div style={{
                             fontSize: 11, fontWeight: 700, color: THEME.rust,
                             padding: "2px 8px", borderRadius: 6,
-                            background: `${THEME.rust}12`,
-                            border: `1px solid ${THEME.rust}22`,
+                            background: `${THEME.rust}12`, border: `1px solid ${THEME.rust}22`,
                           }}>
                             {days}d ago
                           </div>
 
-                          {/* Complete Checkbox */}
                           <button
                             onClick={() => toggleComplete(r.id, r.date)}
                             title="Mark as Done"
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "50%",
+                              width: 28, height: 28, borderRadius: "50%",
                               border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
                               background: "transparent",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
+                              display: "flex", alignItems: "center", justifyContent: "center",
                               cursor: "pointer",
                               color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
                               transition: "all 0.2s ease-in-out",
@@ -717,6 +810,12 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                             <Check size={13} strokeWidth={2.5} />
                           </button>
 
+                          {r.manual && updateItem && (
+                            <Button variant="ghost" size="sm" onClick={() => setEditingReminder(r.raw)} style={{ padding: 6, color: THEME.muted }} title="Edit">
+                              <Pencil size={12} />
+                            </Button>
+                          )}
+
                           {r.manual && (
                             <Button variant="ghost" size="sm" onClick={() => removeItem("reminders", r.id)} style={{ padding: 6, color: THEME.rust }}>
                               <Trash2 size={12} />
@@ -728,6 +827,21 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                   );
                 })}
               </div>
+              {past.length > 8 && (
+                <button
+                  onClick={() => setShowAllPast(!showAllPast)}
+                  style={{
+                    display: "block", width: "100%", marginTop: 10,
+                    padding: "8px 0", borderRadius: 8,
+                    border: `1px dashed ${THEME.line}`,
+                    background: "transparent", cursor: "pointer",
+                    fontSize: 12, fontWeight: 700, color: THEME.muted,
+                    textAlign: "center",
+                  }}
+                >
+                  {showAllPast ? "Show less" : `Show all ${past.length} past due items`}
+                </button>
+              )}
             </div>
           )}
 
@@ -737,21 +851,11 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
               <button
                 onClick={() => setShowCompleted(!showCompleted)}
                 style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 10,
-                  color: THEME.muted,
-                  fontWeight: 800,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  marginBottom: 14,
-                  cursor: "pointer",
-                  width: "100%",
-                  textAlign: "left"
+                  background: "none", border: "none", padding: 0,
+                  display: "flex", alignItems: "center", gap: 8,
+                  fontSize: 10, color: THEME.muted, fontWeight: 800,
+                  letterSpacing: "0.2em", textTransform: "uppercase",
+                  marginBottom: 14, cursor: "pointer", width: "100%", textAlign: "left",
                 }}
               >
                 <span>Completed Reminders · {completed.length}</span>
@@ -765,16 +869,10 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                     return (
                       <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.55, background: "rgba(128,128,128,0.02)", borderLeft: `3px solid ${THEME.sage}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          {/* Filled Green Check Box */}
                           <div style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: "50%",
+                            width: 32, height: 32, borderRadius: "50%",
                             background: THEME.sage,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0
+                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                           }}>
                             <Check size={16} color="#ffffff" strokeWidth={3} />
                           </div>
@@ -788,19 +886,13 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
                             </div>
                           </div>
 
-                          {/* Undo Button */}
                           <button
                             onClick={() => toggleComplete(r.id, r.date)}
                             title="Mark Active"
                             style={{
-                              padding: "4px 10px",
-                              borderRadius: 6,
-                              border: `1px solid ${THEME.line}`,
-                              background: "transparent",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: THEME.muted,
-                              cursor: "pointer",
+                              padding: "4px 10px", borderRadius: 6,
+                              border: `1px solid ${THEME.line}`, background: "transparent",
+                              fontSize: 11, fontWeight: 700, color: THEME.muted, cursor: "pointer",
                               transition: "all 0.15s",
                             }}
                             onMouseEnter={(e) => {
@@ -827,34 +919,62 @@ export function RemindersTab({ state, addItem, removeItem }: any) {
         </>
       )}
 
-
       {show && (
         <ReminderModal
           onClose={() => setShow(false)}
           onSave={(v: any) => { addItem("reminders", v); setShow(false); }}
         />
       )}
+
+      {editingReminder && updateItem && (
+        <ReminderModal
+          initialValues={editingReminder}
+          onClose={() => setEditingReminder(null)}
+          onSave={(v: any) => {
+            updateItem("reminders", editingReminder.id, v);
+            setEditingReminder(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function ReminderModal({ onClose, onSave }: any) {
-  const [f, setF] = useState({ title: "", amount: "", date: "", note: "" });
+function ReminderModal({ onClose, onSave, initialValues = null }: any) {
+  const [f, setF] = useState(initialValues ? {
+    title: initialValues.title || "",
+    category: initialValues.category || "Reminder",
+    amount: initialValues.amount || "",
+    date: initialValues.date || "",
+    note: initialValues.note || "",
+  } : {
+    title: "",
+    category: "Reminder",
+    amount: "",
+    date: "",
+    note: "",
+  });
+
   return (
-    <Modal title="Add Reminder" onClose={onClose}>
+    <Modal title={initialValues ? "Edit Reminder" : "Add Reminder"} onClose={onClose}>
       <Field label="Title">
         <input className="form-input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Car Insurance Renewal" />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Category">
+          <select className="form-input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+            {MANUAL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
         <Field label="Due Date">
           <input className="form-input" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
         </Field>
-        <Field label="Amount (optional)">
-          <input className="form-input" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
-        </Field>
       </div>
+      <Field label="Amount (optional)">
+        <input className="form-input" type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="e.g. 12000" />
+      </Field>
       <Field label="Note (optional)">
-        <input className="form-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+        <input className="form-input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Pay via HDFC net banking" />
       </Field>
       <ModalActions onSave={() => f.title && f.date && onSave(f)} onClose={onClose} />
     </Modal>
