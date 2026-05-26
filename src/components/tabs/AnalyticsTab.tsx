@@ -57,6 +57,8 @@ interface AnalyticsTabProps {
   trendData: any[];
   setState: any;
   marketData?: any;
+  updateMasterData?: any;
+  setTab?: any;
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
@@ -66,22 +68,106 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   trendData,
   setState,
   marketData,
+  updateMasterData,
+  setTab,
 }) => {
   const [sub, setSub] = useState("dashboard");
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ day: number; events: any[] } | null>(null);
-  const [rebalTargets, setRebalTargets] = useState({ equity: 60, debt: 25, cash: 10, other: 5 });
+
+  // ── Database-Synced Rebalancing Target States ──
+  const initialRebalTargets = useMemo(() => {
+    return state.masterData?._rebalTargets || { equity: 60, debt: 25, cash: 10, other: 5 };
+  }, [state.masterData?._rebalTargets]);
+
+  const [rebalTargets, setRebalTargetsState] = useState(initialRebalTargets);
+
+  React.useEffect(() => {
+    setRebalTargetsState(initialRebalTargets);
+  }, [initialRebalTargets]);
+
+  const setRebalTargets = (updater: any) => {
+    setRebalTargetsState((prev: any) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (updateMasterData) {
+        updateMasterData("_rebalTargets", next);
+      }
+      return next;
+    });
+  };
 
   // ── Financial Runway & 10-Year Projection Engine States ──
-  const [eqCAGR, setEqCAGR] = useState(12);
-  const [fiCAGR, setFiCAGR] = useState(7);
-  const [inflationRate, setInflationRate] = useState(6);
-  const [windfallAmount, setWindfallAmount] = useState(0);
-  const [windfallYear, setWindfallYear] = useState(3);
-  const [extraExpenseAmount, setExtraExpenseAmount] = useState(0);
-  const [extraExpenseYear, setExtraExpenseYear] = useState(5);
+  const initialProjection = useMemo(() => {
+    return state.masterData?._projectionSettings || {
+      eqCAGR: 12,
+      fiCAGR: 7,
+      inflationRate: 6,
+      windfallAmount: 0,
+      windfallYear: 3,
+      extraExpenseAmount: 0,
+      extraExpenseYear: 5,
+      fireWhatIfExtra: 0,
+    };
+  }, [state.masterData?._projectionSettings]);
+
+  const [eqCAGR, setEqCAGRState] = useState(initialProjection.eqCAGR);
+  const [fiCAGR, setFiCAGRState] = useState(initialProjection.fiCAGR);
+  const [inflationRate, setInflationRateState] = useState(initialProjection.inflationRate);
+  const [windfallAmount, setWindfallAmountState] = useState(initialProjection.windfallAmount);
+  const [windfallYear, setWindfallYearState] = useState(initialProjection.windfallYear);
+  const [extraExpenseAmount, setExtraExpenseAmountState] = useState(initialProjection.extraExpenseAmount);
+  const [extraExpenseYear, setExtraExpenseYearState] = useState(initialProjection.extraExpenseYear);
+  const [fireWhatIfExtra, setFireWhatIfExtraState] = useState(initialProjection.fireWhatIfExtra);
+
+  React.useEffect(() => {
+    setEqCAGRState(initialProjection.eqCAGR);
+    setFiCAGRState(initialProjection.fiCAGR);
+    setInflationRateState(initialProjection.inflationRate);
+    setWindfallAmountState(initialProjection.windfallAmount);
+    setWindfallYearState(initialProjection.windfallYear);
+    setExtraExpenseAmountState(initialProjection.extraExpenseAmount);
+    setExtraExpenseYearState(initialProjection.extraExpenseYear);
+    setFireWhatIfExtraState(initialProjection.fireWhatIfExtra);
+  }, [initialProjection]);
+
+  const updateProjectionField = (key: string, val: any) => {
+    const nextSettings = {
+      eqCAGR,
+      fiCAGR,
+      inflationRate,
+      windfallAmount,
+      windfallYear,
+      extraExpenseAmount,
+      extraExpenseYear,
+      fireWhatIfExtra,
+      ...initialProjection,
+      [key]: val,
+    };
+    if (updateMasterData) {
+      updateMasterData("_projectionSettings", nextSettings);
+    }
+  };
+
+  const setEqCAGR = (v: number) => { setEqCAGRState(v); updateProjectionField("eqCAGR", v); };
+  const setFiCAGR = (v: number) => { setFiCAGRState(v); updateProjectionField("fiCAGR", v); };
+  const setInflationRate = (v: number) => { setInflationRateState(v); updateProjectionField("inflationRate", v); };
+  const setWindfallAmount = (v: number) => { setWindfallAmountState(v); updateProjectionField("windfallAmount", v); };
+  const setWindfallYear = (v: number) => { setWindfallYearState(v); updateProjectionField("windfallYear", v); };
+  const setExtraExpenseAmount = (v: number) => { setExtraExpenseAmountState(v); updateProjectionField("extraExpenseAmount", v); };
+  const setExtraExpenseYear = (v: number) => { setExtraExpenseYearState(v); updateProjectionField("extraExpenseYear", v); };
+  const setFireWhatIfExtra = (v: number) => { setFireWhatIfExtraState(v); updateProjectionField("fireWhatIfExtra", v); };
+
+  // ── Financial Health Sandbox Simulator States ──
+  const [healthSimActive, setHealthSimActive] = useState(false);
+  const [simSavings, setSimSavings] = useState(false);
+  const [simDebt, setSimDebt] = useState(false);
+  const [simEmerg, setSimEmerg] = useState(false);
+  const [simDiv, setSimDiv] = useState(false);
+
+  // ── Tax-Loss Harvesting Simulator Checklist State ──
+  const [harvestedSelections, setHarvestedSelections] = useState<Record<string, boolean>>({});
 
   const getOrdinal = (n: number | string) => {
     const num = parseInt(n as string, 10);
@@ -104,16 +190,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   // Interactive dashboard states
   const [trendPeriod, setTrendPeriod] = useState<"3M" | "6M" | "12M" | "All">("6M");
   const [showAllTxns, setShowAllTxns] = useState(false);
-  const [fireWhatIfExtra, setFireWhatIfExtra] = useState(0);
 
   const lastTradingDayPerformance = useMemo(() => {
-    const uniqueStocks = new Map<string, { base: string; exchange: string; yfSym: string }>();
+    const uniqueStocks = new Map<string, { base: string; exchange: string; yfSym: string; lastPrice: number }>();
     (state.stocks || []).forEach((s: any) => {
       const base = s.symbol.replace(/\.(NS|BO)$/i, "");
       const exch = s.exchange || "NSE";
       const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
       if (!uniqueStocks.has(yfSym)) {
-        uniqueStocks.set(yfSym, { base, exchange: exch, yfSym });
+        uniqueStocks.set(yfSym, { base, exchange: exch, yfSym, lastPrice: Number(s.currentPrice || s.avgPrice || 0) });
       }
     });
 
@@ -123,11 +208,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     let topGainer: any = null;
     let topLoser: any = null;
+    const noChangeStocks: any[] = [];
 
-    uniqueStocks.forEach(({ base, yfSym }) => {
+    uniqueStocks.forEach(({ base, yfSym, lastPrice }) => {
       const md = marketData?.[yfSym];
       if (!md) {
         noChangeCount++;
+        noChangeStocks.push({
+          name: base,
+          symbol: yfSym,
+          price: lastPrice,
+          changeAmt: 0,
+          changePct: 0
+        });
         return;
       }
 
@@ -155,6 +248,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         }
       } else {
         noChangeCount++;
+        noChangeStocks.push(stockData);
       }
     });
 
@@ -163,7 +257,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       losingCount,
       noChangeCount,
       topGainer,
-      topLoser
+      topLoser,
+      noChangeStocks
     };
   }, [state.stocks, marketData]);
 
@@ -775,12 +870,37 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const rentalMonthly = (state.rentalProperties || [])
       .filter((r: any) => Number(r.rent || 0) > 0)
       .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+      
     const fdMonthly = (state.fixedDeposits || [])
       .reduce((s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12, 0);
-    const totalPassive = rentalMonthly + fdMonthly;
+
+    const rdMonthly = (state.recurringDeposits || []).reduce((sum: number, r: any) => {
+      const start = r.startDate ? new Date(r.startDate) : new Date();
+      const now = new Date();
+      const m = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
+      const currentVal = months > 0 ? rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), months) : 0;
+      return sum + (currentVal * Number(r.rate || 6)) / 100 / 12;
+    }, 0);
+
+    const savingsMonthly = (metrics.cashInBanks * 0.03) / 12;
+    const stockDividendsMonthly = (metrics.stockValue * 0.012) / 12;
+    const mfYieldMonthly = (metrics.mfValue * 0.01) / 12;
+
+    const totalPassive = rentalMonthly + fdMonthly + rdMonthly + savingsMonthly + stockDividendsMonthly + mfYieldMonthly;
     const passiveRatio = metrics.monthIncome > 0 ? (totalPassive / metrics.monthIncome) * 100 : 0;
-    return { rentalMonthly, fdMonthly, totalPassive, passiveRatio };
-  }, [state.rentalProperties, state.fixedDeposits, metrics.monthIncome]);
+    
+    return { 
+      rentalMonthly, 
+      fdMonthly, 
+      rdMonthly, 
+      savingsMonthly, 
+      stockDividendsMonthly, 
+      mfYieldMonthly, 
+      totalPassive, 
+      passiveRatio 
+    };
+  }, [state.rentalProperties, state.fixedDeposits, state.recurringDeposits, metrics.cashInBanks, metrics.stockValue, metrics.mfValue, metrics.monthIncome]);
 
   const taxData80C = useMemo(() => {
     const limit = 150000;
@@ -830,7 +950,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   return (
     <div className="tab-content-enter">
       <SectionTitle sub="Executive summary, financial health, and smart insights">
-        Financial Analytics
+        Executive Dashboard
       </SectionTitle>
 
       {/* Quick Stats Bar */}
@@ -1069,37 +1189,103 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
 
             {/* Row of Health, Dues, Streak */}
-            <Card className="bento-col-4 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
-              <div className="section-label">Financial Health</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                  <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: dashboardData.scoreColor }}>
-                    {dashboardData.hasData ? dashboardData.totalScore : "—"}
+            {/* Row of Health, Dues, Streak */}
+            {(() => {
+              const healthScoreData = !healthSimActive ? {
+                totalScore: dashboardData.totalScore,
+                scoreColor: dashboardData.scoreColor,
+                statusText: !dashboardData.hasData ? "No Data Yet" : dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work",
+                subScores: dashboardData.subScores,
+              } : {
+                totalScore: (simSavings ? 25 : dashboardData.subScores[0].score) + (simDebt ? 25 : dashboardData.subScores[1].score) + (simEmerg ? 25 : dashboardData.subScores[2].score) + (simDiv ? 25 : dashboardData.subScores[3].score),
+                get scoreColor() { return this.totalScore >= 75 ? THEME.sage : this.totalScore >= 50 ? THEME.gold : THEME.rust; },
+                get statusText() { return this.totalScore >= 75 ? "Excellent" : this.totalScore >= 50 ? "Good" : "Needs Work"; },
+                subScores: [
+                  { ...dashboardData.subScores[0], score: simSavings ? 25 : dashboardData.subScores[0].score, pct: (simSavings ? 25 : dashboardData.subScores[0].score) / 25 * 100, color: (simSavings ? 25 : dashboardData.subScores[0].score) >= 25 ? THEME.sage : THEME.gold, hint: simSavings ? "Simulated 30% savings rate" : dashboardData.subScores[0].hint },
+                  { ...dashboardData.subScores[1], score: simDebt ? 25 : dashboardData.subScores[1].score, pct: (simDebt ? 25 : dashboardData.subScores[1].score) / 25 * 100, color: (simDebt ? 25 : dashboardData.subScores[1].score) >= 25 ? THEME.sage : THEME.gold, hint: simDebt ? "Simulated debt-free status" : dashboardData.subScores[1].hint },
+                  { ...dashboardData.subScores[2], score: simEmerg ? 25 : dashboardData.subScores[2].score, pct: (simEmerg ? 25 : dashboardData.subScores[2].score) / 25 * 100, color: (simEmerg ? 25 : dashboardData.subScores[2].score) >= 25 ? THEME.sage : THEME.gold, hint: simEmerg ? "Simulated 6 months of buffer" : dashboardData.subScores[2].hint },
+                  { ...dashboardData.subScores[3], score: simDiv ? 25 : dashboardData.subScores[3].score, pct: (simDiv ? 25 : dashboardData.subScores[3].score) / 25 * 100, color: (simDiv ? 25 : dashboardData.subScores[3].score) >= 25 ? THEME.sage : THEME.gold, hint: simDiv ? "Simulated multi-asset mix" : dashboardData.subScores[3].hint },
+                ]
+              };
+
+              return (
+                <Card className="bento-col-4 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <span className="section-label" style={{ marginBottom: 0 }}>Financial Health</span>
+                    <button
+                      onClick={() => setHealthSimActive(p => !p)}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        border: `1px solid ${healthSimActive ? THEME.accent : THEME.line}`,
+                        background: healthSimActive ? `${THEME.accent}14` : "transparent",
+                        color: healthSimActive ? THEME.accent : THEME.muted,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      {healthSimActive ? "Exit Sandbox" : "Sandbox"}
+                    </button>
                   </div>
-                  {dashboardData.hasData && (
-                    <div style={{ fontSize: 18, fontWeight: 700, color: THEME.muted, lineHeight: 1 }}>/100</div>
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: dashboardData.scoreColor }}>
-                    {!dashboardData.hasData ? "No Data Yet" : dashboardData.totalScore >= 75 ? "Excellent" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}
-                  </div>
-                  <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>Overall Score</div>
-                </div>
-              </div>
-              <div style={{ display: "grid", gap: 14 }}>
-                {dashboardData.subScores.map((s) => (
-                  <div key={s.label}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                      <span style={{ color: THEME.muted, fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ fontWeight: 800, color: s.color }}>{s.score}/{s.max}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                      <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: healthScoreData.scoreColor }}>
+                        {dashboardData.hasData || healthSimActive ? healthScoreData.totalScore : "—"}
+                      </div>
+                      {(dashboardData.hasData || healthSimActive) && (
+                        <div style={{ fontSize: 18, fontWeight: 700, color: THEME.muted, lineHeight: 1 }}>/100</div>
+                      )}
                     </div>
-                    {s.hint && <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 5, opacity: 0.8 }}>{s.hint}</div>}
-                    <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: s.color }} /></div>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: healthScoreData.scoreColor }}>
+                        {healthScoreData.statusText}
+                      </div>
+                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+                        {healthSimActive ? "Simulated Score" : "Overall Score"}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </Card>
+
+                  {healthSimActive && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, background: "rgba(128,128,128,0.03)", borderRadius: 10, marginBottom: 16 }} className="animate-scale-in">
+                      <div style={{ fontSize: 9, fontWeight: 800, color: THEME.accent, letterSpacing: "0.06em", textTransform: "uppercase" }}>Optimization Targets</div>
+                      {[
+                        { state: simSavings, setter: setSimSavings, label: "Boost savings rate to 30%" },
+                        { state: simDebt, setter: setSimDebt, label: "Clear all outstanding debt" },
+                        { state: simEmerg, setter: setSimEmerg, label: "Secure 6-mo emergency fund" },
+                        { state: simDiv, setter: setSimDiv, label: "Diversify asset allocation" },
+                      ].map((x, idx) => (
+                        <label key={idx} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 600, color: THEME.ink, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={x.state}
+                            onChange={() => x.setter(p => !p)}
+                            style={{ accentColor: THEME.accent, width: 13, height: 13 }}
+                          />
+                          <span>{x.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: "grid", gap: 14 }}>
+                    {healthScoreData.subScores.map((s) => (
+                      <div key={s.label}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                          <span style={{ color: THEME.muted, fontWeight: 600 }}>{s.label}</span>
+                          <span style={{ fontWeight: 800, color: s.color }}>{s.score}/{s.max}</span>
+                        </div>
+                        {s.hint && <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 5, opacity: 0.8 }}>{s.hint}</div>}
+                        <div className="progress-track"><div className="progress-fill" style={{ width: s.pct + "%", background: s.color }} /></div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })()}
 
             <Card className="bento-col-5 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
               <div className="section-label">Upcoming Dues</div>
@@ -1609,14 +1795,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               {/* No Change Card */}
               <Card style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.muted }}>
-                  ● {lastTradingDayPerformance.noChangeCount} Stock No Change
+                  ● {lastTradingDayPerformance.noChangeCount} Flat / Unchanged
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: THEME.muted }}>
-                  -
+                <div style={{ fontSize: 14, fontWeight: 600, color: THEME.ink }}>
+                  {lastTradingDayPerformance.noChangeStocks && lastTradingDayPerformance.noChangeStocks.length > 0
+                    ? lastTradingDayPerformance.noChangeStocks.slice(0, 2).map((x: any) => x.name).join(", ")
+                    : "No flat stocks"}
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                    ₹0
+                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.muted }}>
+                    {lastTradingDayPerformance.noChangeStocks && lastTradingDayPerformance.noChangeStocks.length > 0
+                      ? `₹${Number(lastTradingDayPerformance.noChangeStocks.reduce((sum: number, x: any) => sum + x.price, 0).toFixed(0)).toLocaleString("en-IN")}`
+                      : "₹0"}
+                  </span>
+                  <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                    combined price
                   </span>
                 </div>
               </Card>
@@ -1874,26 +2067,30 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div>
                 <div className="section-label" style={{ marginBottom: 2 }}>Passive Income Ratio</div>
-                <div style={{ fontSize: 12, color: THEME.muted }}>Rent + FD interest vs active income</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Total multi-stream yields vs active income</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 24, fontWeight: 900, color: passiveIncomeData.passiveRatio >= 50 ? THEME.sage : passiveIncomeData.passiveRatio >= 20 ? THEME.gold : THEME.accent, letterSpacing: "-0.02em" }}>{passiveIncomeData.passiveRatio.toFixed(1)}%</div>
                 <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" as const }}>of income</div>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
               {[
                 { label: "Rental / Mo", value: passiveIncomeData.rentalMonthly, icon: Building2, color: "#059669", bg: "rgba(5,150,105,0.08)" },
-                { label: "FD Interest / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "rgba(217,119,6,0.08)" },
+                { label: "FD Yield / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "rgba(217,119,6,0.08)" },
+                { label: "RD Yield / Mo", value: passiveIncomeData.rdMonthly, icon: Activity, color: "#0891b2", bg: "rgba(8,145,178,0.08)" },
+                { label: "Savings Int. / Mo", value: passiveIncomeData.savingsMonthly, icon: Receipt, color: "#10b981", bg: "rgba(16,185,129,0.08)" },
+                { label: "Stock Divs / Mo", value: passiveIncomeData.stockDividendsMonthly, icon: TrendingUp, color: "#818cf8", bg: "rgba(129,140,248,0.08)" },
+                { label: "MF Yield / Mo", value: passiveIncomeData.mfYieldMonthly, icon: Zap, color: "#a78bfa", bg: "rgba(167,139,250,0.08)" },
               ].map(({ label, value, icon: Icon, color, bg }) => (
-                <div key={label} style={{ padding: 16, background: bg, borderRadius: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Icon size={14} color="#fff" />
+                <div key={label} style={{ padding: 14, background: bg, borderRadius: 12, border: `1px solid ${color}1c` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icon size={12} color="#fff" />
                     </div>
-                    <span style={{ fontSize: 11, color, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>{label}</span>
+                    <span style={{ fontSize: 10, color, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.03em" }}>{label}</span>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>{fmtINRFull(value)}</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(value)}</div>
                 </div>
               ))}
             </div>
@@ -2092,6 +2289,32 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     />
                     <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 500, whiteSpace: "nowrap" }}>extra/month</span>
                   </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", width: "100%", marginTop: 4 }}>
+                    {[
+                      { label: "+₹5k", val: 5000 },
+                      { label: "+₹10k", val: 10000 },
+                      { label: "+₹25k", val: 25000 },
+                      { label: "Reset", val: 0 },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        onClick={() => setFireWhatIfExtra(preset.val)}
+                        style={{
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          border: `1px solid rgba(99,102,241,0.24)`,
+                          background: fireWhatIfExtra === preset.val ? "rgba(99,102,241,0.14)" : "transparent",
+                          color: "#818CF8",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                   {(() => {
                     const currentSavings = Math.max(0, metrics.monthIncome - metrics.monthExpense);
                     const totalSavings = currentSavings + fireWhatIfExtra;
@@ -2238,6 +2461,32 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                       )}
                     </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                      {[
+                        { label: "+₹5L", val: 500000 },
+                        { label: "+₹10L", val: 1000000 },
+                        { label: "+₹25L", val: 2500000 },
+                        { label: "Reset", val: 0 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          onClick={() => setWindfallAmount(preset.val)}
+                          style={{
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            border: `1px solid ${THEME.sage}33`,
+                            background: windfallAmount === preset.val ? `${THEME.sage}1a` : "transparent",
+                            color: THEME.sage,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* One-time Major Expense */}
@@ -2266,6 +2515,32 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           </select>
                         </div>
                       )}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                      {[
+                        { label: "+₹1L", val: 100000 },
+                        { label: "+₹5L", val: 500000 },
+                        { label: "+₹10L", val: 1000000 },
+                        { label: "Reset", val: 0 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          onClick={() => setExtraExpenseAmount(preset.val)}
+                          style={{
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            border: `1px solid ${THEME.rust}33`,
+                            background: extraExpenseAmount === preset.val ? `${THEME.rust}1a` : "transparent",
+                            color: THEME.rust,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -2626,8 +2901,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <Card style={{ padding: 24, marginTop: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                   <div>
-                    <div className="section-label" style={{ marginBottom: 2 }}>Tax Loss Harvesting</div>
-                    <div style={{ fontSize: 12, color: THEME.muted }}>Holdings in loss that can be sold to offset capital gains</div>
+                    <div className="section-label" style={{ marginBottom: 2 }}>Tax Loss Harvesting Simulator</div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>Select loss positions to offset capital gains in real-time</div>
                   </div>
                   {isNearFYEnd && (
                     <Badge variant="rust" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -2643,40 +2918,76 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 16, background: "rgba(239,68,68,0.04)", borderRadius: 12, border: "1px solid rgba(239,68,68,0.1)", marginBottom: 20 }}>
-                      {[
-                        { label: "Harvestable Loss", value: fmtINR(totalLoss), color: THEME.rust },
-                        { label: "Est. Tax Saving", value: fmtINR(estimatedTaxSaving), color: THEME.sage },
-                        { label: "Positions", value: String(allLosses.length), color: THEME.ink },
-                      ].map(({ label, value, color }) => (
-                        <div key={label} style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
-                          <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.02em" }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
+                    {(() => {
+                      const activeSelections = { ...harvestedSelections };
+                      allLosses.forEach((x, idx) => {
+                        const key = `${x.type}_${x.name}_${idx}`;
+                        if (activeSelections[key] === undefined) {
+                          activeSelections[key] = true;
+                        }
+                      });
 
-                    <div style={{ display: "grid", gap: 10 }}>
-                      {allLosses.slice(0, 6).map((item, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(239,68,68,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {item.type === "Stock"
-                              ? <TrendingUp size={16} color={THEME.rust} />
-                              : <Activity size={16} color={THEME.rust} />}
+                      const selectedLosses = allLosses.filter((x, idx) => activeSelections[`${x.type}_${x.name}_${idx}`]);
+                      const selectedTotalLoss = selectedLosses.reduce((s, x) => s + x.loss, 0);
+                      const selectedStcgLoss = selectedLosses.filter(x => x.isSTCG).reduce((s, x) => s + x.loss, 0);
+                      const selectedLtcgLoss = selectedLosses.filter(x => !x.isSTCG).reduce((s, x) => s + x.loss, 0);
+                      const selectedEstSavings = selectedStcgLoss * 0.20 + selectedLtcgLoss * 0.125;
+                      const selectedCount = selectedLosses.length;
+
+                      return (
+                        <>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 16, background: "rgba(239,68,68,0.04)", borderRadius: 12, border: "1px solid rgba(239,68,68,0.1)", marginBottom: 20 }}>
+                            {[
+                              { label: "Harvested Loss", value: fmtINR(selectedTotalLoss), color: THEME.rust },
+                              { label: "Est. Tax Saving", value: fmtINR(selectedEstSavings), color: THEME.sage },
+                              { label: "Selected", value: `${selectedCount} / ${allLosses.length}`, color: THEME.ink },
+                            ].map(({ label, value, color }) => (
+                              <div key={label} style={{ textAlign: "center" }}>
+                                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+                                <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.02em" }}>{value}</div>
+                              </div>
+                            ))}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{item.name}</span>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, flexShrink: 0, marginLeft: 8 }}>−{fmtINR(item.loss)}</span>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 11, color: THEME.muted }}>
-                              <span>{item.type} · {item.isSTCG ? "STCG 20%" : "LTCG 12.5%"}</span>
-                              <span style={{ color: THEME.rust, fontWeight: 600 }}>↓ {item.lossPct.toFixed(1)}%</span>
-                            </div>
+
+                          <div style={{ display: "grid", gap: 10 }}>
+                            {allLosses.slice(0, 6).map((item, i) => {
+                              const itemKey = `${item.type}_${item.name}_${i}`;
+                              const isChecked = activeSelections[itemKey] !== false;
+                              return (
+                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: isChecked ? "rgba(128,128,128,0.03)" : "rgba(128,128,128,0.01)", border: `1px solid ${isChecked ? THEME.line : "rgba(128,128,128,0.08)"}`, transition: "all 0.2s ease" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      setHarvestedSelections(prev => ({
+                                        ...prev,
+                                        [itemKey]: !isChecked
+                                      }));
+                                    }}
+                                    style={{ width: 15, height: 15, cursor: "pointer", accentColor: THEME.accent }}
+                                  />
+                                  <div style={{ width: 36, height: 36, borderRadius: 10, background: isChecked ? "rgba(239,68,68,0.08)" : "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: isChecked ? 1 : 0.4 }}>
+                                    {item.type === "Stock"
+                                      ? <TrendingUp size={16} color={isChecked ? THEME.rust : THEME.muted} />
+                                      : <Activity size={16} color={isChecked ? THEME.rust : THEME.muted} />}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0, opacity: isChecked ? 1 : 0.45 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{item.name}</span>
+                                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, flexShrink: 0, marginLeft: 8 }}>−{fmtINR(item.loss)}</span>
+                                    </div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 11, color: THEME.muted }}>
+                                      <span>{item.type} · {item.isSTCG ? "STCG 20%" : "LTCG 12.5%"}</span>
+                                      <span style={{ color: THEME.rust, fontWeight: 600 }}>↓ {item.lossPct.toFixed(1)}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        </>
+                      );
+                    })()}
 
                     {allLosses.length > 6 && (
                       <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: THEME.muted }}>
@@ -2685,7 +2996,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     )}
 
                     <div style={{ marginTop: 14, fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
-                      * STCG 20% · LTCG 12.5% (Budget 2024 rates). Selling realises the loss to offset gains. Re-buy after 30+ days to avoid wash-sale issues. Consult your CA.
+                      * STCG 20% · LTCG 12.5% (Budget 2024 rates). Offsetting checks simulate real tax loss harvesting options. Re-buy after 30+ days to avoid wash-sale issues. Consult your CA.
                     </div>
                   </>
                 )}
@@ -3329,27 +3640,57 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     gap: 12,
                   }}
                 >
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {evt.label}
                     </span>
                     <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
                       Monthly Scheduled Due
                     </span>
                   </div>
-                  <Badge
-                    style={{
-                      background: isPaid ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                      color: isPaid ? THEME.sage : THEME.gold,
-                      border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
-                      fontSize: 10,
-                      fontWeight: 800,
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                    }}
-                  >
-                    {isPaid ? "Paid" : "Due"}
-                  </Badge>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <Badge
+                      style={{
+                        background: isPaid ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                        color: isPaid ? THEME.sage : THEME.gold,
+                        border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: "4px 10px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      {isPaid ? "Paid" : "Due"}
+                    </Badge>
+                    {setTab && !isPaid && (
+                      <button
+                        onClick={() => {
+                          const lbl = evt.label.toLowerCase();
+                          let targetTab = "analytics";
+                          if (lbl.includes("cc:") || lbl.includes("card") || lbl.includes("bill")) targetTab = "credit";
+                          else if (lbl.includes("sip") || lbl.includes("mutual")) targetTab = "investments";
+                          else if (lbl.includes("term") || lbl.includes("lic") || lbl.includes("invest")) targetTab = "investments";
+                          else if (lbl.includes("rent")) targetTab = "rental";
+                          
+                          setTab(targetTab);
+                          setSelectedDayEvents(null);
+                        }}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: THEME.accent,
+                          background: "var(--surface-0)",
+                          border: `1px solid ${THEME.accent}44`,
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        Pay →
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

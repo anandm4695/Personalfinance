@@ -270,10 +270,10 @@ function FinanceDashboard() {
     logActivity("UPDATE_SETTINGS", `Updated settings: ${keys}`, updates);
   }, [logActivity, session]);
 
-  const updateMasterData = useCallback(async (key: string, newList: string[]) => {
+  const updateMasterData = useCallback(async (key: string, newValue: any) => {
     let merged: any = null;
     setState(s => {
-      merged = { ...(s.masterData || DEFAULT_MASTER_DATA), [key]: newList };
+      merged = { ...(s.masterData || DEFAULT_MASTER_DATA), [key]: newValue };
       return { ...s, masterData: merged };
     });
     const userId = session?.user?.id;
@@ -1961,7 +1961,7 @@ function FinanceDashboard() {
     {
       title: "Wealth & Assets",
       items: [
-        { id: "banks", label: "Bank Accounts", icon: Landmark },
+        { id: "banks", label: "Banks & Transactions", icon: Landmark },
         { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
         { id: "investments", label: "Fixed Income", icon: TrendingUp, children: [
           { id: "fd",     label: "Fixed Deposits",     icon: Coins     },
@@ -2615,11 +2615,31 @@ function FinanceDashboard() {
             </div>
           )}
           <div key={tab} className="tab-content-enter">
-            {tab === "analytics" && <AnalyticsTab metrics={metrics} state={filteredState} trendData={trendData} assetBreakdown={assetBreakdown} setState={setState} marketData={marketData} />}
+            {tab === "analytics" && (
+              <AnalyticsTab
+                metrics={metrics}
+                state={filteredState}
+                trendData={trendData}
+                assetBreakdown={assetBreakdown}
+                setState={setState}
+                marketData={marketData}
+                updateMasterData={updateMasterData}
+                setTab={setTab}
+              />
+            )}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
             {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
-            {tab === "banks" && <BanksTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "banks" && (
+              <BanksTab 
+                state={filteredState} 
+                addItem={addItem} 
+                removeItem={removeItem} 
+                updateItem={updateItem} 
+                masterData={state.masterData || DEFAULT_MASTER_DATA}
+                updateMasterData={updateMasterData}
+              />
+            )}
             {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} marketData={marketData} fetchLivePrices={fetchLivePrices} fetchingPrices={fetchingPrices} marketDataTs={marketDataTs} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} />}
             {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}

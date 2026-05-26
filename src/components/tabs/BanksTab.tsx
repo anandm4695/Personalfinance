@@ -215,7 +215,7 @@ const iconBtn = {
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
+export function BanksTab({ state, addItem, removeItem, updateItem, masterData, updateMasterData }: any) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
   const [filterAcc, setFilterAcc] = useState("all");
@@ -229,6 +229,10 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
   const { transactionCategories: txnCats } = useMasterData();
+
+  // Sorting State
+  const [sortField, setSortField] = useState<"date" | "amount" | "note" | "category" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const setQuickRange = (preset: string) => {
     const now = new Date();
@@ -261,6 +265,26 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
     return new Set(Object.keys(freq).filter((k) => freq[k] >= 2));
   }, [state.transactions]);
 
+  // Reconciliation Pre-calculations
+  const reconciliationData = useMemo(() => {
+    const data: Record<string, { pendingTxns: any[], pendingImpact: number, reconciledBalance: number, needsReconciliation: boolean }> = {};
+    
+    (state.bankAccounts || []).forEach((a: any) => {
+      const pendingTxns = (state.transactions || []).filter(
+        (t: any) => t.accountId === a.id && !(masterData?.reconciledTxnIds || []).includes(t.id)
+      );
+      const pendingCredits = pendingTxns.filter((t: any) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      const pendingDebits = pendingTxns.filter((t: any) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
+      const pendingImpact = pendingCredits - pendingDebits;
+      const reconciledBalance = Number(a.balance || 0) + pendingImpact;
+      const needsReconciliation = pendingTxns.length > 0;
+      
+      data[a.id] = { pendingTxns, pendingImpact, reconciledBalance, needsReconciliation };
+    });
+    
+    return data;
+  }, [state.bankAccounts, state.transactions, masterData?.reconciledTxnIds]);
+
   const filteredTxns = state.transactions
     .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
     .filter((t: any) => filterType === "all" || t.type === filterType)
@@ -271,6 +295,39 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
       (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.category || "").toLowerCase().includes(search.toLowerCase())
     );
+
+  // Sorting Logic
+  const sortedTxns = useMemo(() => {
+    let txns = [...filteredTxns];
+    if (sortField) {
+      txns.sort((a, b) => {
+        let valA = a[sortField] || "";
+        let valB = b[sortField] || "";
+        if (sortField === "amount") {
+          valA = Number(valA || 0);
+          valB = Number(valB || 0);
+        } else {
+          valA = String(valA).toLowerCase();
+          valB = String(valB).toLowerCase();
+        }
+        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else {
+      txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+    return txns;
+  }, [filteredTxns, sortField, sortDirection]);
+
+  const requestSort = (field: "date" | "amount" | "note" | "category") => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
     
   const totalBalance = state.bankAccounts.reduce((acc: any, a: any) => acc + (Number(a.balance) || 0), 0);
   const now = new Date();
@@ -279,6 +336,42 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
   const monthlyIncome = monthlyTxns.filter((t: any) => t.type === "credit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
   const monthlyExpense = monthlyTxns.filter((t: any) => t.type === "debit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
 
+  // Savings, Category Spending, and Asset weights memo
+  const { monthlySavingsRate, topSpendCategories, liquidityWeights } = useMemo(() => {
+    const savingsRate = monthlyIncome > 0 
+      ? Math.max(0, Math.min(100, ((monthlyIncome - monthlyExpense) / monthlyIncome) * 100)) 
+      : 0;
+
+    const categorySpends: Record<string, number> = {};
+    monthlyTxns.filter((t: any) => t.type === "debit").forEach((t: any) => {
+      const cat = t.category || "Other";
+      categorySpends[cat] = (categorySpends[cat] || 0) + Number(t.amount || 0);
+    });
+    
+    const sortedCats = Object.entries(categorySpends)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 4);
+      
+    const totalAssetBal = state.bankAccounts.reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
+    const weights = state.bankAccounts.map((a: any) => {
+      const share = totalAssetBal > 0 ? (Number(a.balance || 0) / totalAssetBal) * 100 : 0;
+      const theme = getAccountTheme(a.type);
+      return {
+        id: a.id,
+        name: a.bankName,
+        balance: a.balance,
+        share,
+        color: theme.color,
+      };
+    }).sort((a, b) => b.share - a.share);
+
+    return { 
+      monthlySavingsRate: savingsRate, 
+      topSpendCategories: sortedCats, 
+      liquidityWeights: weights 
+    };
+  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts]);
 
   return (
     <div>
@@ -323,6 +416,107 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
         />
       </div>
 
+      {/* Cash Flow Analytics Dashboard Panel */}
+      {state.bankAccounts.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 32 }}>
+          {/* Column 1: Savings Rate indicator */}
+          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>📈 Monthly Savings Rate</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: THEME.ink }}>{monthlySavingsRate.toFixed(1)}%</span>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust }}>
+                {monthlySavingsRate >= 40 ? "Excellent" : monthlySavingsRate >= 20 ? "Healthy" : "Low"}
+              </span>
+            </div>
+            {/* Savings Rate Bar */}
+            <div style={{ width: "100%", height: 8, background: "rgba(128,128,128,0.08)", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ 
+                width: `${monthlySavingsRate}%`, 
+                height: "100%", 
+                background: monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust,
+                borderRadius: 10,
+                transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
+              }} />
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.4" }}>
+              {monthlySavingsRate >= 40 
+                ? "Superb! You are maintaining an excellent savings buffer to accelerate your goals." 
+                : monthlySavingsRate >= 20 
+                  ? "Good buffer. Try automated transfers to direct this pool into investments."
+                  : "Savings rate is low. Review your non-essential categories to optimize outflows."
+              }
+            </div>
+          </div>
+
+          {/* Column 2: Top Expense Categories Breakdown */}
+          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12 }}>
+              <span>📊 Monthly Spend Categories</span>
+            </div>
+            {topSpendCategories.length === 0 ? (
+              <div style={{ display: "flex", height: "80px", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12 }}>
+                No spend transactions recorded this month
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {topSpendCategories.map((c) => {
+                  const percentage = monthlyExpense > 0 ? (c.amount / monthlyExpense) * 100 : 0;
+                  return (
+                    <div key={c.name}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                        <span style={{ fontWeight: 700 }}>{c.name}</span>
+                        <span style={{ color: THEME.muted, fontWeight: 600 }}>₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)</span>
+                      </div>
+                      <div style={{ width: "100%", height: 6, background: "rgba(128,128,128,0.06)", borderRadius: 10, overflow: "hidden" }}>
+                        <div style={{ width: `${percentage}%`, height: "100%", background: THEME.accent, borderRadius: 10 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Liquidity Distribution Share */}
+          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12 }}>
+              <span>💳 Liquidity Asset Weight</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700 }}>
+              <span>ACCOUNT ALLOCATION</span>
+              <span>SHARE %</span>
+            </div>
+            {/* Allocated segmented bar */}
+            <div style={{ display: "flex", width: "100%", height: 14, background: "rgba(128,128,128,0.08)", borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
+              {liquidityWeights.map((w) => (
+                <div 
+                  key={w.id} 
+                  title={`${w.name}: ${w.share.toFixed(1)}%`} 
+                  style={{ 
+                    width: `${w.share}%`, 
+                    height: "100%", 
+                    background: w.color, 
+                    transition: "width 0.3s ease" 
+                  }} 
+                />
+              ))}
+            </div>
+            {/* Details legends list */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {liquidityWeights.map((w) => (
+                <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: w.color }} />
+                  <span style={{ fontWeight: 600 }}>{w.name}</span>
+                  <span style={{ color: THEME.muted }}>{w.share.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
         {state.bankAccounts.length === 0 && (
           <div style={{ ...card, gridColumn: "1 / -1" }}><BankEmptyState onAdd={() => setShowBank(true)} /></div>
@@ -364,15 +558,61 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                <div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Account Balance</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
-                  •••• {(a.accountNumber || "").slice(-4)}
-                </div>
-              </div>
+              {(() => {
+                const recon = reconciliationData[a.id] || { pendingTxns: [], pendingImpact: 0, reconciledBalance: Number(a.balance || 0), needsReconciliation: false };
+                return (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span>Account Balance</span>
+                        {recon.needsReconciliation ? (
+                          <span 
+                            title={`Ledger shows un-synced transactions. Reconciled balance should be ₹${recon.reconciledBalance.toLocaleString("en-IN")}`}
+                            style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(217,119,6,0.12)", color: THEME.gold, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3, cursor: "help" }}
+                          >
+                            ⚠️ Reconcile
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(5,150,105,0.12)", color: THEME.sage, fontWeight: 700 }}>
+                            ✓ Synced
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
+                        {recon.needsReconciliation && (
+                          <button 
+                            onClick={() => {
+                              const newReconciledIds = [...(masterData?.reconciledTxnIds || []), ...recon.pendingTxns.map((t: any) => t.id)];
+                              updateItem("bankAccounts", a.id, { ...a, balance: recon.reconciledBalance });
+                              updateMasterData("reconciledTxnIds", newReconciledIds);
+                            }}
+                            style={{ 
+                              background: "rgba(217,119,6,0.1)", 
+                              border: `1.5px solid ${THEME.gold}44`, 
+                              color: THEME.gold, 
+                              fontSize: 10, 
+                              fontWeight: 800, 
+                              padding: "2px 8px", 
+                              borderRadius: 6, 
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4
+                            }}
+                            title={`Sync declared balance to Ledger reconciled balance (₹${recon.reconciledBalance.toLocaleString()})`}
+                          >
+                            Sync
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
+                      •••• {(a.accountNumber || "").slice(-4)}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
@@ -404,7 +644,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
           </div>
         </div>
 
-        {filteredTxns.length === 0 ? (
+        {sortedTxns.length === 0 ? (
           state.transactions.length === 0
             ? <TxnEmptyState onAdd={() => setShowTxn(true)} />
             : <EmptyHint text="No transactions match your filters" />
@@ -413,31 +653,92 @@ export function BanksTab({ state, addItem, removeItem, updateItem }: any) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
-                  <th style={th}>Date</th>
-                  <th style={th}>Particulars</th>
-                  <th style={th}>Category</th>
+                  <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("date")}>
+                    Date {sortField === "date" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                  </th>
+                  <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("note")}>
+                    Particulars {sortField === "note" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                  </th>
+                  <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("category")}>
+                    Category {sortField === "category" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                  </th>
                   <th style={th}>Account</th>
-                  <th style={{ ...th, textAlign: "right" }}>Debit</th>
-                  <th style={{ ...th, textAlign: "right" }}>Credit</th>
+                  <th style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("amount")}>
+                    Debit {sortField === "amount" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                  </th>
+                  <th style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("amount")}>
+                    Credit {sortField === "amount" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                  </th>
                   <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
-                {[...filteredTxns].reverse().map((t: any) => {
+                {sortedTxns.map((t: any) => {
                   const bank = state.bankAccounts.find((b: any) => b.id === t.accountId);
                   const isEditing = inlineEditId === t.id;
+
+                  const handleSaveInline = () => {
+                    if (!inlineEdit.amount || Number(inlineEdit.amount) <= 0) {
+                      alert("Please enter a valid amount greater than 0");
+                      return;
+                    }
+                    updateItem("transactions", t.id, inlineEdit);
+                    setInlineEditId(null);
+                  };
 
                   if (isEditing && inlineEdit) {
                     return (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>
                         <td style={td}><input type="date" value={inlineEdit.date} onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 130 }} /></td>
-                        <td style={td}><input value={inlineEdit.note || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") { updateItem("transactions", t.id, inlineEdit); setInlineEditId(null); } if (e.key === "Escape") setInlineEditId(null); }} style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }} autoFocus /></td>
+                        <td style={td}>
+                          <input 
+                            value={inlineEdit.note || ""} 
+                            onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })} 
+                            onKeyDown={(e) => { 
+                              if (e.key === "Enter") handleSaveInline(); 
+                              if (e.key === "Escape") setInlineEditId(null); 
+                            }} 
+                            style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }} 
+                            autoFocus 
+                          />
+                        </td>
                         <td style={td}><select value={inlineEdit.category || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, category: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12 }}>{txnCats.map((c) => <option key={c}>{c}</option>)}</select></td>
                         <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank?.bankName || "—"}</td>
-                        <td style={{ ...td, textAlign: "right" }} colSpan={2}><input type="number" value={inlineEdit.amount} onChange={(e) => setInlineEdit({ ...inlineEdit, amount: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 100, textAlign: "right" }} /></td>
+                        <td style={{ ...td, textAlign: "right" }} colSpan={2}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
+                            <select 
+                              value={inlineEdit.type || "debit"} 
+                              onChange={(e) => setInlineEdit({ ...inlineEdit, type: e.target.value })} 
+                              style={{ 
+                                background: inlineEdit.type === "credit" ? "rgba(5,150,105,0.08)" : "rgba(239,68,68,0.08)", 
+                                color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust, 
+                                border: `1.5px solid ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust}44`, 
+                                borderRadius: 6, 
+                                fontSize: 11, 
+                                fontWeight: 800, 
+                                padding: "2px 4px", 
+                                cursor: "pointer", 
+                                outline: "none" 
+                              }}
+                            >
+                              <option value="debit">DEBIT</option>
+                              <option value="credit">CREDIT</option>
+                            </select>
+                            <input 
+                              type="number" 
+                              value={inlineEdit.amount} 
+                              onChange={(e) => setInlineEdit({ ...inlineEdit, amount: e.target.value })} 
+                              onKeyDown={(e) => { 
+                                if (e.key === "Enter") handleSaveInline(); 
+                                if (e.key === "Escape") setInlineEditId(null); 
+                              }}
+                              style={{ ...input, padding: "4px 6px", fontSize: 12, width: 90, textAlign: "right" }} 
+                            />
+                          </div>
+                        </td>
                         <td style={td}>
                           <div style={{ display: "flex", gap: 2 }}>
-                            <button onClick={() => { updateItem("transactions", t.id, inlineEdit); setInlineEditId(null); }} style={{ ...iconBtn, color: THEME.sage }} title="Save"><Check size={14} /></button>
+                            <button onClick={handleSaveInline} style={{ ...iconBtn, color: THEME.sage }} title="Save"><Check size={14} /></button>
                             <button onClick={() => setInlineEditId(null)} style={{ ...iconBtn, color: THEME.rust }} title="Cancel"><X size={14} /></button>
                           </div>
                         </td>
