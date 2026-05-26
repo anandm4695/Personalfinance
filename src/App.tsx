@@ -47,6 +47,7 @@ import {
   Eye,
   EyeOff,
   Bot,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -1916,6 +1917,7 @@ function FinanceDashboard() {
           { id: "given",    label: "Loans Given",   icon: ArrowRight   },
           { id: "borrowed", label: "From People",   icon: User         },
           { id: "lent",     label: "To People",     icon: IndianRupee  },
+          { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
         ]},
       ]
     },

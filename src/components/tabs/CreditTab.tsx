@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet } from "lucide-react";
+import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet, Sparkles, RefreshCw, Calendar, Target, Shield, BookOpen } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
@@ -270,12 +270,13 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
   const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
 
   const subs = [
-    { id: "cc", label: "Credit Cards", icon: IndianRupee },
-    { id: "prepaid", label: "Prepaid Cards", icon: IndianRupee },
+    { id: "cc", label: "Credit Cards", icon: CreditCard },
+    { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
     { id: "taken", label: "Loans Taken", icon: TrendingDown },
     { id: "given", label: "Loans Given", icon: TrendingUp },
     { id: "borrowed", label: "From People", icon: TrendingDown },
-    { id: "lent", label: "To People", icon: TrendingUp },
+    { id: "lent", label: "To People", icon: IndianRupee },
+    { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
   ];
 
   React.useEffect(() => {
@@ -290,7 +291,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
         <SectionTitle sub="Manage cards, debts, and personal lending portfolios">
           Credit & Liabilities
         </SectionTitle>
-        {sub !== "borrowed" && sub !== "lent"
+        {sub !== "borrowed" && sub !== "lent" && sub !== "optimizer"
           && !(sub === "taken" && !state.loansTaken.length)
           && !(sub === "given" && !state.loansGiven.length)
           && !(sub === "cc" && !state.creditCards.length)
@@ -483,6 +484,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
           {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} onAdd={() => setModal("given")} />}
           {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
           {sub === "lent" && <InformalLoanView direction="lent" items={state.informalLent || []} onAddPerson={(v: any) => addItem("informalLent", v)} onUpdate={(id: any, patch: any) => updateItem("informalLent", id, patch)} onRemove={(id: any) => removeItem("informalLent", id)} />}
+          {sub === "optimizer" && <DebtPayoffOptimizer state={state} />}
       </div>
 
       {modal === "cc" && <CCModal onClose={() => setModal(null)} onSave={(v: any) => { addItem("creditCards", v); setModal(null); }} />}
@@ -1790,5 +1792,405 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
       <Field label="Note"><input style={input} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
       <ModalActions onSave={() => f.borrower && f.principal && onSave(f)} onClose={onClose} />
     </Modal>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   DEBT PAYOFF OPTIMIZER (RELEASE 4)
+   ══════════════════════════════════════════════════════════════════════ */
+function DebtPayoffOptimizer({ state }: any) {
+  const [extraMonthly, setExtraMonthly] = useState<number>(10000);
+  const [windfall, setWindfall] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<"snowball" | "avalanche">("avalanche");
+
+  const activeLoans = useMemo(() => {
+    return (state.loansTaken || []).filter((l: any) => 
+      Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0
+    );
+  }, [state.loansTaken]);
+
+  // 1. Payoff Simulator algorithm
+  const simulateDebtPayoff = (loans: any[], extra: number, strategy: "standard" | "snowball" | "avalanche", windfallAmt: number) => {
+    let active = loans.map(l => ({
+      id: l.id,
+      lender: l.lender,
+      type: l.type || "Loan",
+      outstanding: Number(l.outstanding) || 0,
+      emi: Number(l.emi) || 0,
+      rate: Number(l.rate) || Number(l.roi) || Number(l.interestRate) || 8.5,
+      monthsRemaining: Number(l.monthsRemaining) || 0,
+      principal: Number(l.principal) || Number(l.outstanding) || 0
+    })).filter(l => l.outstanding > 0);
+
+    if (active.length === 0) return { months: 0, totalInterestPaid: 0, payoffSchedule: {}, rollOvers: {} };
+
+    // Pre-sort by strategy
+    if (strategy === "snowball") {
+      active.sort((a, b) => a.outstanding - b.outstanding);
+    } else if (strategy === "avalanche") {
+      active.sort((a, b) => b.rate - a.rate);
+    }
+
+    let months = 0;
+    let totalInterestPaid = 0;
+    const payoffSchedule: Record<string, number> = {}; 
+    const rollOvers: Record<string, number> = {};
+
+    // Apply initial windfall paydown
+    if (windfallAmt > 0) {
+      let remainingWindfall = windfallAmt;
+      for (let l of active) {
+        if (remainingWindfall <= 0) break;
+        const pay = Math.min(l.outstanding, remainingWindfall);
+        l.outstanding -= pay;
+        remainingWindfall -= pay;
+        if (l.outstanding <= 0 && !payoffSchedule[l.id]) {
+          payoffSchedule[l.id] = 0;
+        }
+      }
+    }
+
+    // Amortization loop
+    while (active.some(l => l.outstanding > 0) && months < 600) {
+      months++;
+      
+      // Accrue interest monthly
+      active.forEach(l => {
+        if (l.outstanding > 0) {
+          const r = (l.rate / 100) / 12;
+          const interest = l.outstanding * r;
+          totalInterestPaid += interest;
+          l.outstanding += interest;
+        }
+      });
+
+      // Sum up EMIs that are currently active
+      const totalBudget = active.reduce((sum, l) => sum + l.emi, 0) + extra;
+
+      let actualBasePaid = 0;
+
+      // Step 1: Pay standard base EMIs
+      active.forEach(l => {
+        if (l.outstanding > 0) {
+          const basePay = Math.min(l.outstanding, l.emi);
+          l.outstanding -= basePay;
+          actualBasePaid += basePay;
+
+          if (l.outstanding <= 0 && !payoffSchedule[l.id]) {
+            payoffSchedule[l.id] = months;
+          }
+        }
+      });
+
+      // Step 2: Allocate surplus roll-overs to the first active target in sorted list
+      if (strategy !== "standard") {
+        let surplus = totalBudget - actualBasePaid;
+        const target = active.find(l => l.outstanding > 0);
+        if (target && surplus > 0) {
+          rollOvers[target.id] = (rollOvers[target.id] || 0) + surplus;
+          const extraPay = Math.min(target.outstanding, surplus);
+          target.outstanding -= extraPay;
+          surplus -= extraPay;
+
+          if (target.outstanding <= 0 && !payoffSchedule[target.id]) {
+            payoffSchedule[target.id] = months;
+          }
+        }
+      }
+    }
+
+    return {
+      months,
+      totalInterestPaid,
+      payoffSchedule,
+      rollOvers
+    };
+  };
+
+  // Simulate strategies
+  const standardSim = useMemo(() => simulateDebtPayoff(activeLoans, 0, "standard", 0), [activeLoans]);
+  const snowballSim = useMemo(() => simulateDebtPayoff(activeLoans, extraMonthly, "snowball", Number(windfall) || 0), [activeLoans, extraMonthly, windfall]);
+  const avalancheSim = useMemo(() => simulateDebtPayoff(activeLoans, extraMonthly, "avalanche", Number(windfall) || 0), [activeLoans, extraMonthly, windfall]);
+
+  if (activeLoans.length === 0) {
+    return (
+      <Card style={{ padding: "48px 32px", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg, var(--t-accent) 0%, #a78bfa 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <Sparkles size={30} color="#fff" />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
+          No Active Liabilities Found
+        </div>
+        <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380, margin: "0 auto 16px", lineHeight: 1.6 }}>
+          Add your active home, car, or personal bank loans under the <b>Loans Taken</b> tab to feed the optimizer! Once entered, you can compare snowball and avalanche schedules.
+        </div>
+      </Card>
+    );
+  }
+
+  const currentSim = selectedPlan === "snowball" ? snowballSim : avalancheSim;
+  const standardInterest = standardSim.totalInterestPaid;
+  const currentInterest = currentSim.totalInterestPaid;
+  const interestSaved = Math.max(0, standardInterest - currentInterest);
+  const monthsSaved = Math.max(0, standardSim.months - currentSim.months);
+
+  // Format payoff dates
+  const getPayoffDateStr = (monthsFromNow: number) => {
+    if (monthsFromNow === 0) return "Paid Today";
+    const date = new Date();
+    date.setMonth(date.getMonth() + monthsFromNow);
+    return date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  };
+
+  return (
+    <div className="tab-content-enter">
+      
+      {/* ── INTERACTIVE SURPLUS & WINDFALL CONSOLE ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 32 }}>
+        <Card style={{ padding: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, marginBottom: 20 }}>
+            CFO Liabilities Control Console
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>Extra Monthly Repayment (₹)</label>
+                <span style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>{fmtINRFull(extraMonthly)}/mo</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="100000" 
+                step="2000"
+                value={extraMonthly} 
+                onChange={e => setExtraMonthly(Number(e.target.value))}
+                className="cxo-slider"
+                style={{ width: "100%" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                <span>₹0 (None)</span>
+                <span>₹50,000</span>
+                <span>₹1,00,000</span>
+              </div>
+            </div>
+
+            <div>
+              <Field label="One-Time Repayment Windfall (₹)">
+                <input 
+                  className="form-input" 
+                  type="number" 
+                  placeholder="e.g. ₹1,00,000 bonus or stock sale" 
+                  value={windfall} 
+                  onChange={e => setWindfall(e.target.value)} 
+                />
+              </Field>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                {[25000, 50000, 100000, 250000].map(val => (
+                  <button 
+                    key={val}
+                    onClick={() => setWindfall(String(val))}
+                    style={{ 
+                      padding: "5px 10px", 
+                      borderRadius: 6, 
+                      border: `1px solid ${THEME.line}`, 
+                      background: "rgba(128,128,128,0.05)", 
+                      fontSize: 11, 
+                      fontWeight: 600, 
+                      color: THEME.muted,
+                      cursor: "pointer"
+                    }}
+                  >
+                    +₹{val.toLocaleString("en-IN")}
+                  </button>
+                ))}
+                {windfall && (
+                  <button 
+                    onClick={() => setWindfall("")}
+                    style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}30`, background: "rgba(220,38,38,0.05)", fontSize: 11, fontWeight: 700, color: THEME.rust, cursor: "pointer" }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* ── COMPARATIVE SCORECARD ── */}
+        <Card variant="hero" style={{ padding: 28, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.7)", marginBottom: 8 }}>
+              <Sparkles size={12} /> Total Interest Saved
+            </div>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#34D399", marginBottom: 4, letterSpacing: "-0.03em" }}>
+              {fmtINRFull(interestSaved)}
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+              Debt-Free: <span style={{ color: "#34D399", fontWeight: 800 }}>{getPayoffDateStr(currentSim.months)}</span> (Shaved <span style={{ color: "#34D399", fontWeight: 800 }}>{monthsSaved} Months</span>)
+            </div>
+          </div>
+
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11 }}>
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Standard Interest</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>{fmtINRFull(standardInterest)}</div>
+              </div>
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>Simulated Interest</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>{fmtINRFull(currentInterest)}</div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── STRATEGY SELECTOR ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { id: "avalanche", label: "Debt Avalanche", desc: "Highest Rate First", detail: "Mathematical optimal", color: THEME.accent },
+            { id: "snowball", label: "Debt Snowball", desc: "Lowest Balance First", detail: "Psychological win", color: THEME.gold }
+          ].map(plan => {
+            const active = selectedPlan === plan.id;
+            return (
+              <button
+                key={plan.id}
+                onClick={() => setSelectedPlan(plan.id as any)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: 12,
+                  border: active ? "none" : `1.5px solid ${THEME.line}`,
+                  background: active ? plan.color : "var(--surface-0)",
+                  color: active ? "#fff" : THEME.muted,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  boxShadow: active ? "var(--shadow-md)" : "none",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                <div style={{ fontSize: 13 }}>{plan.label}</div>
+                <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, marginTop: 2 }}>{plan.detail} · {plan.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+        <Badge variant="muted" style={{ fontWeight: 800 }}>{activeLoans.length} Loans Aggregated</Badge>
+      </div>
+
+      {/* ── STEP-BY-STEP AMORTIZATION SCHEDULE ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20, marginBottom: 32, alignItems: "start" }}>
+        
+        <Card style={{ padding: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, marginBottom: 20 }}>
+            Chronological Payoff Schedule ({selectedPlan.toUpperCase()})
+          </div>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            {activeLoans.map((l: any, idx: number) => {
+              const targetPayoffMonth = currentSim.payoffSchedule[l.id] != null ? currentSim.payoffSchedule[l.id] : 0;
+              const standardPayoffMonth = standardSim.payoffSchedule[l.id] || Number(l.monthsRemaining) || 0;
+              const monthsSavedOnLoan = Math.max(0, standardPayoffMonth - targetPayoffMonth);
+
+              return (
+                <div 
+                  key={l.id} 
+                  style={{ 
+                    padding: "14px 16px", 
+                    borderRadius: 12, 
+                    background: "rgba(128,128,128,0.03)", 
+                    border: `1px solid ${THEME.line}`,
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: 12 
+                  }}
+                >
+                  <div style={{ 
+                    width: 32, 
+                    height: 32, 
+                    borderRadius: "50%", 
+                    background: "color-mix(in srgb, var(--t-sage) 12%, transparent)", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    fontSize: 13, 
+                    fontWeight: 800, 
+                    color: THEME.sage,
+                    flexShrink: 0
+                  }}>
+                    {idx + 1}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{l.lender}</span>
+                      <Badge variant="muted" style={{ fontSize: 9 }}>{l.type || "Loan"}</Badge>
+                      <Badge variant="gold" style={{ fontSize: 9 }}>{Number(l.rate || l.roi || l.interestRate || 8.5).toFixed(2)}% ROI</Badge>
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                      Balance: {fmtINRFull(l.outstanding)} · EMI: {fmtINR(l.emi)}/mo
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
+                      Paid {getPayoffDateStr(targetPayoffMonth)}
+                    </div>
+                    {monthsSavedOnLoan > 0 && (
+                      <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginTop: 2 }}>
+                        Shaved {monthsSavedOnLoan} Months!
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* ── CFO ADVISORY CARD ── */}
+        <Card style={{ padding: 24, borderLeft: `4px solid ${selectedPlan === "avalanche" ? "var(--t-accent)" : "var(--t-gold)"}` }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ 
+              width: 36, 
+              height: 36, 
+              borderRadius: 10, 
+              background: selectedPlan === "avalanche" ? "color-mix(in srgb, var(--t-accent) 12%, transparent)" : "color-mix(in srgb, var(--t-gold) 12%, transparent)", 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center", 
+              flexShrink: 0 
+            }}>
+              <BookOpen size={18} color={selectedPlan === "avalanche" ? THEME.accent : THEME.gold} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, marginBottom: 6 }}>
+                {selectedPlan === "avalanche" ? "CFO Advisory: The Avalanche Method" : "CFO Advisory: The Snowball Method"}
+              </h4>
+              
+              {selectedPlan === "avalanche" ? (
+                <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, margin: 0 }}>
+                  The <b>Debt Avalanche</b> is mathematically optimal. It commands you to direct all surplus prepayments to the loan with the <b>highest interest rate</b> first, regardless of the balance size. 
+                  This ensures you reduce compound interest accrual at the fastest possible rate, yielding the absolute highest financial savings.
+                </p>
+              ) : (
+                <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, margin: 0 }}>
+                  The <b>Debt Snowball</b> prioritizes psychological momentum and cashflow liquidity. It commands you to pay off the <b>smallest outstanding balance</b> first. 
+                  Knocking out small loans quickly eliminates entire EMIs, reducing monthly contractual liabilities, and providing immediate psychological wins that encourage long-term debt-free discipline.
+                </p>
+              )}
+              
+              <div style={{ marginTop: 14, padding: "8px 10px", borderRadius: 8, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>
+                💡 <b>CTO Prepayment Rule:</b> If a loan is paid off, its base EMI is immediately rolled over and appended to your surplus prepayments, creating a compounding speed rollover for remaining loans.
+              </div>
+            </div>
+          </div>
+        </Card>
+
+      </div>
+
+    </div>
   );
 }
