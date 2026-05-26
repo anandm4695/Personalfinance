@@ -970,7 +970,7 @@ export function SettingsTab({
   const [tab, setTab] = useState("appearance");
 
   return (
-    <div style={{ maxWidth: 900 }} className="animate-fade-in-up">
+    <div className="animate-fade-in-up">
       {/* Page header */}
       <SectionTitle sub="Customize your experience, manage dropdown values, and control your data">
         Settings

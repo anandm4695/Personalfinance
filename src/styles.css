@@ -1001,6 +1001,25 @@ input[type="date"].form-input {
   .mobile-only { display: none !important; }
 }
 
+/* ── Sidebar collapse ───────────────────────────────────────────── */
+/* Smooth icon tooltip labels in compact mode */
+.app-sidebar button[title]:not([title=""]) {
+  position: relative;
+}
+
+/* On tablet (769–1024px) auto-compact the sidebar */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-sidebar {
+    /* Let inline width take over — just ensure smooth overflow */
+    overflow: hidden !important;
+  }
+}
+
+/* Hide sidebar toggle arrow on mobile (bottom nav is used instead) */
+@media (max-width: 768px) {
+  .app-sidebar { display: none !important; }
+}
+
 /* ── Reduced motion ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

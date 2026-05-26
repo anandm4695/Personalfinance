@@ -34,6 +34,8 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ArrowRight,
   ArrowLeft,
   FileText,
@@ -163,6 +165,9 @@ function FinanceDashboard() {
   // which would cause the callback to be recreated after every metadata sync → extra fetches.
   const stocksRef = useRef<any[]>([]);
   const { privacyMode, setPrivacyMode } = usePrivacy();
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const isSidebarCompact = sidebarMinimized && !sidebarHovered;
 
   const [state, setState] = useState(() => {
     // 1. If we just reset, start with default state
@@ -2070,8 +2075,11 @@ function FinanceDashboard() {
       {/* ── SIDEBAR NAVIGATION ── */}
       <aside
           className="glass app-sidebar"
+          onMouseEnter={() => sidebarMinimized && setSidebarHovered(true)}
+          onMouseLeave={() => setSidebarHovered(false)}
           style={{
-            width: 280,
+            width: isSidebarCompact ? 72 : 280,
+            minWidth: isSidebarCompact ? 72 : 280,
             borderRight: `1px solid ${THEME.line}`,
             position: "sticky",
             top: 0,
@@ -2079,42 +2087,91 @@ function FinanceDashboard() {
             display: "flex",
             flexDirection: "column",
             zIndex: 100,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            overflow: "hidden",
           }}
         >
-          <div style={{ padding: "20px 24px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* ── Header + Toggle ── */}
+          <div style={{ padding: isSidebarCompact ? "16px 0" : "20px 24px 16px", position: "relative", transition: "padding 0.3s ease", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: isSidebarCompact ? "center" : "flex-start" }}>
               <img
                 src="/logo.png"
                 alt="Personal Finance by Anand Mohta"
-                style={{ width: 48, height: 48, objectFit: "contain", flexShrink: 0, filter: "drop-shadow(0 2px 8px rgba(197,161,82,0.3))" }}
+                style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0, filter: "drop-shadow(0 2px 8px rgba(197,161,82,0.3))" }}
               />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.01em", color: THEME.ink, lineHeight: 1.2 }}>
-                  Personal Finance
+              {!isSidebarCompact && (
+                <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.01em", color: THEME.ink, lineHeight: 1.2 }}>
+                    Personal Finance
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 1 }}>
+                    by Anand Mohta
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 1 }}>
-                  by Anand Mohta
-                </div>
-              </div>
+              )}
             </div>
+
+            {/* Toggle arrow button */}
+            <button
+              onClick={() => { setSidebarMinimized(v => !v); setSidebarHovered(false); }}
+              title={sidebarMinimized ? "Expand sidebar" : "Collapse sidebar"}
+              style={{
+                position: "absolute",
+                top: 16,
+                right: isSidebarCompact ? "50%" : 10,
+                transform: isSidebarCompact ? "translateX(50%)" : "none",
+                width: 26,
+                height: 26,
+                borderRadius: 8,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--t-paper)",
+                color: THEME.muted,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                flexShrink: 0,
+                zIndex: 10,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = `color-mix(in srgb, var(--t-accent) 10%, transparent)`;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
+                (e.currentTarget as HTMLButtonElement).style.color = THEME.accent;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--t-paper)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+                (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
+              }}
+            >
+              {sidebarMinimized
+                ? <ChevronRight size={14} />
+                : <ChevronLeft size={14} />
+              }
+            </button>
           </div>
 
-          <nav style={{ flex: 1, overflowY: "auto", padding: "0 16px" }} className="no-scrollbar">
+          <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: isSidebarCompact ? "0 8px" : "0 16px", transition: "padding 0.3s ease" }} className="no-scrollbar">
             {navGroups.map((group) => {
               const isCollapsed = collapsedGroups[group.title];
               return (
                 <div key={group.title} style={{ marginBottom: 20 }}>
-                  <div
-                    onClick={() => setCollapsedGroups(prev => ({ ...prev, [group.title]: !prev[group.title] }))}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "0 16px", marginBottom: 12 }}
-                  >
-                    <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: THEME.muted }}>
-                      {group.title}
+                  {/* Group label — hidden in compact mode */}
+                  {!isSidebarCompact && (
+                    <div
+                      onClick={() => setCollapsedGroups(prev => ({ ...prev, [group.title]: !prev[group.title] }))}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "0 16px", marginBottom: 12 }}
+                    >
+                      <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: THEME.muted }}>
+                        {group.title}
+                      </div>
+                      <ChevronDown size={14} color={THEME.muted} style={{ transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
                     </div>
-                    <ChevronDown size={14} color={THEME.muted} style={{ transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
-                  </div>
-                  {!isCollapsed && group.items.map((t) => {
+                  )}
+                  {/* In compact mode always show icons; in expanded respect collapse state */}
+                  {(isSidebarCompact || !isCollapsed) && group.items.map((t) => {
                     const Icon = t.icon;
                     const active = tab === t.id;
                     const hasChildren = t.children && t.children.length > 0;
@@ -2124,7 +2181,10 @@ function FinanceDashboard() {
                           onClick={() => {
                             setTab(t.id);
                             setSubTab(hasChildren ? t.children[0].id : null);
+                            // Auto-expand when user clicks a nav item in compact mode
+                            if (isSidebarCompact) { setSidebarMinimized(false); setSidebarHovered(false); }
                           }}
+                          title={isSidebarCompact ? t.label : undefined}
                           className={`nav-item ${active ? "active" : ""}`}
                           style={{
                             width: "100%",
@@ -2132,10 +2192,11 @@ function FinanceDashboard() {
                             background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
                             border: "none",
                             cursor: "pointer",
-                            padding: "10px 16px",
+                            padding: isSidebarCompact ? "10px 0" : "10px 16px",
                             borderRadius: 12,
                             display: "flex",
                             alignItems: "center",
+                            justifyContent: isSidebarCompact ? "center" : "flex-start",
                             gap: 12,
                             marginBottom: 4,
                             color: active ? THEME.accent : THEME.muted,
@@ -2143,16 +2204,20 @@ function FinanceDashboard() {
                             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                           }}
                         >
-                          <Icon size={18} strokeWidth={active ? 2.5 : 2} />
-                          <span style={{ fontSize: 13.5, flex: 1 }}>{t.label}</span>
-                          {hasChildren
-                            ? <ChevronDown size={13} style={{ transform: active ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s ease", opacity: 0.5 }} />
-                            : active && <div style={{ width: 5, height: 5, borderRadius: "50%", background: THEME.accent }} />
-                          }
+                          <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />
+                          {!isSidebarCompact && (
+                            <>
+                              <span style={{ fontSize: 13.5, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.label}</span>
+                              {hasChildren
+                                ? <ChevronDown size={13} style={{ transform: active ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s ease", opacity: 0.5, flexShrink: 0 }} />
+                                : active && <div style={{ width: 5, height: 5, borderRadius: "50%", background: THEME.accent, flexShrink: 0 }} />
+                              }
+                            </>
+                          )}
                         </button>
 
-                        {/* ── Sub-items (Fixed Income children) ── */}
-                        {hasChildren && active && (
+                        {/* ── Sub-items — only in expanded mode ── */}
+                        {!isSidebarCompact && hasChildren && active && (
                           <div style={{
                             marginLeft: 18,
                             paddingLeft: 14,
@@ -2185,6 +2250,7 @@ function FinanceDashboard() {
                                     fontSize: 12.5,
                                     transition: "all 0.15s ease",
                                     fontFamily: "inherit",
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   <ChildIcon size={13} strokeWidth={childActive ? 2.5 : 2} />
@@ -2206,6 +2272,7 @@ function FinanceDashboard() {
           </nav>
         </aside>
 
+
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* HEADER */}
         <header
@@ -2224,8 +2291,6 @@ function FinanceDashboard() {
         >
           <div
             style={{
-              maxWidth: 1400,
-              margin: "0 auto",
               padding: "14px 32px",
               display: "flex",
               alignItems: "center",
@@ -2465,8 +2530,6 @@ function FinanceDashboard() {
 
         <main
           style={{
-            maxWidth: 1200,
-            margin: "0 auto",
             padding: "40px",
             position: "relative",
             zIndex: 1,
