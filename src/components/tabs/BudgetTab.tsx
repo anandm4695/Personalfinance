@@ -5,7 +5,7 @@ import {
   BarChart2, Check, Utensils, ShoppingBag, Car, Home, Zap, Stethoscope, 
   Film, Landmark, ArrowRightLeft, Wrench, HelpCircle, CreditCard,
   ChevronLeft, ChevronRight, Calendar, Play, Pause, Repeat, CheckCircle2,
-  AlertTriangle, PlayCircle, ToggleLeft, ArrowRight
+  AlertTriangle, PlayCircle, ToggleLeft, ArrowRight, Download, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today } from "../../utils/finance";
@@ -102,6 +102,28 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
     return spending;
   }, [state.transactions, state.rentedProperties, selectedMonth]);
 
+  // Previous month spending — for MoM delta comparison (includes rent, same as monthSpending)
+  const prevMonthSpending = useMemo(() => {
+    const [y, m] = selectedMonth.split("-").map(Number);
+    let pm = m - 1, py = y;
+    if (pm < 1) { pm = 12; py = y - 1; }
+    const prevMonthStr = `${py}-${String(pm).padStart(2, "0")}`;
+    const spending = state.transactions
+      .filter((t: any) => t.date && t.date.startsWith(prevMonthStr) && t.type === "debit")
+      .reduce((acc: any, t: any) => {
+        const cat = t.category || "Uncategorized";
+        acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
+        return acc;
+      }, {});
+    const prevRent = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      return sum + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(prevMonthStr))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+    }, 0);
+    if (prevRent > 0) spending["Rent"] = (spending["Rent"] || 0) + prevRent;
+    return spending;
+  }, [state.transactions, state.rentedProperties, selectedMonth]);
+
   // Month-Wise Budget Selection & Inheritance Logic
   const { budgetsToUse, isInherited, inheritedFrom } = useMemo(() => {
     const specific = state.budgets.filter((b: any) => b.budgetMonth === selectedMonth);
@@ -127,10 +149,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
     return { budgetsToUse: [], isInherited: false, inheritedFrom: null };
   }, [state.budgets, selectedMonth]);
 
-  // Lock and duplicate inherited budgets to the selected month
+  // Lock and duplicate inherited budgets to the selected month (idempotent — skips already-set categories)
   const handleLockAndCustomize = () => {
     if (!isInherited || budgetsToUse.length === 0) return;
+    const alreadySet = new Set(
+      state.budgets.filter((b: any) => b.budgetMonth === selectedMonth).map((b: any) => b.category)
+    );
     budgetsToUse.forEach((b: any) => {
+      if (alreadySet.has(b.category)) return;
       addItem("budgets", {
         owner: b.owner || "self",
         category: b.category,
@@ -140,13 +166,15 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
     });
   };
 
-  // Safe removal of budgets (handles inherited override)
+  // Safe removal of budgets (handles inherited override, deduplication guard)
   const handleRemoveBudget = (b: any) => {
     const isInheritedItem = b.budgetMonth !== selectedMonth;
     if (isInheritedItem) {
-      // Duplicate all other inherited items for selectedMonth, except this deleted one
+      const alreadySet = new Set(
+        state.budgets.filter((x: any) => x.budgetMonth === selectedMonth).map((x: any) => x.category)
+      );
       budgetsToUse.forEach((otherB: any) => {
-        if (otherB.id !== b.id) {
+        if (otherB.id !== b.id && !alreadySet.has(otherB.category)) {
           addItem("budgets", {
             owner: otherB.owner || "self",
             category: otherB.category,
@@ -167,6 +195,29 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
     const spent = monthSpending[b.category] || 0;
     return spent > Number(b.monthly || 0);
   }).length;
+
+  // Unbudgeted spending — categories with real spend but no budget line
+  const { unbudgetedSpending, totalUnbudgetedSpent } = useMemo(() => {
+    const budgetedCats = new Set(budgetsToUse.map((b: any) => b.category));
+    const result: Record<string, number> = {};
+    Object.entries(monthSpending).forEach(([cat, amt]) => {
+      if (!budgetedCats.has(cat) && (amt as number) > 0) result[cat] = amt as number;
+    });
+    const total = Object.values(result).reduce((s, v) => s + v, 0);
+    return { unbudgetedSpending: result, totalUnbudgetedSpent: total };
+  }, [monthSpending, budgetsToUse]);
+
+  // Monthly income for selected month — used for savings rate
+  const selectedMonthIncome = useMemo(() => {
+    const fromIncome = (state.income || [])
+      .filter((e: any) => e.date && e.date.startsWith(selectedMonth))
+      .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+    if (fromIncome > 0) return fromIncome;
+    // Fallback: sum credit transactions for the month
+    return state.transactions
+      .filter((t: any) => t.date && t.date.startsWith(selectedMonth) && t.type === "credit")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  }, [state.income, state.transactions, selectedMonth]);
 
   // Recurring expense active filter & matching transactions detection
   const activeRecurringExpenses = useMemo(() => {
@@ -189,16 +240,14 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
     const nameLower = expense.name.toLowerCase();
     const cat = expense.category;
     const amount = Number(expense.amount);
+    if (amount <= 0) return undefined; // guard: avoid division by zero in amtMatches
 
     return state.transactions.find((t: any) => {
       if (!t.date || !t.date.startsWith(selectedMonth) || t.type !== "debit") return false;
-      
       const noteMatches = t.note && t.note.toLowerCase().includes(nameLower);
       const catMatches = t.category === cat;
-      
       const tAmt = Number(t.amount);
       const amtMatches = Math.abs(tAmt - amount) / amount <= 0.05; // ±5% tolerance
-
       return (noteMatches || catMatches) && amtMatches;
     });
   };
@@ -262,11 +311,15 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
   const handleQuickPostTransaction = async (expense: any) => {
     const now = new Date();
     const curMonthStr = now.toISOString().slice(0, 7);
-    
-    // Compute transaction date
-    let payDate = `${selectedMonth}-${String(expense.dueDay).padStart(2, "0")}`;
+
+    // Clamp dueDay to actual days in the selected month (e.g. dueDay=31 in April → 30)
+    const [selY, selM] = selectedMonth.split("-").map(Number);
+    const daysInSelMonth = new Date(selY, selM, 0).getDate();
+    const clampedDay = Math.min(Number(expense.dueDay), daysInSelMonth);
+
+    let payDate = `${selectedMonth}-${String(clampedDay).padStart(2, "0")}`;
     if (selectedMonth === curMonthStr) {
-      payDate = now.toISOString().slice(0, 10); // use actual date if paying current month today
+      payDate = now.toISOString().slice(0, 10); // use today's date for current month
     }
 
     const defaultAccId = expense.accountId || (state.bankAccounts[0]?.id || "");
@@ -280,6 +333,32 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
       category: expense.category,
       note: `${expense.name} (Recurring)`
     });
+  };
+
+  const downloadCSV = () => {
+    const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = ["Category,Budget (₹),Spent (₹),Remaining (₹),% Used,MoM Change (₹),Status"];
+    budgetsToUse.forEach((b: any) => {
+      const spent = monthSpending[b.category] || 0;
+      const budget = Number(b.monthly || 0);
+      const remaining = budget - spent;
+      const pctUsed = budget > 0 ? ((spent / budget) * 100).toFixed(1) : "0";
+      const prev = prevMonthSpending[b.category] || 0;
+      const delta = spent - prev;
+      const deltaStr = prev > 0 ? (delta >= 0 ? `+${delta.toFixed(0)}` : delta.toFixed(0)) : "";
+      const status = spent > budget ? "Over Budget" : spent > budget * 0.9 ? "Near Limit" : "On Track";
+      rows.push([q(b.category), q(budget), q(spent.toFixed(0)), q(remaining.toFixed(0)), q(pctUsed + "%"), q(deltaStr), q(status)].join(","));
+    });
+    if (totalUnbudgetedSpent > 0) {
+      Object.entries(unbudgetedSpending).forEach(([cat, amt]) => {
+        rows.push([q(cat), q("No Budget"), q((amt as number).toFixed(0)), q("N/A"), q("N/A"), q(""), q("Unbudgeted")].join(","));
+      });
+    }
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `budget_${selectedMonth}.csv`; a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -391,13 +470,18 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             </Card>
           )}
 
-          <SectionTitle 
+          <SectionTitle
             sub={`Set monthly limits per category and track real spending for ${selectedMonthLabel}`}
             rightElement={
               budgetsToUse.length > 0 && (
-                <Button onClick={() => setShowAddBudget(true)} variant="accent" icon={<Plus size={14} />}>
-                  Add Budget Category
-                </Button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <Button onClick={downloadCSV} variant="ghost" icon={<Download size={14} />} style={{ border: "1px solid var(--t-line)", borderRadius: 8 }}>
+                    Export CSV
+                  </Button>
+                  <Button onClick={() => setShowAddBudget(true)} variant="accent" icon={<Plus size={14} />}>
+                    Add Budget Category
+                  </Button>
+                </div>
               )
             }
           >
@@ -405,25 +489,25 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
           </SectionTitle>
 
           {/* Stat Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
-            <StatCard 
-              icon={<Wallet />} 
-              label="Total Budgeted" 
-              value={fmtINRFull(totalBudget)} 
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+            <StatCard
+              icon={<Wallet />}
+              label="Total Budgeted"
+              value={fmtINRFull(totalBudget)}
               color={THEME.accent}
               sub={`Target for ${selectedMonthLabel}`}
             />
-            <StatCard 
-              icon={<Receipt />} 
-              label="Spent in Month" 
-              value={fmtINRFull(totalSpent)} 
+            <StatCard
+              icon={<Receipt />}
+              label="Spent in Month"
+              value={fmtINRFull(totalSpent)}
               color={totalSpent > totalBudget ? THEME.rust : THEME.accent}
               sub={`Used ${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget`}
             />
-            <StatCard 
-              icon={<TrendingUp />} 
-              label="Remaining Balance" 
-              value={fmtINRFull(Math.max(0, totalBudget - totalSpent))} 
+            <StatCard
+              icon={<TrendingUp />}
+              label="Remaining Balance"
+              value={fmtINRFull(Math.max(0, totalBudget - totalSpent))}
               color={totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust}
               sub={totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded"}
             />
@@ -432,8 +516,21 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
               label="Active Buckets"
               value={String(budgetsToUse.length)}
               color={THEME.muted}
-              sub="Budgeted categories"
+              sub={totalUnbudgetedSpent > 0 ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted` : "Budgeted categories"}
             />
+            {selectedMonthIncome > 0 && (() => {
+              const savingsAmt = selectedMonthIncome - totalSpent;
+              const savingsRate = (savingsAmt / selectedMonthIncome) * 100;
+              return (
+                <StatCard
+                  icon={<BarChart2 />}
+                  label="Savings Rate"
+                  value={`${Math.max(0, savingsRate).toFixed(1)}%`}
+                  color={savingsRate >= 20 ? THEME.sage : savingsRate >= 10 ? THEME.gold : THEME.rust}
+                  sub={`Income: ${fmtINRFull(selectedMonthIncome)}`}
+                />
+              );
+            })()}
           </div>
 
           {/* Burn Rate Widget */}
@@ -511,6 +608,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
               {budgetsToUse.map((b: any) => {
                 const spent = monthSpending[b.category] || 0;
+                const prevSpent = prevMonthSpending[b.category] || 0;
                 const budget = Number(b.monthly || 0);
                 const pct = budget > 0 ? (spent / budget) * 100 : 0;
                 const over = pct > 100;
@@ -590,10 +688,53 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                         </span>
                       </div>
                     )}
+                    {prevSpent > 0 && (() => {
+                      const delta = spent - prevSpent;
+                      const isUp = delta > 0;
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, marginTop: 6, color: isUp ? THEME.rust : THEME.sage, fontWeight: 700 }}>
+                          {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                          <span>{isUp ? "+" : ""}{fmtINR(Math.abs(delta))} vs last month</span>
+                          <span style={{ color: THEME.muted, fontWeight: 400, marginLeft: 2 }}>({fmtINR(prevSpent)} last month)</span>
+                        </div>
+                      );
+                    })()}
                   </Card>
                 );
               })}
             </div>
+          )}
+
+          {/* Unbudgeted Spending — categories with real spend but no budget line */}
+          {totalUnbudgetedSpent > 0 && (
+            <Card style={{ marginTop: 24, padding: "18px 24px", border: `1px dashed ${THEME.gold}55`, background: "rgba(217,119,6,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertTriangle size={16} color={THEME.gold} />
+                  <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                    Unbudgeted Spending — {fmtINRFull(totalUnbudgetedSpent)}
+                  </span>
+                </div>
+                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                  {Object.keys(unbudgetedSpending).length} {Object.keys(unbudgetedSpending).length === 1 ? "category" : "categories"} not tracked
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {Object.entries(unbudgetedSpending).sort((a, b) => (b[1] as number) - (a[1] as number)).map(([cat, amt]) => {
+                  const Icon = getCatIcon(cat);
+                  return (
+                    <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: "rgba(128,128,128,0.06)", border: "1px solid var(--t-line)", fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                      <Icon size={13} color={THEME.gold} />
+                      <span>{cat}</span>
+                      <span style={{ color: THEME.gold }}>{fmtINR(amt as number)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                💡 Add budget categories for these to get a full spending picture.
+              </div>
+            </Card>
           )}
         </>
       )}
@@ -907,7 +1048,7 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
       <Field label="Monthly Limit (₹)">
         <input className="form-input" type="number" value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} placeholder="e.g. 5000" />
       </Field>
-      <ModalActions onSave={() => f.monthly && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => f.monthly && Number(f.monthly) > 0 && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
