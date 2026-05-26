@@ -6,11 +6,11 @@
     "api/stock-chart.js":  { "maxDuration": 15 },
     "api/stock-price.js":  { "maxDuration": 10 },
     "api/mf-nav.js":       { "maxDuration": 10 },
-    "api/send-summary.js": { "maxDuration": 30 }
+    "api/send-summary.js": { "maxDuration": 60 }
   },
   "crons": [
     {
-      "path": "/api/send-summary",
+      "path": "/api/send-summary?action=cron",
       "schedule": "30 2 * * *"
     }
   ],

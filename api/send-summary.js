@@ -663,15 +663,23 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const isCron = req.method === "GET";
+  // ── Determine request type ───────────────────────────────────────────────
+  const action = req.query?.action;
+  const isCron = req.method === "GET" && action === "cron";
   const isManual = req.method === "POST";
 
   // ── Cron auth ─────────────────────────────────────────────────────────────
   if (isCron) {
+    console.log(`[send-summary] Cron triggered at ${new Date().toISOString()} (IST: ${nowIST().toISOString()})`);
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers["authorization"];
+    // Vercel automatically sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      console.error("[send-summary] Cron auth failed — Authorization header mismatch");
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!cronSecret) {
+      console.warn("[send-summary] CRON_SECRET not set — cron endpoint is unauthenticated. Add CRON_SECRET to Vercel env vars.");
     }
   }
 
@@ -718,18 +726,23 @@ module.exports = async function handler(req, res) {
       }
 
       const supabase = getSupabase();
+      // Only fetch users who have email enabled — reduces DB load and processing time
       const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
-        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address");
+        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address, recipient_name")
+        .eq("email_enabled", true)
+        .not("email_address", "is", null)
+        .neq("email_address", "");
 
       if (settErr) {
         console.error("[send-summary] Failed to fetch user_settings:", settErr.message);
         return res.status(500).json({ error: `DB error: ${settErr.message}. Run migration 29_email_settings.sql in Supabase.` });
       }
 
+      console.log(`[send-summary] Found ${(allSettings || []).length} user(s) with email enabled`);
+
       const results = [];
       for (const row of allSettings || []) {
-        if (!row.email_enabled || !row.email_address) continue;
 
         const freq = row.email_frequency || "weekly";
         if (!shouldSendNow(row, freq)) continue;
@@ -737,7 +750,7 @@ module.exports = async function handler(req, res) {
         try {
           const state = await fetchStateFromSupabase(supabase, row.user_id);
           const summary = computeSummary(state);
-          const html = generateHTML(summary, freq, "there");
+          const html = generateHTML(summary, freq, row.recipient_name || row.email_address?.split("@")[0] || "there");
           const subject = buildSubject(freq, summary.netWorth);
 
           const { error } = await resend.emails.send({
