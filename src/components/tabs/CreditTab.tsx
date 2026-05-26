@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, Edit3, Trash2, TrendingDown, TrendingUp, ArrowLeftRight, IndianRupee, ChevronUp, ChevronDown, List, X, Upload, FileText, CheckCircle2, AlertCircle, CreditCard, Wallet, Sparkles, RefreshCw, Calendar, Target, Shield, BookOpen } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
