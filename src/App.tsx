@@ -716,15 +716,53 @@ function FinanceDashboard() {
     if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
     const getNotificationIcon = (type: "credit" | "subscription" | "reminder") => {
-      let svg = "";
-      if (type === "credit") {
-        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#6366F1"/><rect x="14" y="20" width="36" height="24" rx="4" fill="none" stroke="#FFFFFF" stroke-width="3"/><line x1="14" y1="27" x2="50" y2="27" stroke="#FFFFFF" stroke-width="3"/><rect x="20" y="34" width="6" height="4" rx="1" fill="#FFFFFF"/></svg>`;
-      } else if (type === "subscription") {
-        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#F59E0B"/><path d="M32 16c-8.8 0-16 7.2-16 16s7.2 16 16 16c4.4 0 8.4-1.8 11.3-4.7l-2.8-2.8c-2.2 2.2-5.2 3.5-8.5 3.5-6.6 0-12-5.4-12-12s5.4-12 12-12c3.3 0 6.3 1.3 8.5 3.5H32v4h16V16h-4v2.5c-2.9-2.9-6.9-4.7-12-4.7z" fill="#FFFFFF"/></svg>`;
-      } else {
-        svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="16" fill="#10B981"/><path d="M32 14a12 12 0 0 0-12 12v12l-3 3v2h30v-2l-3-3V26a12 12 0 0 0-12-12zm-4 32a4 4 0 0 0 8 0h-8z" fill="#FFFFFF"/></svg>`;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return "/logo.png";
+
+        const fillStyles = {
+          credit: "#4F46E5",
+          subscription: "#D97706",
+          reminder: "#059669"
+        };
+        const emojis = {
+          credit: "💳",
+          subscription: "🔄",
+          reminder: "🔔"
+        };
+
+        const radius = 28;
+        ctx.fillStyle = fillStyles[type] || "#4F46E5";
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(0, 0, 128, 128, radius);
+        } else {
+          ctx.rect(0, 0, 128, 128);
+        }
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.font = "72px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+
+        ctx.fillText(emojis[type] || "🔔", 64, 66);
+
+        return canvas.toDataURL("image/png");
+      } catch (e) {
+        console.warn("Failed to generate canvas notification icon, falling back", e);
+        return "/logo.png";
       }
-      return `data:image/svg+xml;base64,${btoa(svg)}`;
     };
 
     const todayStr = today();
