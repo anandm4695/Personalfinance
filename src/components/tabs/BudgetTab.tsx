@@ -485,7 +485,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
               )
             }
           >
-            Budget Planner
+            Budgeting
           </SectionTitle>
 
           {/* Stat Cards */}
