@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, FileText, Upload, AlertCircle } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, FileText, Upload, AlertCircle, Download, Calendar, AlertTriangle } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -64,7 +64,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         if (isNaN(amt) || amt <= 0) throw new Error(`Row ${i + 1}: amount must be a positive number`);
         const dt = date || `${month}-05`; // default to 5th of the month if date is omitted
         if (!dt.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD (got "${dt}")`);
-        return { 
+        if (date && dt.slice(0, 7) !== month) throw new Error(`Row ${i + 1}: date ${dt} doesn't match month ${month}`);
+        return {
           month, 
           amount: amt, 
           date: dt, 
@@ -90,6 +91,17 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const inMonthlyRent = propertiesIn.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
   const inThisFY = propertiesIn.reduce((s: number, p: any) => s + (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((ss: number, rr: any) => ss + Number(rr.amount || 0), 0), 0);
   const inDepositPaid = propertiesIn.reduce((s: number, p: any) => s + Math.max(0, getActualSecurityDeposit(p) - Number(p.depositReturned || 0)), 0);
+  const municipalTaxPaid = propertiesOut.reduce((s: number, p: any) => s + Number(p.municipalTax || 0), 0);
+
+  const downloadPropertyCsv = (p: any, type: "receipts" | "payments") => {
+    const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const items = type === "receipts" ? (p.receipts || []) : (p.payments || []);
+    const rows = ["Month,Date,Amount,Note", ...items.map((r: any) => [q(r.month), q(r.date), q(r.amount), q(r.note || "")].join(","))];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `${p.propertyName}_${type}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleAddOut = (data: any) => {
     addItem("rentalProperties", { ...data, receipts: [], depositDeductions: [], depositReturned: 0, depositTransactions: [] });
@@ -205,7 +217,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         ].map(s => (
           <button
             key={s.id}
-            onClick={() => setSub(s.id)}
+            onClick={() => { setSub(s.id); setExpandedLedger(null); }}
             style={{
               padding: "8px 20px", borderRadius: 10, border: "none",
               background: sub === s.id ? THEME.darkInk : "transparent",
@@ -253,9 +265,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
             <StatCard
               icon={<Receipt />}
               label="Taxable IHP"
-              value={fmtINRFull(outThisFY * 0.7)}
+              value={fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7)}
               color={THEME.accent}
-              sub="Post 30% deduction"
+              sub={municipalTaxPaid > 0 ? `After muni tax + 30% deduction` : "Post 30% std deduction"}
             />
           </div>
 
@@ -288,7 +300,30 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
+                          {/* Property name + expiry badge */}
+                          {(() => {
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const endDate = p.agreementEnd ? new Date(p.agreementEnd) : null;
+                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / 86400000) : null;
+                            return (
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</span>
+                                {daysToExpiry !== null && daysToExpiry < 0 && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.rust, background: `${THEME.rust}15`, padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 3 }}>
+                                    <AlertTriangle size={9} /> Expired
+                                  </span>
+                                )}
+                                {daysToExpiry !== null && daysToExpiry >= 0 && daysToExpiry <= 30 && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.gold, background: `${THEME.gold}15`, padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 3 }}>
+                                    <Calendar size={9} /> Expiring in {daysToExpiry}d
+                                  </span>
+                                )}
+                                {p.isActive === false && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "2px 7px", borderRadius: 99 }}>Ended</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
                             {/* Show tenant name(s) */}
                             {p.tenants && p.tenants.length > 1
@@ -355,7 +390,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </button>
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
-                            {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0)))}
+                            {fmtINRFull(Math.max(0, getActualSecurityDeposit(p) - (p.depositDeductions || []).reduce((ss: number, dd: any) => ss + Number(dd.amount || 0), 0) - Number(p.depositReturned || 0)))}
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
@@ -368,6 +403,25 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           ) : null}
                         </div>
                       </div>
+
+                      {/* FY collection progress bar */}
+                      {(() => {
+                        const expected = Number(p.monthlyRent || 0) * 12;
+                        const received = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+                        const pct = expected > 0 ? Math.min(100, (received / expected) * 100) : 0;
+                        if (expected === 0) return null;
+                        return (
+                          <div style={{ marginTop: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                              <span>FY Collection</span>
+                              <span style={{ color: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
+                            </div>
+                            <div style={{ height: 5, borderRadius: 99, background: "rgba(128,128,128,0.12)", overflow: "hidden" }}>
+                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust, transition: "width 0.4s ease" }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Expansion trigger */}
                       <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -386,13 +440,23 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* Expanded Ledger Section */}
                       {expandedLedger === p.id && (
-                        <div style={{ 
+                        <div style={{
                           marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 14,
                           animation: "fade-in 0.25s ease"
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Receipts</span>
                             <div style={{ display: "flex", gap: 6 }}>
+                              {(p.receipts || []).length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ padding: "4px 10px", fontSize: 11, color: THEME.muted, border: `1px solid ${THEME.line}` }}
+                                  onClick={() => downloadPropertyCsv(p, "receipts")}
+                                >
+                                  <Download size={10} style={{ marginRight: 4 }} /> Export
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -599,6 +663,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           )}
 
+                          {/* Missing months indicator for "out" */}
+                          {(() => {
+                            const fyMonths: string[] = [];
+                            let d = new Date(fyStart);
+                            const fyEndDate = new Date(fyEnd);
+                            while (d <= fyEndDate) {
+                              fyMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                              d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+                            }
+                            const loggedMonths = new Set((p.receipts || []).map((r: any) => r.month));
+                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= new Date().toISOString().slice(0, 7));
+                            if (missingMonths.length === 0) return null;
+                            return (
+                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`, border: `1px dashed ${THEME.gold}44` }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: THEME.gold, marginBottom: 6 }}>
+                                  {missingMonths.length} month{missingMonths.length !== 1 ? "s" : ""} without receipt:
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                  {missingMonths.map((m: string) => (
+                                    <span key={m} style={{ padding: "2px 8px", borderRadius: 6, background: `${THEME.gold}18`, color: THEME.gold, fontSize: 10, fontWeight: 700 }}>{m}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {/* ── Divider between Receipts & Deposit Ledger ── */}
                           <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />
 
@@ -761,7 +851,30 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</div>
+                          {/* Property name + expiry badge */}
+                          {(() => {
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const endDate = p.agreementEnd ? new Date(p.agreementEnd) : null;
+                            const daysToExpiry = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / 86400000) : null;
+                            return (
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{p.propertyName}</span>
+                                {daysToExpiry !== null && daysToExpiry < 0 && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.rust, background: `${THEME.rust}15`, padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 3 }}>
+                                    <AlertTriangle size={9} /> Expired
+                                  </span>
+                                )}
+                                {daysToExpiry !== null && daysToExpiry >= 0 && daysToExpiry <= 30 && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.gold, background: `${THEME.gold}15`, padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 3 }}>
+                                    <Calendar size={9} /> Expiring in {daysToExpiry}d
+                                  </span>
+                                )}
+                                {p.isActive === false && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "2px 7px", borderRadius: 99 }}>Ended</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
                             {/* Show landlord name(s) */}
                             {p.landlords && p.landlords.length > 1
@@ -845,6 +958,25 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         </div>
                       </div>
 
+                      {/* FY payment progress bar */}
+                      {(() => {
+                        const expected = Number(p.monthlyRent || 0) * 12;
+                        const paid = (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+                        const pct = expected > 0 ? Math.min(100, (paid / expected) * 100) : 0;
+                        if (expected === 0) return null;
+                        return (
+                          <div style={{ marginTop: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                              <span>FY Payments</span>
+                              <span style={{ color: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
+                            </div>
+                            <div style={{ height: 5, borderRadius: 99, background: "rgba(128,128,128,0.12)", overflow: "hidden" }}>
+                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.rust : THEME.rust, transition: "width 0.4s ease" }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Expansion trigger */}
                       <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <button
@@ -862,13 +994,23 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* Expanded Ledger Section */}
                       {expandedLedger === p.id && (
-                        <div style={{ 
+                        <div style={{
                           marginTop: 16, borderTop: `1px solid ${THEME.line}`, paddingTop: 14,
                           animation: "fade-in 0.25s ease"
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>Logged Payments</span>
                             <div style={{ display: "flex", gap: 6 }}>
+                              {(p.payments || []).length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ padding: "4px 10px", fontSize: 11, color: THEME.muted, border: `1px solid ${THEME.line}` }}
+                                  onClick={() => downloadPropertyCsv(p, "payments")}
+                                >
+                                  <Download size={10} style={{ marginRight: 4 }} /> Export
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1080,6 +1222,32 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               ))}
                             </div>
                           )}
+
+                          {/* Missing months indicator for "in" */}
+                          {(() => {
+                            const fyMonths: string[] = [];
+                            let d = new Date(fyStart);
+                            const fyEndDate = new Date(fyEnd);
+                            while (d <= fyEndDate) {
+                              fyMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                              d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+                            }
+                            const loggedMonths = new Set((p.payments || []).map((r: any) => r.month));
+                            const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= new Date().toISOString().slice(0, 7));
+                            if (missingMonths.length === 0) return null;
+                            return (
+                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`, border: `1px dashed ${THEME.rust}44` }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: THEME.rust, marginBottom: 6 }}>
+                                  {missingMonths.length} month{missingMonths.length !== 1 ? "s" : ""} without payment:
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                  {missingMonths.map((m: string) => (
+                                    <span key={m} style={{ padding: "2px 8px", borderRadius: 6, background: `${THEME.rust}18`, color: THEME.rust, fontSize: 10, fontWeight: 700 }}>{m}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* ── Divider between Rent Payments & Deposit Ledger ── */}
                           <div style={{ height: 1, background: THEME.line, margin: "16px 0" }} />

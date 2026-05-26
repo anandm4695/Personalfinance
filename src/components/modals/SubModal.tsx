@@ -101,7 +101,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
         />
       </Field>
       <ModalActions
-        onSave={() => f.name && f.amount && onSave(f)}
+        onSave={() => f.name && Number(f.amount) > 0 && onSave(f)}
         onClose={onClose}
       />
     </Modal>

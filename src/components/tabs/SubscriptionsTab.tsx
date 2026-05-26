@@ -1,6 +1,6 @@
 // @ts-nocheck
-import React, { useState } from "react";
-import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet, Download, AlertTriangle, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
@@ -10,6 +10,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+
 const SUB_LOGOS: Record<string, string> = {
   netflix: "netflix.com",
   spotify: "spotify.com",
@@ -35,6 +36,8 @@ const SUB_LOGOS: Record<string, string> = {
   linkedin: "linkedin.com",
 };
 
+const CATEGORY_ORDER = ["Entertainment", "Productivity", "Storage/Cloud", "News/Media", "Fitness", "Utilities", "Other"];
+
 const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
   const n = (name || "").toLowerCase();
   let domain = "";
@@ -45,9 +48,9 @@ const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
   if (domain) {
     return (
       <div style={{ width: size, height: size, borderRadius: 10, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-        <img 
-          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
-          alt={name} 
+        <img
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
+          alt={name}
           style={{ width: "70%", height: "70%", objectFit: "contain" }}
           onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.innerHTML = `<span style="font-size: ${size/2.5}px; font-weight: 800; color: ${THEME.muted}">${name.slice(0, 2).toUpperCase()}</span>`; }}
         />
@@ -62,28 +65,103 @@ const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
   );
 };
 
+function getRenewalInfo(renewalDate: string | undefined) {
+  if (!renewalDate) return { days: null, label: "No date set", color: THEME.muted, urgent: false };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rd = new Date(renewalDate); rd.setHours(0, 0, 0, 0);
+  const days = Math.ceil((rd.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return { days, label: `${Math.abs(days)}d overdue`, color: THEME.rust, urgent: true };
+  if (days === 0) return { days, label: "Due today", color: THEME.rust, urgent: true };
+  if (days <= 7) return { days, label: `Due in ${days}d`, color: THEME.gold, urgent: true };
+  if (days <= 30) return { days, label: `Due in ${days}d`, color: THEME.accent, urgent: false };
+  return { days, label: `${days}d away`, color: THEME.muted, urgent: false };
+}
+
 export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
   const [editSub, setEditSub] = useState<any>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const activeSubs = state.subscriptions.filter((s: any) => !s.paused);
-  const totalMonthly = activeSubs.reduce((acc: number, s: any) => {
+  const pausedSubs = state.subscriptions.filter((s: any) => s.paused);
+
+  const totalMonthly = useMemo(() => activeSubs.reduce((acc: number, s: any) => {
     const amount = Number(s.amount) || 0;
     if (s.cycle === "yearly") return acc + amount / 12;
     if (s.cycle === "quarterly") return acc + amount / 3;
     return acc + amount;
-  }, 0);
+  }, 0), [activeSubs]);
+
   const totalAnnual = totalMonthly * 12;
+
+  const pausedMonthlySavings = useMemo(() => pausedSubs.reduce((acc: number, s: any) => {
+    const amount = Number(s.amount) || 0;
+    if (s.cycle === "yearly") return acc + amount / 12;
+    if (s.cycle === "quarterly") return acc + amount / 3;
+    return acc + amount;
+  }, 0), [pausedSubs]);
+
+  const upcomingSubs = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const limit = new Date(today); limit.setDate(limit.getDate() + 30);
+    return state.subscriptions
+      .filter((s: any) => !s.paused && s.renewalDate)
+      .filter((s: any) => {
+        const rd = new Date(s.renewalDate);
+        return rd >= today && rd <= limit;
+      })
+      .sort((a: any, b: any) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime());
+  }, [state.subscriptions]);
+
+  const groupedSubs = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    for (const cat of CATEGORY_ORDER) groups[cat] = [];
+    activeSubs.forEach((s: any) => {
+      const cat = s.category || "Other";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(s);
+    });
+    return Object.entries(groups).filter(([, subs]) => subs.length > 0);
+  }, [activeSubs]);
+
+  const toggleCategory = (cat: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      next.has(cat) ? next.delete(cat) : next.add(cat);
+      return next;
+    });
+  };
+
+  const downloadCSV = () => {
+    const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = ["Name,Category,Amount (₹),Cycle,Monthly Equiv (₹),Next Renewal,Status,Remark"];
+    state.subscriptions.forEach((s: any) => {
+      const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
+      rows.push([
+        q(s.name), q(s.category), q(s.amount), q(s.cycle),
+        q(monthly.toFixed(0)), q(s.renewalDate || ""), q(s.paused ? "Paused" : "Active"), q(s.remark || "")
+      ].join(","));
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "subscriptions.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="tab-content-enter">
-      <SectionTitle 
+      <SectionTitle
         sub="Manage recurring services, streaming, and software bills"
         rightElement={
           state.subscriptions.length > 0 && (
-            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
-              Add Subscription
-            </Button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Button onClick={downloadCSV} variant="ghost" icon={<Download size={14} />} style={{ border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
+                Export CSV
+              </Button>
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
+                Add Subscription
+              </Button>
+            </div>
           )
         }
       >
@@ -112,14 +190,59 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           color={THEME.rust}
           sub={metrics?.annualIncome > 0 ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income` : "Total annual outgo"}
         />
-        <StatCard
-          icon={<Repeat />}
-          label="Total Tracked"
-          value={state.subscriptions.length}
-          color={THEME.muted}
-          sub="Including paused services"
-        />
+        {pausedMonthlySavings > 0 ? (
+          <StatCard
+            icon={<Pause />}
+            label="Paused Savings"
+            value={fmtINRFull(pausedMonthlySavings)}
+            color={THEME.muted}
+            sub={`${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`}
+          />
+        ) : (
+          <StatCard
+            icon={<Repeat />}
+            label="Total Tracked"
+            value={state.subscriptions.length}
+            color={THEME.muted}
+            sub="Including paused services"
+          />
+        )}
       </div>
+
+      {/* ── Upcoming Renewals Section ── */}
+      {upcomingSubs.length > 0 && (
+        <Card style={{ marginBottom: 24, padding: "14px 18px", border: `1px solid ${THEME.gold}44`, background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <Clock size={15} color={THEME.gold} />
+            <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+              Upcoming Renewals — next 30 days
+            </span>
+            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+              ({fmtINRFull(upcomingSubs.reduce((s: number, sub: any) => s + Number(sub.amount || 0), 0))} total)
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {upcomingSubs.map((s: any) => {
+              const { days, color } = getRenewalInfo(s.renewalDate);
+              return (
+                <div key={s.id} style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                  borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${color}33`,
+                  minWidth: 160
+                }}>
+                  <ServiceLogo name={s.name} size={28} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{s.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color }}>
+                      {days === 0 ? "Due today" : days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`} · {fmtINRFull(s.amount)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {state.subscriptions.length === 0 ? (
         <EmptyState
@@ -133,104 +256,159 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
           onAdd={() => setShow(true)}
         />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
-          {state.subscriptions.map((s: any) => {
-            const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
-            const color = s.paused ? THEME.muted : THEME.accent;
-            
+        <div>
+          {/* ── Active subs grouped by category ── */}
+          {groupedSubs.map(([cat, subs]) => {
+            const collapsed = collapsedCategories.has(cat);
+            const catMonthly = subs.reduce((acc: number, s: any) => {
+              const amount = Number(s.amount) || 0;
+              if (s.cycle === "yearly") return acc + amount / 12;
+              if (s.cycle === "quarterly") return acc + amount / 3;
+              return acc + amount;
+            }, 0);
             return (
-              <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}`, opacity: s.paused ? 0.7 : 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  {/* Logo */}
-                  <ServiceLogo name={s.name} />
+              <div key={cat} style={{ marginBottom: 20 }}>
+                <button
+                  onClick={() => toggleCategory(cat)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+                    background: "none", border: "none", cursor: "pointer", padding: "4px 0", width: "100%"
+                  }}
+                >
+                  {collapsed ? <ChevronRight size={15} color={THEME.muted} /> : <ChevronDown size={15} color={THEME.muted} />}
+                  <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>{cat}</span>
+                  <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                    {subs.length} service{subs.length !== 1 ? "s" : ""} · {fmtINRFull(catMonthly)}/mo
+                  </span>
+                </button>
 
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.01em" }}>{s.name}</span>
-                      {s.paused && <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>}
-                      <Badge variant="muted" style={{ fontSize: 9, opacity: 0.8 }}>{s.category}</Badge>
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 6, rowGap: 2 }}>
-                      <span style={{ color, whiteSpace: "nowrap" }}>{fmtINRFull(s.amount)}</span>
-                      <span style={{ opacity: 0.4 }}>·</span>
-                      <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>{s.cycle}</span>
-                      <span style={{ opacity: 0.4 }}>·</span>
-                      <span style={{ whiteSpace: "nowrap" }}>Next: {s.renewalDate || "—"}</span>
-                    </div>
-                    {s.remark && (
-                      <div 
-                        style={{ 
-                          fontSize: 11, 
-                          color: THEME.muted, 
-                          marginTop: 5, 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: 4,
-                          fontWeight: 500,
-                          opacity: 0.9,
-                        }}
-                        title={s.remark}
-                      >
-                        <span style={{ opacity: 0.7 }}>💬</span>
-                        <span style={{ 
-                          fontStyle: "italic",
-                          overflow: "hidden", 
-                          textOverflow: "ellipsis", 
-                          whiteSpace: "nowrap" 
-                        }}>
-                          {s.remark}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                {!collapsed && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 12 }}>
+                    {subs.map((s: any) => {
+                      const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
+                      const renewal = getRenewalInfo(s.renewalDate);
+                      const color = renewal.urgent ? renewal.color : THEME.accent;
 
-                  {/* Monthly Equivalent & Renewal Amount */}
-                  <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthly)}</div>
-                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>equiv/mo</div>
-                    {s.cycle !== "monthly" && (
-                      <div 
-                        style={{ 
-                          fontSize: 10.5, 
-                          color: THEME.muted, 
-                          fontWeight: 700, 
-                          marginTop: 4,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: 3,
-                        }}
-                        title={`Actual renewal payment of ${fmtINRFull(s.amount)} charged every ${s.cycle}`}
-                      >
-                        <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>RENEWAL:</span>
-                        <span style={{ color: color }}>{fmtINRFull(s.amount)}</span>
-                      </div>
-                    )}
-                  </div>
+                      return (
+                        <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                            <ServiceLogo name={s.name} />
 
-                  {/* Actions */}
-                  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => updateItem("subscriptions", s.id, { paused: !s.paused })}
-                      style={{ padding: 6, color: s.paused ? THEME.sage : THEME.gold }}
-                      title={s.paused ? "Resume" : "Pause"}
-                    >
-                      {s.paused ? <Play size={14} /> : <Pause size={14} />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditSub(s)} style={{ padding: 6 }}>
-                      <Pencil size={14} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => removeItem("subscriptions", s.id)} style={{ padding: 6, color: THEME.rust }}>
-                      <Trash2 size={14} />
-                    </Button>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{s.name}</span>
+                                <Badge variant="muted" style={{ fontSize: 9, opacity: 0.8 }}>{s.category}</Badge>
+                              </div>
+                              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 6, rowGap: 2 }}>
+                                <span style={{ color: THEME.accent, whiteSpace: "nowrap" }}>{fmtINRFull(s.amount)}</span>
+                                <span style={{ opacity: 0.4 }}>·</span>
+                                <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>{s.cycle}</span>
+                                <span style={{ opacity: 0.4 }}>·</span>
+                                {/* Renewal countdown with urgency coloring */}
+                                <span style={{ color: renewal.color, fontWeight: 700, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 3 }}>
+                                  {renewal.urgent && <AlertTriangle size={10} />}
+                                  {s.renewalDate ? `${s.renewalDate} (${renewal.label})` : "No date set"}
+                                </span>
+                              </div>
+                              {s.remark && (
+                                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 5, display: "flex", alignItems: "center", gap: 4, fontWeight: 500, opacity: 0.9 }} title={s.remark}>
+                                  <span style={{ opacity: 0.7 }}>💬</span>
+                                  <span style={{ fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.remark}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthly)}</div>
+                              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>equiv/mo</div>
+                              {s.cycle !== "monthly" && (
+                                <div style={{ fontSize: 10.5, color: THEME.muted, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }} title={`Actual renewal: ${fmtINRFull(s.amount)} every ${s.cycle}`}>
+                                  <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>RENEWAL:</span>
+                                  <span style={{ color: THEME.accent }}>{fmtINRFull(s.amount)}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => updateItem("subscriptions", s.id, { paused: !s.paused })}
+                                style={{ padding: 6, color: THEME.gold }}
+                                title="Pause"
+                              >
+                                <Pause size={14} />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setEditSub(s)} style={{ padding: 6 }}>
+                                <Pencil size={14} />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => removeItem("subscriptions", s.id)} style={{ padding: 6, color: THEME.rust }}>
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
-                </div>
-              </Card>
+                )}
+              </div>
             );
           })}
+
+          {/* ── Paused subscriptions ── */}
+          {pausedSubs.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontWeight: 800, fontSize: 13, color: THEME.muted }}>Paused</span>
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                  {pausedSubs.length} service{pausedSubs.length !== 1 ? "s" : ""} · {fmtINRFull(pausedMonthlySavings)}/mo saved
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 12 }}>
+                {pausedSubs.map((s: any) => {
+                  const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
+                  return (
+                    <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.muted}`, opacity: 0.7 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <ServiceLogo name={s.name} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                            <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink }}>{s.name}</span>
+                            <Badge variant="muted" style={{ fontSize: 9 }}>PAUSED</Badge>
+                            <Badge variant="muted" style={{ fontSize: 9, opacity: 0.8 }}>{s.category}</Badge>
+                          </div>
+                          <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                            {fmtINRFull(s.amount)} · {s.cycle}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted }}>{fmtINRFull(monthly)}/mo</div>
+                        </div>
+                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateItem("subscriptions", s.id, { paused: false })}
+                            style={{ padding: 6, color: THEME.sage }}
+                            title="Resume"
+                          >
+                            <Play size={14} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditSub(s)} style={{ padding: 6 }}>
+                            <Pencil size={14} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => removeItem("subscriptions", s.id)} style={{ padding: 6, color: THEME.rust }}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
