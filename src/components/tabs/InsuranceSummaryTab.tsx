@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles } from "lucide-react";
+import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles, Download, Calendar, TrendingUp } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
@@ -743,6 +743,43 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   POLICY HELPERS
+   ══════════════════════════════════════════════════════════════════════ */
+
+const getPolicyStatus = (expiryOrMaturityDate: string) => {
+  if (!expiryOrMaturityDate) return { label: "Active", color: THEME.sage };
+  const days = Math.round((new Date(expiryOrMaturityDate).getTime() - Date.now()) / 86400000);
+  if (days < 0) return { label: "Matured / Expired", color: THEME.muted };
+  if (days <= 180) {
+    const m = Math.floor(days / 30);
+    return { label: m <= 0 ? `Expires in ${days}d` : `Expires in ${m}m`, color: THEME.rust };
+  }
+  const yrs = Math.floor(days / 365);
+  const mos = Math.floor((days % 365) / 30);
+  return { label: yrs > 0 ? `${yrs}y ${mos}m left` : `${mos}m left`, color: THEME.sage };
+};
+
+const getNextPremiumDue = (startDateStr: string, expiryDateStr?: string) => {
+  if (!startDateStr) return null;
+  const today = new Date();
+  if (expiryDateStr && new Date(expiryDateStr) < today) return null;
+  const start = new Date(startDateStr);
+  const next = new Date(start);
+  next.setFullYear(today.getFullYear());
+  if (next <= today) next.setFullYear(today.getFullYear() + 1);
+  const days = Math.round((next.getTime() - today.getTime()) / 86400000);
+  return { date: next.toISOString().slice(0, 10), days };
+};
+
+const estimateLICSurrenderValue = (premiumPaid: number, commencementDate: string) => {
+  if (!commencementDate || !premiumPaid) return 0;
+  const years = Math.floor((Date.now() - new Date(commencementDate).getTime()) / (365.25 * 86400000));
+  if (years < 3) return 0;
+  const pct = years >= 15 ? 0.70 : years >= 10 ? 0.60 : years >= 5 ? 0.50 : 0.30;
+  return premiumPaid * pct;
+};
+
+/* ══════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -759,7 +796,9 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
   const totalAnnualPremium = licAnnualPremium + termAnnualPremium + investAnnualPremium;
   
   const annualIncome = metrics?.annualIncome || 0;
-  
+  const totalLifeCover = totalLICAssured + totalTermCover;
+  const premiumBurdenPct = annualIncome > 0 ? (totalAnnualPremium / annualIncome) * 100 : 0;
+
   const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
   const adequacyLevel = annualIncome > 0
     ? (coverRatio >= 15 ? "excellent" : coverRatio >= 10 ? "adequate" : coverRatio >= 5 ? "low" : "critical")
@@ -777,10 +816,33 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     if (isEdit) {
       updateItem(key, data.id, data);
     } else {
-      addItem(key, data);
+      const { id: _ignored, ...itemWithoutId } = data;
+      addItem(key, itemWithoutId);
     }
     setModal(null);
     setEditPolicy(null);
+  };
+
+  const downloadCSV = () => {
+    const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = ["Type,Plan Name,Insurer,Cover/Assured (₹),Annual Premium (₹),Total Paid (₹),Maturity/Expiry Date,Owner"];
+    state.lic.forEach((l: any) => {
+      const paid = (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) || Number(l.premiumPaid || 0);
+      rows.push([q("LIC"), q(l.planName), q("LIC"), q(l.sumAssured), q(l.annualPremium), q(paid), q(l.maturityDate || ""), q(l.owner)].join(","));
+    });
+    state.termPlans.forEach((t: any) => {
+      const paid = (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) || Number(t.premiumPaid || 0);
+      rows.push([q("Term Plan"), q(t.planName), q(t.insurer), q(t.coverAmount), q(t.annualPremium), q(paid), q(t.expiryDate || ""), q(t.owner)].join(","));
+    });
+    (state.investmentPlans || []).forEach((ip: any) => {
+      const paid = (ip.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) || Number(ip.premiumPaid || 0);
+      rows.push([q("Investment Plan"), q(ip.planName), q(ip.insurer), q(ip.expectedMaturityAmount), q(ip.annualPremium), q(paid), q(ip.maturityDate || ""), q(ip.owner)].join(","));
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `insurance_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
   };
 
   const hasPolicies = state.lic.length > 0 || state.termPlans.length > 0 || (state.investmentPlans || []).length > 0;
@@ -799,10 +861,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
 
   return (
     <div className="tab-content-enter">
-      <SectionTitle 
+      <SectionTitle
         sub="Manage your life insurance, term protection cover, and endowment/investment schemes in one place"
         rightElement={
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {hasPolicies && <Button onClick={downloadCSV} size="sm" variant="secondary" icon={<Download size={14} />}>Export CSV</Button>}
             <Button onClick={() => setModal("lic")} size="sm" variant="accent" icon={<Plus size={14} />}>Add LIC</Button>
             <Button onClick={() => setModal("term")} size="sm" variant="accent" icon={<Plus size={14} />}>Add Term Plan</Button>
             <Button onClick={() => setModal("invest")} size="sm" variant="accent" icon={<Plus size={14} />}>Add Investment Plan</Button>
@@ -812,10 +875,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         Insurance Portfolio
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         <StatCard icon={<Shield />} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} color={THEME.rust} sub="Life Insurance Corp policies" />
         <StatCard icon={<Heart />} label="Total Term Cover" value={fmtINRFull(totalTermCover)} color={THEME.rust} sub="Pure protection cover" />
-        <StatCard icon={<Wallet />} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} color={THEME.gold} sub="Combined insurance cost" />
+        <StatCard icon={<TrendingUp />} label="Total Life Cover" value={fmtINRFull(totalLifeCover)} color={THEME.accent} sub="LIC + Term combined" />
+        <StatCard icon={<Wallet />} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} color={THEME.gold} sub={annualIncome > 0 ? `${premiumBurdenPct.toFixed(1)}% of income` : "Combined insurance cost"} />
         <StatCard icon={<Sparkles />} label="Investment Maturity" value={fmtINRFull(totalInvestMaturity)} color={THEME.sage} sub="Endowment & ULIP receivables" />
         <StatCard icon={<Zap />} label="Cover Adequacy" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} color={adequacyColor} sub={adequacyLabel} />
       </div>
@@ -900,6 +964,10 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const expectedTotal = l.annualPremium && l.policyTerm ? (Number(l.annualPremium) * parseInt(l.policyTerm, 10)) : 0;
               const balance = Math.max(0, expectedTotal - paid);
               const isPaid = balance <= 0;
+              const status = getPolicyStatus(l.maturityDate);
+              const nextDue = getNextPremiumDue(l.commencementDate, l.maturityDate);
+              const surrenderVal = estimateLICSurrenderValue(paid, l.commencementDate);
+              const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
               return (
                 <Card key={l.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -908,6 +976,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</span>
                         <OwnerBadge owner={l.owner} />
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
@@ -936,22 +1005,43 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     </div>
                   </div>
 
+                  {/* Premium progress bar */}
+                  {expectedTotal > 0 && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                        <span>Premium Progress</span>
+                        <span>{progressPct.toFixed(0)}% paid</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.gold, borderRadius: 3, transition: "width 0.3s" }} />
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                         Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Balance: <span style={{ color: (l.annualPremium && l.policyTerm && (Number(l.annualPremium) * parseInt(l.policyTerm, 10) - paid) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
-                          {l.annualPremium && l.policyTerm ? (
-                            (() => {
-                              const bal = (Number(l.annualPremium) * parseInt(l.policyTerm, 10)) - paid;
-                              return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
-                            })()
-                          ) : "—"}
+                        Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                          {expectedTotal > 0 ? (isPaid ? "Fully Paid" : fmtINRFull(balance)) : "—"}
                         </span>
                       </div>
                     </div>
+                    {surrenderVal > 0 && (
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        Est. Surrender Value: <span style={{ color: THEME.accent, fontWeight: 800 }}>{fmtINRFull(surrenderVal)}</span>
+                        <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.6 }}>(approx)</span>
+                      </div>
+                    )}
+                    {nextDue && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
+                        <Calendar size={11} />
+                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
+                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                       <Button variant="ghost" size="sm" onClick={() => setEditPolicy(l)} style={{ padding: 6, color: THEME.accent }}>
                         <Pencil size={14} />
@@ -992,6 +1082,9 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const expectedTotal = t.annualPremium && (t.premiumPayingTerm || t.term) ? (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)) : 0;
               const balance = Math.max(0, expectedTotal - paid);
               const isPaid = balance <= 0;
+              const status = getPolicyStatus(t.expiryDate);
+              const nextDue = getNextPremiumDue(t.startDate, t.expiryDate);
+              const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
               return (
                 <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -1000,6 +1093,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
                         <OwnerBadge owner={t.owner} />
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
@@ -1032,22 +1126,37 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     </div>
                   </div>
 
+                  {/* Premium progress bar */}
+                  {expectedTotal > 0 && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                        <span>Premium Progress</span>
+                        <span>{progressPct.toFixed(0)}% paid</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.accent, borderRadius: 3, transition: "width 0.3s" }} />
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                         Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Balance: <span style={{ color: (t.annualPremium && (t.premiumPayingTerm || t.term) && (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10) - paid) <= 0) ? THEME.sage : THEME.gold, fontWeight: 800 }}>
-                          {t.annualPremium && (t.premiumPayingTerm || t.term) ? (
-                            (() => {
-                              const bal = (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)) - paid;
-                              return bal <= 0 ? "Fully Paid" : fmtINRFull(bal);
-                            })()
-                          ) : "—"}
+                        Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>
+                          {expectedTotal > 0 ? (isPaid ? "Fully Paid" : fmtINRFull(balance)) : "—"}
                         </span>
                       </div>
                     </div>
+                    {nextDue && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
+                        <Calendar size={11} />
+                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
+                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                       <Button variant="ghost" size="sm" onClick={() => setEditPolicy(t)} style={{ padding: 6, color: THEME.accent }}>
                         <Pencil size={14} />
@@ -1088,6 +1197,10 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const expectedTotal = Number(ip.annualPremium || 0) * Number(ip.premiumPayingTerm || ip.policyTerm || 0);
               const balance = Math.max(0, expectedTotal - paid);
               const isPaid = balance <= 0;
+              const status = getPolicyStatus(ip.maturityDate);
+              const nextDue = getNextPremiumDue(ip.commencementDate, ip.maturityDate);
+              const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
+              const maturityGain = Number(ip.expectedMaturityAmount || 0) - expectedTotal;
               return (
                 <Card key={ip.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -1096,6 +1209,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{ip.planName || "Investment Plan"}</span>
                         <OwnerBadge owner={ip.owner} />
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.sage }}>{fmtINRFull(ip.expectedMaturityAmount)} maturity</span>
@@ -1128,8 +1242,21 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                     </div>
                   </div>
 
+                  {/* Premium progress bar */}
+                  {expectedTotal > 0 && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                        <span>Premium Progress</span>
+                        <span>{progressPct.toFixed(0)}% paid</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.sage, borderRadius: 3, transition: "width 0.3s" }} />
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
                         Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
                       </div>
@@ -1139,6 +1266,19 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         </span>
                       </div>
                     </div>
+                    {maturityGain > 0 && expectedTotal > 0 && (
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        Expected Gain: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(maturityGain)}</span>
+                        <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.6 }}>({((maturityGain / expectedTotal) * 100).toFixed(0)}% return)</span>
+                      </div>
+                    )}
+                    {nextDue && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
+                        <Calendar size={11} />
+                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
+                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                       <Button variant="ghost" size="sm" onClick={() => setEditPolicy(ip)} style={{ padding: 6, color: THEME.accent }}>
                         <Pencil size={14} />
