@@ -40,10 +40,11 @@ import { StatCard } from "../ui/StatCard";
 
 interface CalculatorsTabProps {
   metrics: any;
+  state: any;
 }
 
-export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
-  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection">("emi");
+export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
+  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress">("emi");
 
   // ── 1. EMI CALCULATOR STATE & LOGIC ──
   const [emiP, setEmiP] = useState("1000000");
@@ -437,6 +438,61 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
   }, [metrics?.netWorth, nwpSavings, nwpReturn, nwpYears]);
 
 
+  // ── 8. LIQUID RUNWAY & FINANCIAL STABILITY STRESS TESTER LOGIC ──
+  const [eqHaircut, setEqHaircut] = useState(30);
+  const [fiHaircut, setFiHaircut] = useState(5);
+  const [burnMultiplier, setBurnMultiplier] = useState(1.0);
+  const [oneTimeOutflow, setOneTimeOutflow] = useState("");
+
+  const stressResult = useMemo(() => {
+    const baseEquity = Number(metrics?.mfValue || 0) + Number(metrics?.stockValue || 0);
+    
+    // Fixed Income assets (excluding EPF, as it is locked until retirement and cannot be liquid cash buffer)
+    const baseFI = Number(metrics?.fdValue || 0) + Number(metrics?.rdValue || 0) + Number(metrics?.bondValue || 0) + Number(metrics?.ppfValue || 0) + Number(metrics?.npsValue || 0);
+    const baseCash = Number(metrics?.cashInBanks || 0);
+    const baseLiabilities = Number(metrics?.totalLiabilities || 0);
+    
+    // Loans EMI (drawn directly from loansTaken state)
+    const activeEMIs = (state?.loansTaken || []).reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
+    const monthlyExpense = Number(metrics?.monthExpense || 0);
+    
+    // Stress deductions
+    const stressEquity = baseEquity * (1 - eqHaircut / 100);
+    const stressFI = baseFI * (1 - fiHaircut / 100);
+    const stressCash = baseCash;
+    
+    const totalLiquidAssets = stressEquity + stressFI + stressCash;
+    const crisisBurnRate = (monthlyExpense * burnMultiplier) + activeEMIs;
+    
+    const outflowAmount = Number(oneTimeOutflow) || 0;
+    const netStressAssets = Math.max(0, totalLiquidAssets - outflowAmount);
+    
+    const runwayMonths = crisisBurnRate > 0 ? (netStressAssets / crisisBurnRate) : (netStressAssets > 0 ? 99 : 0);
+    
+    let safetyLevel: "critical" | "caution" | "safe" | "elite" = "safe";
+    if (runwayMonths < 3) safetyLevel = "critical";
+    else if (runwayMonths < 6) safetyLevel = "caution";
+    else if (runwayMonths >= 12) safetyLevel = "elite";
+    
+    return {
+      baseEquity,
+      baseFI,
+      baseCash,
+      activeEMIs,
+      monthlyExpense,
+      stressEquity,
+      stressFI,
+      stressCash,
+      totalLiquidAssets,
+      crisisBurnRate,
+      netStressAssets,
+      runwayMonths,
+      safetyLevel
+    };
+  }, [metrics, state, eqHaircut, fiHaircut, burnMultiplier, oneTimeOutflow]);
+
+
+
   // ── INPUT ROW HELPERS ──
   const inpRow = (lbl: string, val: string, set: (v: string) => void, placeholder = "") => (
     <div style={{ marginBottom: 14 }}>
@@ -517,7 +573,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
           { id: "fire", label: "FIRE Planner", icon: Flame },
           { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
           { id: "loan-invest", label: "Loan vs Invest", icon: ArrowRightLeft },
-          { id: "projection", label: "Wealth Projection", icon: Briefcase }
+          { id: "projection", label: "Wealth Projection", icon: Briefcase },
+          { id: "stress", label: "Runway Stress Tester", icon: Shield }
         ].map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
@@ -1191,6 +1248,255 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics }) => {
               </div>
             </Card>
           </div>
+        )}
+
+        {/* ── 8. LIQUID RUNWAY & FINANCIAL STABILITY STRESS TESTER ── */}
+        {calcTab === "stress" && (
+          <>
+            {/* Left Column: Stress Controllers */}
+            <div className="bento-col-5">
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Shield size={18} color={THEME.accent} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Crisis Stress Controllers</div>
+                </div>
+
+                {/* Scenario Preset Buttons */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                    Preset Stress Scenarios
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        setEqHaircut(15);
+                        setFiHaircut(0);
+                        setBurnMultiplier(1.0);
+                        setOneTimeOutflow("");
+                      }}
+                      style={{
+                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
+                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        transition: "all 0.15s"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                    >
+                      <span>🔒 The Great Lockdown (Normal Crisis)</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · Eq -15%</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEqHaircut(40);
+                        setFiHaircut(10);
+                        setBurnMultiplier(0.85); // 15% frugal spending reduction
+                        setOneTimeOutflow("");
+                      }}
+                      style={{
+                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
+                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        transition: "all 0.15s"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                    >
+                      <span>📉 Global Financial Crisis (Severe)</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · Frugal · Eq -40%</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEqHaircut(30);
+                        setFiHaircut(5);
+                        setBurnMultiplier(1.0);
+                        setOneTimeOutflow("500000"); // medical emergency outflow
+                      }}
+                      style={{
+                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
+                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        transition: "all 0.15s"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                    >
+                      <span>🌋 Medical Black Swan (Outflow + Job Loss)</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · ₹5L Outflow · Eq -30%</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="divider" style={{ margin: "16px 0" }} />
+
+                {/* Granular Sliders */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Equity Haircut */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Equity Haircut (Stocks & MFs)</span>
+                      <span style={{ color: THEME.rust, fontWeight: 800 }}>{eqHaircut}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="80"
+                      step="5"
+                      value={eqHaircut}
+                      onChange={(e) => setEqHaircut(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* Fixed Income Penalty */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Fixed Income Penalty (FD/Bond cashout)</span>
+                      <span style={{ color: THEME.gold, fontWeight: 800 }}>{fiHaircut}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      step="1"
+                      value={fiHaircut}
+                      onChange={(e) => setFiHaircut(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* Monthly Burn Rate Multiplier */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Crisis Burn Multiplier</span>
+                      <span style={{ color: THEME.accent, fontWeight: 800 }}>{burnMultiplier}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.05"
+                      value={burnMultiplier}
+                      onChange={(e) => setBurnMultiplier(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* One-Time Crisis Expense */}
+                  {inpRow("One-Time Emergency Cash Outflow (₹)", oneTimeOutflow, setOneTimeOutflow, "e.g. 500000")}
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Column: Runway Metric and Stability Breakdown */}
+            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              
+              {/* Stability Gauge Panel */}
+              <Card style={{ padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                  Estimated Crisis Liquidity Runway
+                </div>
+                
+                {/* Big Metric Display */}
+                <div style={{ position: "relative", display: "inline-flex", flexDirection: "column", alignItems: "center", margin: "16px 0" }}>
+                  <div style={{
+                    fontSize: 72, fontWeight: 950, letterSpacing: "-0.04em", lineHeight: 1,
+                    color: stressResult.safetyLevel === "critical" ? THEME.rust
+                         : stressResult.safetyLevel === "caution" ? THEME.gold
+                         : stressResult.safetyLevel === "elite" ? "#D97706" : THEME.sage
+                  }}>
+                    {stressResult.runwayMonths >= 99 ? "99+" : stressResult.runwayMonths.toFixed(1)}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", marginTop: 4 }}>
+                    Months of Runway
+                  </div>
+                </div>
+
+                {/* Level Indicator Pill */}
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
+                  background: stressResult.safetyLevel === "critical" ? "rgba(220,38,38,0.08)"
+                            : stressResult.safetyLevel === "caution" ? "rgba(245,158,11,0.08)"
+                            : stressResult.safetyLevel === "elite" ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.08)",
+                  color: stressResult.safetyLevel === "critical" ? THEME.rust
+                       : stressResult.safetyLevel === "caution" ? THEME.gold
+                       : stressResult.safetyLevel === "elite" ? "#D97706" : THEME.sage,
+                  border: `1.5px solid ${
+                    stressResult.safetyLevel === "critical" ? "rgba(220,38,38,0.2)"
+                    : stressResult.safetyLevel === "caution" ? "rgba(245,158,11,0.2)"
+                    : stressResult.safetyLevel === "elite" ? "rgba(245,158,11,0.3)" : "rgba(34,197,94,0.2)"
+                  }`
+                }}>
+                  {stressResult.safetyLevel === "critical" ? "🚨 CRITICAL LIQUIDITY RISK"
+                 : stressResult.safetyLevel === "caution" ? "⚠️ MODERATE RISK BUFFER"
+                 : stressResult.safetyLevel === "elite" ? "👑 ELITE FINANCIAL STABILITY"
+                 : "✅ SECURE RUNWAY COVER"}
+                </div>
+
+                {/* Dynamic stress description text */}
+                <p style={{ fontSize: 13, color: THEME.muted, marginTop: 16, lineHeight: 1.6, maxWidth: 460 }}>
+                  {stressResult.safetyLevel === "critical" 
+                    ? "Your liquid assets cover less than 3 months of basic outflows in this crisis. Immediate cash buffers must be created or higher-haircut investments consolidated."
+                    : stressResult.safetyLevel === "caution" 
+                    ? "You are moderately safe, but a sudden windfall reduction or larger outflow will push you into the risk zone. Consider allocating surplus income to highly liquid bank savings."
+                    : stressResult.safetyLevel === "elite"
+                    ? "Incredible! Your secure assets (excluding locked pension accounts) cover over a full year of active outflows. You possess superior capital cushions to withstand severe systemic downturns."
+                    : "Your cash and liquid holdings cover 6 to 12 months of survival burn. Your buffer is secure, meeting the financial industry's optimal benchmark cover."}
+                </p>
+              </Card>
+
+              {/* Stress Breakdown Details Card */}
+              <Card style={{ padding: 22 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.06em", marginBottom: 14 }}>
+                  Stress-Adjusted Liquidity Breakdown
+                </div>
+                
+                <div style={{ display: "grid", gap: 12 }}>
+                  {[
+                    { label: "Stress-Adjusted Cash (Liquid Banks)", base: stressResult.baseCash, stressed: stressResult.stressCash, color: "#22c55e", hint: "No haircut" },
+                    { label: "Stress-Adjusted Fixed Income (FD/Bonds)", base: stressResult.baseFI, stressed: stressResult.stressFI, color: THEME.gold, hint: `-${fiHaircut}% early-withdraw penalty` },
+                    { label: "Stress-Adjusted Equities (Stocks/MFs)", base: stressResult.baseEquity, stressed: stressResult.stressEquity, color: "#6366f1", hint: `-${eqHaircut}% market haircut` }
+                  ].map(({ label, base, stressed, color, hint }) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingBottom: 8, borderBottom: `1px dashed ${THEME.line}` }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: THEME.ink }}>{label}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Current: {fmtINRFull(base)} · <span style={{ color }}>{hint}</span></div>
+                      </div>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{fmtINRFull(stressed)}</span>
+                    </div>
+                  ))}
+
+                  {/* Summary of totals */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingTop: 6, fontWeight: 800 }}>
+                    <span style={{ color: THEME.muted }}>Total Stress-Adjusted Assets</span>
+                    <span style={{ color: THEME.ink }}>{fmtINRFull(stressResult.totalLiquidAssets)}</span>
+                  </div>
+
+                  {Number(oneTimeOutflow) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800, color: THEME.rust }}>
+                      <span style={{ color: THEME.rust }}>Emergency Cash Outflow (-)</span>
+                      <span>{fmtINRFull(Number(oneTimeOutflow))}</span>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800, borderTop: `1.5px solid ${THEME.line}`, paddingTop: 10 }}>
+                    <span style={{ color: THEME.muted }}>Net Stressed Capital Buffer</span>
+                    <span style={{ color: THEME.sage, fontSize: 15 }}>{fmtINRFull(stressResult.netStressAssets)}</span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800 }}>
+                    <span style={{ color: THEME.muted }}>Stress-Adjusted Monthly Burn Rate</span>
+                    <span style={{ color: THEME.rust, fontSize: 14 }}>{fmtINRFull(stressResult.crisisBurnRate)}/mo</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, textAlign: "right", marginTop: -6 }}>
+                    Expense ({fmtINR(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs ({fmtINR(stressResult.activeEMIs)}/mo)
+                  </div>
+
+                </div>
+              </Card>
+
+            </div>
+          </>
         )}
 
       </div>

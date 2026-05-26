@@ -74,6 +74,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ day: number; events: any[] } | null>(null);
   const [rebalTargets, setRebalTargets] = useState({ equity: 60, debt: 25, cash: 10, other: 5 });
 
+  // ── Financial Runway & 10-Year Projection Engine States ──
+  const [eqCAGR, setEqCAGR] = useState(12);
+  const [fiCAGR, setFiCAGR] = useState(7);
+  const [inflationRate, setInflationRate] = useState(6);
+  const [windfallAmount, setWindfallAmount] = useState(0);
+  const [windfallYear, setWindfallYear] = useState(3);
+  const [extraExpenseAmount, setExtraExpenseAmount] = useState(0);
+  const [extraExpenseYear, setExtraExpenseYear] = useState(5);
+
   const getOrdinal = (n: number | string) => {
     const num = parseInt(n as string, 10);
     if (isNaN(num)) return n;
@@ -565,6 +574,85 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const progress = fireCorpus > 0 ? Math.min((Math.max(metrics.netWorth, 0) / fireCorpus) * 100, 100) : 0;
     return { fireCorpus, progress, annualExpense };
   }, [metrics.monthExpense, metrics.netWorth]);
+
+  // ── Financial Runway & 10-Year Projection Engine Calculations ──
+  const projectionData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    const startYear = now.getFullYear();
+    
+    const baseEquity = Number(metrics.mfValue || 0) + Number(metrics.stockValue || 0);
+    const baseFI = Number(metrics.fdValue || 0) + Number(metrics.rdValue || 0) + Number(metrics.bondValue || 0) + Number(metrics.ppfValue || 0) + Number(metrics.npsValue || 0) + Number(metrics.epfValue || 0) + Number(metrics.licValue || 0) + Number(metrics.investmentValue || 0);
+    const baseCash = Number(metrics.cashInBanks || 0);
+    const liabilities = Number(metrics.totalLiabilities || 0);
+    
+    // Active monthly investments (SIPs + extra input)
+    const monthlySIP = (state.sips || []).reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0) + fireWhatIfExtra;
+    const annualSavings = monthlySIP * 12;
+    const annualExpense = Number(metrics.monthExpense || 0) * 12;
+    
+    let currentEq = baseEquity;
+    let currentFI = baseFI;
+    let currentCash = baseCash;
+    
+    // Push Year 0 (Current State)
+    data.push({
+      year: startYear,
+      yearIndex: 0,
+      netWorth: Math.max(0, currentEq + currentFI + currentCash - liabilities),
+      realNetWorth: Math.max(0, currentEq + currentFI + currentCash - liabilities),
+      fireTarget: annualExpense * 25,
+      equities: currentEq,
+      fixedIncome: currentFI,
+      cash: currentCash,
+    });
+    
+    for (let y = 1; y <= 10; y++) {
+      // 1. Compound existing assets
+      currentEq = currentEq * (1 + eqCAGR / 100);
+      currentFI = currentFI * (1 + fiCAGR / 100);
+      currentCash = currentCash * 1.03; // Cash grows at a conservative 3%
+      
+      // 2. Add annual savings/SIP contribution (70% Equity / 30% Fixed Income split)
+      currentEq += annualSavings * 0.7;
+      currentFI += annualSavings * 0.3;
+      
+      // 3. Life event overrides (Windfalls/Expenses)
+      if (y === Number(windfallYear) && windfallAmount > 0) {
+        currentCash += Number(windfallAmount);
+      }
+      if (y === Number(extraExpenseYear) && extraExpenseAmount > 0) {
+        currentCash = Math.max(0, currentCash - Number(extraExpenseAmount));
+      }
+      
+      const nominalNetWorth = currentEq + currentFI + currentCash - liabilities;
+      const inflFactor = Math.pow(1 + inflationRate / 100, y);
+      const realNetWorth = nominalNetWorth / inflFactor;
+      const fireTarget = (annualExpense * 25) * inflFactor;
+      
+      data.push({
+        year: startYear + y,
+        yearIndex: y,
+        netWorth: Math.max(0, nominalNetWorth),
+        realNetWorth: Math.max(0, realNetWorth),
+        fireTarget: Math.max(0, fireTarget),
+        equities: currentEq,
+        fixedIncome: currentFI,
+        cash: currentCash,
+      });
+    }
+    
+    return data;
+  }, [
+    metrics, state.sips, fireWhatIfExtra, eqCAGR, fiCAGR, inflationRate,
+    windfallAmount, windfallYear, extraExpenseAmount, extraExpenseYear
+  ]);
+
+  const crossoverYear = useMemo(() => {
+    const match = projectionData.find(d => d.netWorth >= d.fireTarget);
+    return match ? match.year : null;
+  }, [projectionData]);
+
 
   const smartInsights = useMemo(() => {
     const insights: any[] = [];
@@ -2035,6 +2123,229 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ fontSize: 11, color: THEME.muted, marginTop: 10 }}>* Assumes 12% p.a. compounded returns</div>
               </div>
             )}
+          </Card>
+
+          {/* 10-Year Net Worth Projections & Financial Freedom Suite */}
+          <Card style={{ padding: 24, marginBottom: 28 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom: 4 }}>10-Year Net Worth & Runway Projections</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>Interactive CFO growth model & life event simulator</div>
+              </div>
+              {crossoverYear ? (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>🎯 {crossoverYear}</div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>FIRE Crossover Year</div>
+                </div>
+              ) : (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.gold }}>Increase SIPs to hit FIRE in 10y</div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Pacing needed</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 28 }} className="bento-grid">
+              {/* Bento Row: Sliders (CFO Control Console) & Chart Display */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+                
+                {/* Sliders Panel */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "16px 20px", background: "rgba(128,128,128,0.02)", border: `1px solid ${THEME.line}`, borderRadius: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px dashed ${THEME.line}`, paddingBottom: 8, marginBottom: 4 }}>
+                    Compounding Inputs
+                  </div>
+
+                  {/* Equities CAGR Slider */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Equities Return (CAGR)</span>
+                      <span style={{ color: THEME.accent, fontWeight: 800 }}>{eqCAGR}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="25"
+                      step="0.5"
+                      value={eqCAGR}
+                      onChange={(e) => setEqCAGR(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* Fixed Income CAGR Slider */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Fixed Income Return</span>
+                      <span style={{ color: THEME.sage, fontWeight: 800 }}>{fiCAGR}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="3"
+                      max="15"
+                      step="0.5"
+                      value={fiCAGR}
+                      onChange={(e) => setFiCAGR(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* Inflation Rate Slider */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>Expected Inflation</span>
+                      <span style={{ color: THEME.rust, fontWeight: 800 }}>{inflationRate}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max="12"
+                      step="0.5"
+                      value={inflationRate}
+                      onChange={(e) => setInflationRate(Number(e.target.value))}
+                      className="cxo-slider"
+                    />
+                  </div>
+
+                  {/* Windfall / Milestone Events */}
+                  <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px dashed ${THEME.line}`, paddingBottom: 8, marginTop: 8, marginBottom: 4 }}>
+                    Windfalls & Milestone Events
+                  </div>
+
+                  {/* One-time Windfall */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>One-time Windfall (₹)</span>
+                      <span style={{ color: THEME.sage, fontWeight: 800 }}>{windfallAmount > 0 ? fmtINR(windfallAmount) : "None"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input
+                        type="number"
+                        placeholder="e.g. 1000000"
+                        value={windfallAmount || ""}
+                        onChange={(e) => setWindfallAmount(Math.max(0, Number(e.target.value) || 0))}
+                        style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", color: THEME.ink, fontSize: 12, outline: "none" }}
+                      />
+                      {windfallAmount > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: THEME.muted }}>Year:</span>
+                          <select
+                            value={windfallYear}
+                            onChange={(e) => setWindfallYear(Number(e.target.value))}
+                            style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, fontSize: 12, background: "var(--surface-0)", color: THEME.ink }}
+                          >
+                            {[1,2,3,4,5,6,7,8,9,10].map(yr => <option key={yr} value={yr}>Y{yr}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* One-time Major Expense */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ color: THEME.muted }}>One-time Major Expense (₹)</span>
+                      <span style={{ color: THEME.rust, fontWeight: 800 }}>{extraExpenseAmount > 0 ? fmtINR(extraExpenseAmount) : "None"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input
+                        type="number"
+                        placeholder="e.g. 1500000"
+                        value={extraExpenseAmount || ""}
+                        onChange={(e) => setExtraExpenseAmount(Math.max(0, Number(e.target.value) || 0))}
+                        style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", color: THEME.ink, fontSize: 12, outline: "none" }}
+                      />
+                      {extraExpenseAmount > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: THEME.muted }}>Year:</span>
+                          <select
+                            value={extraExpenseYear}
+                            onChange={(e) => setExtraExpenseYear(Number(e.target.value))}
+                            style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, fontSize: 12, background: "var(--surface-0)", color: THEME.ink }}
+                          >
+                            {[1,2,3,4,5,6,7,8,9,10].map(yr => <option key={yr} value={yr}>Y{yr}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Chart Visualization */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, height: 380, flex: 1.5, position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: THEME.muted, fontWeight: 600, padding: "0 6px" }}>
+                    <span>Projected Wealth Compounding Curve</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><div style={{ width: 10, height: 10, background: THEME.accent, borderRadius: 2 }} /> Nominal</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><div style={{ width: 10, height: 10, background: THEME.sage, borderRadius: 2 }} /> Real (Inflation Adj.)</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 1, borderTop: `2px dashed ${THEME.gold}` }} /> FIRE Goal Post</span>
+                    </span>
+                  </div>
+
+                  <div style={{ flex: 1, width: "100%", height: "100%", background: "rgba(128,128,128,0.01)", border: `1px solid ${THEME.line}`, borderRadius: 16, padding: "16px 12px 6px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={projectionData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="projColorNet" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.25}/>
+                            <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.0}/>
+                          </linearGradient>
+                          <linearGradient id="projColorReal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--t-line) 50%, transparent)" vertical={false} />
+                        <XAxis dataKey="year" stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis
+                          stroke={THEME.muted}
+                          fontSize={10}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(val) => {
+                            if (val >= 1e7) return `${(val/1e7).toFixed(1)}Cr`;
+                            if (val >= 1e5) return `${(val/1e5).toFixed(0)}L`;
+                            return `${val/1000}K`;
+                          }}
+                        />
+                        <Tooltip
+                          contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 12, boxShadow: "var(--shadow-md)", color: THEME.ink, fontSize: 13 }}
+                          formatter={(value: any, name: string) => {
+                            const labelMap: Record<string, string> = {
+                              netWorth: "Nominal Net Worth",
+                              realNetWorth: "Real (Inflation Adj.)",
+                              fireTarget: "FIRE Goal Post"
+                            };
+                            return [fmtINRFull(Number(value)), labelMap[name] || name];
+                          }}
+                        />
+                        <Area type="monotone" dataKey="netWorth" stroke={THEME.accent} strokeWidth={2.5} fillOpacity={1} fill="url(#projColorNet)" />
+                        <Area type="monotone" dataKey="realNetWorth" stroke={THEME.sage} strokeWidth={2} fillOpacity={1} fill="url(#projColorReal)" />
+                        <Area type="monotone" dataKey="fireTarget" stroke={THEME.gold} strokeWidth={1.5} strokeDasharray="5 5" fill="none" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Projection Runway Banner */}
+              <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "16px 20px", background: crossoverYear ? "rgba(52,211,153,0.06)" : "rgba(251,191,36,0.06)", border: `1px solid ${crossoverYear ? "rgba(52,211,153,0.18)" : "rgba(251,191,36,0.18)"}`, borderRadius: 12 }}>
+                <span style={{ fontSize: 24 }}>{crossoverYear ? "🚀" : "💡"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: crossoverYear ? THEME.sage : THEME.gold, marginBottom: 2 }}>
+                    {crossoverYear 
+                      ? `Financial Independence Projected for ${crossoverYear}!` 
+                      : "Runway Target Exceeds 10 Years"}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
+                    {crossoverYear 
+                      ? `With Equities compounding at ${eqCAGR}% and Fixed Income at ${fiCAGR}%, your wealth is projected to outpace your inflation-adjusted FIRE corpus requirement of ${fmtINR(projectionData[crossoverYear - new Date().getFullYear()]?.fireTarget || 0)} in ${crossoverYear - new Date().getFullYear()} years. Adjust the monthly savings input above to accelerate this vector!`
+                      : `At the current growth trajectory, inflation (${inflationRate}%) is challenging your real wealth growth vector. Consider increasing your monthly equity SIP investments or seeking higher-yielding asset classes to compound past your goal post within the decade.`}
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </Card>
 
           {/* 80C Tax Deduction */}

@@ -2497,7 +2497,7 @@ function FinanceDashboard() {
             {tab === "budget" && <BudgetTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "ai" && <AIAssistantTab state={filteredState} metrics={metrics} />}
             {tab === "reminders" && <RemindersTab state={filteredState} addItem={addItem} removeItem={removeItem} />}
-            {tab === "calculators" && <CalculatorsTab metrics={metrics} />}
+            {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
             {tab === "settings" && (
               <SettingsTab
                 state={state}
