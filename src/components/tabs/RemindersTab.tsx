@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle, Home, Filter, X, Car, Heart, IndianRupee, Receipt, Pencil } from "lucide-react";
+import { Bell, Plus, Trash2, CreditCard, Repeat, Coins, FileText, Shield, HandCoins, Check, AlertCircle, Home, Filter, X, Car, Heart, IndianRupee, Receipt, Pencil, BellOff, BellRing } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -53,6 +53,18 @@ const TYPE_ICONS: Record<string, any> = {
 
 const MANUAL_CATEGORIES = ["Reminder", "Health", "Vehicle", "Tax", "Bills"];
 
+const DEFAULT_NOTIF_SETTINGS = {
+  leadDays: 3,
+  categories: {
+    creditCards: true,
+    subscriptions: true,
+    reminders: true,
+    fdMaturities: true,
+    insurancePremiums: true,
+    loanRecovery: true,
+  },
+};
+
 const TYPE_CATEGORIES = [
   "All",
   "Credit Card",
@@ -86,8 +98,26 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   const [editingReminder, setEditingReminder] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState("All");
   const [notifPerm, setNotifPerm] = useState<string>(() => {
-    try { return localStorage.getItem("finance-notif") || "default"; } catch { return "default"; }
+    if (typeof Notification === "undefined") return "unsupported";
+    // Always trust the actual browser permission as source of truth on init
+    const actual = Notification.permission;
+    try { localStorage.setItem("finance-notif", actual); } catch {}
+    return actual;
   });
+
+  const [notifSettings, setNotifSettings] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem("finance-notif-settings");
+      if (saved) return { ...DEFAULT_NOTIF_SETTINGS, categories: { ...DEFAULT_NOTIF_SETTINGS.categories }, ...JSON.parse(saved) };
+    } catch {}
+    return DEFAULT_NOTIF_SETTINGS;
+  });
+
+  const updateNotifSettings = (updates: any) => {
+    const next = { ...notifSettings, ...updates };
+    setNotifSettings(next);
+    try { localStorage.setItem("finance-notif-settings", JSON.stringify(next)); } catch {}
+  };
   const [completedKeys, setCompletedKeys] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("finance-completed-reminders");
@@ -154,12 +184,13 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
   const todayStr = today();
 
   const requestNotifications = async () => {
-    if (typeof Notification === "undefined") return;
+    if (typeof Notification === "undefined") {
+      setNotifPerm("unsupported");
+      return;
+    }
     const perm = await Notification.requestPermission();
     setNotifPerm(perm);
-    if (perm === "granted") {
-      try { localStorage.setItem("finance-notif", "granted"); } catch {}
-    }
+    try { localStorage.setItem("finance-notif", perm); } catch {}
   };
 
   const allReminders = useMemo(() => {
@@ -613,14 +644,19 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         sub="Upcoming dues, maturities, renewals and custom alerts"
         rightElement={
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {notifPerm !== "unsupported" && notifPerm !== "granted" && (
+            {notifPerm === "denied" && (
+              <span style={{ fontSize: 12, color: THEME.rust, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }} title="Open browser Settings → Notifications to re-enable">
+                <BellOff size={14} /> Notifications blocked
+              </span>
+            )}
+            {notifPerm === "default" && (
               <Button variant="ghost" size="sm" onClick={requestNotifications} icon={<Bell size={14} />}>
                 Enable Notifications
               </Button>
             )}
             {notifPerm === "granted" && (
               <span style={{ fontSize: 12, color: THEME.sage, display: "flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
-                <Check size={14} /> Notifications on
+                <BellRing size={14} /> Notifications on
               </span>
             )}
             <Button variant="accent" onClick={() => setShow(true)} icon={<Plus size={14} />}>
@@ -639,6 +675,70 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         <StatCard icon={<Trash2 size={20} />} label="Past Due" value={past.length} color={past.length > 0 ? THEME.rust : THEME.muted} sub="Unresolved past alerts" />
         <StatCard icon={<IndianRupee size={20} />} label="Next 30d Outflow" value={fmtINRFull(next30Outflow)} color={next30Outflow > 0 ? THEME.rust : THEME.muted} sub="Payments due in next 30 days" />
       </div>
+
+      {/* ── NOTIFICATION SETTINGS CARD ── */}
+      {notifPerm !== "unsupported" && (
+        <Card style={{ padding: 20, marginBottom: 24, border: `1px solid ${notifPerm === "granted" ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : THEME.line}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: notifPerm === "granted" ? 18 : 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: notifPerm === "granted" ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {notifPerm === "granted" ? <BellRing size={15} color={THEME.sage} /> : notifPerm === "denied" ? <BellOff size={15} color={THEME.rust} /> : <Bell size={15} color={THEME.muted} />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>Push Notification Settings</div>
+              {notifPerm === "default" && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Enable notifications to configure alert preferences</div>}
+              {notifPerm === "denied" && <div style={{ fontSize: 12, color: THEME.rust, marginTop: 2 }}>Blocked by browser — go to browser Settings → Site permissions to re-enable</div>}
+            </div>
+            {notifPerm === "default" && (
+              <Button variant="accent" size="sm" onClick={requestNotifications} icon={<Bell size={13} />}>Enable</Button>
+            )}
+          </div>
+
+          {notifPerm === "granted" && (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Notify me how many days in advance</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[2, 3, 7].map(d => {
+                    const active = (notifSettings.leadDays || 3) === d;
+                    return (
+                      <button key={d} onClick={() => updateNotifSettings({ leadDays: d })} style={{ padding: "6px 18px", borderRadius: 8, border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`, background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "var(--t-paper)", color: active ? THEME.accent : THEME.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                        {d} days
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>Alert me for</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 8 }}>
+                  {[
+                    { key: "creditCards",       label: "Credit Card Bills",   Icon: CreditCard },
+                    { key: "subscriptions",     label: "Subscriptions",       Icon: Repeat },
+                    { key: "reminders",         label: "Manual Reminders",    Icon: Bell },
+                    { key: "fdMaturities",      label: "FD Maturities",       Icon: Coins },
+                    { key: "insurancePremiums", label: "Insurance Premiums",  Icon: Shield },
+                    { key: "loanRecovery",      label: "Loan Recoveries",     Icon: HandCoins },
+                  ].map(({ key, label, Icon }) => {
+                    const on = notifSettings.categories?.[key] !== false;
+                    return (
+                      <button key={key} onClick={() => updateNotifSettings({ categories: { ...(notifSettings.categories || {}), [key]: !on } })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: on ? `1.5px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)` : `1px solid ${THEME.line}`, background: on ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)` : "var(--t-paper)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.15s" }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: on ? `color-mix(in srgb, ${THEME.sage} 15%, transparent)` : "rgba(128,128,128,0.08)", flexShrink: 0 }}>
+                          <Icon size={13} color={on ? THEME.sage : THEME.muted} />
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: on ? THEME.ink : THEME.muted, flex: 1 }}>{label}</span>
+                        <div style={{ width: 14, height: 14, borderRadius: "50%", background: on ? THEME.sage : THEME.line, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {on && <Check size={9} color="#fff" strokeWidth={3.5} />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
       {allReminders.length === 0 ? (
         <EmptyState

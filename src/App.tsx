@@ -717,66 +717,107 @@ function FinanceDashboard() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Fire browser push notifications for reminders due within 3 days (runs once per session)
+  // Fire browser push notifications for upcoming reminders (runs once per session)
   useEffect(() => {
     if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
-    const getNotificationIcon = (type: "credit" | "subscription" | "reminder") => {
-      // Safari and some browser engines strictly block Data URLs in push notifications.
-      // We use ultra-reliable, high-resolution public HTTPS PNG assets as the primary source,
-      // with a local fallback to the main app logo.
-      const icons = {
-        credit: "https://img.icons8.com/color/128/bank-card.png",
+    const getNotificationIcon = (type: string) => {
+      const icons: Record<string, string> = {
+        credit:       "https://img.icons8.com/color/128/bank-card.png",
         subscription: "https://img.icons8.com/color/128/circular-arrows.png",
-        reminder: "https://img.icons8.com/color/128/bell.png"
+        reminder:     "https://img.icons8.com/color/128/bell.png",
+        fd:           "https://img.icons8.com/color/128/piggy-bank.png",
+        insurance:    "https://img.icons8.com/color/128/shield.png",
+        loan:         "https://img.icons8.com/color/128/hand-with-money.png",
       };
       return icons[type] || "/logo.png";
     };
 
+    // Read user's notification preferences
+    let ns = { leadDays: 3, categories: { creditCards: true, subscriptions: true, reminders: true, fdMaturities: true, insurancePremiums: true, loanRecovery: true } };
+    try { const s = localStorage.getItem("finance-notif-settings"); if (s) ns = { ...ns, ...JSON.parse(s) }; } catch {}
+    const leadDays = ns.leadDays || 3;
+    const cats = ns.categories || {};
+
     const todayStr = today();
-    const soon: { title: string; body: string; type: "credit" | "subscription" | "reminder" }[] = [];
-    const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - new Date(todayStr).getTime()) / 86400000);
+    const soon: { title: string; body: string; type: string }[] = [];
+    // Anchor both ends to midnight to avoid IST timezone off-by-one errors
+    const daysLeft = (d: string) => Math.ceil((new Date(d + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) / 86400000);
+    const isDismissed = (title: string, ...alts: string[]) =>
+      [title, ...alts].some(t => state.dismissedAlerts?.[t] > Date.now());
 
-    state.reminders.forEach((r) => {
-      if (!r.date) return;
-      const d = daysLeft(r.date);
-      if (d >= 0 && d <= 3) {
-        const title = r.title;
-        // Keep dismissed alerts from appearing on refresh
-        const isDismissed = state.dismissedAlerts?.[title] > Date.now();
-        if (!isDismissed) {
-          soon.push({ title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`, type: "reminder" });
+    if (cats.reminders !== false) {
+      state.reminders.forEach((r) => {
+        if (!r.date) return;
+        const d = daysLeft(r.date);
+        if (d >= 0 && d <= leadDays && !isDismissed(r.title)) {
+          soon.push({ title: r.title, body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`, type: "reminder" });
         }
-      }
-    });
+      });
+    }
 
-    state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
-      const dueDate = getCCDueDate(c);
-      if (!dueDate) return;
-      const d = daysLeft(dueDate);
-      if (d >= 0 && d <= 3) {
-        const title = `${c.issuer} bill due`;
-        // Check both alert-style and push-style dismissed titles
-        const isDismissed = (state.dismissedAlerts?.[title] > Date.now()) || 
-                            (state.dismissedAlerts?.[`${c.issuer} CC due in ${d}d`] > Date.now());
-        if (!isDismissed) {
-          soon.push({ title, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`, type: "credit" });
+    if (cats.creditCards !== false) {
+      state.creditCards.filter((c) => (c.status || "").toLowerCase() !== "closed").forEach((c) => {
+        const dueDate = getCCDueDate(c);
+        if (!dueDate) return;
+        const d = daysLeft(dueDate);
+        if (d >= 0 && d <= leadDays && !isDismissed(`${c.issuer} bill due`, `${c.issuer} CC due in ${d}d`)) {
+          soon.push({ title: `${c.issuer} bill due`, body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`, type: "credit" });
         }
-      }
-    });
+      });
+    }
 
-    state.subscriptions.filter((s) => s.renewalDate && !s.paused).forEach((s) => {
-      const d = daysLeft(s.renewalDate);
-      if (d >= 0 && d <= 3) {
-        const title = `${s.name} renewal`;
-        // Check both alert-style and push-style dismissed titles
-        const isDismissed = (state.dismissedAlerts?.[title] > Date.now()) || 
-                            (state.dismissedAlerts?.[`${s.name} renews in ${d}d`] > Date.now());
-        if (!isDismissed) {
-          soon.push({ title, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "subscription" });
+    if (cats.subscriptions !== false) {
+      state.subscriptions.filter((s) => s.renewalDate && !s.paused).forEach((s) => {
+        const d = daysLeft(s.renewalDate);
+        if (d >= 0 && d <= leadDays && !isDismissed(`${s.name} renewal`, `${s.name} renews in ${d}d`)) {
+          soon.push({ title: `${s.name} renewal`, body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "subscription" });
         }
-      }
-    });
+      });
+    }
+
+    if (cats.fdMaturities !== false) {
+      (state.fixedDeposits || []).forEach((f) => {
+        if (!f.maturityDate) return;
+        const d = daysLeft(f.maturityDate);
+        const title = `FD Maturity — ${f.bank || f.bankName || "Bank"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({ title, body: `${fmtINRFull(f.principal)} matures${d === 0 ? " today" : ` in ${d}d`}`, type: "fd" });
+        }
+      });
+    }
+
+    if (cats.insurancePremiums !== false) {
+      const allPolicies = [
+        ...(state.lic || []).map((p: any) => ({ name: p.planName || "LIC Policy", start: p.commencementDate, premium: p.annualPremium })),
+        ...(state.termPlans || []).map((p: any) => ({ name: p.planName || "Term Plan", start: p.startDate, premium: p.annualPremium })),
+        ...(state.investmentPlans || []).map((p: any) => ({ name: p.planName || "Investment Plan", start: p.commencementDate, premium: p.annualPremium })),
+      ];
+      const todayD = new Date(todayStr + "T00:00:00");
+      allPolicies.forEach((pol) => {
+        if (!pol.premium || Number(pol.premium) <= 0 || !pol.start) return;
+        const start = new Date(pol.start);
+        if (isNaN(start.getTime())) return;
+        let ann = new Date(todayD.getFullYear(), start.getMonth(), start.getDate());
+        if (ann < todayD) ann = new Date(todayD.getFullYear() + 1, start.getMonth(), start.getDate());
+        const d = daysLeft(getLocalDateString(ann));
+        const title = `${pol.name} premium due`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({ title, body: `${fmtINRFull(pol.premium)}${d === 0 ? " — today!" : ` in ${d}d`}`, type: "insurance" });
+        }
+      });
+    }
+
+    if (cats.loanRecovery !== false) {
+      (state.loansGiven || []).forEach((l: any) => {
+        if (!l.dueDate) return;
+        const d = daysLeft(l.dueDate);
+        const title = `Loan Recovery — ${l.lender || l.name || "Borrower"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({ title, body: `${fmtINRFull(l.outstanding)} due${d === 0 ? " today" : ` in ${d}d`}`, type: "loan" });
+        }
+      });
+    }
 
     soon.forEach(({ title, body, type }) => {
       try { new Notification(title, { body, icon: getNotificationIcon(type) }); } catch {}
@@ -1483,11 +1524,13 @@ function FinanceDashboard() {
         list.push({ level: "warn", title: `Low balance: ${acc.bankName || "Bank account"}`, detail: `${fmtINRFull(bal)} remaining — consider topping up`, tab: "banks" });
       }
     });
-    const filteredList = list.filter(a => {
-      const dismissUntil = state.dismissedAlerts?.[a.title];
-      return !(dismissUntil && dismissUntil > Date.now());
-    });
-    return filteredList;
+    const ORDER = { error: 0, warn: 1, info: 2 };
+    return list
+      .filter(a => {
+        const dismissUntil = state.dismissedAlerts?.[a.title];
+        return !(dismissUntil && dismissUntil > Date.now());
+      })
+      .sort((a, b) => (ORDER[a.level] ?? 2) - (ORDER[b.level] ?? 2));
   }, [state.transactions, state.budgets, state.creditCards, state.goals, state.subscriptions, state.loansTaken, state.netWorthHistory, state.termPlans, state.lic, state.investmentPlans, state.bankAccounts, metrics.monthExpense, metrics.cashInBanks, metrics.monthIncome, metrics.annualIncome, metrics.savingsRate, state.dismissedAlerts, state.profile?.regime]);
 
   const TABLE_MAP: Record<string, string> = {
@@ -2501,16 +2544,22 @@ function FinanceDashboard() {
                               <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, marginBottom: 2 }}>{a.title}</div>
                               <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>{a.detail}</div>
                             </div>
-                            <div style={{ display: "flex", gap: 6 }}>
+                            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setTab(a.tab); setShowAlerts(false); }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
+                                title={`Go to ${a.tab}`}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = `color-mix(in srgb, var(--t-accent) 10%, transparent)`; e.currentTarget.style.color = THEME.accent; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = THEME.muted; }}
+                              >
+                                <ChevronRight size={14} />
+                              </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateDismissedAlerts({
-                                    ...(state.dismissedAlerts || {}),
-                                    [a.title]: Date.now() + 24 * 60 * 60 * 1000
-                                  });
+                                  updateDismissedAlerts({ ...(state.dismissedAlerts || {}), [a.title]: Date.now() + 24 * 60 * 60 * 1000 });
                                 }}
-                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
                                 title="Snooze 24h"
                                 onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "none"}
@@ -2520,21 +2569,24 @@ function FinanceDashboard() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateDismissedAlerts({
-                                    ...(state.dismissedAlerts || {}),
-                                    [a.title]: 253402300799000
-                                  });
+                                  updateDismissedAlerts({ ...(state.dismissedAlerts || {}), [a.title]: Date.now() + 7 * 24 * 60 * 60 * 1000 });
                                 }}
-                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4 }}
-                                title="Clear"
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 15%, transparent)`;
-                                  e.currentTarget.style.color = THEME.rust;
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center" }}
+                                title="Snooze 7 days"
+                                onMouseEnter={(e) => e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 15%, transparent)`}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+                              >
+                                7d
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateDismissedAlerts({ ...(state.dismissedAlerts || {}), [a.title]: 253402300799000 });
                                 }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "none";
-                                  e.currentTarget.style.color = THEME.muted;
-                                }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
+                                title="Dismiss permanently"
+                                onMouseEnter={(e) => { e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 15%, transparent)`; e.currentTarget.style.color = THEME.rust; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = THEME.muted; }}
                               >
                                 <Trash2 size={14} />
                               </button>
