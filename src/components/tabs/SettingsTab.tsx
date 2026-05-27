@@ -4,9 +4,11 @@ import {
   Database, User, Check, Download, RefreshCw,
   X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
-  ArrowUpAZ, ArrowDownAZ,
+  ArrowUpAZ, ArrowDownAZ, Mail, Bot, HardDrive,
+  Moon, Sun, Monitor, Type, Zap, BarChart2,
+  LayoutDashboard, Layers, Eye, EyeOff,
 } from "lucide-react";
-import { THEME, ACCENT_PALETTES } from "../../utils/constants";
+import { THEME, ACCENT_PALETTES, DENSITY } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -100,7 +102,74 @@ const PillNav = ({ tabs, active, onChange }: any) => (
   </div>
 );
 
+// ─── OptionRow — a horizontal row of pill buttons ────────────────────────────
+function OptionRow({ label, options, value, onChange, hint }: {
+  label: string;
+  options: { value: string; label: string; icon?: any }[];
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: hint ? 2 : 10 }}>{label}</div>
+      {hint && <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 10 }}>{hint}</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {options.map(opt => {
+          const active = value === opt.value;
+          const Icon = opt.icon;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onChange(opt.value)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 10, border: "none",
+                background: active
+                  ? `color-mix(in srgb, var(--t-accent) 12%, transparent)`
+                  : "var(--surface-0)",
+                outline: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
+                color: active ? THEME.accent : THEME.muted,
+                fontWeight: active ? 700 : 500, fontSize: 13,
+                cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
+              }}
+            >
+              {Icon && <Icon size={13} />}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
+// ─── ToggleRow — a labeled on/off toggle ─────────────────────────────────────
+function ToggleRow({ label, desc, value, onChange }: { label: string; desc?: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: THEME.ink }}>{label}</div>
+        {desc && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{desc}</div>}
+      </div>
+      <button
+        onClick={() => onChange(!value)}
+        style={{
+          position: "relative", width: 46, height: 26, borderRadius: 99, flexShrink: 0,
+          background: value ? THEME.accent : THEME.line,
+          border: "none", cursor: "pointer", transition: "background 0.2s",
+        }}
+      >
+        <div style={{
+          position: "absolute", top: 3, left: value ? 22 : 3,
+          width: 20, height: 20, borderRadius: "50%",
+          background: "#fff", transition: "left 0.2s",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+        }} />
+      </button>
+    </div>
+  );
+}
 
 // ─── EditableList ─────────────────────────────────────────────────────────────
 function EditableList({ listKey, items, onUpdate }: any) {
@@ -142,7 +211,6 @@ function EditableList({ listKey, items, onUpdate }: any) {
         background: "color-mix(in srgb, var(--t-accent) 4%, var(--t-paper))",
         flexWrap: "wrap",
       }}>
-        {/* Left: icon + label + count */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>{MD_ICONS[listKey]}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{MD_LABELS[listKey]}</span>
@@ -153,9 +221,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           }}>{items.length}</span>
         </div>
 
-        {/* Right: sort buttons + reset */}
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          {/* Sort A→Z */}
           <button
             onClick={sortAZ}
             title="Sort A to Z"
@@ -175,7 +241,6 @@ function EditableList({ listKey, items, onUpdate }: any) {
             <ArrowUpAZ size={11} /> A→Z
           </button>
 
-          {/* Sort Z→A */}
           <button
             onClick={sortZA}
             title="Sort Z to A"
@@ -195,7 +260,6 @@ function EditableList({ listKey, items, onUpdate }: any) {
             <ArrowDownAZ size={11} /> Z→A
           </button>
 
-          {/* Reset to defaults */}
           {isDirty && (
             <button
               onClick={() => { onUpdate(listKey, [...defaultItems]); setSortDir(""); }}
@@ -289,10 +353,35 @@ function EditableList({ listKey, items, onUpdate }: any) {
 }
 
 // ─── Section: Appearance ──────────────────────────────────────────────────────
-function AppearanceSection({ accentKey, setAccentKey }: any) {
+function AppearanceSection({
+  accentKey, setAccentKey,
+  darkMode, toggleDarkMode,
+  density, setDensity,
+  sidebarNav, setSidebarNav,
+  radiusKey, setRadiusKey,
+  fontKey, setFontKey,
+  bgStyle, setBgStyle,
+  animSpeed, setAnimSpeed,
+  chartStyle, setChartStyle,
+}: any) {
+  const divider = <div style={{ borderTop: `1px solid ${THEME.line}` }} />;
+
   return (
     <Card style={{ padding: 28 }}>
-      <div style={{ display: "grid", gap: 28 }}>
+      <div style={{ display: "grid", gap: 24 }}>
+
+        {/* Theme */}
+        <OptionRow
+          label="Theme"
+          value={darkMode ? "dark" : "light"}
+          onChange={v => { if ((v === "dark") !== darkMode) toggleDarkMode(); }}
+          options={[
+            { value: "light", label: "Light", icon: Sun },
+            { value: "dark",  label: "Dark",  icon: Moon },
+          ]}
+        />
+
+        {divider}
 
         {/* Accent color */}
         <div>
@@ -323,6 +412,104 @@ function AppearanceSection({ accentKey, setAccentKey }: any) {
           </div>
         </div>
 
+        {divider}
+
+        {/* Density */}
+        <OptionRow
+          label="Density"
+          hint="Controls card padding and spacing throughout the app"
+          value={density || "normal"}
+          onChange={setDensity}
+          options={[
+            { value: "compact",     label: "Compact" },
+            { value: "normal",      label: "Normal" },
+            { value: "comfortable", label: "Comfortable" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Border radius */}
+        <OptionRow
+          label="Border Radius"
+          hint="Rounded corners style for cards and inputs"
+          value={radiusKey || "modern"}
+          onChange={setRadiusKey}
+          options={[
+            { value: "sharp",  label: "Sharp" },
+            { value: "modern", label: "Modern" },
+            { value: "round",  label: "Round" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Font */}
+        <OptionRow
+          label="Font"
+          value={fontKey || "inter"}
+          onChange={setFontKey}
+          options={[
+            { value: "inter",  label: "Inter", icon: Type },
+            { value: "outfit", label: "Outfit", icon: Type },
+            { value: "roboto", label: "Roboto", icon: Type },
+          ]}
+        />
+
+        {divider}
+
+        {/* Background */}
+        <OptionRow
+          label="Background Style"
+          hint="Subtle texture behind all content"
+          value={bgStyle || "plain"}
+          onChange={setBgStyle}
+          options={[
+            { value: "plain", label: "Plain" },
+            { value: "dots",  label: "Dots" },
+            { value: "mesh",  label: "Mesh Gradient" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Animation speed */}
+        <OptionRow
+          label="Animation Speed"
+          value={animSpeed || "smooth"}
+          onChange={setAnimSpeed}
+          options={[
+            { value: "snappy",  label: "Snappy", icon: Zap },
+            { value: "smooth",  label: "Smooth" },
+            { value: "relaxed", label: "Relaxed" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Chart style */}
+        <OptionRow
+          label="Chart Curves"
+          hint="Line curve style used in all charts"
+          value={chartStyle || "monotone"}
+          onChange={setChartStyle}
+          options={[
+            { value: "monotone", label: "Monotone", icon: BarChart2 },
+            { value: "linear",   label: "Linear" },
+            { value: "natural",  label: "Natural" },
+          ]}
+        />
+
+        {divider}
+
+        {/* Sidebar */}
+        <ToggleRow
+          label="Desktop Sidebar"
+          desc="Show the full navigation sidebar on desktop. Disable for a wider content area."
+          value={!!sidebarNav}
+          onChange={setSidebarNav}
+        />
+
       </div>
     </Card>
   );
@@ -333,6 +520,11 @@ function ProfileSection({ state, updateProfile }: any) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
+
+  // Sync if parent profile changes (e.g., DB load after mount)
+  useEffect(() => {
+    setProf(p => ({ ...state.profile, ...p }));
+  }, [state.profile?.name]);
 
   const initials = (prof.name || "U")
     .split(" ").map((w: string) => w[0] || "").join("").slice(0, 2).toUpperCase();
@@ -346,10 +538,18 @@ function ProfileSection({ state, updateProfile }: any) {
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
+  // Dynamic FY list: 2 years back, current + 2 ahead
+  const currentYear = new Date().getFullYear();
+  const fyOptions: string[] = [];
+  for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+    fyOptions.push(`${y}-${String(y + 1).slice(-2)}`);
+  }
+
   const inp = {
     width: "100%", padding: "10px 12px",
     background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`,
     borderRadius: 10, color: THEME.ink, fontSize: 14,
+    boxSizing: "border-box" as const,
   };
 
   return (
@@ -376,10 +576,10 @@ function ProfileSection({ state, updateProfile }: any) {
           <input style={inp} value={prof.name || ""} onChange={e => setProf({ ...prof, name: e.target.value })} placeholder="Your Name" />
         </Field>
         <Field label="Financial Year">
-          <select style={inp} value={prof.fy || "2025-26"} onChange={e => setProf({ ...prof, fy: e.target.value })}>
-            <option value="2024-25">FY 2024-25</option>
-            <option value="2025-26">FY 2025-26</option>
-            <option value="2026-27">FY 2026-27</option>
+          <select style={inp} value={prof.fy || ""} onChange={e => setProf({ ...prof, fy: e.target.value })}>
+            {fyOptions.map(fy => (
+              <option key={fy} value={fy}>FY {fy}</option>
+            ))}
           </select>
         </Field>
         <Field label="Tax Regime">
@@ -387,6 +587,14 @@ function ProfileSection({ state, updateProfile }: any) {
             <option value="new">New Regime</option>
             <option value="old">Old Regime</option>
           </select>
+        </Field>
+        <Field label="Monthly Savings Target (%)">
+          <input
+            style={inp} type="number" min="0" max="100"
+            value={prof.savingsTarget ?? 20}
+            onChange={e => setProf({ ...prof, savingsTarget: Number(e.target.value) })}
+            placeholder="e.g. 20"
+          />
         </Field>
       </div>
 
@@ -417,7 +625,6 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {/* Intro */}
       <div style={{
         padding: "14px 18px", borderRadius: 10,
         background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
@@ -427,10 +634,8 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
         <strong>Master Data</strong> controls every dropdown in the app — categories, types, networks. Add or remove values here and they reflect instantly everywhere.
       </div>
 
-      {/* Sub-tabs */}
       <PillNav tabs={tabsWithCounts} active={mdTab} onChange={setMdTab} />
 
-      {/* Lists for active group */}
       <div style={{ display: "grid", gap: 12 }}>
         {activeGroup.keys.map(key => (
           <EditableList
@@ -460,9 +665,9 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
         <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, marginTop: 4 }}>
           Scan and remove historical data records (like corporate actions) that no longer have a matching stock or sale history.
         </p>
-        <Button 
-          variant="secondary" 
-          onClick={async () => { setCleaning(true); await cleanupOrphaned(); setCleaning(false); }} 
+        <Button
+          variant="secondary"
+          onClick={async () => { setCleaning(true); await cleanupOrphaned(); setCleaning(false); }}
           icon={<RefreshCw size={14} className={cleaning ? "animate-spin" : ""} />}
         >
           {cleaning ? "Cleaning up..." : "Cleanup Orphaned Portfolio Data"}
@@ -551,13 +756,6 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
 }
 
 // ─── Section: Email Summary ───────────────────────────────────────────────────
-const HOUR_OPTIONS = [
-  { value: 6,  label: "6:00 AM" }, { value: 7,  label: "7:00 AM" },
-  { value: 8,  label: "8:00 AM" }, { value: 9,  label: "9:00 AM" },
-  { value: 10, label: "10:00 AM" }, { value: 12, label: "12:00 PM" },
-  { value: 14, label: "2:00 PM" }, { value: 18, label: "6:00 PM" },
-  { value: 20, label: "8:00 PM" }, { value: 21, label: "9:00 PM" },
-];
 const WEEKDAYS = [
   { value: 1, label: "Monday" }, { value: 2, label: "Tuesday" },
   { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" },
@@ -570,7 +768,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const enabled    = !!es.emailEnabled;
   const frequency  = es.emailFrequency || "weekly";
   const day        = Number(es.emailDay ?? 1);
-  const hour       = Number(es.emailHour ?? 8);
   const address    = es.emailAddress || "";
 
   const [sending, setSending] = useState(false);
@@ -585,8 +782,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     borderRadius: 10, color: THEME.ink, fontSize: 14, outline: "none",
     fontFamily: "inherit",
   };
-
-  const sel: any = { ...inp, cursor: "pointer", appearance: "none", WebkitAppearance: "none" };
 
   async function handleSendTest() {
     if (!address) return;
@@ -619,7 +814,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     } finally { setChecking(false); }
   }
 
-  const freqOptions: { value: string; label: string; desc: string }[] = [
+  const freqOptions = [
     { value: "daily",   label: "Daily",   desc: "Every day at your chosen time" },
     { value: "weekly",  label: "Weekly",  desc: "Once a week — pick a day" },
     { value: "monthly", label: "Monthly", desc: "Once a month — pick a date" },
@@ -638,10 +833,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>Email Summary Reports</div>
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480 }}>
-              Get your complete financial picture delivered straight to your inbox — net worth, cash flow, investments, upcoming dues, goals, and smart alerts. All in one clean summary.
+              Get your complete financial picture delivered straight to your inbox — net worth, cash flow, investments, upcoming dues, goals, and smart alerts.
             </div>
           </div>
-          {/* Toggle switch */}
           <button
             onClick={() => updateEmailSettings({ emailEnabled: !enabled })}
             style={{
@@ -662,7 +856,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
         {enabled && (
           <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.15)", fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
-            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>Resend_Email_API</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_EMAIL_ROLE_KEY</code> to your Vercel environment variables. Get a free Resend API key at resend.com — 3,000 free emails/month.
+            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>Resend_Email_API</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_EMAIL_ROLE_KEY</code> to your Vercel environment variables.
           </div>
         )}
       </Card>
@@ -673,11 +867,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           <Card style={{ padding: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Delivery Address</div>
             <Field label="Email Address">
-              <input
-                style={inp} type="email" placeholder="you@example.com"
-                value={address}
-                onChange={e => updateEmailSettings({ emailAddress: e.target.value })}
-              />
+              <input style={inp} type="email" placeholder="you@example.com" value={address} onChange={e => updateEmailSettings({ emailAddress: e.target.value })} />
             </Field>
           </Card>
 
@@ -685,7 +875,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           <Card style={{ padding: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Schedule</div>
 
-            {/* Frequency pills */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>How often?</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
@@ -708,7 +897,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               </div>
             </div>
 
-            {/* Day picker — weekly */}
             {frequency === "weekly" && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>Which day?</div>
@@ -730,30 +918,23 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               </div>
             )}
 
-            {/* Date picker — monthly */}
             {frequency === "monthly" && (
               <div style={{ marginBottom: 20 }}>
                 <Field label="Day of Month">
-                  <input
-                    style={inp} type="number" min="1" max="28"
-                    placeholder="e.g. 1"
-                    value={day || ""}
-                    onChange={e => updateEmailSettings({ emailDay: Number(e.target.value) })}
-                  />
+                  <input style={inp} type="number" min="1" max="28" placeholder="e.g. 1" value={day || ""} onChange={e => updateEmailSettings({ emailDay: Number(e.target.value) })} />
                 </Field>
               </div>
             )}
 
-            {/* Delivery time note */}
             <div style={{ marginTop: 8, padding: "10px 14px", background: "var(--surface-0)", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
               <div style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
                 <span>⏰</span>
-                <span>Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong> on your chosen day. Upgrade to Vercel Pro for custom delivery times.</span>
+                <span>Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong> on your chosen day.</span>
               </div>
             </div>
           </Card>
 
-          {/* Preview of what's included */}
+          {/* What's included */}
           <Card style={{ padding: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>What's in each email</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
@@ -793,26 +974,17 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   padding: "10px 24px", borderRadius: 10, border: "none",
                   background: !address ? THEME.line : sending ? THEME.muted : THEME.accent,
                   color: "#fff", fontWeight: 700, fontSize: 14, cursor: !address ? "default" : "pointer",
-                  fontFamily: "inherit", transition: "all 0.2s ease",
-                  opacity: sending ? 0.7 : 1,
+                  fontFamily: "inherit", transition: "all 0.2s ease", opacity: sending ? 0.7 : 1,
                 }}
               >
                 {sending ? "Sending…" : "Send Test Email Now"}
               </button>
-              {sendStatus === "ok" && (
-                <span style={{ fontSize: 13, color: THEME.sage, fontWeight: 600 }}>
-                  ✓ Email sent to {address}
-                </span>
-              )}
-              {sendStatus === "err" && (
-                <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600, maxWidth: 480 }}>
-                  ✕ {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
-                </span>
-              )}
+              {sendStatus === "ok" && <span style={{ fontSize: 13, color: THEME.sage, fontWeight: 600 }}>✓ Email sent to {address}</span>}
+              {sendStatus === "err" && <span style={{ fontSize: 13, color: THEME.rust, fontWeight: 600, maxWidth: 480 }}>✕ {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}</span>}
             </div>
           </Card>
 
-          {/* Configuration diagnostics */}
+          {/* Config diagnostics */}
           <Card style={{ padding: 24, border: `1px solid ${THEME.line}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div>
@@ -825,8 +997,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 style={{
                   padding: "8px 18px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
                   background: "var(--t-paper)", color: THEME.ink, fontWeight: 600, fontSize: 13,
-                  cursor: checking ? "default" : "pointer", fontFamily: "inherit",
-                  opacity: checking ? 0.6 : 1,
+                  cursor: checking ? "default" : "pointer", fontFamily: "inherit", opacity: checking ? 0.6 : 1,
                 }}
               >
                 {checking ? "Checking…" : "Check Config"}
@@ -836,36 +1007,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             {health && !health.error && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  {
-                    ok: health.resendKey,
-                    label: "Resend API Key",
-                    pass: "Configured in Vercel",
-                    fail: "Missing — add Resend_Email_API to Vercel Environment Variables",
-                  },
-                  {
-                    ok: health.supabaseServiceKey,
-                    label: "Supabase Service Role Key",
-                    pass: "Configured in Vercel",
-                    fail: "Missing — add SUPABASE_SERVICE_EMAIL_ROLE_KEY to Vercel (get from Supabase → Project Settings → API)",
-                  },
-                  {
-                    ok: health.supabaseUrl,
-                    label: "Supabase URL",
-                    pass: "Configured",
-                    fail: "Missing VITE_SUPABASE_URL",
-                  },
-                  {
-                    ok: !health.usingTestDomain,
-                    label: "From Email (Sender)",
-                    pass: `Using ${health.fromEmail}`,
-                    fail: `Using test sender (onboarding@resend.dev) — this can ONLY deliver to the email you registered with Resend. Set RESEND_FROM_EMAIL in Vercel to your verified domain sender (e.g. noreply@yourdomain.com) to send to any address.`,
-                  },
-                  {
-                    ok: health.ready,
-                    label: "Overall Status",
-                    pass: "Ready to send emails",
-                    fail: "Not fully configured — fix the issues above",
-                  },
+                  { ok: health.resendKey, label: "Resend API Key", pass: "Configured in Vercel", fail: "Missing — add Resend_Email_API to Vercel Environment Variables" },
+                  { ok: health.supabaseServiceKey, label: "Supabase Service Role Key", pass: "Configured in Vercel", fail: "Missing — add SUPABASE_SERVICE_EMAIL_ROLE_KEY to Vercel" },
+                  { ok: health.supabaseUrl, label: "Supabase URL", pass: "Configured", fail: "Missing VITE_SUPABASE_URL" },
+                  { ok: !health.usingTestDomain, label: "From Email (Sender)", pass: `Using ${health.fromEmail}`, fail: `Using test sender — set RESEND_FROM_EMAIL in Vercel to your verified domain.` },
+                  { ok: health.ready, label: "Overall Status", pass: "Ready to send emails", fail: "Not fully configured — fix the issues above" },
                 ].map(row => (
                   <div key={row.label} style={{
                     display: "flex", gap: 10, alignItems: "flex-start",
@@ -876,26 +1022,15 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{row.ok ? "✅" : "❌"}</span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{row.label}</div>
-                      <div style={{ fontSize: 12, color: row.ok ? THEME.sage : THEME.rust, marginTop: 2, lineHeight: 1.5 }}>
-                        {row.ok ? row.pass : row.fail}
-                      </div>
+                      <div style={{ fontSize: 12, color: row.ok ? THEME.sage : THEME.rust, marginTop: 2, lineHeight: 1.5 }}>{row.ok ? row.pass : row.fail}</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {health?.error && (
-              <div style={{ fontSize: 13, color: THEME.rust }}>
-                Could not reach API: {health.error}
-              </div>
-            )}
-
-            {!health && !checking && (
-              <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
-                Click "Check Config" to see what's configured and what's missing in Vercel.
-              </div>
-            )}
+            {health?.error && <div style={{ fontSize: 13, color: THEME.rust }}>Could not reach API: {health.error}</div>}
+            {!health && !checking && <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>Click "Check Config" to see what's configured and what's missing in Vercel.</div>}
           </Card>
         </>
       )}
@@ -905,8 +1040,10 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
 // ─── Section: AI Advisor ──────────────────────────────────────────────────────
 function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
+  const [showKey, setShowKey] = useState(false);
+
   const inp: any = {
-    width: "100%", padding: "10px 14px", boxSizing: "border-box",
+    flex: 1, padding: "10px 14px", boxSizing: "border-box",
     background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`,
     borderRadius: 10, color: THEME.ink, fontSize: 14, outline: "none",
     fontFamily: "inherit",
@@ -915,34 +1052,41 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 18 }}>🤖</span>
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>AI Financial Advisor</div>
-            </div>
-            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480 }}>
-              Configure your Gemini API key to enable the AI Financial Advisor. Your data will be anonymized before being sent to Google's Gemini API for personalized insights and advice.
-            </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#0ea5e9,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 18 }}>🤖</span>
           </div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>AI Financial Advisor</div>
+        </div>
+        <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480, marginBottom: 24 }}>
+          Configure your Gemini API key to enable the AI Financial Advisor. Your data will be anonymized before being sent to Google's Gemini API for personalized insights and advice.
         </div>
 
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>API Settings</div>
-          <Field label="Gemini API Key">
+        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>API Settings</div>
+        <Field label="Gemini API Key">
+          <div style={{ display: "flex", gap: 8 }}>
             <input
               style={inp}
-              type="password"
+              type={showKey ? "text" : "password"}
               placeholder="AIzaSy..."
               value={geminiApiKey || ""}
               onChange={e => updateSettings({ geminiApiKey: e.target.value })}
             />
-          </Field>
-          <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
-            You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none" }}>Google AI Studio</a>.
+            <button
+              onClick={() => setShowKey(v => !v)}
+              title={showKey ? "Hide key" : "Show key"}
+              style={{
+                padding: "0 14px", borderRadius: 10, border: `1.5px solid ${THEME.line}`,
+                background: "var(--t-paper)", cursor: "pointer", color: THEME.muted,
+                display: "flex", alignItems: "center",
+              }}
+            >
+              {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
           </div>
+        </Field>
+        <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
+          Get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none" }}>Google AI Studio</a> — free tier supports up to 15 requests/minute.
         </div>
       </Card>
     </div>
@@ -954,9 +1098,9 @@ const TOP_TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "profile",    label: "Profile",    icon: User },
   { id: "masterdata", label: "Master Data", icon: Tags },
-  { id: "ai",         label: "AI Advisor", icon: Settings },
-  { id: "email",      label: "Email Reports", icon: Settings },
-  { id: "data",       label: "Data & Account", icon: Settings },
+  { id: "ai",         label: "AI Advisor",  icon: Bot },
+  { id: "email",      label: "Email Reports", icon: Mail },
+  { id: "data",       label: "Data & Account", icon: HardDrive },
 ];
 
 export function SettingsTab({
@@ -964,6 +1108,14 @@ export function SettingsTab({
   cleanupOrphaned,
   updateProfile, updateSettings,
   accentKey, setAccentKey,
+  darkMode, toggleDarkMode,
+  density, setDensity,
+  sidebarNav, setSidebarNav,
+  radiusKey, setRadiusKey,
+  fontKey, setFontKey,
+  bgStyle, setBgStyle,
+  animSpeed, setAnimSpeed,
+  chartStyle, setChartStyle,
   masterData, updateMasterData,
   emailSettings, updateEmailSettings,
 }: any) {
@@ -971,20 +1123,25 @@ export function SettingsTab({
 
   return (
     <div className="animate-fade-in-up">
-      {/* Page header */}
       <SectionTitle sub="Customize your experience, manage dropdown values, and control your data">
         Settings
       </SectionTitle>
 
-      {/* Top navigation */}
       <div style={{ marginBottom: 24, overflowX: "auto" }}>
         <PillNav tabs={TOP_TABS} active={tab} onChange={setTab} />
       </div>
 
-      {/* Content */}
       {tab === "appearance" && (
         <AppearanceSection
           accentKey={accentKey} setAccentKey={setAccentKey}
+          darkMode={darkMode} toggleDarkMode={toggleDarkMode}
+          density={density} setDensity={setDensity}
+          sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
+          radiusKey={radiusKey} setRadiusKey={setRadiusKey}
+          fontKey={fontKey} setFontKey={setFontKey}
+          bgStyle={bgStyle} setBgStyle={setBgStyle}
+          animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
+          chartStyle={chartStyle} setChartStyle={setChartStyle}
         />
       )}
 

@@ -2009,7 +2009,7 @@ function FinanceDashboard() {
       items: [
         { id: "reminders", label: "Reminders & Alerts", icon: Bell },
         { id: "calculators", label: "Financial Calculators", icon: Hash },
-        { id: "settings", label: "App Settings", icon: Settings },
+        { id: "settings", label: "Settings", icon: Settings },
       ]
     }
   ];
