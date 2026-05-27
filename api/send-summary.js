@@ -650,16 +650,20 @@ module.exports = async function handler(req, res) {
   if (req.method === "GET" && req.query?.action === "healthcheck") {
     const isTestDomain = FROM_EMAIL === "onboarding@resend.dev";
     const hasServiceKey = !!(process.env.SUPABASE_SERVICE_EMAIL_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
+    // A custom fromEmail in the query (passed from UI) means the user configured one — treat as non-test
+    const uiFromEmail = req.query?.fromEmail;
+    const effectiveFrom = uiFromEmail || FROM_EMAIL;
+    const effectiveIsTest = effectiveFrom === "onboarding@resend.dev";
     return res.status(200).json({
       resendKey: !!RESEND_KEY,
       supabaseServiceKey: hasServiceKey,
       supabaseUrl: !!process.env.VITE_SUPABASE_URL,
-      fromEmail: FROM_EMAIL,
-      usingTestDomain: isTestDomain,
-      testDomainWarning: isTestDomain
-        ? "onboarding@resend.dev can only deliver to the email address you used to register with Resend. Set RESEND_FROM_EMAIL in Vercel env vars to a verified domain sender to send to any address."
+      fromEmail: effectiveFrom,
+      usingTestDomain: effectiveIsTest,
+      testDomainWarning: effectiveIsTest
+        ? "The test sender onboarding@resend.dev can ONLY deliver to the email address you used to sign up with Resend. Enter your Resend account email in the 'Sender Email' field below to fix this."
         : null,
-      ready: !!RESEND_KEY && hasServiceKey,
+      ready: !!RESEND_KEY && hasServiceKey && !effectiveIsTest,
     });
   }
 
@@ -686,9 +690,14 @@ module.exports = async function handler(req, res) {
   try {
     if (isManual) {
       // ── Manual "Send Test" from Settings UI ─────────────────────────────
-      const { state, emailTo, frequency, recipientName } = req.body || {};
+      const { state, emailTo, frequency, recipientName, fromEmail } = req.body || {};
       if (!state || !emailTo) return res.status(400).json({ error: "state and emailTo required" });
       if (!RESEND_KEY) return res.status(500).json({ error: "Resend API key not configured. Add Resend_Email_API to Vercel environment variables." });
+
+      // Use fromEmail from the request body if provided (user configured it in Settings UI),
+      // otherwise fall back to the RESEND_FROM_EMAIL env var or the test sender.
+      const effectiveFromEmail = fromEmail || FROM_EMAIL;
+      const effectiveFromAddr = `Personal Finance <${effectiveFromEmail}>`;
 
       const summary = computeSummary(state);
       const freq = frequency || "weekly";
@@ -696,7 +705,7 @@ module.exports = async function handler(req, res) {
       const subject = buildSubject(freq, summary.netWorth);
 
       const { data: sendData, error } = await resend.emails.send({
-        from: FROM_ADDR,
+        from: effectiveFromAddr,
         to: emailTo,
         subject,
         html,
@@ -704,11 +713,12 @@ module.exports = async function handler(req, res) {
 
       if (error) {
         console.error("[send-summary] Resend error:", error);
+        const isTest = effectiveFromEmail === "onboarding@resend.dev";
         return res.status(500).json({
           error: error.message,
-          hint: FROM_EMAIL === "onboarding@resend.dev"
-            ? "You are using the test sender (onboarding@resend.dev). It can only send to the email you registered with Resend. Set RESEND_FROM_EMAIL in Vercel to a verified domain."
-            : null,
+          hint: isTest
+            ? `Test sender restriction: onboarding@resend.dev can only deliver to the email you registered with Resend (not ${emailTo}). Enter your Resend account email in the 'Sender Email' field in Settings.`
+            : `Send failed from ${effectiveFromEmail}. Make sure this email or its domain is verified in your Resend account.`,
         });
       }
       return res.status(200).json({ sent: true, to: emailTo, id: sendData?.id });

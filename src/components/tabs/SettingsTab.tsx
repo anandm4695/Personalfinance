@@ -676,6 +676,15 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const [checking, setChecking] = useState(false);
   const [health, setHealth] = useState<any>(null);
 
+  // Sender email — stored in localStorage so user doesn't need to touch Vercel env vars
+  const [localFromEmail, setLocalFromEmail] = useState<string>(() => {
+    try { return localStorage.getItem("finance-email-from") || ""; } catch { return ""; }
+  });
+  const saveLocalFromEmail = (val: string) => {
+    setLocalFromEmail(val);
+    try { localStorage.setItem("finance-email-from", val.trim()); } catch {}
+  };
+
   const inp: any = {
     width: "100%", padding: "10px 14px", boxSizing: "border-box",
     background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`,
@@ -690,7 +699,13 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
       const res = await fetch("/api/send-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state, emailTo: address, frequency, recipientName: state?.profile?.name || "there" }),
+        body: JSON.stringify({
+          state,
+          emailTo: address,
+          frequency,
+          recipientName: state?.profile?.name || "there",
+          fromEmail: localFromEmail.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (res.ok && json.sent) { setSendStatus("ok"); }
@@ -700,13 +715,14 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
       }
     } catch (e: any) {
       setSendStatus("err"); setErrMsg(e.message);
-    } finally { setSending(false); setTimeout(() => setSendStatus(""), 8000); }
+    } finally { setSending(false); setTimeout(() => setSendStatus(""), 12000); }
   }
 
   async function handleCheckConfig() {
     setChecking(true); setHealth(null);
     try {
-      const res = await fetch("/api/send-summary?action=healthcheck");
+      const params = localFromEmail.trim() ? `?action=healthcheck&fromEmail=${encodeURIComponent(localFromEmail.trim())}` : "?action=healthcheck";
+      const res = await fetch(`/api/send-summary${params}`);
       const json = await res.json();
       setHealth(json);
     } catch (e: any) {
@@ -766,9 +782,29 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           {/* Email address */}
           <Card style={{ padding: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Delivery Address</div>
-            <Field label="Email Address">
-              <input style={inp} type="email" placeholder="you@example.com" value={address} onChange={e => updateEmailSettings({ emailAddress: e.target.value })} />
-            </Field>
+            <div style={{ display: "grid", gap: 16 }}>
+              <Field label="Recipient Email (Send To)">
+                <input style={inp} type="email" placeholder="you@example.com" value={address} onChange={e => updateEmailSettings({ emailAddress: e.target.value })} />
+              </Field>
+              <Field label="Sender Email (From) — your Resend account email">
+                <input
+                  style={inp} type="email"
+                  placeholder="e.g. anand@gmail.com (the email you registered with Resend)"
+                  value={localFromEmail}
+                  onChange={e => saveLocalFromEmail(e.target.value)}
+                />
+              </Field>
+              {!localFromEmail && (
+                <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`, fontSize: 12, color: THEME.ink, lineHeight: 1.6 }}>
+                  <strong style={{ color: THEME.gold }}>⚠ Action needed:</strong> Enter your Resend account email above. Without it, emails can only be sent to the Resend-registered address, not to any custom recipient. <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}>Check your Resend account →</a>
+                </div>
+              )}
+              {localFromEmail && (
+                <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`, fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
+                  ✓ Emails will be sent from: <strong>{localFromEmail}</strong>
+                </div>
+              )}
+            </div>
           </Card>
 
           {/* Frequency + timing */}
@@ -910,8 +946,13 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   { ok: health.resendKey, label: "Resend API Key", pass: "Configured in Vercel", fail: "Missing — add Resend_Email_API to Vercel Environment Variables" },
                   { ok: health.supabaseServiceKey, label: "Supabase Service Role Key", pass: "Configured in Vercel", fail: "Missing — add SUPABASE_SERVICE_EMAIL_ROLE_KEY to Vercel" },
                   { ok: health.supabaseUrl, label: "Supabase URL", pass: "Configured", fail: "Missing VITE_SUPABASE_URL" },
-                  { ok: !health.usingTestDomain, label: "From Email (Sender)", pass: `Using ${health.fromEmail}`, fail: `Using test sender — set RESEND_FROM_EMAIL in Vercel to your verified domain.` },
-                  { ok: health.ready, label: "Overall Status", pass: "Ready to send emails", fail: "Not fully configured — fix the issues above" },
+                  {
+                    ok: !health.usingTestDomain,
+                    label: "From Email (Sender)",
+                    pass: `Sending from: ${health.fromEmail}`,
+                    fail: health.testDomainWarning || `Using test sender (onboarding@resend.dev) — enter your Resend account email in the 'Sender Email' field above`,
+                  },
+                  { ok: health.ready, label: "Overall Status", pass: "All checks passed — emails will deliver correctly", fail: "Fix the From Email above to enable reliable email delivery" },
                 ].map(row => (
                   <div key={row.label} style={{
                     display: "flex", gap: 10, alignItems: "flex-start",
@@ -930,7 +971,13 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             )}
 
             {health?.error && <div style={{ fontSize: 13, color: THEME.rust }}>Could not reach API: {health.error}</div>}
-            {!health && !checking && <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>Click "Check Config" to see what's configured and what's missing in Vercel.</div>}
+            {!health && !checking && (
+              <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
+                {localFromEmail
+                  ? `Will check config using sender: ${localFromEmail}`
+                  : "Click \"Check Config\" to diagnose. Enter your Sender Email above first for accurate results."}
+              </div>
+            )}
           </Card>
         </>
       )}
