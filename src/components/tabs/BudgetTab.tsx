@@ -8,7 +8,7 @@ import {
   AlertTriangle, PlayCircle, ToggleLeft, ArrowRight, Download, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, getEffectiveRent } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -951,6 +951,89 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                   </Card>
                 );
               })}
+            </div>
+          )}
+
+          {/* ── Auto-derived Rental Commitments ── */}
+          {(state.rentedProperties || []).filter((p: any) => p.isActive !== false).length > 0 && (
+            <div style={{ marginTop: 36 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Home size={15} color={THEME.rust} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Rental Commitments · {selectedMonthLabel}</span>
+                <span style={{ fontSize: 10, color: THEME.muted, background: "rgba(128,128,128,0.08)", padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>Auto-derived from agreements</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 12 }}>
+                {(state.rentedProperties || []).filter((p: any) => p.isActive !== false).map((p: any) => {
+                  const effectiveRent = getEffectiveRent(p, selectedMonth);
+                  const paidThisMonth = (p.payments || [])
+                    .filter((pay: any) => pay.date && pay.date.startsWith(selectedMonth))
+                    .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+                  const isPaid = paidThisMonth > 0;
+                  const isOverpaid = isPaid && paidThisMonth > effectiveRent * 1.01;
+                  const now = new Date();
+                  const curMonthStr = today().slice(0, 7);
+                  const dueDay = Number(p.dueDay || 5);
+                  const isOverdue = !isPaid && selectedMonth <= curMonthStr && (selectedMonth < curMonthStr || now.getDate() > dueDay);
+                  const statusColor = isPaid ? THEME.sage : isOverdue ? THEME.rust : THEME.gold;
+                  const statusText = isPaid ? `Paid · ${fmtINRFull(paidThisMonth)}` : isOverdue ? `Overdue · ${fmtINRFull(effectiveRent)} due` : `Due on ${dueDay}${["st","nd","rd"][dueDay-1]||"th"} · ${fmtINRFull(effectiveRent)}`;
+
+                  // Tier info
+                  const tiers = p.escalationTiers;
+                  const tierIdx = tiers?.length > 1 ? ((): number => {
+                    if (!p.agreementStart) return -1;
+                    const [refY, refM] = selectedMonth.split("-").map(Number);
+                    const [sY, sM] = p.agreementStart.slice(0, 7).split("-").map(Number);
+                    const elapsed = (refY - sY) * 12 + (refM - sM);
+                    let cum = 0;
+                    for (let i = 0; i < tiers.length; i++) { cum += Number(tiers[i].durationMonths || 12); if (elapsed < cum) return i; }
+                    return tiers.length - 1;
+                  })() : -1;
+
+                  return (
+                    <div key={p.id} style={{
+                      padding: "14px 16px", borderRadius: 12,
+                      background: `color-mix(in srgb, ${statusColor} 4%, transparent)`,
+                      border: `1px solid ${statusColor}33`,
+                      display: "flex", alignItems: "center", gap: 14,
+                    }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: statusColor + "18", border: `1px solid ${statusColor}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>
+                        🏠
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{p.propertyName}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
+                          {p.landlordName || p.landlords?.[0]?.name || "Landlord"}
+                          {tierIdx >= 0 && tiers && (
+                            <span style={{ marginLeft: 6, color: THEME.accent, fontWeight: 700 }}>
+                              · Y{tierIdx + 1}: {fmtINRFull(tiers[tierIdx].amount)}/mo
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: statusColor, marginTop: 4 }}>{statusText}</div>
+                        {isOverpaid && (
+                          <div style={{ fontSize: 10, color: THEME.gold, fontWeight: 600, marginTop: 2 }}>
+                            Paid {fmtINRFull(paidThisMonth - effectiveRent)} extra this month
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: statusColor }}>{fmtINRFull(effectiveRent)}</div>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>per month</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Total commitment footer */}
+              {(state.rentedProperties || []).filter((p: any) => p.isActive !== false).length > 1 && (() => {
+                const total = (state.rentedProperties || []).filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + getEffectiveRent(p, selectedMonth), 0);
+                return (
+                  <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Total rental commitment this month</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(total)}</span>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </>

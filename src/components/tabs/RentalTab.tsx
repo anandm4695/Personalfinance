@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Building2, TrendingUp, TrendingDown, Landmark, Receipt, Shield, Percent, Plus, Trash2, Pencil, FileText, Upload, AlertCircle, Download, Calendar, AlertTriangle } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today } from "../../utils/finance";
+import { fmtINRFull, fmtINR, today, getEffectiveRent, getCurrentTierIndex, getMonthsToNextEscalation } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -84,11 +84,11 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const fyStart = fyLabel.split("-")[0] + "-04-01";
   const fyEnd = (parseInt(fyLabel.split("-")[0]) + 1) + "-03-31";
 
-  const outMonthlyRent = propertiesOut.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+  const outMonthlyRent = propertiesOut.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
   const outThisFY = propertiesOut.reduce((s: number, p: any) => s + (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((ss: number, rr: any) => ss + Number(rr.amount || 0), 0), 0);
   const outDepositHeld = propertiesOut.reduce((s: number, p: any) => s + Math.max(0, getActualSecurityDeposit(p) - (p.depositDeductions || []).reduce((ss: number, dd: any) => ss + Number(dd.amount || 0), 0) - Number(p.depositReturned || 0)), 0);
 
-  const inMonthlyRent = propertiesIn.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+  const inMonthlyRent = propertiesIn.filter((p: any) => p.isActive !== false).reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
   const inThisFY = propertiesIn.reduce((s: number, p: any) => s + (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((ss: number, rr: any) => ss + Number(rr.amount || 0), 0), 0);
   const inDepositPaid = propertiesIn.reduce((s: number, p: any) => s + Math.max(0, getActualSecurityDeposit(p) - Number(p.depositReturned || 0)), 0);
   const municipalTaxPaid = propertiesOut.reduce((s: number, p: any) => s + Number(p.municipalTax || 0), 0);
@@ -269,7 +269,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               label="Received (FY)"
               value={fmtINRFull(outThisFY)}
               color={THEME.sage}
-              sub={`of ${fmtINRFull(outMonthlyRent * 12)} expected`}
+              sub={`of ${fmtINRFull(outMonthlyRent * 12)} annual target`}
             />
             <StatCard
               icon={<Landmark />}
@@ -347,8 +347,37 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               : <span>{p.tenantName || p.tenants?.[0]?.name || "Vacant"}</span>
                             }
                             {" · "}
-                            <span style={{ color: THEME.accent }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                            <span style={{ color: THEME.accent }}>{fmtINRFull(getEffectiveRent(p))}/mo</span>
+                            {p.escalationTiers?.length > 1 && (
+                              <span style={{ fontSize: 9, color: THEME.accent, background: `${THEME.accent}15`, padding: "1px 6px", borderRadius: 4, fontWeight: 700, marginLeft: 6 }}>
+                                Y{getCurrentTierIndex(p) + 1} of {p.escalationTiers.length}
+                              </span>
+                            )}
                           </div>
+                          {/* Escalation schedule pills */}
+                          {p.escalationTiers?.length > 1 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                              {p.escalationTiers.map((tier: any, ti: number) => {
+                                const tierColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+                                const col = tierColors[ti % 5];
+                                const isCurrent = getCurrentTierIndex(p) === ti;
+                                const mNext = ti === getCurrentTierIndex(p) ? getMonthsToNextEscalation(p) : null;
+                                return (
+                                  <span key={ti} style={{
+                                    fontSize: 9, padding: "2px 7px", borderRadius: 5, fontWeight: 700,
+                                    background: isCurrent ? col + "22" : "rgba(128,128,128,0.07)",
+                                    color: isCurrent ? col : THEME.muted,
+                                    border: isCurrent ? `1px solid ${col}44` : "none",
+                                  }}>
+                                    Y{ti + 1}: {fmtINR(tier.amount)}
+                                    {isCurrent && mNext !== null && mNext <= 3 && (
+                                      <span style={{ marginLeft: 4, color: THEME.gold }}>· escalates in {mNext}mo</span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                           {/* Multi-tenant split pills */}
                           {p.tenants && p.tenants.length > 1 && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
@@ -422,7 +451,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* FY collection progress bar */}
                       {(() => {
-                        const expected = Number(p.monthlyRent || 0) * 12;
+                        const expected = getEffectiveRent(p) * 12;
                         const received = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
                         const pct = expected > 0 ? Math.min(100, (received / expected) * 100) : 0;
                         if (expected === 0) return null;
@@ -846,7 +875,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               label="Paid (FY)"
               value={fmtINRFull(inThisFY)}
               color={THEME.rust}
-              sub={`of ${fmtINRFull(inMonthlyRent * 12)} expected`}
+              sub={`of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`}
             />
             <StatCard
               icon={<Shield />}
@@ -924,17 +953,46 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               : <span>{p.landlordName || p.landlords?.[0]?.name || "Unknown Landlord"}</span>
                             }
                             {" · "}
-                            <span style={{ color: THEME.rust }}>{fmtINRFull(p.monthlyRent)}/mo</span>
+                            <span style={{ color: THEME.rust }}>{fmtINRFull(getEffectiveRent(p))}/mo</span>
+                            {p.escalationTiers?.length > 1 && (
+                              <span style={{ fontSize: 9, color: THEME.rust, background: `${THEME.rust}15`, padding: "1px 6px", borderRadius: 4, fontWeight: 700, marginLeft: 6 }}>
+                                Y{getCurrentTierIndex(p) + 1} of {p.escalationTiers.length}
+                              </span>
+                            )}
                             {" · "}
                             <span style={{ color: THEME.gold }}>Due: {getOrdinal(p.dueDay ?? 5)} of month</span>
                           </div>
+                          {/* Escalation schedule pills */}
+                          {p.escalationTiers?.length > 1 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                              {p.escalationTiers.map((tier: any, ti: number) => {
+                                const tierColors = [THEME.rust, THEME.gold, THEME.accent, THEME.sage, "#A78BFA"];
+                                const col = tierColors[ti % 5];
+                                const isCurrent = getCurrentTierIndex(p) === ti;
+                                const mNext = ti === getCurrentTierIndex(p) ? getMonthsToNextEscalation(p) : null;
+                                return (
+                                  <span key={ti} style={{
+                                    fontSize: 9, padding: "2px 7px", borderRadius: 5, fontWeight: 700,
+                                    background: isCurrent ? col + "22" : "rgba(128,128,128,0.07)",
+                                    color: isCurrent ? col : THEME.muted,
+                                    border: isCurrent ? `1px solid ${col}44` : "none",
+                                  }}>
+                                    Y{ti + 1}: {fmtINR(tier.amount)}
+                                    {isCurrent && mNext !== null && mNext <= 3 && (
+                                      <span style={{ marginLeft: 4, color: THEME.gold }}>· escalates in {mNext}mo</span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                           {/* Multi-landlord split pills */}
                           {p.landlords && p.landlords.length > 1 && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
                               {p.landlords.map((ll: any, li: number) => {
                                 const splitColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
                                 const col = splitColors[li % 5];
-                                const share = Math.round((Number(ll.splitPct) / 100) * Number(p.monthlyRent));
+                                const share = Math.round((Number(ll.splitPct) / 100) * getEffectiveRent(p));
                                 return (
                                   <span key={li} style={{
                                     display: "inline-flex", alignItems: "center", gap: 4,
@@ -1002,7 +1060,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                       {/* FY payment progress bar */}
                       {(() => {
-                        const expected = Number(p.monthlyRent || 0) * 12;
+                        const expected = getEffectiveRent(p) * 12;
                         const paid = (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
                         const pct = expected > 0 ? Math.min(100, (paid / expected) * 100) : 0;
                         if (expected === 0) return null;

@@ -59,6 +59,58 @@ export const monthsBetween = (d1: string, d2: string) => {
   );
 };
 
+// ── Rental Escalation Tier Helpers ────────────────────────────────────────────
+
+export const getEffectiveRent = (p: any, yearMonth?: string): number => {
+  const tiers = p.escalationTiers;
+  if (!tiers || !tiers.length || !p.agreementStart) return Number(p.monthlyRent || 0);
+  const refMonth = yearMonth || today().slice(0, 7);
+  const [refY, refM] = refMonth.split("-").map(Number);
+  const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
+  const monthsElapsed = (refY - startY) * 12 + (refM - startM);
+  if (monthsElapsed < 0) return Number(tiers[0]?.amount || p.monthlyRent || 0);
+  let cumulative = 0;
+  for (const tier of tiers) {
+    cumulative += Number(tier.durationMonths || 12);
+    if (monthsElapsed < cumulative) return Number(tier.amount || 0);
+  }
+  return Number(tiers[tiers.length - 1]?.amount || p.monthlyRent || 0);
+};
+
+export const getCurrentTierIndex = (p: any, yearMonth?: string): number => {
+  const tiers = p.escalationTiers;
+  if (!tiers || !tiers.length || !p.agreementStart) return -1;
+  const refMonth = yearMonth || today().slice(0, 7);
+  const [refY, refM] = refMonth.split("-").map(Number);
+  const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
+  const monthsElapsed = (refY - startY) * 12 + (refM - startM);
+  if (monthsElapsed < 0) return 0;
+  let cumulative = 0;
+  for (let i = 0; i < tiers.length; i++) {
+    cumulative += Number(tiers[i].durationMonths || 12);
+    if (monthsElapsed < cumulative) return i;
+  }
+  return tiers.length - 1;
+};
+
+export const getMonthsToNextEscalation = (p: any, yearMonth?: string): number | null => {
+  const tiers = p.escalationTiers;
+  if (!tiers || tiers.length < 2 || !p.agreementStart) return null;
+  const refMonth = yearMonth || today().slice(0, 7);
+  const [refY, refM] = refMonth.split("-").map(Number);
+  const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
+  const monthsElapsed = (refY - startY) * 12 + (refM - startM);
+  if (monthsElapsed < 0) return null;
+  let cumulative = 0;
+  for (let i = 0; i < tiers.length - 1; i++) {
+    cumulative += Number(tiers[i].durationMonths || 12);
+    if (monthsElapsed < cumulative) return cumulative - monthsElapsed;
+  }
+  return null;
+};
+
+// ── End Rental Escalation Tier Helpers ────────────────────────────────────────
+
 export const getCCDueDate = (c: any, referenceDate?: Date) => {
   // Prefer computed due date from dueDay over a stored dueDate.
   // A stored dueDate can go stale (e.g. card's dueDay changed but old dueDate was never cleared).

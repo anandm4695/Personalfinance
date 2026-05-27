@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -21,6 +21,94 @@ const input: React.CSSProperties = {
 function fmtINR(n: number) {
   if (!n || isNaN(n)) return "₹0";
   return "₹" + Math.round(n).toLocaleString("en-IN");
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EscalationTiersSection — shared by both Rented Out & Rented In
+══════════════════════════════════════════════════════════════════ */
+function tierDateRange(agreementStart: string, tierIndex: number, tiers: any[]): string {
+  if (!agreementStart) return "";
+  const [y, m] = agreementStart.slice(0, 7).split("-").map(Number);
+  let offset = 0;
+  for (let i = 0; i < tierIndex; i++) offset += Number(tiers[i].durationMonths || 12);
+  const startD = new Date(y, m - 1 + offset, 1);
+  const dur = Number(tiers[tierIndex].durationMonths || 12);
+  const endD = new Date(y, m - 1 + offset + dur - 1, 1);
+  const fmt = (d: Date) => d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  return `${fmt(startD)} – ${fmt(endD)}`;
+}
+
+function EscalationTiersSection({ tiers, setTiers, agreementStart }: { tiers: any[]; setTiers: (t: any[]) => void; agreementStart: string }) {
+  const TIER_COLORS = [THEME.accent, THEME.sage, THEME.gold, THEME.rust, "#A78BFA"];
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <TrendingUp size={15} color={THEME.accent} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>Rent Escalation Schedule</div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>Enter per-year rent amounts as per agreement</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTiers([...tiers, { durationMonths: 12, amount: "" }])}
+          style={{ padding: "5px 12px", borderRadius: 7, border: `1.5px dashed ${THEME.accent}55`, background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`, color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
+        >
+          <Plus size={12} /> Add Year
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {tiers.map((tier, i) => {
+          const col = TIER_COLORS[i % 5];
+          const range = tierDateRange(agreementStart, i, tiers);
+          return (
+            <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: `color-mix(in srgb, ${col} 5%, transparent)`, border: `1px solid ${col}33`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: col, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: 12 }}>Y{i + 1}</span>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, marginBottom: 6 }}>
+                  Year {i + 1}
+                  {range && <span style={{ color: col, marginLeft: 6, fontWeight: 600 }}>· {range}</span>}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 3 }}>Monthly Rent (₹)</div>
+                    <input
+                      style={{ ...input, width: 130, fontSize: 13 }}
+                      type="number"
+                      value={tier.amount}
+                      onChange={(e) => { const u = [...tiers]; u[i] = { ...tier, amount: e.target.value }; setTiers(u); }}
+                      placeholder="e.g. 40000"
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 3 }}>Duration (months)</div>
+                    <input
+                      style={{ ...input, width: 90, fontSize: 13 }}
+                      type="number"
+                      min="1"
+                      value={tier.durationMonths}
+                      onChange={(e) => { const u = [...tiers]; u[i] = { ...tier, durationMonths: Math.max(1, parseInt(e.target.value, 10) || 12) }; setTiers(u); }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {tiers.length > 1 && (
+                <button type="button" onClick={() => setTiers(tiers.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4, flexShrink: 0, display: "flex" }}>
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -131,6 +219,11 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
   const [tenants, setTenants] = useState<any[]>(initTenants);
   const [tenantCount, setTenantCount] = useState(initTenants().length);
 
+  const [escalationTiers, setEscalationTiers] = useState<any[]>(() => {
+    if (initial?.escalationTiers?.length > 0) return initial.escalationTiers;
+    return [{ durationMonths: 12, amount: initial?.monthlyRent || "" }];
+  });
+
   const isMulti = tenantCount > 1;
 
   // Sync tenant count changes
@@ -171,6 +264,10 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
         ? tenants.map((t) => t.name || "Unknown").join(", ")
         : primaryTenant.name || "",
       tenantPhone: isMulti ? "" : primaryTenant.phone || "",
+      escalationTiers: escalationTiers.map((t) => ({
+        durationMonths: Number(t.durationMonths) || 12,
+        amount: Number(t.amount) || 0,
+      })),
     });
   };
 
@@ -217,6 +314,14 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
           <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
         </Field>
       </div>
+
+      {/* ── Escalation Schedule ── */}
+      <div style={{ height: 1, background: THEME.line, margin: "20px 0" }} />
+      <EscalationTiersSection
+        tiers={escalationTiers}
+        setTiers={setEscalationTiers}
+        agreementStart={f.agreementStart}
+      />
 
       {/* ── Divider ── */}
       <div style={{ height: 1, background: THEME.line, margin: "20px 0" }} />
@@ -537,6 +642,11 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
   const [landlords, setLandlords] = useState<any[]>(initLandlords);
   const [landlordCount, setLandlordCount] = useState(initLandlords().length);
 
+  const [escalationTiers, setEscalationTiers] = useState<any[]>(() => {
+    if (initial?.escalationTiers?.length > 0) return initial.escalationTiers;
+    return [{ durationMonths: 12, amount: initial?.monthlyRent || "" }];
+  });
+
   const monthlyRent = Number(f.monthlyRent) || 0;
   const totalPct = landlords.reduce((s, l) => s + Number(l.splitPct || 0), 0);
   const pctValid = totalPct === 100;
@@ -592,6 +702,10 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
         : primaryLandlord.name || "",
       landlordPhone: isMulti ? "" : primaryLandlord.phone || "",
       landlordPan: isMulti ? "" : primaryLandlord.pan || "",
+      escalationTiers: escalationTiers.map((t) => ({
+        durationMonths: Number(t.durationMonths) || 12,
+        amount: Number(t.amount) || 0,
+      })),
     });
   };
 
@@ -650,6 +764,14 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
           <input style={input} type="date" value={f.agreementEnd} onChange={(e) => setF({ ...f, agreementEnd: e.target.value })} />
         </Field>
       </div>
+
+      {/* ── Escalation Schedule ── */}
+      <div style={{ height: 1, background: THEME.line, margin: "20px 0" }} />
+      <EscalationTiersSection
+        tiers={escalationTiers}
+        setTiers={setEscalationTiers}
+        agreementStart={f.agreementStart}
+      />
 
       {/* ── Divider ── */}
       <div style={{ height: 1, background: THEME.line, margin: "20px 0" }} />
