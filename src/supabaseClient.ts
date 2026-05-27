@@ -21,10 +21,11 @@ const _live = createBrowserClient(
   LIVE_KEY || "placeholder"
 );
 
-// Only instantiate the demo client when its credentials are present;
-// otherwise fall back to the live client so placeholder errors are avoided.
+// createBrowserClient is a singleton in the browser — it caches the first client
+// and returns it for every subsequent call.  Pass isSingleton: false so the demo
+// client is always a genuinely separate instance, not an alias for _live.
 const _demo = isDemoDbReady
-  ? createBrowserClient(DEMO_URL, DEMO_KEY)
+  ? createBrowserClient(DEMO_URL, DEMO_KEY, { isSingleton: false } as any)
   : _live;
 
 // Module-level flag — toggled by setDemoMode(), resets to false on page reload
@@ -50,3 +51,15 @@ export const supabase = new Proxy({} as SupabaseClientType, {
     return typeof val === "function" ? val.bind(client) : val;
   },
 });
+
+// Direct sign-in to the demo Supabase, bypassing the Proxy.
+// createBrowserClient shares internal cookie state between instances, so the
+// Proxy cannot reliably redirect auth requests — this function calls _demo directly.
+export async function signInToDemo(email: string, password: string) {
+  return _demo.auth.signInWithPassword({ email, password });
+}
+
+// Direct sign-out of the demo Supabase (used when leaving demo mode).
+export async function signOutOfDemo() {
+  return _demo.auth.signOut();
+}

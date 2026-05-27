@@ -51,7 +51,7 @@ import {
   Bot,
   Sparkles,
 } from "lucide-react";
-import { supabase, setDemoMode, isDemoDbReady } from "./supabaseClient";
+import { supabase, setDemoMode, getIsDemoMode, isDemoDbReady, signInToDemo, signOutOfDemo } from "./supabaseClient";
 import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 
@@ -2164,17 +2164,15 @@ function FinanceDashboard() {
           const demoEmail = import.meta.env.VITE_DEMO_USER_EMAIL;
           const demoPass  = import.meta.env.VITE_DEMO_USER_PASSWORD;
           if (isDemoDbReady && demoEmail && demoPass) {
-            setDemoMode(true);
-            const { data } = await supabase.auth.signInWithPassword({
-              email: demoEmail,
-              password: demoPass,
-            });
+            // Use signInToDemo() which calls _demo.auth directly, bypassing
+            // the Proxy — createBrowserClient shares cookie state between
+            // instances so the Proxy cannot reliably redirect auth requests.
+            const { data } = await signInToDemo(demoEmail, demoPass);
             if (data?.session) {
+              setDemoMode(true);
               setSession(data.session);
               return;
             }
-            // Sign-in failed — fall back to offline mode
-            setDemoMode(false);
           }
           // Fallback: true offline / localStorage-only mode
           setSession({ user: { id: "offline-user", email: "demo@example.com" } } as any);
@@ -2652,7 +2650,7 @@ function FinanceDashboard() {
 
               {session && (
                 <button
-                  onClick={async () => { await supabase.auth.signOut().catch(() => {}); setDemoMode(false); setSession(null); }}
+                  onClick={async () => { if (getIsDemoMode()) { await signOutOfDemo().catch(() => {}); } else { await supabase.auth.signOut().catch(() => {}); } setDemoMode(false); setSession(null); }}
                   className="header-icon-btn danger"
                   aria-label="Sign out"
                   title="Sign out"
@@ -2729,7 +2727,7 @@ function FinanceDashboard() {
                 onRestoreBackup={importJSON}
                 resetAll={resetAll}
                 showToast={showToast}
-                onSignOut={async () => { await supabase.auth.signOut(); setDemoMode(false); setSession(null); }}
+                onSignOut={async () => { if (getIsDemoMode()) { await signOutOfDemo().catch(() => {}); } else { await supabase.auth.signOut(); } setDemoMode(false); setSession(null); }}
                 cleanupOrphaned={cleanupOrphanedCorporateActions}
                 updateProfile={updateProfile}
                 updateSettings={updateSettings}
