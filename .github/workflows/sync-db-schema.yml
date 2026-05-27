@@ -1,13 +1,11 @@
 name: Sync DB Schema
 
 # Runs whenever a SQL migration file is added or changed on main.
-# Applies fix_schema_sync.sql (idempotent) so the connected Supabase DB
-# always has all tables and columns from the latest migrations.
+# Applies fix_schema_sync.sql (idempotent) to the demo Supabase DB so
+# it always has all tables and columns from the latest migrations.
 #
-# Required GitHub Secret:
-#   SUPABASE_DB_URL — postgres connection string from Supabase →
-#                     Project Settings → Database → Connection string (URI)
-#                     Format: postgresql://postgres.[ref]:[password]@[host]:6543/postgres
+# Required GitHub Secret (already configured):
+#   SUPABASE_DB_URL — demo Supabase direct connection string
 
 on:
   push:
@@ -17,7 +15,7 @@ on:
 
 jobs:
   sync-schema:
-    name: Apply schema to Supabase
+    name: Apply schema to demo Supabase
     runs-on: ubuntu-latest
 
     steps:
@@ -30,4 +28,5 @@ jobs:
       - name: Run schema sync
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PGSSLMODE: require
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f database/fix_schema_sync.sql
