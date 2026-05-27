@@ -5,8 +5,7 @@ import {
   X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
   ArrowUpAZ, ArrowDownAZ, Mail, Bot, HardDrive,
-  Moon, Sun, Monitor, Type, Zap, BarChart2,
-  LayoutDashboard, Layers, Eye, EyeOff,
+  Type, Eye, EyeOff,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, DENSITY } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -140,33 +139,6 @@ function OptionRow({ label, options, value, onChange, hint }: {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-// ─── ToggleRow — a labeled on/off toggle ─────────────────────────────────────
-function ToggleRow({ label, desc, value, onChange }: { label: string; desc?: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: THEME.ink }}>{label}</div>
-        {desc && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{desc}</div>}
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        style={{
-          position: "relative", width: 46, height: 26, borderRadius: 99, flexShrink: 0,
-          background: value ? THEME.accent : THEME.line,
-          border: "none", cursor: "pointer", transition: "background 0.2s",
-        }}
-      >
-        <div style={{
-          position: "absolute", top: 3, left: value ? 22 : 3,
-          width: 20, height: 20, borderRadius: "50%",
-          background: "#fff", transition: "left 0.2s",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-        }} />
-      </button>
     </div>
   );
 }
@@ -355,33 +327,15 @@ function EditableList({ listKey, items, onUpdate }: any) {
 // ─── Section: Appearance ──────────────────────────────────────────────────────
 function AppearanceSection({
   accentKey, setAccentKey,
-  darkMode, toggleDarkMode,
   density, setDensity,
-  sidebarNav, setSidebarNav,
-  radiusKey, setRadiusKey,
   fontKey, setFontKey,
   bgStyle, setBgStyle,
-  animSpeed, setAnimSpeed,
-  chartStyle, setChartStyle,
 }: any) {
   const divider = <div style={{ borderTop: `1px solid ${THEME.line}` }} />;
 
   return (
     <Card style={{ padding: 28 }}>
       <div style={{ display: "grid", gap: 24 }}>
-
-        {/* Theme */}
-        <OptionRow
-          label="Theme"
-          value={darkMode ? "dark" : "light"}
-          onChange={v => { if ((v === "dark") !== darkMode) toggleDarkMode(); }}
-          options={[
-            { value: "light", label: "Light", icon: Sun },
-            { value: "dark",  label: "Dark",  icon: Moon },
-          ]}
-        />
-
-        {divider}
 
         {/* Accent color */}
         <div>
@@ -429,21 +383,6 @@ function AppearanceSection({
 
         {divider}
 
-        {/* Border radius */}
-        <OptionRow
-          label="Border Radius"
-          hint="Rounded corners style for cards and inputs"
-          value={radiusKey || "modern"}
-          onChange={setRadiusKey}
-          options={[
-            { value: "sharp",  label: "Sharp" },
-            { value: "modern", label: "Modern" },
-            { value: "round",  label: "Round" },
-          ]}
-        />
-
-        {divider}
-
         {/* Font */}
         <OptionRow
           label="Font"
@@ -469,45 +408,6 @@ function AppearanceSection({
             { value: "dots",  label: "Dots" },
             { value: "mesh",  label: "Mesh Gradient" },
           ]}
-        />
-
-        {divider}
-
-        {/* Animation speed */}
-        <OptionRow
-          label="Animation Speed"
-          value={animSpeed || "smooth"}
-          onChange={setAnimSpeed}
-          options={[
-            { value: "snappy",  label: "Snappy", icon: Zap },
-            { value: "smooth",  label: "Smooth" },
-            { value: "relaxed", label: "Relaxed" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Chart style */}
-        <OptionRow
-          label="Chart Curves"
-          hint="Line curve style used in all charts"
-          value={chartStyle || "monotone"}
-          onChange={setChartStyle}
-          options={[
-            { value: "monotone", label: "Monotone", icon: BarChart2 },
-            { value: "linear",   label: "Linear" },
-            { value: "natural",  label: "Natural" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Sidebar */}
-        <ToggleRow
-          label="Desktop Sidebar"
-          desc="Show the full navigation sidebar on desktop. Disable for a wider content area."
-          value={!!sidebarNav}
-          onChange={setSidebarNav}
         />
 
       </div>
@@ -1134,14 +1034,9 @@ export function SettingsTab({
       {tab === "appearance" && (
         <AppearanceSection
           accentKey={accentKey} setAccentKey={setAccentKey}
-          darkMode={darkMode} toggleDarkMode={toggleDarkMode}
           density={density} setDensity={setDensity}
-          sidebarNav={sidebarNav} setSidebarNav={setSidebarNav}
-          radiusKey={radiusKey} setRadiusKey={setRadiusKey}
           fontKey={fontKey} setFontKey={setFontKey}
           bgStyle={bgStyle} setBgStyle={setBgStyle}
-          animSpeed={animSpeed} setAnimSpeed={setAnimSpeed}
-          chartStyle={chartStyle} setChartStyle={setChartStyle}
         />
       )}
 
