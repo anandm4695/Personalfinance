@@ -51,7 +51,7 @@ import {
   Bot,
   Sparkles,
 } from "lucide-react";
-import { supabase } from "./supabaseClient";
+import { supabase, setDemoMode, isDemoDbReady } from "./supabaseClient";
 import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 
@@ -2160,10 +2160,24 @@ function FinanceDashboard() {
     return (
       <Auth 
         onLogin={setSession} 
-        onOffline={() => {
-          setSession({
-            user: { id: "offline-user", email: "demo@example.com" }
-          });
+        onOffline={async () => {
+          const demoEmail = import.meta.env.VITE_DEMO_USER_EMAIL;
+          const demoPass  = import.meta.env.VITE_DEMO_USER_PASSWORD;
+          if (isDemoDbReady && demoEmail && demoPass) {
+            setDemoMode(true);
+            const { data } = await supabase.auth.signInWithPassword({
+              email: demoEmail,
+              password: demoPass,
+            });
+            if (data?.session) {
+              setSession(data.session);
+              return;
+            }
+            // Sign-in failed — fall back to offline mode
+            setDemoMode(false);
+          }
+          // Fallback: true offline / localStorage-only mode
+          setSession({ user: { id: "offline-user", email: "demo@example.com" } } as any);
         }}
       />
     );
@@ -2638,7 +2652,7 @@ function FinanceDashboard() {
 
               {session && (
                 <button
-                  onClick={async () => { await supabase.auth.signOut().catch(() => {}); setSession(null); }}
+                  onClick={async () => { await supabase.auth.signOut().catch(() => {}); setDemoMode(false); setSession(null); }}
                   className="header-icon-btn danger"
                   aria-label="Sign out"
                   title="Sign out"
@@ -2715,7 +2729,7 @@ function FinanceDashboard() {
                 onRestoreBackup={importJSON}
                 resetAll={resetAll}
                 showToast={showToast}
-                onSignOut={async () => { await supabase.auth.signOut(); setSession(null); }}
+                onSignOut={async () => { await supabase.auth.signOut(); setDemoMode(false); setSession(null); }}
                 cleanupOrphaned={cleanupOrphanedCorporateActions}
                 updateProfile={updateProfile}
                 updateSettings={updateSettings}
