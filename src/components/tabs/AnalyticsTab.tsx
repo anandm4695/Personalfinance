@@ -142,7 +142,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       extraExpenseAmount,
       extraExpenseYear,
       fireWhatIfExtra,
-      ...initialProjection,
       [key]: val,
     };
     if (updateMasterData) {
@@ -290,7 +289,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const getExpenseAssets = (catName: string) => {
     const now = new Date();
-    const ym = now.toISOString().slice(0, 7);
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     return (state.transactions || [])
       .filter(
         (t: any) =>
@@ -558,14 +557,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
       const dueDate = getCCDueDate(c);
       if (dueDate) {
-        const ms = new Date(dueDate).getTime();
+        const [cyy, cmm, cdd] = dueDate.split("-").map(Number);
+        const ms = new Date(cyy, cmm - 1, cdd).getTime();
         const daysLeft = Math.ceil((ms - todayMs) / 86400000);
         if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: dueDate });
       }
     });
     state.subscriptions.forEach((s: any) => {
       if (s.renewalDate) {
-        const ms = new Date(s.renewalDate).getTime();
+        const [syy, smm, sdd] = s.renewalDate.split("-").map(Number);
+        const ms = new Date(syy, smm - 1, sdd).getTime();
         const daysLeft = Math.ceil((ms - todayMs) / 86400000);
         if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: s.name + " Renewal", amount: Number(s.amount || 0), daysLeft, date: s.renewalDate });
       }
@@ -616,7 +617,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     });
     // FD maturities within 30 days
     (state.fixedDeposits || []).filter((f: any) => f.maturityDate).forEach((f: any) => {
-      const ms = new Date(f.maturityDate).getTime();
+      const [fyy2, fmm2, fdd2] = f.maturityDate.split("-").map(Number);
+      const ms = new Date(fyy2, fmm2 - 1, fdd2).getTime();
       const daysLeft = Math.ceil((ms - todayMs) / 86400000);
       if (daysLeft >= 0 && ms <= plus30Ms) {
         dues.push({
@@ -662,6 +664,38 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
     return { delta, pct };
   }, [state.netWorthHistory]);
+
+  const wealthVelocity = useMemo(() => {
+    if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
+    const sorted = [...state.netWorthHistory]
+      .sort((a: any, b: any) => a.month.localeCompare(b.month))
+      .slice(-7);
+    if (sorted.length < 2) return null;
+    const changes: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const curr = sorted[i].netWorth ?? sorted[i].net_worth ?? 0;
+      const prev = sorted[i - 1].netWorth ?? sorted[i - 1].net_worth ?? 0;
+      changes.push(curr - prev);
+    }
+    const avg = changes.reduce((s, v) => s + v, 0) / changes.length;
+    const latest = changes[changes.length - 1] ?? 0;
+    const accel = changes.length >= 2 ? latest - changes[changes.length - 2] : 0;
+    return { avg, latest, accel, months: changes.length };
+  }, [state.netWorthHistory]);
+
+  const prevMonthExpenses = useMemo(() => {
+    const now = new Date();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+    const catMap: Record<string, number> = {};
+    (state.transactions || [])
+      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(prevYm))
+      .forEach((t: any) => {
+        const cat = t.category || "Uncategorized";
+        catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
+      });
+    return catMap;
+  }, [state.transactions]);
 
   const fireData = useMemo(() => {
     const annualExpense = metrics.monthExpense * 12;
@@ -1321,6 +1355,93 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <Badge variant="sage" style={{ marginTop: 16, padding: "6px 12px", fontSize: 12 }}>{dashboardData.streakMsg}</Badge>
               </div>
             </Card>
+
+            {/* Wealth Velocity + EMI Summary Row */}
+            <div className="bento-col-12" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+              {/* Wealth Velocity */}
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div className="section-label" style={{ marginBottom: 0 }}>Wealth Velocity</div>
+                  {wealthVelocity && <Badge variant="muted">{wealthVelocity.months}mo avg</Badge>}
+                </div>
+                {!wealthVelocity ? (
+                  <div style={{ color: THEME.muted, fontSize: 13, padding: "16px 0" }}>Record net worth history for 2+ months to see growth momentum</div>
+                ) : (
+                  <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: wealthVelocity.avg >= 0 ? THEME.sage : THEME.rust, lineHeight: 1, letterSpacing: "-0.02em" }}>
+                        {wealthVelocity.avg >= 0 ? "+" : ""}{fmtINRFull(wealthVelocity.avg)}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>avg growth / month</div>
+                    </div>
+                    <div style={{ flex: 1, display: "grid", gap: 10, paddingLeft: 20, borderLeft: `1px solid ${THEME.line}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 12, color: THEME.muted }}>Last month</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: wealthVelocity.latest >= 0 ? THEME.sage : THEME.rust }}>{wealthVelocity.latest >= 0 ? "+" : ""}{fmtINR(wealthVelocity.latest)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 12, color: THEME.muted }}>Momentum</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: wealthVelocity.accel > 0 ? THEME.sage : wealthVelocity.accel < 0 ? THEME.gold : THEME.muted }}>
+                          {wealthVelocity.accel > 0 ? "↑ Accelerating" : wealthVelocity.accel < 0 ? "↓ Slowing" : "→ Steady"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 12, color: THEME.muted }}>At this pace</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{wealthVelocity.avg >= 0 ? "+" : ""}{fmtINR(wealthVelocity.avg * 12)}/yr</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* EMI Summary */}
+              {(() => {
+                const activeLoans = (state.loansTaken || []).filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0);
+                const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+                const foirPct = metrics.monthIncome > 0 ? (totalEMI / metrics.monthIncome) * 100 : 0;
+                return (
+                  <Card style={{ padding: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <div className="section-label" style={{ marginBottom: 0 }}>Loan EMI Status</div>
+                      {activeLoans.length > 0 && (
+                        <Badge variant={foirPct > 50 ? "rust" : foirPct > 40 ? "gold" : "sage"}>{foirPct.toFixed(0)}% FOIR</Badge>
+                      )}
+                    </div>
+                    {activeLoans.length === 0 ? (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 60, color: THEME.sage, fontSize: 13, fontWeight: 700 }}>No active loans — debt-free!</div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 26, fontWeight: 900, color: foirPct > 50 ? THEME.rust : foirPct > 40 ? THEME.gold : THEME.sage, lineHeight: 1, letterSpacing: "-0.02em", marginBottom: 14 }}>
+                          {fmtINRFull(totalEMI)}<span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>/mo</span>
+                        </div>
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {activeLoans.slice(0, 3).map((l: any, i: number) => {
+                            const outstanding = Number(l.outstanding || 0);
+                            const emi = Number(l.emi || 0);
+                            const rate = Number(l.interestRate || 0) / 12 / 100;
+                            let months = 9999;
+                            if (rate === 0) months = Math.ceil(outstanding / emi);
+                            else { const ratio = rate * outstanding / emi; if (ratio < 1) months = Math.ceil(-Math.log(1 - ratio) / Math.log(1 + rate)); }
+                            const yrs = months < 9999 ? Math.floor(months / 12) : 0;
+                            const mo = months < 9999 ? months % 12 : 0;
+                            const timeStr = months < 9999 ? (yrs > 0 ? `${yrs}y ${mo}m` : `${mo}m`) : "—";
+                            return (
+                              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                                <div>
+                                  <div style={{ fontSize: 12, fontWeight: 700 }}>{l.loanName || l.bank || "Loan"}</div>
+                                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>Payoff: {timeStr} · {fmtINR(outstanding)} left</div>
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>{fmtINR(emi)}/mo</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                );
+              })()}
+            </div>
 
             {/* Recent Transactions */}
             <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
@@ -3203,6 +3324,50 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               )}
             </Card>
           </div>
+
+          {/* MoM Category Comparison */}
+          {metrics.expenseBreakdown?.length > 0 && (
+            <Card style={{ padding: 24, marginTop: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div>
+                  <div className="section-label" style={{ marginBottom: 4 }}>Category vs Last Month</div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>How your spending has shifted across categories</div>
+                </div>
+                <Badge variant="muted">Month-over-month</Badge>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {metrics.expenseBreakdown.slice(0, 7).map((cat: any) => {
+                  const prevVal = prevMonthExpenses[cat.name] || 0;
+                  const delta = cat.value - prevVal;
+                  const deltaPct = prevVal > 0 ? (delta / prevVal) * 100 : null;
+                  const isUp = delta > 0;
+                  const isNew = prevVal === 0 && cat.value > 0;
+                  return (
+                    <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700 }}>{cat.name}</span>
+                          <span style={{ fontSize: 14, fontWeight: 800 }}>{fmtINR(cat.value)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted }}>
+                          <span>Last month: {prevVal > 0 ? fmtINR(prevVal) : "—"}</span>
+                          {isNew ? (
+                            <span style={{ color: THEME.gold, fontWeight: 700 }}>New this month</span>
+                          ) : delta !== 0 ? (
+                            <span style={{ color: isUp ? THEME.rust : THEME.sage, fontWeight: 700 }}>
+                              {isUp ? "▲" : "▼"} {fmtINR(Math.abs(delta))}{deltaPct !== null ? ` (${Math.abs(deltaPct).toFixed(0)}%)` : ""}
+                            </span>
+                          ) : (
+                            <span style={{ color: THEME.sage, fontWeight: 600 }}>→ No change</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -3444,6 +3609,44 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }
               });
 
+              // 8. FD MATURITIES: highlight when FDs mature this month
+              (state.fixedDeposits || []).filter((f: any) => f.maturityDate).forEach((f: any) => {
+                const [fyy, fmm, fdd] = f.maturityDate.split("-").map(Number);
+                if (fyy === year && fmm - 1 === month) {
+                  const targetDay = Math.min(fdd, daysInMonth);
+                  dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: `${f.bank || "FD"} Matures`, color: THEME.sage });
+                }
+              });
+
+              // 9. SIP AUTO-DEDUCTIONS: recurring on the day the SIP was started
+              (state.sips || []).filter((s: any) => Number(s.amount || 0) > 0 && !s.isCompleted).forEach((s: any) => {
+                if (!s.startDate) return;
+                const sipStart = new Date(s.startDate + "T00:00:00");
+                if (isNaN(sipStart.getTime())) return;
+                const sipStartYear = sipStart.getFullYear();
+                const sipStartMonth = sipStart.getMonth();
+                if (year < sipStartYear || (year === sipStartYear && month < sipStartMonth)) return;
+                const sipDay = sipStart.getDate();
+                const targetDay = Math.min(sipDay, daysInMonth);
+                dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: `SIP: ${s.scheme || s.fund || "Fund"}`, color: "#818CF8" });
+              });
+
+              // 10. LOAN EMIS: recurring monthly EMI due on the loan's start day
+              (state.loansTaken || []).filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0).forEach((l: any) => {
+                let emiDay = 5;
+                if (l.startDate) {
+                  const ld = new Date(l.startDate + "T00:00:00");
+                  if (!isNaN(ld.getTime())) {
+                    const lStartYear = ld.getFullYear();
+                    const lStartMonth = ld.getMonth();
+                    if (year < lStartYear || (year === lStartYear && month < lStartMonth)) return;
+                    emiDay = ld.getDate();
+                  }
+                }
+                const targetDay = Math.min(emiDay, daysInMonth);
+                dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: `EMI: ${l.loanName || l.bank || "Loan"}`, color: THEME.rust });
+              });
+
               const cells: (number | null)[] = [];
               for (let i = 0; i < firstDay; i++) cells.push(null);
               for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -3516,11 +3719,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       );
                     })}
                   </div>
-                  <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 12 }}>
-                    <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> Credit card dues</span>
-                    <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subscriptions / Unpaid Rent</span>
+                  <div style={{ display: "flex", gap: 16, fontSize: 11, color: THEME.muted, marginTop: 12, flexWrap: "wrap" }}>
+                    <span><span style={{ color: THEME.rust, fontWeight: 700 }}>●</span> CC dues / EMIs</span>
+                    <span><span style={{ color: THEME.gold, fontWeight: 700 }}>●</span> Subs / Unpaid Rent</span>
                     <span><span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> Advance tax</span>
-                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance / Paid Rent</span>
+                    <span><span style={{ color: THEME.sage, fontWeight: 700 }}>●</span> Insurance / FD maturity / Paid Rent</span>
+                    <span><span style={{ color: "#818CF8", fontWeight: 700 }}>●</span> SIP deductions</span>
                   </div>
                 </>
               );
