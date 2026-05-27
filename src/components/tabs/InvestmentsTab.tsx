@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Coins,
   Repeat,
@@ -19,6 +19,13 @@ import {
   CheckCircle2,
   AlertCircle,
   List,
+  Calendar,
+  Clock,
+  Zap,
+  PiggyBank,
+  Target,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, today, uid, monthsBetween } from "../../utils/finance";
@@ -72,6 +79,24 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
 
   // ── FD State ──
   const [fd, setFd] = useState({ bank: "", principal: "", rate: "", years: "", startDate: today(), maturityDate: "" });
+  const calcFdMaturity = (startDate: string, years: string) => {
+    if (!startDate || !years || isNaN(Number(years))) return "";
+    const d = new Date(startDate);
+    const totalMonths = Math.round(Number(years) * 12);
+    d.setMonth(d.getMonth() + totalMonths);
+    return d.toISOString().slice(0, 10);
+  };
+  const setFdField = (field: string, value: string) => {
+    setFd(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "startDate" || field === "years") {
+        const sDate = field === "startDate" ? value : prev.startDate;
+        const yrs   = field === "years"     ? value : prev.years;
+        next.maturityDate = calcFdMaturity(sDate, yrs);
+      }
+      return next;
+    });
+  };
   // ── RD State ──
   const [rd, setRd] = useState({ bank: "", monthly: "", rate: "", tenureMonths: "", startDate: today() });
   // ── Bond State ──
@@ -151,25 +176,33 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       {sub === "fd" && (
         <>
           <Field label="Bank / Institution">
-            <input style={inp} value={fd.bank} onChange={e => setFd({ ...fd, bank: e.target.value })} placeholder="e.g. SBI, HDFC Bank" />
+            <input style={inp} value={fd.bank} onChange={e => setFdField("bank", e.target.value)} placeholder="e.g. SBI, HDFC Bank" />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Principal Amount (₹)">
-              <input style={inp} type="number" value={fd.principal} onChange={e => setFd({ ...fd, principal: e.target.value })} placeholder="500000" />
+              <input style={inp} type="number" value={fd.principal} onChange={e => setFdField("principal", e.target.value)} placeholder="500000" />
             </Field>
             <Field label="Interest Rate (% p.a.)">
-              <input style={inp} type="number" value={fd.rate} onChange={e => setFd({ ...fd, rate: e.target.value })} placeholder="7.5" step="0.1" />
+              <input style={inp} type="number" value={fd.rate} onChange={e => setFdField("rate", e.target.value)} placeholder="7.5" step="0.1" />
             </Field>
             <Field label="Tenure (Years)">
-              <input style={inp} type="number" value={fd.years} onChange={e => setFd({ ...fd, years: e.target.value })} placeholder="2" step="0.5" />
+              <input style={inp} type="number" value={fd.years} onChange={e => setFdField("years", e.target.value)} placeholder="2" step="0.5" />
             </Field>
             <Field label="Start Date">
-              <input style={inp} type="date" value={fd.startDate} onChange={e => setFd({ ...fd, startDate: e.target.value })} />
+              <input style={inp} type="date" value={fd.startDate} onChange={e => setFdField("startDate", e.target.value)} />
             </Field>
           </div>
           <Field label="Maturity Date">
-            <input style={inp} type="date" value={fd.maturityDate} onChange={e => setFd({ ...fd, maturityDate: e.target.value })} />
+            <input style={inp} type="date" value={fd.maturityDate} onChange={e => setFdField("maturityDate", e.target.value)} />
           </Field>
+          {fd.principal && fd.rate && fd.years && (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
+              <span style={{ fontWeight: 900, color: "#d97706", fontSize: 15 }}>
+                {fmtINRFull(fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years)))}
+              </span>
+            </div>
+          )}
         </>
       )}
 
@@ -424,11 +457,41 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
   const canAdd = sub !== "income";
 
+  // ── Portfolio Calculation Helpers ──────────────────────────────────────
+  // FD accrued value: use elapsed years not full tenure (shows real current worth)
+  const fdCurrentValue = (x: any) => {
+    const principal = Number(x.principal) || 0;
+    const rate = Number(x.rate) || 0;
+    const years = Number(x.years) || 0;
+    if (!years || !principal) return principal;
+    // If already matured, return full maturity value
+    if (x.maturityDate) {
+      const [y, m, d] = String(x.maturityDate).split("-").map(Number);
+      if (new Date(y, m - 1, d) <= new Date()) return fdMaturity(principal, rate, years);
+    }
+    const elapsedYears = x.startDate
+      ? Math.min(years, monthsBetween(x.startDate, today()) / 12)
+      : years;
+    return fdMaturity(principal, rate, Math.max(0, elapsedYears));
+  };
+
+  // RD: only count installments actually deposited, and accrue interest on those
+  const rdElapsed = (x: any) =>
+    x.startDate
+      ? Math.min(Number(x.tenureMonths) || 0, Math.max(0, monthsBetween(x.startDate, today())))
+      : Number(x.tenureMonths) || 0;
+
+  const rdCurrentValue = (x: any) =>
+    rdMaturity(Number(x.monthly) || 0, Number(x.rate) || 0, rdElapsed(x));
+
+  const rdPrincipal = (x: any) =>
+    (Number(x.monthly) || 0) * rdElapsed(x);
+
   // Portfolio Calculations
-  const totalPrincipal = 
+  const totalPrincipal =
     (state.fixedDeposits?.reduce((s: number, x: any) => s + (Number(x.principal) || 0), 0) || 0) +
-    (state.recurringDeposits?.reduce((s: number, x: any) => s + (Number(x.monthly) * (Number(x.tenureMonths) || 0)), 0) || 0) +
-    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.faceValue) || 0), 0) || 0) +
+    (state.recurringDeposits?.reduce((s: number, x: any) => s + rdPrincipal(x), 0) || 0) +
+    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0), 0) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
@@ -436,9 +499,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
 
   const totalCurrent =
-    (state.fixedDeposits?.reduce((s: number, x: any) => s + fdMaturity(Number(x.principal), Number(x.rate), Number(x.years)), 0) || 0) +
-    (state.recurringDeposits?.reduce((s: number, x: any) => s + rdMaturity(Number(x.monthly), Number(x.rate), Number(x.tenureMonths)), 0) || 0) +
-    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.faceValue) || 0), 0) || 0) +
+    (state.fixedDeposits?.reduce((s: number, x: any) => s + fdCurrentValue(x), 0) || 0) +
+    (state.recurringDeposits?.reduce((s: number, x: any) => s + rdCurrentValue(x), 0) || 0) +
+    (state.bonds?.reduce((s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0), 0) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
@@ -452,13 +515,13 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   const renderContent = () => {
     const onAdd = () => setShowModal(true);
     switch (sub) {
-      case "fd":    return <FDSection   items={state.fixedDeposits}     removeItem={removeItem} onAdd={onAdd} />;
-      case "rd":    return <RDSection   items={state.recurringDeposits} removeItem={removeItem} onAdd={onAdd} />;
+      case "fd":    return <FDSection   items={state.fixedDeposits}     removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
+      case "rd":    return <RDSection   items={state.recurringDeposits} removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "bond":  return <BondSection items={state.bonds}             removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "ppf":   return <PPFSection  items={state.ppf}               removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
-      case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} onAdd={onAdd} />;
+      case "nps":   return <NPSSection  items={state.nps}               removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "epf":   return <EPFSection  items={state.epf || []}         removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
-      case "mf":    return <MFSection   items={state.mutualFunds}       removeItem={removeItem} onAdd={onAdd} />;
+      case "mf":    return <MFSection   items={state.mutualFunds}       removeItem={removeItem} updateItem={updateItem} onAdd={onAdd} />;
       case "income":return <YieldTracker state={state} />;
       default:      return null;
     }
@@ -677,6 +740,192 @@ function EditBondModal({ bond: initial, onClose, onSave }: any) {
   );
 }
 
+/* ── Edit FD Modal ───────────────────────────────────────────────────── */
+function EditFDModal({ fd: initial, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    bank: initial.bank || "",
+    principal: initial.principal != null ? String(initial.principal) : "",
+    rate: initial.rate != null ? String(initial.rate) : "",
+    years: initial.years != null ? String(initial.years) : "",
+    startDate: initial.startDate || today(),
+    maturityDate: initial.maturityDate || "",
+  });
+
+  const calcMaturity = (sd: string, yrs: string) => {
+    if (!sd || !yrs || isNaN(Number(yrs))) return "";
+    const d = new Date(sd);
+    d.setMonth(d.getMonth() + Math.round(Number(yrs) * 12));
+    return d.toISOString().slice(0, 10);
+  };
+  const setField = (field: string, value: string) => {
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "startDate" || field === "years") {
+        const sd  = field === "startDate" ? value : prev.startDate;
+        const yrs = field === "years"     ? value : prev.years;
+        next.maturityDate = calcMaturity(sd, yrs);
+      }
+      return next;
+    });
+  };
+
+  const maturity = fdMaturity(Number(form.principal), Number(form.rate), Number(form.years));
+
+  return (
+    <Modal title="Edit Fixed Deposit" onClose={onClose}>
+      <Field label="Bank / Institution">
+        <input style={inp} value={form.bank} onChange={e => setField("bank", e.target.value)} placeholder="e.g. SBI, HDFC Bank" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Principal Amount (₹)">
+          <input style={inp} type="number" value={form.principal} onChange={e => setField("principal", e.target.value)} placeholder="500000" />
+        </Field>
+        <Field label="Interest Rate (% p.a.)">
+          <input style={inp} type="number" value={form.rate} onChange={e => setField("rate", e.target.value)} placeholder="7.5" step="0.1" />
+        </Field>
+        <Field label="Tenure (Years)">
+          <input style={inp} type="number" value={form.years} onChange={e => setField("years", e.target.value)} placeholder="2" step="0.5" />
+        </Field>
+        <Field label="Start Date">
+          <input style={inp} type="date" value={form.startDate} onChange={e => setField("startDate", e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Maturity Date">
+        <input style={inp} type="date" value={form.maturityDate} onChange={e => setField("maturityDate", e.target.value)} />
+      </Field>
+      {form.principal && form.rate && form.years && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
+          <span style={{ fontWeight: 900, color: "#d97706", fontSize: 15 }}>{fmtINRFull(maturity)}</span>
+        </div>
+      )}
+      <ModalActions onSave={() => form.bank && form.principal && form.rate && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
+
+/* ── Edit RD Modal ───────────────────────────────────────────────────── */
+function EditRDModal({ rd: initial, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    bank: initial.bank || "",
+    monthly: initial.monthly != null ? String(initial.monthly) : "",
+    rate: initial.rate != null ? String(initial.rate) : "",
+    tenureMonths: initial.tenureMonths != null ? String(initial.tenureMonths) : "",
+    startDate: initial.startDate || today(),
+  });
+  const maturity = rdMaturity(Number(form.monthly), Number(form.rate), Number(form.tenureMonths));
+  return (
+    <Modal title="Edit Recurring Deposit" onClose={onClose}>
+      <Field label="Bank / Institution">
+        <input style={inp} value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })} placeholder="e.g. Axis Bank" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Monthly Installment (₹)">
+          <input style={inp} type="number" value={form.monthly} onChange={e => setForm({ ...form, monthly: e.target.value })} placeholder="10000" />
+        </Field>
+        <Field label="Interest Rate (% p.a.)">
+          <input style={inp} type="number" value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} placeholder="7.0" step="0.1" />
+        </Field>
+        <Field label="Tenure (Months)">
+          <input style={inp} type="number" value={form.tenureMonths} onChange={e => setForm({ ...form, tenureMonths: e.target.value })} placeholder="24" />
+        </Field>
+        <Field label="Start Date">
+          <input style={inp} type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} />
+        </Field>
+      </div>
+      {form.monthly && form.rate && form.tenureMonths && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
+          <span style={{ fontWeight: 900, color: "#0284c7", fontSize: 15 }}>{fmtINRFull(maturity)}</span>
+        </div>
+      )}
+      <ModalActions onSave={() => form.bank && form.monthly && form.rate && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
+
+/* ── Edit MF Modal ────────────────────────────────────────────────────── */
+function EditMFModal({ mf: initial, onClose, onSave }: any) {
+  const { mfCategories } = useMasterData();
+  const [form, setForm] = useState({
+    name: initial.name || "",
+    category: initial.category || "Equity",
+    invested: initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
+    units: initial.units != null ? String(initial.units) : "",
+    currentNav: initial.currentNav != null ? String(initial.currentNav) : "",
+  });
+  const current = (Number(form.units) * Number(form.currentNav)) || 0;
+  const invested = Number(form.invested) || 0;
+  const pnl = current - invested;
+  const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+  return (
+    <Modal title="Edit Mutual Fund" onClose={onClose}>
+      <Field label="Fund Name">
+        <input style={inp} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Mirae Asset Large Cap Fund" />
+      </Field>
+      <Field label="Category">
+        <select style={inp} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+          {mfCategories.map((c: string) => <option key={c}>{c}</option>)}
+        </select>
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Amount Invested (₹)">
+          <input style={inp} type="number" value={form.invested} onChange={e => setForm({ ...form, invested: e.target.value })} placeholder="100000" />
+        </Field>
+        <Field label="Units Held">
+          <input style={inp} type="number" value={form.units} onChange={e => setForm({ ...form, units: e.target.value })} placeholder="1234.56" step="0.01" />
+        </Field>
+        <Field label="Current NAV (₹)">
+          <input style={inp} type="number" value={form.currentNav} onChange={e => setForm({ ...form, currentNav: e.target.value })} placeholder="93.22" step="0.01" />
+        </Field>
+      </div>
+      {current > 0 && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
+            <div style={{ fontWeight: 900, color: THEME.accent, fontSize: 15 }}>{fmtINRFull(current)}</div>
+          </div>
+          <div style={{ textAlign: "right" as const }}>
+            <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+              {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+            </div>
+          </div>
+        </div>
+      )}
+      <ModalActions onSave={() => form.name && form.invested && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
+
+/* ── Edit NPS Modal ────────────────────────────────────────────────────── */
+function EditNPSModal({ nps: initial, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    tier: initial.tier || "I",
+    pran: initial.pran || "",
+    balance: initial.balance != null ? String(initial.balance) : "",
+  });
+  return (
+    <Modal title="Edit NPS Account" onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Tier">
+          <select style={inp} value={form.tier} onChange={e => setForm({ ...form, tier: e.target.value })}>
+            <option value="I">Tier I</option>
+            <option value="II">Tier II</option>
+          </select>
+        </Field>
+        <Field label="PRAN Number">
+          <input style={inp} value={form.pran} onChange={e => setForm({ ...form, pran: e.target.value })} placeholder="12-digit PRAN" />
+        </Field>
+      </div>
+      <Field label="Current Corpus (₹)">
+        <input style={inp} type="number" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} placeholder="500000" />
+      </Field>
+      <ModalActions onSave={() => form.balance && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
+    </Modal>
+  );
+}
+
 /* ── Investment-specific empty state ────────────────────────────────── */
 function InvestmentEmptyState({ icon: Icon, gradient, dotColor, title, description, pills, buttonLabel, onAdd }: any) {
   return (
@@ -705,94 +954,221 @@ function InvestmentEmptyState({ icon: Icon, gradient, dotColor, title, descripti
 }
 
 /* ── FD Section ─────────────────────────────────────────────────────── */
-const FDSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={Coins}
-          gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)"
-          dotColor="#f59e0b"
-          title="No Fixed Deposits Added Yet"
-          description="Track all your FD accounts — bank, interest rate, maturity date, and projected returns in one place."
-          pills={["Principal Amount", "Interest Rate", "Maturity Date", "Projected Returns"]}
-          buttonLabel="Add Fixed Deposit"
-          onAdd={onAdd}
+function FDSection({ items, removeItem, updateItem, onAdd }: any) {
+  const [editFD, setEditFD] = useState<any>(null);
+
+  const fdDaysLeft = (f: any) => {
+    if (!f.maturityDate) return null;
+    const [y, m, d] = String(f.maturityDate).split("-").map(Number);
+    const matDate = new Date(y, m - 1, d);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    return Math.ceil((matDate.getTime() - now.getTime()) / 86400000);
+  };
+
+  const totalInvested   = items.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
+  const totalMaturity   = items.reduce((s: number, f: any) => s + fdMaturity(Number(f.principal), Number(f.rate), Number(f.years)), 0);
+  const avgRate         = items.length > 0 ? items.reduce((s: number, f: any) => s + Number(f.rate || 0), 0) / items.length : 0;
+  const maturedCount    = items.filter((f: any) => (fdDaysLeft(f) ?? 1) < 0).length;
+  const FD_AMBER        = "#d97706";
+
+  return (
+    <div className="animate-fade-in-up">
+      {items.length === 0
+        ? <InvestmentEmptyState
+            icon={Coins}
+            gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)"
+            dotColor="#f59e0b"
+            title="No Fixed Deposits Added Yet"
+            description="Track all your FD accounts — bank, interest rate, maturity date, and projected returns in one place."
+            pills={["Principal Amount", "Interest Rate", "Maturity Date", "Projected Returns"]}
+            buttonLabel="Add Fixed Deposit"
+            onAdd={onAdd}
+          />
+        : (
+          <>
+            {/* Summary strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+              {[
+                { label: "Total Invested", value: fmtINRFull(totalInvested), color: FD_AMBER },
+                { label: "Total Maturity", value: fmtINRFull(totalMaturity), color: THEME.sage },
+                { label: "Avg. Rate", value: `${avgRate.toFixed(2)}%`, color: THEME.accent },
+                { label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active", value: String(items.length - maturedCount), color: maturedCount > 0 ? THEME.rust : THEME.sage },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              {items.map((f: any) => {
+                const maturity = fdMaturity(Number(f.principal), Number(f.rate), Number(f.years));
+                const daysLeft = fdDaysLeft(f);
+                const isMatured = daysLeft !== null && daysLeft < 0;
+                const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+                const accrued = (() => {
+                  if (!f.startDate || !f.years) return Number(f.principal) || 0;
+                  const elapsed = Math.min(Number(f.years), Math.max(0, monthsBetween(f.startDate, today()) / 12));
+                  return fdMaturity(Number(f.principal), Number(f.rate), elapsed);
+                })();
+                const gain = accrued - (Number(f.principal) || 0);
+                const borderColor = isMatured ? THEME.muted : isDueSoon ? THEME.rust : FD_AMBER;
+                const lbl = { fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 3 };
+
+                return (
+                  <Card key={f.id} style={{ padding: 20, borderTop: `3px solid ${borderColor}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                        <Badge variant={isMatured ? "muted" : "gold"}>{f.bank}</Badge>
+                        {isMatured && <Badge variant="muted">Matured</Badge>}
+                        {isDueSoon && !isMatured && <Badge variant="rust">{daysLeft === 0 ? "Today!" : `${daysLeft}d left`}</Badge>}
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditFD(f)} />
+                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("fixedDeposits", f.id)} />
+                      </div>
+                    </div>
+
+                    <div style={lbl}>Principal</div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: FD_AMBER, letterSpacing: "-0.02em", marginBottom: 14 }}>
+                      <Prv>{fmtINRFull(Number(f.principal))}</Prv>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 14 }}>
+                      {[
+                        ["Rate", `${f.rate}%`],
+                        ["Tenure", `${f.years}y`],
+                        ["Start", f.startDate ? f.startDate.slice(5).replace("-", "/") : "—"],
+                        ["Maturity", f.maturityDate ? f.maturityDate.slice(5).replace("-", "/") : "—"],
+                      ].map(([l, v]) => (
+                        <div key={l} style={{ padding: "7px 6px", background: "rgba(217,119,6,0.06)", borderRadius: 8, border: "1px solid rgba(217,119,6,0.14)", textAlign: "center" as const }}>
+                          <div style={{ ...lbl, marginBottom: 2 }}>{l}</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
+                        <div style={lbl}>Current Accrued</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(accrued)}</Prv></div>
+                        <div style={{ fontSize: 10, color: THEME.sage }}>+{fmtINR(gain)} gain</div>
+                      </div>
+                      <div>
+                        <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}><Prv>{fmtINR(maturity)}</Prv></div>
+                        {!isMatured && daysLeft !== null && (
+                          <div style={{ fontSize: 10, color: daysLeft <= 30 ? THEME.rust : THEME.muted, display: "flex", alignItems: "center", gap: 3 }}>
+                            <Clock size={9} /> {daysLeft === 0 ? "Today" : `${daysLeft}d away`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
+        )}
+      {editFD && (
+        <EditFDModal
+          fd={editFD}
+          onClose={() => setEditFD(null)}
+          onSave={(updated: any) => { updateItem("fixedDeposits", editFD.id, updated); setEditFD(null); }}
         />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((f: any) => {
-            const maturity = fdMaturity(Number(f.principal), Number(f.rate), Number(f.years));
-            return (
-              <Card key={f.id} style={{ padding: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                  <Badge variant="muted">{f.bank}</Badge>
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("fixedDeposits", f.id)} />
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 16 }}><Prv>{fmtINRFull(f.principal)}</Prv></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Rate: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.rate}%</span></div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Tenure: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.years} yrs</span></div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Start: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.startDate || "—"}</span></div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Matures: <span style={{ color: THEME.ink, fontWeight: 700 }}>{f.maturityDate || "—"}</span></div>
-                </div>
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-                  <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 15 }}>{fmtINR(maturity)}</span>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
       )}
-  </div>
-);
+    </div>
+  );
+}
 
 /* ── RD Section ─────────────────────────────────────────────────────── */
-const RDSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={Repeat}
-          gradient="linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)"
-          dotColor="#0ea5e9"
-          title="No Recurring Deposits Added Yet"
-          description="Track your monthly RD installments, interest rate, tenure, and projected maturity value."
-          pills={["Monthly Installment", "Interest Rate", "Tenure", "Maturity Value"]}
-          buttonLabel="Add Recurring Deposit"
-          onAdd={onAdd}
+function RDSection({ items, removeItem, updateItem, onAdd }: any) {
+  const [editRD, setEditRD] = useState<any>(null);
+  const RD_BLUE = "#0284c7";
+
+  return (
+    <div className="animate-fade-in-up">
+      {items.length === 0
+        ? <InvestmentEmptyState
+            icon={Repeat}
+            gradient="linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)"
+            dotColor="#0ea5e9"
+            title="No Recurring Deposits Added Yet"
+            description="Track your monthly RD installments, interest rate, tenure, and projected maturity value."
+            pills={["Monthly Installment", "Interest Rate", "Tenure", "Maturity Value"]}
+            buttonLabel="Add Recurring Deposit"
+            onAdd={onAdd}
+          />
+        : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+            {items.map((r: any) => {
+              const tenureMonths = Number(r.tenureMonths) || 0;
+              const elapsed = r.startDate ? Math.max(0, monthsBetween(r.startDate, today())) : 0;
+              const elapsedCapped = Math.min(elapsed, tenureMonths);
+              const isMatured = elapsed >= tenureMonths && tenureMonths > 0;
+              const progressPct = Math.min(100, tenureMonths > 0 ? (elapsedCapped / tenureMonths) * 100 : 0);
+              const deposited = (Number(r.monthly) || 0) * elapsedCapped;
+              const currentVal = rdMaturity(Number(r.monthly), Number(r.rate), elapsedCapped);
+              const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
+              const gain = currentVal - deposited;
+              const lbl = { fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 3 };
+
+              return (
+                <Card key={r.id} style={{ padding: 20, borderTop: `3px solid ${isMatured ? THEME.muted : RD_BLUE}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                      <Badge variant="muted">{r.bank}</Badge>
+                      {isMatured && <Badge variant="muted">Matured</Badge>}
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditRD(r)} />
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("recurringDeposits", r.id)} />
+                    </div>
+                  </div>
+
+                  <div style={lbl}>Monthly Installment</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: RD_BLUE, marginBottom: 4, letterSpacing: "-0.02em" }}>
+                    {fmtINRFull(Number(r.monthly))}<span style={{ fontSize: 14, color: THEME.muted }}>/mo</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
+                    {r.rate}% p.a. · {tenureMonths} months
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginBottom: 5 }}>
+                    <span>{elapsedCapped} of {tenureMonths} months</span>
+                    <span style={{ fontWeight: 700, color: isMatured ? THEME.muted : RD_BLUE }}>{progressPct.toFixed(0)}%</span>
+                  </div>
+                  <div className="progress-track" style={{ marginBottom: 14 }}>
+                    <div className="progress-fill" style={{ width: `${progressPct}%`, background: isMatured ? THEME.muted : RD_BLUE }} />
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={lbl}>Deposited</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(deposited)}</Prv></div>
+                      <div style={{ fontSize: 10, color: THEME.sage }}>+{fmtINR(gain)} interest</div>
+                    </div>
+                    <div>
+                      <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}><Prv>{fmtINR(isMatured ? currentVal : fullMaturity)}</Prv></div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      {editRD && (
+        <EditRDModal
+          rd={editRD}
+          onClose={() => setEditRD(null)}
+          onSave={(updated: any) => { updateItem("recurringDeposits", editRD.id, updated); setEditRD(null); }}
         />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((r: any) => {
-            const maturity = rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths));
-            const elapsed = r.startDate ? monthsBetween(r.startDate, today()) : 0;
-            const progressPct = Math.min(100, Math.max(0, (elapsed / (Number(r.tenureMonths) || 1)) * 100));
-            return (
-              <Card key={r.id} style={{ padding: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                  <Badge variant="muted">{r.bank}</Badge>
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("recurringDeposits", r.id)} />
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 4 }}>
-                  {fmtINRFull(r.monthly)}<span style={{ fontSize: 14, color: THEME.muted }}>/mo</span>
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
-                  {r.rate}% p.a. · {r.tenureMonths} months
-                </div>
-                <div className="progress-track" style={{ marginBottom: 12 }}>
-                  <div className="progress-fill" style={{ width: `${progressPct}%`, background: THEME.accent }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                  <span style={{ color: THEME.muted }}>Projected Maturity</span>
-                  <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(maturity)}</span>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
       )}
-  </div>
-);
+    </div>
+  );
+}
 
 /* ── Bond Section ───────────────────────────────────────────────────── */
 function BondSection({ items, removeItem, updateItem, onAdd }: any) {
@@ -808,13 +1184,17 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
 
   const maturityCountdown = (dateStr: string) => {
     if (!dateStr) return null;
-    const days = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
-    if (days < 0) return { text: "Matured", color: THEME.muted };
-    if (days <= 30) return { text: `${days}d left`, color: THEME.rust };
-    if (days <= 365) return { text: `${Math.ceil(days / 30)}m left`, color: "#d97706" };
+    const [y, m, d] = String(dateStr).split("-").map(Number);
+    const matDate = new Date(y, m - 1, d);
+    const nowDate = new Date(); nowDate.setHours(0, 0, 0, 0);
+    const days = Math.ceil((matDate.getTime() - nowDate.getTime()) / 86400000);
+    if (days < 0) return { text: "Matured", color: THEME.muted, matured: true };
+    if (days === 0) return { text: "Matures today!", color: THEME.rust, matured: false };
+    if (days <= 30) return { text: `${days}d left`, color: THEME.rust, matured: false };
+    if (days <= 365) return { text: `${Math.ceil(days / 30)}m left`, color: "#d97706", matured: false };
     const yrs = Math.floor(days / 365);
     const mos = Math.ceil((days % 365) / 30);
-    return { text: `${yrs}y ${mos}m`, color: THEME.muted };
+    return { text: `${yrs}y ${mos}m`, color: THEME.muted, matured: false };
   };
 
   const BOND_AMBER = "#d97706";
@@ -1287,38 +1667,65 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 );
 
 /* ── NPS Section ────────────────────────────────────────────────────── */
-const NPSSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={Briefcase}
-          gradient="linear-gradient(135deg,#c2410c 0%,#fb923c 100%)"
-          dotColor="#ea580c"
-          title="No NPS Account Added Yet"
-          description="Track your National Pension System corpus — Tier I and Tier II accounts with PRAN details."
-          pills={["Tier I Account", "Tier II Account", "PRAN Number", "Corpus Growth"]}
-          buttonLabel="Add NPS Account"
-          onAdd={onAdd}
+function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
+  const [editNPS, setEditNPS] = useState<any>(null);
+  const totalCorpus = items.reduce((s: number, n: any) => s + (Number(n.balance) || 0), 0);
+  const NPS_ORANGE = "#c2410c";
+
+  return (
+    <div className="animate-fade-in-up">
+      {items.length === 0
+        ? <InvestmentEmptyState
+            icon={Briefcase}
+            gradient="linear-gradient(135deg,#c2410c 0%,#fb923c 100%)"
+            dotColor="#ea580c"
+            title="No NPS Account Added Yet"
+            description="Track your National Pension System corpus — Tier I and Tier II accounts with PRAN details."
+            pills={["Tier I Account", "Tier II Account", "PRAN Number", "Corpus Growth"]}
+            buttonLabel="Add NPS Account"
+            onAdd={onAdd}
+          />
+        : (
+          <>
+            {items.length > 1 && (
+              <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", fontWeight: 700 }}>Total NPS Corpus</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: NPS_ORANGE }}><Prv>{fmtINRFull(totalCorpus)}</Prv></div>
+              </div>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              {items.map((n: any) => (
+                <Card key={n.id} style={{ padding: 20, borderTop: `3px solid ${NPS_ORANGE}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                    <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditNPS(n)} />
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Current Corpus</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE }}><Prv>{fmtINRFull(n.balance)}</Prv></div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>
+                    PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{n.pran || "—"}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 6 }}>
+                    {n.tier === "II" ? "Tier II — fully withdrawable" : "Tier I — locked till retirement (60%)"}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+      {editNPS && (
+        <EditNPSModal
+          nps={editNPS}
+          onClose={() => setEditNPS(null)}
+          onSave={(updated: any) => { updateItem("nps", editNPS.id, updated); setEditNPS(null); }}
         />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((n: any) => (
-            <Card key={n.id} style={{ padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
-                <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
-              </div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>Current Corpus</div>
-              <div style={{ fontSize: 28, fontWeight: 900 }}>{fmtINRFull(n.balance)}</div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>
-                PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{n.pran || "—"}</span>
-              </div>
-            </Card>
-          ))}
-        </div>
       )}
-  </div>
-);
+    </div>
+  );
+}
 
 /* ── EPF Account Card ────────────────────────────────────────────────── */
 const EPF_TX_TYPES = [
@@ -2329,98 +2736,264 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 );
 
 /* ── MF Section ─────────────────────────────────────────────────────── */
-const MFSection = ({ items, removeItem, onAdd }: any) => (
-  <div className="animate-fade-in-up">
-    {items.length === 0
-      ? <InvestmentEmptyState
-          icon={BarChart3}
-          gradient="linear-gradient(135deg,#5b21b6 0%,#8b5cf6 100%)"
-          dotColor="#7c3aed"
-          title="No Mutual Funds Added Yet"
-          description="Track all your MF investments — fund name, category, NAV, units, invested value, and P&L returns."
-          pills={["Invested Value", "Current Value", "P&L Returns", "NAV Tracking"]}
-          buttonLabel="Add Mutual Fund"
-          onAdd={onAdd}
+function MFSection({ items, removeItem, updateItem, onAdd }: any) {
+  const [editMF, setEditMF] = useState<any>(null);
+
+  const totalInvested = items.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || 0), 0);
+  const totalCurrent  = items.reduce((s: number, m: any) => s + ((Number(m.units || 0) * Number(m.currentNav || 0)) || Number(m.invested || m.investedValue) || 0), 0);
+  const totalPnl      = totalCurrent - totalInvested;
+  const totalPnlPct   = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
+
+  return (
+    <div className="animate-fade-in-up">
+      {items.length === 0
+        ? <InvestmentEmptyState
+            icon={BarChart3}
+            gradient="linear-gradient(135deg,#5b21b6 0%,#8b5cf6 100%)"
+            dotColor="#7c3aed"
+            title="No Mutual Funds Added Yet"
+            description="Track all your MF investments — fund name, category, NAV, units, invested value, and P&L returns."
+            pills={["Invested Value", "Current Value", "P&L Returns", "NAV Tracking"]}
+            buttonLabel="Add Mutual Fund"
+            onAdd={onAdd}
+          />
+        : (
+          <>
+            {/* Summary strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+              {[
+                { label: "Total Invested", value: fmtINRFull(totalInvested), color: THEME.accent },
+                { label: "Current Value",  value: fmtINRFull(totalCurrent),  color: THEME.sage },
+                { label: "Overall P&L",    value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              {items.map((m: any) => {
+                const current = (Number(m.units || 0) * Number(m.currentNav || 0)) || 0;
+                const invested = Number(m.invested || m.investedValue) || 0;
+                const pnl = current - invested;
+                const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+                const lbl = { fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 3 };
+                return (
+                  <Card key={m.id} style={{ padding: 20, borderTop: `3px solid ${THEME.accent}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                      <Badge variant="accent">{m.category || "Equity"}</Badge>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditMF(m)} />
+                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("mutualFunds", m.id)} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, lineHeight: 1.3 }}>{m.name}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                      <div>
+                        <div style={lbl}>Invested</div>
+                        <div style={{ fontWeight: 800, fontSize: 13 }}><Prv>{fmtINR(invested)}</Prv></div>
+                      </div>
+                      <div>
+                        <div style={lbl}>Current</div>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: THEME.accent }}><Prv>{fmtINR(current || invested)}</Prv></div>
+                      </div>
+                      <div>
+                        <div style={lbl}>Units</div>
+                        <div style={{ fontWeight: 700, fontSize: 12, color: THEME.muted }}>{m.units ? Number(m.units).toLocaleString("en-IN", { maximumFractionDigits: 3 }) : "—"}</div>
+                      </div>
+                    </div>
+                    {m.currentNav && (
+                      <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 12 }}>
+                        NAV: <span style={{ color: THEME.ink, fontWeight: 700 }}>₹{Number(m.currentNav).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted }}>P&L</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                        {current > 0 ? `${pnl >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%` : "—"}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
+        )}
+      {editMF && (
+        <EditMFModal
+          mf={editMF}
+          onClose={() => setEditMF(null)}
+          onSave={(updated: any) => { updateItem("mutualFunds", editMF.id, updated); setEditMF(null); }}
         />
-      : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {items.map((m: any) => {
-            const current = (Number(m.units || 0) * Number(m.currentNav || 0)) || 0;
-            const invested = Number(m.invested || m.investedValue) || 0;
-            const pnl = current - invested;
-            const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
-            return (
-              <Card key={m.id} style={{ padding: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                  <Badge variant="accent">{m.category || "Equity"}</Badge>
-                  <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("mutualFunds", m.id)} />
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, lineHeight: 1.3 }}>{m.name}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", marginBottom: 2 }}>Invested</div>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{fmtINR(invested)}</div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", marginBottom: 2 }}>Current</div>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: THEME.accent }}>{fmtINR(current)}</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>Returns</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
       )}
-  </div>
-);
+    </div>
+  );
+}
 
 
 /* ── Yield Tracker ──────────────────────────────────────────────────── */
 const YieldTracker = ({ state }: any) => {
-  const fdInterest = state.fixedDeposits.reduce((s: number, f: any) => s + (Number(f.principal) * Number(f.rate)) / 100, 0);
-  const bondInterest = state.bonds.reduce((s: number, b: any) =>
-    s + (Number(b.totalPrincipalAmount || b.faceValue || 0) * Number(b.coupon || 0)) / 100, 0);
-  const totalAnnual = fdInterest + bondInterest;
+  const PPF_RATE  = 7.1;
+  const EPF_RATE  = 8.25;
+  const RD_NOTE   = "based on current interest rate";
+
+  // FD: only count active (non-matured) FDs
+  const fdInterest = (state.fixedDeposits || []).reduce((s: number, f: any) => {
+    if (f.maturityDate) {
+      const [y, m, d] = String(f.maturityDate).split("-").map(Number);
+      if (new Date(y, m - 1, d) < new Date()) return s; // skip matured
+    }
+    return s + (Number(f.principal) * Number(f.rate || 0)) / 100;
+  }, 0);
+
+  // Bond coupon
+  const bondInterest = (state.bonds || []).reduce((s: number, b: any) => {
+    const principal = Number(b.totalPrincipalAmount || 0) || (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) || Number(b.faceValue || 0);
+    return s + (principal * Number(b.coupon || 0)) / 100;
+  }, 0);
+
+  // RD: interest = maturityValue - deposited (annualised)
+  const rdInterest = (state.recurringDeposits || []).reduce((s: number, r: any) => {
+    const tenureMonths = Number(r.tenureMonths) || 0;
+    if (!tenureMonths) return s;
+    const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
+    const fullDeposited = (Number(r.monthly) || 0) * tenureMonths;
+    const annualisedInterest = ((fullMaturity - fullDeposited) / (tenureMonths / 12));
+    return s + Math.max(0, annualisedInterest);
+  }, 0);
+
+  // PPF: balance × 7.1%
+  const ppfInterest = (state.ppf || []).reduce((s: number, p: any) => s + (Number(p.balance) * PPF_RATE) / 100, 0);
+
+  // EPF: balance × 8.25%
+  const epfInterest = (state.epf || []).reduce((s: number, e: any) => {
+    const corpus = (() => {
+      const txs = e.transactions || [];
+      const hasPassbook = txs.some((t: any) => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in");
+      if (!hasPassbook) return Number(e.balance || 0);
+      const empC = txs.filter((x: any) => x.type === "monthly_contribution" || x.type === "employee_contribution")
+        .reduce((ss: number, x: any) => ss + Number(x.employeeShare || x.amount || 0), 0);
+      const erC  = txs.filter((x: any) => x.type === "monthly_contribution" || x.type === "employer_contribution")
+        .reduce((ss: number, x: any) => ss + Number(x.employerShare || 0), 0);
+      const penC = txs.filter((x: any) => x.type === "monthly_contribution")
+        .reduce((ss: number, x: any) => ss + Number(x.pensionShare || 0), 0);
+      const int  = txs.filter((x: any) => x.type === "interest_credit")
+        .reduce((ss: number, x: any) => ss + Number(x.employeeShare !== undefined ? x.employeeShare : x.amount || 0) + Number(x.employerShare || 0) + Number(x.pensionShare || 0), 0);
+      const tin  = txs.filter((x: any) => x.type === "transfer_in").reduce((ss: number, x: any) => ss + Number(x.amount || 0), 0);
+      const wdl  = txs.filter((x: any) => x.type === "withdrawal").reduce((ss: number, x: any) => ss + Number(x.amount || 0), 0);
+      return empC + erC + penC + int + tin - wdl;
+    })();
+    return s + (corpus * EPF_RATE) / 100;
+  }, 0);
+
+  // NPS: rough 10% annual growth (mixed equity/debt)
+  const npsGrowth = (state.nps || []).reduce((s: number, n: any) => s + (Number(n.balance) * 10) / 100, 0);
+
+  const streams = [
+    { label: "Fixed Deposits",   value: fdInterest,  color: "#d97706", icon: Coins,      note: "annual interest on active FDs" },
+    { label: "Bonds",            value: bondInterest, color: "#92400e", icon: FileText,   note: "annual coupon on face value" },
+    { label: "Recurring Deposits", value: rdInterest, color: "#0284c7", icon: Repeat,     note: RD_NOTE },
+    { label: "PPF",              value: ppfInterest,  color: "#15803d", icon: Shield,     note: `@ ${PPF_RATE}% current rate` },
+    { label: "EPF / EPFO",       value: epfInterest,  color: "#6366f1", icon: Shield,     note: `@ ${EPF_RATE}% announced rate` },
+    { label: "NPS (est.)",       value: npsGrowth,    color: "#c2410c", icon: Briefcase,  note: "@ ~10% blended CAGR estimate" },
+  ].filter(s => s.value > 0);
+
+  const totalAnnual = streams.reduce((s, x) => s + x.value, 0);
+  const totalMonthly = totalAnnual / 12;
+
+  const maxVal = Math.max(...streams.map(s => s.value), 1);
 
   return (
     <div className="animate-fade-in-up">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
+      {/* Top stat tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
         <Card variant="tile">
           <div className="tile-icon"><IndianRupee size={18} /></div>
           <div className="tile-label">Annual Yield</div>
           <div className="tile-value">{fmtINRFull(totalAnnual)}</div>
-          <div className="tile-sub">Fixed income projection</div>
+          <div className="tile-sub">All income streams combined</div>
         </Card>
         <Card variant="tile">
           <div className="tile-icon"><Receipt size={18} /></div>
           <div className="tile-label">Monthly Income</div>
-          <div className="tile-value">{fmtINRFull(totalAnnual / 12)}</div>
-          <div className="tile-sub">Average cash flow</div>
+          <div className="tile-value">{fmtINRFull(totalMonthly)}</div>
+          <div className="tile-sub">Average cash flow / month</div>
+        </Card>
+        <Card variant="tile">
+          <div className="tile-icon"><Zap size={18} /></div>
+          <div className="tile-label">Daily Passive</div>
+          <div className="tile-value">{fmtINRFull(totalAnnual / 365)}</div>
+          <div className="tile-sub">₹ earned every day</div>
+        </Card>
+        <Card variant="tile">
+          <div className="tile-icon"><Target size={18} /></div>
+          <div className="tile-label">Income Streams</div>
+          <div className="tile-value">{streams.length}</div>
+          <div className="tile-sub">Active yielding instruments</div>
         </Card>
       </div>
-      <Card style={{ padding: 24 }}>
-        <div className="section-label">Yield Breakdown</div>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${THEME.line}` }}>
-            <span style={{ fontWeight: 600 }}>Fixed Deposit Interest</span>
-            <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(fdInterest)}</span>
+
+      {streams.length === 0 ? (
+        <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+          <PiggyBank size={48} color={THEME.muted} style={{ margin: "0 auto 16px" }} />
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>No Yield Data Yet</div>
+          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360, margin: "0 auto" }}>
+            Add Fixed Deposits, Bonds, PPF, EPF, RD or NPS to see your income breakdown here.
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${THEME.line}` }}>
-            <span style={{ fontWeight: 600 }}>Bond Coupon Payments</span>
-            <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(bondInterest)}</span>
+        </Card>
+      ) : (
+        <Card style={{ padding: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 20 }}>
+            Yield Breakdown by Instrument
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", fontWeight: 800 }}>
-            <span>Total Estimated Yield</span>
-            <span style={{ color: THEME.accent }}>{fmtINRFull(totalAnnual)}</span>
+
+          <div style={{ display: "grid", gap: 14 }}>
+            {streams.map(({ label, value, color, icon: Icon, note }) => {
+              const barPct = (value / maxVal) * 100;
+              const sharePct = totalAnnual > 0 ? (value / totalAnnual) * 100 : 0;
+              return (
+                <div key={label}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon size={13} color={color} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{label}</div>
+                        <div style={{ fontSize: 10, color: THEME.muted }}>{note}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" as const }}>
+                      <div style={{ fontSize: 14, fontWeight: 900, color }}>{fmtINRFull(value)}</div>
+                      <div style={{ fontSize: 10, color: THEME.muted }}>{sharePct.toFixed(1)}% share</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 4, background: `${color}18`, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${barPct}%`, background: color, borderRadius: 4, transition: "width 0.4s ease" }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </Card>
+
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: `2px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>Total Annual Yield</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.accent }}>{fmtINRFull(totalAnnual)}</div>
+            </div>
+            <div style={{ textAlign: "right" as const }}>
+              <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>Monthly Avg.</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(totalMonthly)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
+            <b style={{ color: THEME.ink }}>Note:</b> FD uses simple interest × principal. Bond uses coupon on face value. RD uses annualised interest over full tenure. PPF @ {PPF_RATE}%, EPF @ {EPF_RATE}%. NPS is a rough estimate at 10% blended return — actual performance varies. All figures are pre-tax.
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
