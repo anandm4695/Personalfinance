@@ -38,7 +38,8 @@ jobs:
           BODY=$(echo "$RESPONSE" | head -n -1)
           echo "HTTP $HTTP_CODE"
           echo "$BODY"
-          if [ "$HTTP_CODE" != "200" ]; then
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
             echo "::error::Migration failed with HTTP $HTTP_CODE"
             exit 1
           fi
+          echo "✅ Schema sync complete"
