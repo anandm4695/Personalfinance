@@ -676,14 +676,19 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const [checking, setChecking] = useState(false);
   const [health, setHealth] = useState<any>(null);
 
-  // Sender email — stored in localStorage so user doesn't need to touch Vercel env vars
-  const [localFromEmail, setLocalFromEmail] = useState<string>(() => {
-    try { return localStorage.getItem("finance-email-from") || ""; } catch { return ""; }
-  });
-  const saveLocalFromEmail = (val: string) => {
-    setLocalFromEmail(val);
-    try { localStorage.setItem("finance-email-from", val.trim()); } catch {}
-  };
+  // Sender email — persisted in Supabase (user_settings.from_email) so cron job can use it too.
+  // Migrate any existing localStorage value to Supabase on first load.
+  const fromEmail: string = es.fromEmail || "";
+  useEffect(() => {
+    try {
+      const local = localStorage.getItem("finance-email-from");
+      if (local && local.trim() && !es.fromEmail) {
+        updateEmailSettings({ fromEmail: local.trim() });
+        localStorage.removeItem("finance-email-from");
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inp: any = {
     width: "100%", padding: "10px 14px", boxSizing: "border-box",
@@ -704,7 +709,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           emailTo: address,
           frequency,
           recipientName: state?.profile?.name || "there",
-          fromEmail: localFromEmail.trim() || undefined,
+          fromEmail: fromEmail.trim() || undefined,
         }),
       });
       const json = await res.json();
@@ -721,7 +726,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   async function handleCheckConfig() {
     setChecking(true); setHealth(null);
     try {
-      const params = localFromEmail.trim() ? `?action=healthcheck&fromEmail=${encodeURIComponent(localFromEmail.trim())}` : "?action=healthcheck";
+      const params = fromEmail.trim() ? `?action=healthcheck&fromEmail=${encodeURIComponent(fromEmail.trim())}` : "?action=healthcheck";
       const res = await fetch(`/api/send-summary${params}`);
       const json = await res.json();
       setHealth(json);
@@ -790,18 +795,18 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 <input
                   style={inp} type="email"
                   placeholder="e.g. anand@gmail.com (the email you registered with Resend)"
-                  value={localFromEmail}
-                  onChange={e => saveLocalFromEmail(e.target.value)}
+                  value={fromEmail}
+                  onChange={e => updateEmailSettings({ fromEmail: e.target.value })}
                 />
               </Field>
-              {!localFromEmail && (
+              {!fromEmail && (
                 <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`, fontSize: 12, color: THEME.ink, lineHeight: 1.6 }}>
                   <strong style={{ color: THEME.gold }}>⚠ Action needed:</strong> Enter your Resend account email above. Without it, emails can only be sent to the Resend-registered address, not to any custom recipient. <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}>Check your Resend account →</a>
                 </div>
               )}
-              {localFromEmail && (
+              {fromEmail && (
                 <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`, fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
-                  ✓ Emails will be sent from: <strong>{localFromEmail}</strong>
+                  ✓ Emails will be sent from: <strong>{fromEmail}</strong>
                 </div>
               )}
             </div>
@@ -973,8 +978,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             {health?.error && <div style={{ fontSize: 13, color: THEME.rust }}>Could not reach API: {health.error}</div>}
             {!health && !checking && (
               <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
-                {localFromEmail
-                  ? `Will check config using sender: ${localFromEmail}`
+                {fromEmail
+                  ? `Will check config using sender: ${fromEmail}`
                   : "Click \"Check Config\" to diagnose. Enter your Sender Email above first for accurate results."}
               </div>
             )}

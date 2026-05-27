@@ -739,7 +739,7 @@ module.exports = async function handler(req, res) {
       // Only fetch users who have email enabled — reduces DB load and processing time
       const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
-        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address, recipient_name")
+        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address, recipient_name, from_email")
         .eq("email_enabled", true)
         .not("email_address", "is", null)
         .neq("email_address", "");
@@ -763,8 +763,9 @@ module.exports = async function handler(req, res) {
           const html = generateHTML(summary, freq, row.recipient_name || row.email_address?.split("@")[0] || "there");
           const subject = buildSubject(freq, summary.netWorth);
 
+          const cronFromEmail = row.from_email || FROM_EMAIL;
           const { error } = await resend.emails.send({
-            from: FROM_ADDR,
+            from: `Personal Finance <${cronFromEmail}>`,
             to: row.email_address,
             subject,
             html,

@@ -114,7 +114,7 @@ const DEFAULT_STATE = {
   settings: {
     darkMode: false, accentKey: "blue", density: "normal", sidebarNav: true,
     radiusKey: "modern", fontKey: "inter", bgStyle: "plain", animSpeed: "smooth", chartStyle: "monotone",
-    emailEnabled: false, emailFrequency: "weekly", emailDay: 1, emailHour: 8, emailAddress: "",
+    emailEnabled: false, emailFrequency: "weekly", emailDay: 1, emailHour: 8, emailAddress: "", fromEmail: "",
     geminiApiKey: ""
   }
 };
@@ -260,6 +260,7 @@ function FinanceDashboard() {
       if (updates.emailDay !== undefined) dbUpdates.email_day = updates.emailDay;
       if (updates.emailHour !== undefined) dbUpdates.email_hour = updates.emailHour;
       if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
+      if (updates.fromEmail !== undefined) dbUpdates.from_email = updates.fromEmail;
       if (updates.geminiApiKey !== undefined) dbUpdates.gemini_api_key = updates.geminiApiKey;
 
       const { error: settErr } = await supabase.from("user_settings").upsert({ user_id: userId, ...dbUpdates });
