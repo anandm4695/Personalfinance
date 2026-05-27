@@ -92,8 +92,10 @@ function EscalationTiersSection({ tiers, setTiers, agreementStart }: { tiers: an
                       style={{ ...input, width: 90, fontSize: 13 }}
                       type="number"
                       min="1"
-                      value={tier.durationMonths}
-                      onChange={(e) => { const u = [...tiers]; u[i] = { ...tier, durationMonths: Math.max(1, parseInt(e.target.value, 10) || 12) }; setTiers(u); }}
+                      placeholder="12"
+                      value={tier.durationMonths === "" ? "" : tier.durationMonths}
+                      onChange={(e) => { const u = [...tiers]; u[i] = { ...tier, durationMonths: e.target.value === "" ? "" : e.target.value }; setTiers(u); }}
+                      onBlur={(e) => { if (!e.target.value || Number(e.target.value) < 1) { const u = [...tiers]; u[i] = { ...tier, durationMonths: 12 }; setTiers(u); } else { const u = [...tiers]; u[i] = { ...tier, durationMonths: parseInt(e.target.value, 10) }; setTiers(u); } }}
                     />
                   </div>
                 </div>
