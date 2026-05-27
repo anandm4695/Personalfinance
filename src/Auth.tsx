@@ -1,10 +1,10 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient";
 import {
   Eye, EyeOff, ArrowRight, Shield, Lock, Loader2,
   CheckCircle2, IndianRupee, TrendingUp, AlertCircle, BarChart3, Zap, CreditCard, Calendar, Wallet,
-  KeyRound,
+  KeyRound, UserCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 /* ─── Friendly error messages ────────────────────────────────────────── */
@@ -27,6 +27,8 @@ function friendlyError(msg: string): string {
     return "Please enter a valid email address.";
   if (m.includes("signup is disabled"))
     return "New sign-ups are currently disabled. Please contact the admin.";
+  if (m.includes("provider") || m.includes("oauth"))
+    return "Google sign-in is not configured yet. Please use email and password.";
   return msg;
 }
 
@@ -43,6 +45,56 @@ function getStrength(pw: string): number {
 }
 const STRENGTH_LABEL = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
 const STRENGTH_COLOR = ["", "#EF4444", "#F59E0B", "#EAB308", "#10B981", "#059669"];
+
+/* ─── Feature list (outside component — not rebuilt on every render) ─── */
+const FEATURES = [
+  {
+    icon: <IndianRupee size={15} />,
+    color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.2)",
+    title: "Bank & Transactions",
+    desc: "All accounts, daily spends & budget tracking in one place",
+  },
+  {
+    icon: <TrendingUp size={15} />,
+    color: "#818CF8", bg: "rgba(129,140,248,0.12)", border: "rgba(129,140,248,0.2)",
+    title: "Stocks & Mutual Funds",
+    desc: "Demat holdings, SIP tracker & full investment portfolio",
+  },
+  {
+    icon: <BarChart3 size={15} />,
+    color: "#38BDF8", bg: "rgba(56,189,248,0.12)", border: "rgba(56,189,248,0.2)",
+    title: "FDs, Bonds & PPF / NPS",
+    desc: "Fixed income, recurring deposits & long-term savings",
+  },
+  {
+    icon: <CreditCard size={15} />,
+    color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.2)",
+    title: "Credit & Liabilities",
+    desc: "Card bills, limits, outstanding & prepaid wallet balances",
+  },
+  {
+    icon: <Wallet size={15} />,
+    color: "#F87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.2)",
+    title: "Loans & Borrowings",
+    desc: "Home, car & personal loans — track EMIs & repayments",
+  },
+  {
+    icon: <Calendar size={15} />,
+    color: "#A78BFA", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.2)",
+    title: "Goals & Subscriptions",
+    desc: "Financial goals, budgets, reminders & renewal alerts",
+  },
+];
+
+/* ─── Google SVG logo ────────────────────────────────────────────────── */
+const GoogleLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
 export default function Auth({
@@ -62,37 +114,54 @@ export default function Auth({
 
   // Remember Me: restore saved email
   const savedEmail = typeof window !== "undefined" ? localStorage.getItem("pf_remember_email") || "" : "";
-  const [email, setEmail] = useState(savedEmail);
-  const [password, setPassword] = useState("");
+  const [email, setEmail]                 = useState(savedEmail);
+  const [password, setPassword]           = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [displayName, setDisplayName]     = useState("");
+  const [newPassword, setNewPassword]         = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
+  const [showPass, setShowPass]               = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
-  const [showNewPass, setShowNewPass] = useState(false);
+  const [showNewPass, setShowNewPass]         = useState(false);
   const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
-  const [rememberMe, setRememberMe] = useState(!!savedEmail);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [rememberMe, setRememberMe]       = useState(!!savedEmail);
+  const [loading, setLoading]             = useState(false);
+  const [oauthLoading, setOauthLoading]   = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+  const [msg, setMsg]                     = useState<string | null>(null);
+  const [showMobileFeatures, setShowMobileFeatures] = useState(false);
 
   // Field-level touched state
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [passTouched, setPassTouched] = useState(false);
-  const [confirmPassTouched, setConfirmPassTouched] = useState(false);
-  const [newPassTouched, setNewPassTouched] = useState(false);
+  const [emailTouched, setEmailTouched]               = useState(false);
+  const [passTouched, setPassTouched]                 = useState(false);
+  const [confirmPassTouched, setConfirmPassTouched]   = useState(false);
+  const [newPassTouched, setNewPassTouched]           = useState(false);
   const [confirmNewPassTouched, setConfirmNewPassTouched] = useState(false);
 
   // Focus state for styling
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passFocused, setPassFocused] = useState(false);
-  const [confirmPassFocused, setConfirmPassFocused] = useState(false);
-  const [newPassFocused, setNewPassFocused] = useState(false);
+  const [emailFocused, setEmailFocused]               = useState(false);
+  const [passFocused, setPassFocused]                 = useState(false);
+  const [confirmPassFocused, setConfirmPassFocused]   = useState(false);
+  const [newPassFocused, setNewPassFocused]           = useState(false);
   const [confirmNewPassFocused, setConfirmNewPassFocused] = useState(false);
+  const [nameFocused, setNameFocused]                 = useState(false);
 
   const isForgot = mode === "forgot";
   const isSignUp = mode === "signup";
   const isReset  = mode === "reset";
+
+  // ── Auto-clear error when user starts typing ──────────────────────────
+  useEffect(() => {
+    if (error) setError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, password, confirmPassword, displayName, newPassword, confirmNewPassword]);
+
+  // ── Auto-dismiss success message after 6 seconds ─────────────────────
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), 6000);
+    return () => clearTimeout(t);
+  }, [msg]);
 
   // Inline validation messages
   const emailErr =
@@ -118,13 +187,28 @@ export default function Auth({
 
   const strength = isSignUp && password ? getStrength(password) : 0;
 
+  // ── Google OAuth ───────────────────────────────────────────────────────
+  const handleGoogleAuth = async () => {
+    setOauthLoading(true); setError(null); setMsg(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      // Page redirects — loading stays true
+    } catch (err: any) {
+      setError(friendlyError(err.message));
+      setOauthLoading(false);
+    }
+  };
+
   // ── Handle submit ──────────────────────────────────────────────────────
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailTouched(true);
 
     if (isReset) {
-      // "Set new password" flow
       setNewPassTouched(true);
       setConfirmNewPassTouched(true);
       if (!newPassword || newPassword.length < 8) return;
@@ -134,7 +218,6 @@ export default function Auth({
         const { error } = await supabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
         setMsg("Password updated! You can now sign in with your new password.");
-        // Clear the hash so user can navigate away cleanly
         window.history.replaceState({}, document.title, window.location.pathname);
         setTimeout(() => switchMode("login"), 2500);
       } catch (err: any) {
@@ -147,8 +230,9 @@ export default function Auth({
     if (isSignUp) setConfirmPassTouched(true);
 
     const cleanEmail = email.trim();
-    const hasEmailErr = !cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
-    const hasPassErr  = !isForgot && (!password || password.length < 8);
+    setEmail(cleanEmail); // persist trim to state
+    const hasEmailErr   = !cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
+    const hasPassErr    = !isForgot && (!password || password.length < 8);
     const hasConfirmErr = isSignUp && password !== confirmPassword;
     if (hasEmailErr || hasPassErr || hasConfirmErr) return;
 
@@ -162,13 +246,18 @@ export default function Auth({
         if (error) throw error;
         setMsg("Recovery link sent! Please check your inbox (and spam folder).");
       } else if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email: cleanEmail, password });
+        const { error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: displayName.trim() ? { full_name: displayName.trim(), display_name: displayName.trim() } : undefined,
+          },
+        });
         if (error) throw error;
         setMsg("Account created! Please check your inbox to verify your email before signing in.");
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (error) throw error;
-        // Remember Me — save or clear email
         if (rememberMe) {
           localStorage.setItem("pf_remember_email", cleanEmail);
         } else {
@@ -183,51 +272,15 @@ export default function Auth({
 
   const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
     setError(null); setMsg(null);
+    // Reset ALL field state when switching modes
     setEmailTouched(false); setPassTouched(false);
-    setConfirmPassTouched(false);
-    setPassword(""); setConfirmPassword("");
+    setConfirmPassTouched(false); setNewPassTouched(false); setConfirmNewPassTouched(false);
+    setPassword(""); setConfirmPassword(""); setDisplayName("");
+    setNewPassword(""); setConfirmNewPassword("");
+    setShowPass(false); setShowConfirmPass(false);
+    setShowNewPass(false); setShowConfirmNewPass(false);
     setMode(m);
   };
-
-  // ── Feature cards ──────────────────────────────────────────────────────
-  const FEATURES = [
-    {
-      icon: <IndianRupee size={15} />,
-      color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.2)",
-      title: "Bank & Transactions",
-      desc: "All accounts, daily spends & budget tracking in one place",
-    },
-    {
-      icon: <TrendingUp size={15} />,
-      color: "#818CF8", bg: "rgba(129,140,248,0.12)", border: "rgba(129,140,248,0.2)",
-      title: "Stocks & Mutual Funds",
-      desc: "Demat holdings, SIP tracker & full investment portfolio",
-    },
-    {
-      icon: <BarChart3 size={15} />,
-      color: "#38BDF8", bg: "rgba(56,189,248,0.12)", border: "rgba(56,189,248,0.2)",
-      title: "FDs, Bonds & PPF / NPS",
-      desc: "Fixed income, recurring deposits & long-term savings",
-    },
-    {
-      icon: <CreditCard size={15} />,
-      color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.2)",
-      title: "Credit & Prepaid Cards",
-      desc: "Card bills, limits, outstanding & prepaid wallet balances",
-    },
-    {
-      icon: <Wallet size={15} />,
-      color: "#F87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.2)",
-      title: "Loans & Borrowings",
-      desc: "Home, car & personal loans — track EMIs & repayments",
-    },
-    {
-      icon: <Calendar size={15} />,
-      color: "#A78BFA", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.2)",
-      title: "Goals & Subscriptions",
-      desc: "Financial goals, budgets, reminders & renewal alerts",
-    },
-  ];
 
   // ── Shared input styles ────────────────────────────────────────────────
   const wrapCls = (focused: boolean, err: string) =>
@@ -377,7 +430,7 @@ export default function Auth({
           {/* ══ RESET MODE — Set New Password ══ */}
           {isReset ? (
             <form onSubmit={handleAuth} className="af-form" noValidate>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "rgba(79,70,229,0.06)", borderRadius: 10, border: "1px solid rgba(79,70,229,0.15)", marginBottom: 4, fontSize: 13, color: "#4F46E5", fontWeight: 500 }}>
+              <div className="af-info-banner">
                 <KeyRound size={15} />
                 Password reset link verified. Enter your new password below.
               </div>
@@ -404,7 +457,6 @@ export default function Auth({
                   </button>
                 </div>
                 {newPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{newPassErr}</div>}
-                {/* Strength bar */}
                 {newPassword && (
                   <div style={{ marginTop: 8 }}>
                     <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
@@ -440,6 +492,11 @@ export default function Auth({
                   </button>
                 </div>
                 {confirmNewPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{confirmNewPassErr}</div>}
+                {!confirmNewPassErr && confirmNewPassword && confirmNewPassword === newPassword && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 2 }}>
+                    <CheckCircle2 size={11} />Passwords match
+                  </div>
+                )}
               </div>
 
               <button type="submit" disabled={loading} className="af-cta-btn">
@@ -450,128 +507,177 @@ export default function Auth({
           ) : (
 
           /* ══ STANDARD FORM (login / signup / forgot) ══ */
-          <form onSubmit={handleAuth} className="af-form" noValidate>
+          <div className="af-form-container">
 
-            {/* Email */}
-            <div className="af-field">
-              <label className="af-lbl" htmlFor="af-email">Email address</label>
-              <div className={wrapCls(emailFocused, emailErr)}>
-                <input
-                  id="af-email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => { setEmailFocused(false); setEmailTouched(true); }}
-                  className="af-inp"
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  autoFocus
-                  aria-describedby={emailErr ? "af-email-err" : undefined}
-                  aria-invalid={!!emailErr}
-                />
-              </div>
-              {emailErr && <div id="af-email-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{emailErr}</div>}
-            </div>
-
-            {/* Password */}
+            {/* Google OAuth — login + signup only */}
             {!isForgot && (
-              <div className="af-field">
-                <label className="af-lbl" htmlFor="af-pass">Password</label>
-                <div className={wrapCls(passFocused, passErr)}>
-                  <input
-                    id="af-pass"
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onFocus={() => setPassFocused(true)}
-                    onBlur={() => { setPassFocused(false); setPassTouched(true); }}
-                    className="af-inp"
-                    placeholder={isSignUp ? "Create a strong password (8+ chars)" : "Enter your password"}
-                    autoComplete={isSignUp ? "new-password" : "current-password"}
-                    aria-describedby={passErr ? "af-pass-err" : undefined}
-                    aria-invalid={!!passErr}
-                  />
-                  <button type="button" onClick={() => setShowPass(v => !v)} className="af-eye-btn"
-                    aria-label={showPass ? "Hide password" : "Show password"} tabIndex={-1}>
-                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                {passErr && <div id="af-pass-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{passErr}</div>}
-
-                {/* Password strength — signup only */}
-                {isSignUp && password && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-                      {[1,2,3,4,5].map(i => (
-                        <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: strength >= i ? STRENGTH_COLOR[strength] : "#E2E8F0", transition: "background 0.25s" }} />
-                      ))}
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: STRENGTH_COLOR[strength] || "#94A3B8" }}>
-                      {STRENGTH_LABEL[strength]}
-                      {strength < 3 && <span style={{ color: "#94A3B8", fontWeight: 400 }}> — add uppercase, numbers or symbols to strengthen</span>}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Confirm password — signup only */}
-            {isSignUp && (
-              <div className="af-field">
-                <label className="af-lbl" htmlFor="af-confirmpass">Confirm Password</label>
-                <div className={wrapCls(confirmPassFocused, confirmPassErr)}>
-                  <input
-                    id="af-confirmpass"
-                    type={showConfirmPass ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    onFocus={() => setConfirmPassFocused(true)}
-                    onBlur={() => { setConfirmPassFocused(false); setConfirmPassTouched(true); }}
-                    className="af-inp"
-                    placeholder="Re-enter your password"
-                    autoComplete="new-password"
-                    aria-invalid={!!confirmPassErr}
-                  />
-                  <button type="button" onClick={() => setShowConfirmPass(v => !v)} className="af-eye-btn"
-                    aria-label={showConfirmPass ? "Hide" : "Show"} tabIndex={-1}>
-                    {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                {confirmPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{confirmPassErr}</div>}
-                {!confirmPassErr && confirmPassword && confirmPassword === password && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 2 }}>
-                    <CheckCircle2 size={11} />Passwords match
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Remember me + Forgot password — login only */}
-            {!isForgot && !isSignUp && (
-              <div className="af-meta-row">
-                <label className="af-remember">
-                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="af-chk" />
-                  <span>Remember me</span>
-                </label>
-                <button type="button" onClick={() => switchMode("forgot")} className="af-link">
-                  Forgot password?
+              <>
+                <button
+                  type="button"
+                  className="af-oauth-btn"
+                  onClick={handleGoogleAuth}
+                  disabled={oauthLoading || loading}
+                  aria-label="Continue with Google"
+                >
+                  {oauthLoading
+                    ? <Loader2 size={16} className="af-spin" />
+                    : <><GoogleLogo /><span>Continue with Google</span></>
+                  }
                 </button>
-              </div>
+
+                <div className="af-divider" aria-hidden="true">
+                  <span className="af-divider-line" />
+                  <span className="af-divider-text">or continue with email</span>
+                  <span className="af-divider-line" />
+                </div>
+              </>
             )}
 
-            {/* Primary CTA */}
-            <button type="submit" disabled={loading} className="af-cta-btn">
-              {loading ? (
-                <Loader2 size={18} className="af-spin" aria-hidden="true" />
-              ) : (
-                <>
-                  <span>{isForgot ? "Send Recovery Link" : isSignUp ? "Create Account" : "Sign In"}</span>
-                  <ArrowRight size={16} strokeWidth={2.5} aria-hidden="true" />
-                </>
+            <form onSubmit={handleAuth} className="af-form" noValidate>
+
+              {/* Display name — signup only */}
+              {isSignUp && (
+                <div className="af-field">
+                  <label className="af-lbl" htmlFor="af-name">Full Name <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>(optional)</span></label>
+                  <div className={wrapCls(nameFocused, "")}>
+                    <span className="af-inp-icon"><UserCircle size={16} /></span>
+                    <input
+                      id="af-name"
+                      type="text"
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={() => setNameFocused(false)}
+                      className="af-inp af-inp-padded"
+                      placeholder="e.g. Anand Mohta"
+                      autoComplete="name"
+                      autoFocus
+                    />
+                  </div>
+                </div>
               )}
-            </button>
-          </form>
+
+              {/* Email */}
+              <div className="af-field">
+                <label className="af-lbl" htmlFor="af-email">Email address</label>
+                <div className={wrapCls(emailFocused, emailErr)}>
+                  <input
+                    id="af-email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => { setEmailFocused(false); setEmailTouched(true); setEmail(e => e.trim()); }}
+                    className="af-inp"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    autoFocus={!isSignUp}
+                    aria-describedby={emailErr ? "af-email-err" : undefined}
+                    aria-invalid={!!emailErr}
+                  />
+                </div>
+                {emailErr && <div id="af-email-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{emailErr}</div>}
+              </div>
+
+              {/* Password */}
+              {!isForgot && (
+                <div className="af-field">
+                  <label className="af-lbl" htmlFor="af-pass">Password</label>
+                  <div className={wrapCls(passFocused, passErr)}>
+                    <input
+                      id="af-pass"
+                      type={showPass ? "text" : "password"}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      onFocus={() => setPassFocused(true)}
+                      onBlur={() => { setPassFocused(false); setPassTouched(true); }}
+                      className="af-inp"
+                      placeholder={isSignUp ? "Create a strong password (8+ chars)" : "Enter your password"}
+                      autoComplete={isSignUp ? "new-password" : "current-password"}
+                      aria-describedby={passErr ? "af-pass-err" : undefined}
+                      aria-invalid={!!passErr}
+                    />
+                    <button type="button" onClick={() => setShowPass(v => !v)} className="af-eye-btn"
+                      aria-label={showPass ? "Hide password" : "Show password"} tabIndex={-1}>
+                      {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  {passErr && <div id="af-pass-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{passErr}</div>}
+
+                  {/* Password strength — signup only */}
+                  {isSignUp && password && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: strength >= i ? STRENGTH_COLOR[strength] : "#E2E8F0", transition: "background 0.25s" }} />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: STRENGTH_COLOR[strength] || "#94A3B8" }}>
+                        {STRENGTH_LABEL[strength]}
+                        {strength < 3 && <span style={{ color: "#94A3B8", fontWeight: 400 }}> — add uppercase, numbers or symbols</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Confirm password — signup only */}
+              {isSignUp && (
+                <div className="af-field">
+                  <label className="af-lbl" htmlFor="af-confirmpass">Confirm Password</label>
+                  <div className={wrapCls(confirmPassFocused, confirmPassErr)}>
+                    <input
+                      id="af-confirmpass"
+                      type={showConfirmPass ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      onFocus={() => setConfirmPassFocused(true)}
+                      onBlur={() => { setConfirmPassFocused(false); setConfirmPassTouched(true); }}
+                      className="af-inp"
+                      placeholder="Re-enter your password"
+                      autoComplete="new-password"
+                      aria-invalid={!!confirmPassErr}
+                    />
+                    <button type="button" onClick={() => setShowConfirmPass(v => !v)} className="af-eye-btn"
+                      aria-label={showConfirmPass ? "Hide" : "Show"} tabIndex={-1}>
+                      {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  {confirmPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{confirmPassErr}</div>}
+                  {!confirmPassErr && confirmPassword && confirmPassword === password && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 2 }}>
+                      <CheckCircle2 size={11} />Passwords match
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Remember me + Forgot password — login only */}
+              {!isForgot && !isSignUp && (
+                <div className="af-meta-row">
+                  <label className="af-remember">
+                    <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="af-chk" />
+                    <span>Remember me</span>
+                  </label>
+                  <button type="button" onClick={() => switchMode("forgot")} className="af-link">
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {/* Primary CTA */}
+              <button type="submit" disabled={loading || oauthLoading} className="af-cta-btn">
+                {loading ? (
+                  <Loader2 size={18} className="af-spin" aria-hidden="true" />
+                ) : (
+                  <>
+                    <span>{isForgot ? "Send Recovery Link" : isSignUp ? "Create Account" : "Sign In"}</span>
+                    <ArrowRight size={16} strokeWidth={2.5} aria-hidden="true" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
           )}
 
           {/* Mode switcher */}
@@ -605,6 +711,29 @@ export default function Auth({
               <button onClick={onOffline} className="af-demo-btn">Explore Demo Mode →</button>
             </div>
           )}
+
+          {/* Mobile-only feature accordion */}
+          <div className="af-mobile-features">
+            <button
+              className="af-mob-feat-toggle"
+              onClick={() => setShowMobileFeatures(v => !v)}
+              aria-expanded={showMobileFeatures}
+            >
+              <span>What's included?</span>
+              {showMobileFeatures ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            {showMobileFeatures && (
+              <div className="af-mob-feat-grid">
+                {FEATURES.map(f => (
+                  <div key={f.title} className="af-mob-feat-item">
+                    <span className="af-mob-feat-dot" style={{ background: f.color }} />
+                    <span>{f.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
@@ -787,6 +916,7 @@ const AF_STYLES = `
   width: 48%; min-height: 100vh; background: #F7F9FC;
   display: flex; align-items: center; justify-content: center;
   padding: 48px 44px;
+  transition: background 0.3s;
 }
 .af-card { width: 100%; max-width: 420px; }
 
@@ -798,7 +928,7 @@ const AF_STYLES = `
 }
 
 /* Card header */
-.af-card-head { margin-bottom: 28px; }
+.af-card-head { margin-bottom: 24px; }
 .af-card-title {
   font-family: 'Outfit', sans-serif; font-size: 27px; font-weight: 900;
   color: #0F172A; letter-spacing: -0.04em; line-height: 1.12; margin-bottom: 8px;
@@ -810,9 +940,21 @@ const AF_STYLES = `
   display: flex; align-items: flex-start; gap: 10px;
   padding: 13px 16px; border-radius: 12px;
   font-size: 13px; font-weight: 500; line-height: 1.45; margin-bottom: 20px;
+  animation: af-rise 0.3s cubic-bezier(0.22,1,0.36,1);
 }
 .af-alert-err { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; animation: af-shake 0.45s ease-out; }
 .af-alert-ok  { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
+
+/* Info banner (reset mode) */
+.af-info-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: rgba(79,70,229,0.06);
+  border-radius: 10px; border: 1px solid rgba(79,70,229,0.15);
+  margin-bottom: 4px; font-size: 13px; color: #4F46E5; font-weight: 500;
+}
+
+/* Form container (for OAuth + form) */
+.af-form-container { display: flex; flex-direction: column; gap: 0; }
 
 /* Form */
 .af-form { display: flex; flex-direction: column; gap: 18px; }
@@ -838,6 +980,10 @@ const AF_STYLES = `
   font-family: 'Inter', -apple-system, sans-serif;
   color: #0F172A; font-weight: 400; min-width: 0;
 }
+.af-inp-padded { padding-left: 8px; }
+.af-inp-icon {
+  display: flex; align-items: center; padding-left: 14px; color: #94A3B8; flex-shrink: 0;
+}
 .af-inp::placeholder { color: #94A3B8; }
 .af-eye-btn {
   background: none; border: none; padding: 0 14px; color: #94A3B8;
@@ -845,6 +991,36 @@ const AF_STYLES = `
 }
 .af-eye-btn:hover { color: #4F46E5; }
 .af-err-msg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #EF4444; font-weight: 500; }
+
+/* Google OAuth button */
+.af-oauth-btn {
+  width: 100%; padding: 13px 20px; margin-bottom: 16px;
+  background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 11px;
+  font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+  color: #374151; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+}
+.af-oauth-btn:hover:not(:disabled) {
+  border-color: #CBD5E1;
+  box-shadow: 0 3px 10px rgba(15,23,42,0.1);
+  background: #FAFAFA;
+}
+.af-oauth-btn:active:not(:disabled) { box-shadow: none; background: #F1F5F9; }
+.af-oauth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Divider */
+.af-divider {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+}
+.af-divider-line {
+  flex: 1; height: 1px; background: #E2E8F0;
+}
+.af-divider-text {
+  font-size: 12px; font-weight: 500; color: #9CA3AF; white-space: nowrap;
+  background: #F7F9FC; padding: 0 4px;
+}
 
 /* Remember + Forgot row */
 .af-meta-row { display: flex; align-items: center; justify-content: space-between; margin-top: -4px; }
@@ -896,6 +1072,63 @@ const AF_STYLES = `
 }
 .af-demo-btn:hover { color: #4F46E5; }
 
+/* Mobile feature accordion */
+.af-mobile-features { display: none; margin-top: 24px; }
+.af-mob-feat-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: 1px solid #E2E8F0; border-radius: 10px;
+  padding: 11px 16px; font-size: 13px; font-weight: 600; color: #374151;
+  cursor: pointer; font-family: inherit; transition: background 0.15s;
+}
+.af-mob-feat-toggle:hover { background: #F8FAFC; }
+.af-mob-feat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-top: 12px;
+  animation: af-rise 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.af-mob-feat-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; color: #4B5563;
+  padding: 8px 10px; border: 1px solid #F1F5F9; border-radius: 8px;
+  background: #FAFAFA;
+}
+.af-mob-feat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ══════════════════════════════════════
+   DARK MODE — right panel
+══════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  .af-right { background: #111827; }
+  .af-mobile-brand { color: #F9FAFB; }
+  .af-card-title { color: #F9FAFB; }
+  .af-card-sub { color: #9CA3AF; }
+  .af-lbl { color: #D1D5DB; }
+  .af-inp-wrap { background: #1F2937; border-color: #374151; box-shadow: none; }
+  .af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #4B5563; }
+  .af-inp-wrap.af-focused { border-color: #818CF8; box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
+  .af-inp { color: #F9FAFB; }
+  .af-inp::placeholder { color: #6B7280; }
+  .af-inp-icon { color: #6B7280; }
+  .af-oauth-btn { background: #1F2937; border-color: #374151; color: #D1D5DB; }
+  .af-oauth-btn:hover:not(:disabled) { background: #243143; border-color: #4B5563; }
+  .af-divider-line { background: #374151; }
+  .af-divider-text { background: #111827; color: #6B7280; }
+  .af-switch-txt { color: #9CA3AF; }
+  .af-link { color: #818CF8; }
+  .af-link:hover { color: #A5B4FC; }
+  .af-sec-bar { border-top-color: #1F2937; }
+  .af-sec-item { color: #6B7280; }
+  .af-sec-dot { background: #4B5563; }
+  .af-remember { color: #9CA3AF; }
+  .af-alert-err { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
+  .af-alert-ok  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6EE7B7; }
+  .af-info-banner { background: rgba(129,140,248,0.08); border-color: rgba(129,140,248,0.2); color: #818CF8; }
+  .af-mob-feat-toggle { border-color: #374151; color: #D1D5DB; }
+  .af-mob-feat-toggle:hover { background: #1F2937; }
+  .af-mob-feat-item { background: #1F2937; border-color: #374151; color: #D1D5DB; }
+  .af-demo-btn { color: #6B7280; }
+}
+
 /* ══════════════════════════════════════
    KEYFRAME ANIMATIONS
 ══════════════════════════════════════ */
@@ -928,6 +1161,7 @@ const AF_STYLES = `
   .af-right { width: 100%; padding: 40px 24px; align-items: flex-start; padding-top: 60px; }
   .af-card  { max-width: 100%; }
   .af-mobile-logo { display: flex; }
+  .af-mobile-features { display: block; }
 }
 
 @media (min-width: 801px) and (max-width: 1100px) {
