@@ -1,10 +1,48 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import {
   Eye, EyeOff, ArrowRight, Shield, Lock, Loader2,
   CheckCircle2, IndianRupee, TrendingUp, AlertCircle, BarChart3, Zap, CreditCard, Calendar, Wallet,
+  KeyRound,
 } from "lucide-react";
+
+/* ─── Friendly error messages ────────────────────────────────────────── */
+function friendlyError(msg: string): string {
+  if (!msg) return "Something went wrong. Please try again.";
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials") || m.includes("invalid credentials"))
+    return "Incorrect email or password. Please check and try again.";
+  if (m.includes("email not confirmed"))
+    return "Please verify your email first. Check your inbox for the confirmation link.";
+  if (m.includes("user already registered") || m.includes("already been registered"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (m.includes("password should be") || m.includes("password is too short"))
+    return "Password must be at least 8 characters long.";
+  if (m.includes("rate limit") || m.includes("too many requests"))
+    return "Too many attempts. Please wait a few minutes and try again.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "Network error. Check your connection and try again.";
+  if (m.includes("email address is invalid") || m.includes("unable to validate"))
+    return "Please enter a valid email address.";
+  if (m.includes("signup is disabled"))
+    return "New sign-ups are currently disabled. Please contact the admin.";
+  return msg;
+}
+
+/* ─── Password strength ───────────────────────────────────────────────── */
+function getStrength(pw: string): number {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return score; // 0–5
+}
+const STRENGTH_LABEL = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
+const STRENGTH_COLOR = ["", "#EF4444", "#F59E0B", "#EAB308", "#10B981", "#059669"];
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
 export default function Auth({
@@ -14,75 +52,144 @@ export default function Auth({
   onLogin: (session: any) => void;
   onOffline?: () => void;
 }) {
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
-  const [email, setEmail] = useState("");
+  // Detect password-recovery link in the URL hash (Supabase sends #access_token=...&type=recovery)
+  const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(() => {
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      return "reset";
+    }
+    return "login";
+  });
+
+  // Remember Me: restore saved email
+  const savedEmail = typeof window !== "undefined" ? localStorage.getItem("pf_remember_email") || "" : "";
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!savedEmail);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Field-level touched state
   const [emailTouched, setEmailTouched] = useState(false);
   const [passTouched, setPassTouched] = useState(false);
+  const [confirmPassTouched, setConfirmPassTouched] = useState(false);
+  const [newPassTouched, setNewPassTouched] = useState(false);
+  const [confirmNewPassTouched, setConfirmNewPassTouched] = useState(false);
+
+  // Focus state for styling
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
+  const [confirmPassFocused, setConfirmPassFocused] = useState(false);
+  const [newPassFocused, setNewPassFocused] = useState(false);
+  const [confirmNewPassFocused, setConfirmNewPassFocused] = useState(false);
 
   const isForgot = mode === "forgot";
   const isSignUp = mode === "signup";
+  const isReset  = mode === "reset";
 
+  // Inline validation messages
   const emailErr =
-    emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    emailTouched && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
       ? "Please enter a valid email address"
       : "";
   const passErr =
     passTouched && password && password.length < 8
       ? "Minimum 8 characters required"
       : "";
+  const confirmPassErr =
+    confirmPassTouched && isSignUp && confirmPassword && confirmPassword !== password
+      ? "Passwords do not match"
+      : "";
+  const newPassErr =
+    newPassTouched && newPassword && newPassword.length < 8
+      ? "Minimum 8 characters required"
+      : "";
+  const confirmNewPassErr =
+    confirmNewPassTouched && confirmNewPassword && confirmNewPassword !== newPassword
+      ? "Passwords do not match"
+      : "";
 
+  const strength = isSignUp && password ? getStrength(password) : 0;
+
+  // ── Handle submit ──────────────────────────────────────────────────────
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailTouched(true);
+
+    if (isReset) {
+      // "Set new password" flow
+      setNewPassTouched(true);
+      setConfirmNewPassTouched(true);
+      if (!newPassword || newPassword.length < 8) return;
+      if (newPassword !== confirmNewPassword) return;
+      setLoading(true); setError(null); setMsg(null);
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        setMsg("Password updated! You can now sign in with your new password.");
+        // Clear the hash so user can navigate away cleanly
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => switchMode("login"), 2500);
+      } catch (err: any) {
+        setError(friendlyError(err.message));
+      } finally { setLoading(false); }
+      return;
+    }
+
     if (!isForgot) setPassTouched(true);
+    if (isSignUp) setConfirmPassTouched(true);
 
-    const hasEmailErr = !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const hasPassErr = !isForgot && (!password || password.length < 8);
-    if (hasEmailErr || hasPassErr) return;
+    const cleanEmail = email.trim();
+    const hasEmailErr = !cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
+    const hasPassErr  = !isForgot && (!password || password.length < 8);
+    const hasConfirmErr = isSignUp && password !== confirmPassword;
+    if (hasEmailErr || hasPassErr || hasConfirmErr) return;
 
-    setLoading(true);
-    setError(null);
-    setMsg(null);
+    setLoading(true); setError(null); setMsg(null);
 
     try {
       if (isForgot) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: window.location.origin,
         });
         if (error) throw error;
-        setMsg("Recovery link sent! Please check your inbox.");
+        setMsg("Recovery link sent! Please check your inbox (and spam folder).");
       } else if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email: cleanEmail, password });
         if (error) throw error;
-        setMsg("Account created! Please verify your email to continue.");
+        setMsg("Account created! Please check your inbox to verify your email before signing in.");
       } else {
-        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (error) throw error;
+        // Remember Me — save or clear email
+        if (rememberMe) {
+          localStorage.setItem("pf_remember_email", cleanEmail);
+        } else {
+          localStorage.removeItem("pf_remember_email");
+        }
         if (data.session) onLogin(data.session);
       }
     } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+      setError(friendlyError(err.message));
+    } finally { setLoading(false); }
   };
 
-  const switchMode = (m: "login" | "signup" | "forgot") => {
-    setError(null);
-    setMsg(null);
-    setEmailTouched(false);
-    setPassTouched(false);
+  const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
+    setError(null); setMsg(null);
+    setEmailTouched(false); setPassTouched(false);
+    setConfirmPassTouched(false);
+    setPassword(""); setConfirmPassword("");
     setMode(m);
   };
 
+  // ── Feature cards ──────────────────────────────────────────────────────
   const FEATURES = [
     {
       icon: <IndianRupee size={15} />,
@@ -122,6 +229,10 @@ export default function Auth({
     },
   ];
 
+  // ── Shared input styles ────────────────────────────────────────────────
+  const wrapCls = (focused: boolean, err: string) =>
+    ["af-inp-wrap", focused ? "af-focused" : "", err ? "af-inp-err" : ""].filter(Boolean).join(" ");
+
   return (
     <div className="af-root">
 
@@ -145,7 +256,7 @@ export default function Auth({
         <div className="af-hero">
           <div className="af-badge">
             <IndianRupee size={11} aria-hidden="true" />
-            <span>Every money matters.</span>
+            <span>Every rupee matters.</span>
           </div>
           <h1 className="af-h1">
             Your Complete<br />Finance Centre.
@@ -191,7 +302,7 @@ export default function Auth({
           </svg>
         </div>
 
-        {/* What's inside — feature grid */}
+        {/* Feature grid */}
         <div className="af-section-label">Everything you need</div>
         <div className="af-features">
           {FEATURES.map((f, i) => (
@@ -209,17 +320,11 @@ export default function Auth({
 
         {/* Trust badges */}
         <div className="af-trust-row">
-          <span className="af-trust-item">
-            <Lock size={11} aria-hidden="true" />Bank-grade Encryption
-          </span>
+          <span className="af-trust-item"><Lock size={11} aria-hidden="true" />Bank-grade Encryption</span>
           <span className="af-trust-sep" aria-hidden="true" />
-          <span className="af-trust-item">
-            <Shield size={11} aria-hidden="true" />Data Encrypted
-          </span>
+          <span className="af-trust-item"><Shield size={11} aria-hidden="true" />Data Encrypted</span>
           <span className="af-trust-sep" aria-hidden="true" />
-          <span className="af-trust-item">
-            <Zap size={11} aria-hidden="true" />Secure Cloud Sync
-          </span>
+          <span className="af-trust-item"><Zap size={11} aria-hidden="true" />Secure Cloud Sync</span>
         </div>
       </div>
 
@@ -241,14 +346,15 @@ export default function Auth({
           {/* Header */}
           <div className="af-card-head">
             <h2 className="af-card-title">
-              {isForgot ? "Reset your password" : isSignUp ? "Create your account" : "Welcome back"}
+              {isReset  ? "Set new password"   :
+               isForgot ? "Reset your password" :
+               isSignUp ? "Create your account" : "Welcome back"}
             </h2>
             <p className="af-card-sub">
-              {isForgot
-                ? "Enter your email and we'll send a secure recovery link"
-                : isSignUp
-                ? "Create your account and take control of your finances"
-                : "Sign in to your personal finance dashboard"}
+              {isReset  ? "Choose a strong new password for your account"             :
+               isForgot ? "Enter your email and we'll send a secure recovery link"   :
+               isSignUp ? "Create your account and take control of your finances"    :
+                          "Sign in to your personal finance dashboard"}
             </p>
           </div>
 
@@ -268,44 +374,116 @@ export default function Auth({
             </div>
           )}
 
-          {/* ── Form ── */}
+          {/* ══ RESET MODE — Set New Password ══ */}
+          {isReset ? (
+            <form onSubmit={handleAuth} className="af-form" noValidate>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "rgba(79,70,229,0.06)", borderRadius: 10, border: "1px solid rgba(79,70,229,0.15)", marginBottom: 4, fontSize: 13, color: "#4F46E5", fontWeight: 500 }}>
+                <KeyRound size={15} />
+                Password reset link verified. Enter your new password below.
+              </div>
+
+              {/* New password */}
+              <div className="af-field">
+                <label className="af-lbl" htmlFor="af-newpass">New Password</label>
+                <div className={wrapCls(newPassFocused, newPassErr)}>
+                  <input
+                    id="af-newpass"
+                    type={showNewPass ? "text" : "password"}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    onFocus={() => setNewPassFocused(true)}
+                    onBlur={() => { setNewPassFocused(false); setNewPassTouched(true); }}
+                    className="af-inp"
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    autoFocus
+                    aria-invalid={!!newPassErr}
+                  />
+                  <button type="button" onClick={() => setShowNewPass(v => !v)} className="af-eye-btn" aria-label={showNewPass ? "Hide password" : "Show password"} tabIndex={-1}>
+                    {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {newPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{newPassErr}</div>}
+                {/* Strength bar */}
+                {newPassword && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                      {[1,2,3,4,5].map(i => (
+                        <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: getStrength(newPassword) >= i ? STRENGTH_COLOR[getStrength(newPassword)] : "#E2E8F0", transition: "background 0.25s" }} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: STRENGTH_COLOR[getStrength(newPassword)] || "#94A3B8" }}>
+                      {STRENGTH_LABEL[getStrength(newPassword)] || ""}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm new password */}
+              <div className="af-field">
+                <label className="af-lbl" htmlFor="af-confirmnewpass">Confirm New Password</label>
+                <div className={wrapCls(confirmNewPassFocused, confirmNewPassErr)}>
+                  <input
+                    id="af-confirmnewpass"
+                    type={showConfirmNewPass ? "text" : "password"}
+                    value={confirmNewPassword}
+                    onChange={e => setConfirmNewPassword(e.target.value)}
+                    onFocus={() => setConfirmNewPassFocused(true)}
+                    onBlur={() => { setConfirmNewPassFocused(false); setConfirmNewPassTouched(true); }}
+                    className="af-inp"
+                    placeholder="Re-enter your new password"
+                    autoComplete="new-password"
+                    aria-invalid={!!confirmNewPassErr}
+                  />
+                  <button type="button" onClick={() => setShowConfirmNewPass(v => !v)} className="af-eye-btn" aria-label={showConfirmNewPass ? "Hide" : "Show"} tabIndex={-1}>
+                    {showConfirmNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {confirmNewPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{confirmNewPassErr}</div>}
+              </div>
+
+              <button type="submit" disabled={loading} className="af-cta-btn">
+                {loading ? <Loader2 size={18} className="af-spin" /> : <><span>Update Password</span><ArrowRight size={16} strokeWidth={2.5} /></>}
+              </button>
+            </form>
+
+          ) : (
+
+          /* ══ STANDARD FORM (login / signup / forgot) ══ */
           <form onSubmit={handleAuth} className="af-form" noValidate>
 
-            {/* Email field */}
+            {/* Email */}
             <div className="af-field">
               <label className="af-lbl" htmlFor="af-email">Email address</label>
-              <div className={["af-inp-wrap", emailFocused ? "af-focused" : "", emailErr ? "af-inp-err" : ""].filter(Boolean).join(" ")}>
+              <div className={wrapCls(emailFocused, emailErr)}>
                 <input
                   id="af-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   onFocus={() => setEmailFocused(true)}
                   onBlur={() => { setEmailFocused(false); setEmailTouched(true); }}
                   className="af-inp"
                   placeholder="you@example.com"
                   autoComplete="email"
+                  autoFocus
                   aria-describedby={emailErr ? "af-email-err" : undefined}
                   aria-invalid={!!emailErr}
                 />
               </div>
-              {emailErr && (
-                <div id="af-email-err" className="af-err-msg" role="alert">
-                  <AlertCircle size={11} aria-hidden="true" />{emailErr}
-                </div>
-              )}
+              {emailErr && <div id="af-email-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{emailErr}</div>}
             </div>
 
-            {/* Password field */}
+            {/* Password */}
             {!isForgot && (
               <div className="af-field">
                 <label className="af-lbl" htmlFor="af-pass">Password</label>
-                <div className={["af-inp-wrap", passFocused ? "af-focused" : "", passErr ? "af-inp-err" : ""].filter(Boolean).join(" ")}>
+                <div className={wrapCls(passFocused, passErr)}>
                   <input
                     id="af-pass"
                     type={showPass ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     onFocus={() => setPassFocused(true)}
                     onBlur={() => { setPassFocused(false); setPassTouched(true); }}
                     className="af-inp"
@@ -314,24 +492,66 @@ export default function Auth({
                     aria-describedby={passErr ? "af-pass-err" : undefined}
                     aria-invalid={!!passErr}
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="af-eye-btn"
+                  <button type="button" onClick={() => setShowPass(v => !v)} className="af-eye-btn"
                     aria-label={showPass ? "Hide password" : "Show password"} tabIndex={-1}>
                     {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                {passErr && (
-                  <div id="af-pass-err" className="af-err-msg" role="alert">
-                    <AlertCircle size={11} aria-hidden="true" />{passErr}
+                {passErr && <div id="af-pass-err" className="af-err-msg" role="alert"><AlertCircle size={11} aria-hidden="true" />{passErr}</div>}
+
+                {/* Password strength — signup only */}
+                {isSignUp && password && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                      {[1,2,3,4,5].map(i => (
+                        <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: strength >= i ? STRENGTH_COLOR[strength] : "#E2E8F0", transition: "background 0.25s" }} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: STRENGTH_COLOR[strength] || "#94A3B8" }}>
+                      {STRENGTH_LABEL[strength]}
+                      {strength < 3 && <span style={{ color: "#94A3B8", fontWeight: 400 }}> — add uppercase, numbers or symbols to strengthen</span>}
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Remember me + Forgot password */}
+            {/* Confirm password — signup only */}
+            {isSignUp && (
+              <div className="af-field">
+                <label className="af-lbl" htmlFor="af-confirmpass">Confirm Password</label>
+                <div className={wrapCls(confirmPassFocused, confirmPassErr)}>
+                  <input
+                    id="af-confirmpass"
+                    type={showConfirmPass ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    onFocus={() => setConfirmPassFocused(true)}
+                    onBlur={() => { setConfirmPassFocused(false); setConfirmPassTouched(true); }}
+                    className="af-inp"
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    aria-invalid={!!confirmPassErr}
+                  />
+                  <button type="button" onClick={() => setShowConfirmPass(v => !v)} className="af-eye-btn"
+                    aria-label={showConfirmPass ? "Hide" : "Show"} tabIndex={-1}>
+                    {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {confirmPassErr && <div className="af-err-msg" role="alert"><AlertCircle size={11} />{confirmPassErr}</div>}
+                {!confirmPassErr && confirmPassword && confirmPassword === password && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 2 }}>
+                    <CheckCircle2 size={11} />Passwords match
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Remember me + Forgot password — login only */}
             {!isForgot && !isSignUp && (
               <div className="af-meta-row">
                 <label className="af-remember">
-                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="af-chk" />
+                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="af-chk" />
                   <span>Remember me</span>
                 </label>
                 <button type="button" onClick={() => switchMode("forgot")} className="af-link">
@@ -352,20 +572,23 @@ export default function Auth({
               )}
             </button>
           </form>
+          )}
 
           {/* Mode switcher */}
-          <div className="af-switch">
-            {isForgot ? (
-              <button onClick={() => switchMode("login")} className="af-link">← Back to sign in</button>
-            ) : (
-              <span className="af-switch-txt">
-                {isSignUp ? "Already have an account? " : "Don't have an account? "}
-                <button onClick={() => switchMode(isSignUp ? "login" : "signup")} className="af-link af-link-bold">
-                  {isSignUp ? "Sign in" : "Create one"}
-                </button>
-              </span>
-            )}
-          </div>
+          {!isReset && (
+            <div className="af-switch">
+              {isForgot ? (
+                <button onClick={() => switchMode("login")} className="af-link">← Back to sign in</button>
+              ) : (
+                <span className="af-switch-txt">
+                  {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                  <button onClick={() => switchMode(isSignUp ? "login" : "signup")} className="af-link af-link-bold">
+                    {isSignUp ? "Sign in" : "Create one"}
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Security indicators */}
           <div className="af-sec-bar" aria-label="Security features">
@@ -373,7 +596,7 @@ export default function Auth({
             <span className="af-sec-dot" aria-hidden="true" />
             <span className="af-sec-item"><Shield size={9} aria-hidden="true" />Data Encrypted</span>
             <span className="af-sec-dot" aria-hidden="true" />
-            <span className="af-sec-item"><CheckCircle2 size={9} aria-hidden="true" />2FA Ready</span>
+            <span className="af-sec-item"><CheckCircle2 size={9} aria-hidden="true" />No Data Sharing</span>
           </div>
 
           {/* Demo / offline mode */}
@@ -392,8 +615,6 @@ export default function Auth({
 
 /* ─── Styles ──────────────────────────────────────────────────────────── */
 const AF_STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800;900&display=swap');
-
 /* ── Root ─────────────────────────────── */
 .af-root {
   min-height: 100vh;
@@ -447,12 +668,6 @@ const AF_STYLES = `
 .af-logo {
   display: flex; align-items: center; gap: 14px;
   position: relative; z-index: 1;
-}
-.af-logo-mark {
-  width: 46px; height: 46px; border-radius: 14px;
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 28px rgba(79,70,229,0.5); flex-shrink: 0;
 }
 .af-logo-name {
   font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 900;
@@ -577,10 +792,6 @@ const AF_STYLES = `
 
 /* Mobile-only logo */
 .af-mobile-logo { display: none; align-items: center; gap: 10px; margin-bottom: 36px; }
-.af-logo-mark-sm {
-  width: 36px !important; height: 36px !important;
-  border-radius: 10px !important; box-shadow: 0 4px 14px rgba(79,70,229,0.4) !important;
-}
 .af-mobile-brand {
   font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 900;
   color: #0F172A; letter-spacing: -0.04em;
