@@ -272,25 +272,6 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
     return new Set(Object.keys(freq).filter((k) => freq[k] >= 2));
   }, [state.transactions]);
 
-  // Reconciliation Pre-calculations
-  const reconciliationData = useMemo(() => {
-    const data: Record<string, { pendingTxns: any[], pendingImpact: number, reconciledBalance: number, needsReconciliation: boolean }> = {};
-    
-    (state.bankAccounts || []).forEach((a: any) => {
-      const pendingTxns = (state.transactions || []).filter(
-        (t: any) => t.accountId === a.id && !(masterData?.reconciledTxnIds || []).includes(t.id)
-      );
-      const pendingCredits = pendingTxns.filter((t: any) => t.type === "credit").reduce((s, t) => s + Number(t.amount || 0), 0);
-      const pendingDebits = pendingTxns.filter((t: any) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0);
-      const pendingImpact = pendingCredits - pendingDebits;
-      const reconciledBalance = Number(a.balance || 0) + pendingImpact;
-      const needsReconciliation = pendingTxns.length > 0;
-      
-      data[a.id] = { pendingTxns, pendingImpact, reconciledBalance, needsReconciliation };
-    });
-    
-    return data;
-  }, [state.bankAccounts, state.transactions, masterData?.reconciledTxnIds]);
 
   const filteredTxns = state.transactions
     .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
@@ -565,61 +546,22 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                 </div>
               </div>
 
-              {(() => {
-                const recon = reconciliationData[a.id] || { pendingTxns: [], pendingImpact: 0, reconciledBalance: Number(a.balance || 0), needsReconciliation: false };
-                return (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span>Account Balance</span>
-                        {recon.needsReconciliation ? (
-                          <span 
-                            title={`Ledger shows un-synced transactions. Reconciled balance should be ₹${recon.reconciledBalance.toLocaleString("en-IN")}`}
-                            style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(217,119,6,0.12)", color: THEME.gold, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3, cursor: "help" }}
-                          >
-                            ⚠️ Reconcile
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(5,150,105,0.12)", color: THEME.sage, fontWeight: 700 }}>
-                            ✓ Synced
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(a.balance)}</Prv></div>
-                        {recon.needsReconciliation && (
-                          <button 
-                            onClick={() => {
-                              const newReconciledIds = [...(masterData?.reconciledTxnIds || []), ...recon.pendingTxns.map((t: any) => t.id)];
-                              updateItem("bankAccounts", a.id, { ...a, balance: recon.reconciledBalance });
-                              updateMasterData("reconciledTxnIds", newReconciledIds);
-                            }}
-                            style={{ 
-                              background: "rgba(217,119,6,0.1)", 
-                              border: `1.5px solid ${THEME.gold}44`, 
-                              color: THEME.gold, 
-                              fontSize: 10, 
-                              fontWeight: 800, 
-                              padding: "2px 8px", 
-                              borderRadius: 6, 
-                              cursor: "pointer",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4
-                            }}
-                            title={`Sync declared balance to Ledger reconciled balance (₹${recon.reconciledBalance.toLocaleString()})`}
-                          >
-                            Sync
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
-                      •••• {(a.accountNumber || "").slice(-4)}
-                    </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>Account Balance</span>
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(5,150,105,0.12)", color: THEME.sage, fontWeight: 700 }}>
+                      ● Live
+                    </span>
                   </div>
-                );
-              })()}
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800, color: THEME.ink }}>
+                    <Prv>{fmtINRFull(a.balance)}</Prv>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
+                  •••• {(a.accountNumber || "").slice(-4)}
+                </div>
+              </div>
             </div>
           );
         })}

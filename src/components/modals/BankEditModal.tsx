@@ -38,8 +38,8 @@ export function BankEditModal({ account, onClose, onSave }: any) {
             {bankAccountTypes.map((t: string) => <option key={t} value={t}>{t}</option>)}
           </select>
         </Field>
-        <Field label="Current Balance">
-          <input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} />
+        <Field label="Balance (auto-updated by transactions)">
+          <input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} placeholder="Override if needed" />
         </Field>
       </div>
       <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />

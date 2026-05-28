@@ -1613,8 +1613,15 @@ function FinanceDashboard() {
     setState((s) => {
       const next: any = { ...s, [key]: [...(s[key] as any[]), { id: newId, ...itemWithOwner }] };
       if (key === "transactions" && itemWithOwner.accountId) {
+        const delta = itemWithOwner.type === "credit"
+          ? Number(itemWithOwner.amount || 0)
+          : -Number(itemWithOwner.amount || 0);
+        next.bankAccounts = (s.bankAccounts || []).map((a: any) =>
+          a.id === itemWithOwner.accountId ? { ...a, balance: Number(a.balance || 0) + delta } : a
+        );
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
-        next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId] };
+        const appliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
+        next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId], balanceAppliedTxnIds: [...appliedIds, newId] };
       }
       return next;
     });
@@ -1646,7 +1653,21 @@ function FinanceDashboard() {
         let { error: firstErr } = await tryUpsert();
 
         if (!firstErr) {
-          // Success on first try — nothing to do
+          // Auto-update bank balance in DB when a transaction is recorded
+          if (key === "transactions" && itemWithOwner.accountId && userId) {
+            const delta = itemWithOwner.type === "credit" ? Number(itemWithOwner.amount || 0) : -Number(itemWithOwner.amount || 0);
+            const linked = state.bankAccounts.find((a: any) => a.id === itemWithOwner.accountId);
+            if (linked) {
+              supabase.from("bank_accounts").update({ balance: Number(linked.balance || 0) + delta })
+                .eq("id", itemWithOwner.accountId)
+                .then(({ error: e }) => { if (e) console.error("[Balance auto-update]", e.message); });
+            }
+            const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
+            const appliedIds: string[] = state.masterData?.balanceAppliedTxnIds || [];
+            const newMaster = { ...(state.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId], balanceAppliedTxnIds: [...appliedIds, newId] };
+            supabase.from("user_settings").upsert({ user_id: userId, master_data: newMaster })
+              .then(({ error: e }) => { if (e) console.error("[masterData sync]", e.message); });
+          }
         } else if (isNetworkError(firstErr.message)) {
           // Network blip — keep the item in UI (don't revert), retry silently in background
           showToast("Saved locally — syncing in background…", "warn");
@@ -1727,12 +1748,27 @@ function FinanceDashboard() {
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
     const itemToDelete = key === "stocks" ? state.stocks.find((x: any) => x.id === id) : null;
+    const txnToDelete = key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
+    const wasBalanceApplied = key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
 
     setState((s) => {
       const next: any = { ...s, [key]: s[key].filter((x: any) => x.id !== id) };
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
-        next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: reconIds.filter((rid) => rid !== id) };
+        const appliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
+        next.masterData = {
+          ...(s.masterData || DEFAULT_MASTER_DATA),
+          reconciledTxnIds: reconIds.filter((rid) => rid !== id),
+          balanceAppliedTxnIds: appliedIds.filter((rid) => rid !== id),
+        };
+        if (wasBalanceApplied && txnToDelete?.accountId) {
+          const delta = txnToDelete.type === "credit"
+            ? -Number(txnToDelete.amount || 0)
+            : Number(txnToDelete.amount || 0);
+          next.bankAccounts = (s.bankAccounts || []).map((a: any) =>
+            a.id === txnToDelete.accountId ? { ...a, balance: Number(a.balance || 0) + delta } : a
+          );
+        }
       }
       return next;
     });
@@ -1745,14 +1781,39 @@ function FinanceDashboard() {
           console.error(`Supabase Delete Error (${table}):`, error.message);
           showToast(`Delete sync failed: ${error.message}`, "error");
           fetchAllData();
-        } else if (key === "stocks" && itemToDelete) {
-          // Check if any lots of this stock remain in active portfolio OR if it's in sales history
-          const stillHasLots = state.stocks.some((x: any) => x.id !== id && x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
-          const hasInSales = state.stockSells.some((x: any) => x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
-          
-          if (!stillHasLots && !hasInSales) {
-            await supabase.from("corporate_actions").delete().eq("symbol", itemToDelete.symbol).eq("exchange", itemToDelete.exchange);
-            setState((s: any) => ({ ...s, corporateActions: s.corporateActions.filter((ca: any) => !(ca.symbol === itemToDelete.symbol && ca.exchange === itemToDelete.exchange)) }));
+        } else {
+          // Auto-reverse bank balance in DB if this transaction's delta was previously applied
+          if (wasBalanceApplied && txnToDelete?.accountId) {
+            const delta = txnToDelete.type === "credit"
+              ? -Number(txnToDelete.amount || 0)
+              : Number(txnToDelete.amount || 0);
+            const linked = state.bankAccounts.find((a: any) => a.id === txnToDelete.accountId);
+            if (linked) {
+              supabase.from("bank_accounts").update({ balance: Number(linked.balance || 0) + delta })
+                .eq("id", txnToDelete.accountId)
+                .then(({ error: e }) => { if (e) console.error("[Balance auto-reverse]", e.message); });
+            }
+          }
+          // Save updated masterData (remove txn from both tracking arrays)
+          if (key === "transactions") {
+            const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
+            const appliedIds: string[] = state.masterData?.balanceAppliedTxnIds || [];
+            const newMaster = {
+              ...(state.masterData || DEFAULT_MASTER_DATA),
+              reconciledTxnIds: reconIds.filter(rid => rid !== id),
+              balanceAppliedTxnIds: appliedIds.filter(rid => rid !== id),
+            };
+            supabase.from("user_settings").upsert({ user_id: userId, master_data: newMaster })
+              .then(({ error: e }) => { if (e) console.error("[masterData sync]", e.message); });
+          }
+          if (key === "stocks" && itemToDelete) {
+            // Check if any lots of this stock remain in active portfolio OR if it's in sales history
+            const stillHasLots = state.stocks.some((x: any) => x.id !== id && x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
+            const hasInSales = state.stockSells.some((x: any) => x.symbol === itemToDelete.symbol && x.exchange === itemToDelete.exchange);
+            if (!stillHasLots && !hasInSales) {
+              await supabase.from("corporate_actions").delete().eq("symbol", itemToDelete.symbol).eq("exchange", itemToDelete.exchange);
+              setState((s: any) => ({ ...s, corporateActions: s.corporateActions.filter((ca: any) => !(ca.symbol === itemToDelete.symbol && ca.exchange === itemToDelete.exchange)) }));
+            }
           }
         }
       }
