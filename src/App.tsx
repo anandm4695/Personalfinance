@@ -280,7 +280,8 @@ function FinanceDashboard() {
     });
     const userId = session?.user?.id;
     if (userId && userId !== "offline-user" && merged) {
-      await supabase.from("user_settings").upsert({ user_id: userId, master_data: merged });
+      const { error } = await supabase.from("user_settings").upsert({ user_id: userId, master_data: merged });
+      if (error) console.error("[updateMasterData] DB upsert failed:", error.message);
     }
   }, [session]);
 
@@ -503,8 +504,14 @@ function FinanceDashboard() {
           ...(prof.data ? { profile: snakeToCamel(prof.data) } : {}),
           ...(sett.data ? {
             settings: snakeToCamel({ ...sett.data, master_data: undefined, dismissed_alerts: undefined }),
-            ...(sett.data.master_data ? { masterData: { ...DEFAULT_MASTER_DATA, ...sett.data.master_data } } : {}),
           } : {}),
+          // Always merge ALL loaded transaction IDs into reconciledTxnIds so pre-fix transactions
+          // never trigger the Sync button (which caused balance doubling on repeated clicks).
+          masterData: (() => {
+            const base = (sett.data?.master_data ? { ...DEFAULT_MASTER_DATA, ...sett.data.master_data } : null) || currentState.masterData || DEFAULT_MASTER_DATA;
+            const allTxnIds = (!txns.error && txns.data != null) ? txns.data.map((t: any) => t.id) : [];
+            return { ...base, reconciledTxnIds: Array.from(new Set([...(base.reconciledTxnIds || []), ...allTxnIds])) };
+          })(),
           ...(sett.data?.master_data?._dismissedAlerts ? { dismissedAlerts: sett.data.master_data._dismissedAlerts } : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
           ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
