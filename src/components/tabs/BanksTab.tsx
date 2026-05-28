@@ -366,7 +366,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       const theme = getAccountTheme(a.type);
       return {
         id: a.id,
-        name: a.bankName,
+        name: accountLabel(a),
         balance: a.balance,
         share,
         color: theme.color,

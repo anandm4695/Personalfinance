@@ -1603,7 +1603,20 @@ function FinanceDashboard() {
     }
 
     const newId = uid();
-    setState((s) => ({ ...s, [key]: [...s[key], { id: newId, ...itemWithOwner }] }));
+    setState((s) => {
+      const next: any = { ...s, [key]: [...(s[key] as any[]), { id: newId, ...itemWithOwner }] };
+      if (key === "transactions" && itemWithOwner.accountId) {
+        const delta = itemWithOwner.type === "credit"
+          ? Number(itemWithOwner.amount || 0)
+          : -Number(itemWithOwner.amount || 0);
+        next.bankAccounts = (s.bankAccounts || []).map((a: any) =>
+          a.id === itemWithOwner.accountId ? { ...a, balance: Number(a.balance || 0) + delta } : a
+        );
+        const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
+        next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId] };
+      }
+      return next;
+    });
     
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
@@ -1707,14 +1720,46 @@ function FinanceDashboard() {
         }
       }
     }
+    // Auto-sync bank balance and mark reconciled when a transaction is recorded
+    if (key === "transactions" && itemWithOwner.accountId && userId && userId !== "offline-user") {
+      const delta = itemWithOwner.type === "credit"
+        ? Number(itemWithOwner.amount || 0)
+        : -Number(itemWithOwner.amount || 0);
+      const linked = state.bankAccounts.find((a: any) => a.id === itemWithOwner.accountId);
+      if (linked) {
+        supabase.from("bank_accounts")
+          .update({ balance: Number(linked.balance || 0) + delta })
+          .eq("id", itemWithOwner.accountId)
+          .then(({ error: e }) => { if (e) console.error("[Balance auto-sync]", e.message); });
+      }
+      const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
+      const newMasterData = { ...(state.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId] };
+      supabase.from("user_settings")
+        .upsert({ user_id: userId, master_data: newMasterData })
+        .then(({ error: e }) => { if (e) console.error("[reconciledTxnIds sync]", e.message); });
+    }
     logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
   };
 
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
     const itemToDelete = key === "stocks" ? state.stocks.find((x: any) => x.id === id) : null;
+    const txnToDelete = key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
 
-    setState((s) => ({ ...s, [key]: s[key].filter((x) => x.id !== id) }));
+    setState((s) => {
+      const next: any = { ...s, [key]: s[key].filter((x: any) => x.id !== id) };
+      if (txnToDelete?.accountId) {
+        const delta = txnToDelete.type === "credit"
+          ? -Number(txnToDelete.amount || 0)
+          : Number(txnToDelete.amount || 0);
+        next.bankAccounts = (s.bankAccounts || []).map((a: any) =>
+          a.id === txnToDelete.accountId ? { ...a, balance: Number(a.balance || 0) + delta } : a
+        );
+        const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
+        next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: reconIds.filter((rid) => rid !== id) };
+      }
+      return next;
+    });
     
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
@@ -1735,6 +1780,24 @@ function FinanceDashboard() {
           }
         }
       }
+    }
+    // Auto-reverse bank balance when a transaction is deleted
+    if (txnToDelete?.accountId && userId && userId !== "offline-user") {
+      const delta = txnToDelete.type === "credit"
+        ? -Number(txnToDelete.amount || 0)
+        : Number(txnToDelete.amount || 0);
+      const linked = state.bankAccounts.find((a: any) => a.id === txnToDelete.accountId);
+      if (linked) {
+        supabase.from("bank_accounts")
+          .update({ balance: Number(linked.balance || 0) + delta })
+          .eq("id", txnToDelete.accountId)
+          .then(({ error: e }) => { if (e) console.error("[Balance auto-reverse]", e.message); });
+      }
+      const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
+      const newMasterData = { ...(state.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: reconIds.filter((rid) => rid !== id) };
+      supabase.from("user_settings")
+        .upsert({ user_id: userId, master_data: newMasterData })
+        .then(({ error: e }) => { if (e) console.error("[reconciledTxnIds reverse]", e.message); });
     }
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
   };
