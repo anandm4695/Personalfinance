@@ -76,6 +76,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ day: number; events: any[] } | null>(null);
+  const [ytdMode, setYtdMode] = useState<"fy" | "cal">("fy");
+  const [sipLsTarget, setSipLsTarget] = useState(0);
+  const [sipLsYears, setSipLsYears] = useState(10);
+  const [sipLsCagr, setSipLsCagr] = useState(12);
 
   // ── Database-Synced Rebalancing Target States ──
   const initialRebalTargets = useMemo(() => {
@@ -474,7 +478,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const now = new Date();
     return trendData.map((t, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (trendData.length - 1 - i), 1);
-      const ym = d.toISOString().slice(0, 7);
+      // Use local date parts — toISOString() returns UTC which shifts month for IST (UTC+5:30)
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const value = histMap[ym] !== undefined
         ? histMap[ym]
         : metrics.netWorth; 
@@ -870,35 +875,109 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       }
     }
 
+    // Expense anomaly: flag any category where this month is 50%+ above its 3-month average
+    if (metrics.monthExpense > 0) {
+      const now3 = new Date();
+      const currentYm = `${now3.getFullYear()}-${String(now3.getMonth() + 1).padStart(2, "0")}`;
+      // Build category totals for previous 3 months
+      const prev3Map: Record<string, number[]> = {};
+      for (let m = 1; m <= 3; m++) {
+        const d3 = new Date(now3.getFullYear(), now3.getMonth() - m, 1);
+        const ym3 = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, "0")}`;
+        (state.transactions || [])
+          .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(ym3))
+          .forEach((t: any) => {
+            const cat = t.category || "Uncategorized";
+            if (!prev3Map[cat]) prev3Map[cat] = [];
+            prev3Map[cat].push(Number(t.amount || 0));
+          });
+      }
+      const currentCatMap: Record<string, number> = {};
+      (state.transactions || [])
+        .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(currentYm))
+        .forEach((t: any) => {
+          const cat = t.category || "Uncategorized";
+          currentCatMap[cat] = (currentCatMap[cat] || 0) + Number(t.amount || 0);
+        });
+      const anomalies = Object.entries(currentCatMap)
+        .filter(([cat, thisMonthVal]) => {
+          const prev = prev3Map[cat];
+          if (!prev || prev.length < 2) return false;
+          const avg3 = prev.reduce((s, v) => s + v, 0) / prev.length;
+          return avg3 > 0 && thisMonthVal > avg3 * 1.5 && thisMonthVal > 500;
+        })
+        .sort(([, a], [, b]) => b - a);
+      if (anomalies.length > 0) {
+        const [topCat, topVal] = anomalies[0];
+        const avg3 = prev3Map[topCat].reduce((s, v) => s + v, 0) / prev3Map[topCat].length;
+        insights.push({ icon: AlertTriangle, title: `${topCat} Spike`, value: `${fmtINR(topVal)} this month vs ${fmtINR(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+      }
+    }
+
+    // SIP affordability: flag if total SIP > monthly savings
+    const totalSIPAmt = (state.sips || []).reduce((s: number, sip: any) => s + Number(sip.amount || 0), 0);
+    if (totalSIPAmt > 0 && metrics.monthIncome > 0) {
+      const monthlySavings = metrics.monthIncome - metrics.monthExpense;
+      if (totalSIPAmt > monthlySavings && monthlySavings < totalSIPAmt * 0.9) {
+        insights.push({ icon: AlertTriangle, title: "SIP Exceeds Savings", value: `SIPs ${fmtINR(totalSIPAmt)}/mo · only ${fmtINR(Math.max(0, monthlySavings))} available`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      }
+    }
+
+    // Credit card interest exposure — alert if carrying revolving balance
+    const ccInterestMonthly = (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.outstanding || 0) > 0)
+      .reduce((s: number, c: any) => {
+        const annualRate = Number(c.interestRate || 36) / 100;
+        return s + Number(c.outstanding || 0) * annualRate / 12;
+      }, 0);
+    if (ccInterestMonthly > 500) {
+      insights.push({ icon: CreditCard, title: "CC Interest Risk", value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+    }
+
     if (insights.length === 0 && metrics.netWorth > 0)
       insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
 
     return insights;
-  }, [metrics, state.income, state.transactions, state.termPlans, state.sips, state.loansTaken, dashboardData]);
+  }, [metrics, state.income, state.transactions, state.termPlans, state.sips, state.loansTaken, dashboardData, state.creditCards]);
 
   const ytdData = useMemo(() => {
     const now = new Date();
-    const yearStr = `${now.getFullYear()}`;
-    const ytdTxns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(yearStr));
+    let startDate: Date;
+    let labelStart: string;
+
+    if (ytdMode === "fy") {
+      const fyParts = (state.profile?.fy || "").split("-");
+      // FY "2025-26" starts April 1 2025; if no profile FY, infer from current month
+      const fyStartYear = Number(fyParts[0]) ||
+        (now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1);
+      startDate = new Date(fyStartYear, 3, 1); // April 1
+      labelStart = `Apr ${fyStartYear}`;
+    } else {
+      startDate = new Date(now.getFullYear(), 0, 1); // Jan 1
+      labelStart = "Jan";
+    }
+
+    const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-01`;
+    const ytdTxns = (state.transactions || []).filter((t: any) => t.date && t.date >= startStr);
     const ytdTxnIncome = ytdTxns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     // Income ledger is the authoritative source (mirrors App.tsx explicitIncome priority)
     const ytdIncomeLedger = (state.income || [])
-      .filter((i: any) => i.date && i.date.startsWith(yearStr))
+      .filter((i: any) => i.date && i.date >= startStr)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const ytdIncome = ytdIncomeLedger > 0 ? ytdIncomeLedger : ytdTxnIncome;
     const ytdTxnExpense = ytdTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     // Rent payments tracked via rentedProperties.payments are not debit transactions
     const ytdRentPaid = (state.rentedProperties || []).reduce((sum: number, p: any) =>
       sum + (p.payments || [])
-        .filter((pay: any) => pay.date && pay.date.startsWith(yearStr))
+        .filter((pay: any) => pay.date && pay.date >= startStr)
         .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0), 0);
     const ytdExpense = ytdTxnExpense + ytdRentPaid;
     const ytdSavings = ytdIncome - ytdExpense;
     const ytdSavingsRate = ytdIncome > 0 ? (ytdSavings / ytdIncome) * 100 : 0;
-    const monthsElapsed = now.getMonth() + 1;
+    const monthsElapsed = (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth()) + 1;
     const monthName = now.toLocaleString("en-IN", { month: "short" });
-    return { ytdIncome, ytdExpense, ytdSavings, ytdSavingsRate, monthsElapsed, monthName };
-  }, [state.transactions, state.income, state.rentedProperties]);
+    return { ytdIncome, ytdExpense, ytdSavings, ytdSavingsRate, monthsElapsed, monthName, labelStart };
+  }, [state.transactions, state.income, state.rentedProperties, state.profile?.fy, ytdMode]);
 
   const passiveIncomeData = useMemo(() => {
     const rentalMonthly = (state.rentalProperties || [])
@@ -953,10 +1032,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const ppfAnnual = ppfThisYear > 0 ? ppfThisYear :
       (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
     const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
-    const total = Math.min(elss + ppfAnnual + licPremium, limit);
+    // EPF employee contributions (12% of basic = employee_amount in ledger) count toward 80C
+    const epfEmployee = (state.epf || []).reduce((s: number, e: any) => {
+      const ledgerTotal = (e.transactions || [])
+        .filter((t: any) => t.type === "employee" && t.date && t.date >= fyStartStr && t.date <= fyEndStr)
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
+    }, 0);
+    const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee, limit);
     const remaining = Math.max(0, limit - total);
-    return { elss, ppfAnnual, licPremium, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
-  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.profile?.fy]);
+    return { elss, ppfAnnual, licPremium, epfEmployee, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, state.profile?.fy]);
 
   const goalHealth = useMemo(() => {
     const now = new Date();
@@ -1643,12 +1729,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           {/* YTD Cumulative block */}
           <Card style={{ padding: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div>
                 <div className="section-label" style={{ marginBottom: 2 }}>Year-to-Date Performance</div>
-                <div style={{ fontSize: 12, color: THEME.muted }}>Jan – {ytdData.monthName} {new Date().getFullYear()} · {ytdData.monthsElapsed} month{ytdData.monthsElapsed > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  {ytdData.labelStart} – {ytdData.monthName} {new Date().getFullYear()} · {ytdData.monthsElapsed} month{ytdData.monthsElapsed > 1 ? "s" : ""}
+                </div>
               </div>
-              <BarChart2 size={18} color={THEME.muted} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {(["fy", "cal"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setYtdMode(mode)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
+                      background: ytdMode === mode ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                      color: ytdMode === mode ? THEME.accent : THEME.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {mode === "fy" ? "FY (Apr–Mar)" : "CY (Jan–Dec)"}
+                  </button>
+                ))}
+              </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
               {[
@@ -2734,8 +2842,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       : "Runway Target Exceeds 10 Years"}
                   </div>
                   <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
-                    {crossoverYear 
-                      ? `With Equities compounding at ${eqCAGR}% and Fixed Income at ${fiCAGR}%, your wealth is projected to outpace your inflation-adjusted FIRE corpus requirement of ${fmtINR(projectionData[crossoverYear - new Date().getFullYear()]?.fireTarget || 0)} in ${crossoverYear - new Date().getFullYear()} years. Adjust the monthly savings input above to accelerate this vector!`
+                    {crossoverYear
+                      ? (() => {
+                          const yrsAway = crossoverYear - new Date().getFullYear();
+                          const timeStr = yrsAway === 0 ? "this year" : `in ${yrsAway} year${yrsAway === 1 ? "" : "s"}`;
+                          return `With Equities compounding at ${eqCAGR}% and Fixed Income at ${fiCAGR}%, your wealth is projected to outpace your inflation-adjusted FIRE corpus requirement of ${fmtINR(projectionData[yrsAway]?.fireTarget || 0)} ${timeStr}. Adjust the monthly savings input above to accelerate this vector!`;
+                        })()
                       : `At the current growth trajectory, inflation (${inflationRate}%) is challenging your real wealth growth vector. Consider increasing your monthly equity SIP investments or seeking higher-yielding asset classes to compound past your goal post within the decade.`}
                   </div>
                 </div>
@@ -2764,6 +2876,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 { label: "ELSS Invested", value: taxData80C.elss, color: "#6366f1" },
                 { label: "PPF Contribution", value: taxData80C.ppfAnnual, color: THEME.sage },
                 { label: "LIC Premium", value: taxData80C.licPremium, color: THEME.gold },
+                ...(taxData80C.epfEmployee > 0 ? [{ label: "EPF (Employee)", value: taxData80C.epfEmployee, color: "#38bdf8" }] : []),
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2789,11 +2902,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <input
                     type="number"
                     autoFocus
-                    defaultValue={state.profile.savingsTarget || 20}
+                    defaultValue={state.masterData?._savingsTarget ?? state.profile?.savingsTarget ?? 20}
                     onBlur={(e) => {
                       const val = e.target.value;
                       const num = parseInt(val);
                       if (!isNaN(num) && num >= 0 && num <= 100) {
+                        // Persist via masterData so it survives DB reloads (profile overwrite)
+                        if (updateMasterData) updateMasterData("_savingsTarget", num);
                         setState((prev: any) => ({
                           ...prev,
                           profile: { ...prev.profile, savingsTarget: num }
@@ -2827,7 +2942,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       setEditingTarget(true);
                     }}
                   >
-                    Target: {state.profile.savingsTarget || 20}%
+                    Target: {state.masterData?._savingsTarget ?? state.profile?.savingsTarget ?? 20}%
                   </Badge>
                 )}
               </div>
@@ -2836,7 +2951,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {(() => {
                   const income = metrics.monthIncome || 0;
                   const spent = metrics.monthExpense || 0;
-                  const targetPct = state.profile.savingsTarget || 20;
+                  const targetPct = state.masterData?._savingsTarget ?? state.profile?.savingsTarget ?? 20;
                   const savingsTarget = income * (targetPct / 100);
                   const safeSpendLimit = income * ((100 - targetPct) / 100);
                   const remainingSafe = safeSpendLimit - spent;
@@ -2940,10 +3055,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {goalHealth.map((g: any) => (
-                    <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${g.achieved ? "rgba(52,211,153,0.2)" : g.onTrack ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.2)"}` }}>
+                    <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${g.achieved ? "rgba(52,211,153,0.2)" : (g.onTrack || !g.targetDate) ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.2)"}` }}>
                       {g.achieved || g.onTrack
                         ? <CheckCircle2 size={18} color={THEME.sage} style={{ flexShrink: 0 }} />
-                        : <XCircle size={18} color={THEME.rust} style={{ flexShrink: 0 }} />}
+                        : !g.targetDate
+                          ? <Target size={18} color={THEME.muted} style={{ flexShrink: 0 }} />
+                          : <XCircle size={18} color={THEME.rust} style={{ flexShrink: 0 }} />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
                           <span style={{ fontSize: 14, fontWeight: 700 }}>{g.name || g.title}</span>
@@ -3116,13 +3233,94 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                     )}
 
-                    <div style={{ marginTop: 14, fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
+                    <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: "rgba(128,128,128,0.04)", borderTop: `1px solid ${THEME.line}`, fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
                       * STCG 20% · LTCG 12.5% (Budget 2024 rates). Offsetting checks simulate real tax loss harvesting options. Re-buy after 30+ days to avoid wash-sale issues. Consult your CA.
                     </div>
                   </>
                 )}
               </Card>
             );
+          })()}
+
+          {/* SIP vs Lump Sum Goal Planner */}
+          {(() => {
+          const r = sipLsCagr > 0 ? sipLsCagr / 100 / 12 : 0;
+          const n = sipLsYears * 12;
+          const FV = sipLsTarget;
+          const sipNeeded = FV > 0 && r > 0 && n > 0 ? (FV * r) / ((Math.pow(1 + r, n) - 1) * (1 + r)) : 0;
+          const lumpNeeded = FV > 0 && sipLsCagr > 0 ? FV / Math.pow(1 + sipLsCagr / 100, sipLsYears) : 0;
+          const sipTotal = sipNeeded * n;
+          const lumpGrowth = FV > 0 ? FV - lumpNeeded : 0;
+          return (
+            <Card style={{ padding: 24, marginTop: 28, marginBottom: 28 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, flexWrap: "wrap", gap: 12 }}>
+                <div className="section-label">SIP vs Lump Sum — Goal Planner</div>
+                <div style={{ fontSize: 11, color: THEME.muted }}>How much do you need to invest to reach a target corpus?</div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24, marginTop: 20 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 6 }}>Target Corpus (₹)</div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100000"
+                    value={sipLsTarget || ""}
+                    onChange={(e) => setSipLsTarget(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder={`e.g. ${fmtINR(5000000)}`}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${THEME.line}`, background: "var(--surface-0)", color: THEME.ink, fontSize: 14, fontWeight: 700, outline: "none", boxSizing: "border-box" as const }}
+                  />
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                    {[500000, 1000000, 2500000, 5000000].map((preset) => (
+                      <button key={preset} onClick={() => setSipLsTarget(preset)}
+                        style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: sipLsTarget === preset ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent", color: sipLsTarget === preset ? THEME.accent : THEME.muted, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                        {fmtINR(preset)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 6 }}>Timeline — {sipLsYears} Year{sipLsYears > 1 ? "s" : ""}</div>
+                  <input type="range" min="1" max="30" step="1" value={sipLsYears}
+                    onChange={(e) => setSipLsYears(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: THEME.accent }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}><span>1y</span><span>15y</span><span>30y</span></div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 6 }}>Expected CAGR — {sipLsCagr}%</div>
+                  <input type="range" min="4" max="20" step="0.5" value={sipLsCagr}
+                    onChange={(e) => setSipLsCagr(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: THEME.accent }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}><span>4%</span><span>12%</span><span>20%</span></div>
+                </div>
+              </div>
+
+              {FV > 0 && sipNeeded > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={{ padding: "20px 24px", borderRadius: 14, background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`, border: `1.5px solid color-mix(in srgb, var(--t-accent) 25%, transparent)` }}>
+                    <div style={{ fontSize: 10, color: THEME.accent, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.1em", marginBottom: 8 }}>Monthly SIP Needed</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.03em", lineHeight: 1 }}>{fmtINRFull(Math.round(sipNeeded))}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>Total invested: {fmtINRFull(Math.round(sipTotal))}</div>
+                    <div style={{ fontSize: 12, color: THEME.sage, marginTop: 4, fontWeight: 600 }}>Gains: {fmtINRFull(Math.round(FV - sipTotal))}</div>
+                  </div>
+                  <div style={{ padding: "20px 24px", borderRadius: 14, background: "rgba(128,128,128,0.04)", border: `1.5px solid ${THEME.line}` }}>
+                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.1em", marginBottom: 8 }}>Lump Sum Today</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1 }}>{fmtINRFull(Math.round(lumpNeeded))}</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>Grows to {fmtINRFull(FV)} in {sipLsYears}y</div>
+                    <div style={{ fontSize: 12, color: THEME.sage, marginTop: 4, fontWeight: 600 }}>Gains: {fmtINRFull(Math.round(lumpGrowth))}</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: "24px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                  Enter a target corpus above to calculate required SIP and lump sum amounts
+                </div>
+              )}
+
+              <div style={{ marginTop: 14, fontSize: 11, color: THEME.muted }}>
+                * SIP formula assumes monthly contributions at {sipLsCagr}% p.a. CAGR, beginning of period. Returns not guaranteed.
+              </div>
+            </Card>
+          );
           })()}
         </div>
       )}

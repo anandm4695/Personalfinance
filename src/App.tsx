@@ -834,10 +834,11 @@ function FinanceDashboard() {
     }
   }, [loaded, session]);
 
-  // Record a net-worth snapshot for the current month once per session after data loads
+  // Auto-snapshot: always refresh the current month's net worth on every load so it stays accurate
   useEffect(() => {
     if (!loaded) return;
-    const ym = new Date().toISOString().slice(0, 7);
+    const nowSnap = new Date();
+    const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
     setState((s) => {
       const nw = (() => {
         const cash = (s.bankAccounts || []).reduce((a, x) => a + Number(x.balance || 0), 0);
