@@ -165,6 +165,9 @@ function FinanceDashboard() {
   // Ref keeps stocks current inside fetchLivePrices without putting state.stocks in deps,
   // which would cause the callback to be recreated after every metadata sync → extra fetches.
   const stocksRef = useRef<any[]>([]);
+  // Tracks latest masterData synchronously inside setState callbacks, so rapid back-to-back
+  // addItem calls (e.g. transfer = debit + credit) don't overwrite each other's DB upsert.
+  const masterDataRef = useRef<any>(null);
   const { privacyMode, setPrivacyMode } = usePrivacy();
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
@@ -1622,6 +1625,7 @@ function FinanceDashboard() {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
         const appliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
         next.masterData = { ...(s.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId], balanceAppliedTxnIds: [...appliedIds, newId] };
+        masterDataRef.current = next.masterData;
       }
       return next;
     });
@@ -1662,9 +1666,11 @@ function FinanceDashboard() {
                 .eq("id", itemWithOwner.accountId)
                 .then(({ error: e }) => { if (e) console.error("[Balance auto-update]", e.message); });
             }
-            const reconIds: string[] = state.masterData?.reconciledTxnIds || [];
-            const appliedIds: string[] = state.masterData?.balanceAppliedTxnIds || [];
-            const newMaster = { ...(state.masterData || DEFAULT_MASTER_DATA), reconciledTxnIds: [...reconIds, newId], balanceAppliedTxnIds: [...appliedIds, newId] };
+            const latestMaster = masterDataRef.current || state.masterData || DEFAULT_MASTER_DATA;
+            const reconIds: string[] = latestMaster?.reconciledTxnIds || [];
+            const appliedIds: string[] = latestMaster?.balanceAppliedTxnIds || [];
+            const newMaster = { ...latestMaster, reconciledTxnIds: [...reconIds, newId], balanceAppliedTxnIds: [...appliedIds, newId] };
+            masterDataRef.current = newMaster;
             supabase.from("user_settings").upsert({ user_id: userId, master_data: newMaster })
               .then(({ error: e }) => { if (e) console.error("[masterData sync]", e.message); });
           }
@@ -1847,10 +1853,26 @@ function FinanceDashboard() {
 
   const updateItem = async (key, id, patch) => {
     const userId = session?.user?.id;
-    setState((s) => ({
-      ...s,
-      [key]: s[key].map((x) => (x.id === id ? { ...x, ...patch } : x)),
-    }));
+    const wasApplied = key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
+    const oldTxn = key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
+
+    setState((s) => {
+      const next: any = { ...s, [key]: s[key].map((x) => (x.id === id ? { ...x, ...patch } : x)) };
+      if (wasApplied && oldTxn) {
+        const updatedTxn = { ...oldTxn, ...patch };
+        const oldDelta = oldTxn.type === "credit" ? Number(oldTxn.amount || 0) : -Number(oldTxn.amount || 0);
+        const newDelta = updatedTxn.type === "credit" ? Number(updatedTxn.amount || 0) : -Number(updatedTxn.amount || 0);
+        next.bankAccounts = (s.bankAccounts || []).map((a: any) => {
+          if (a.id === oldTxn.accountId && a.id === updatedTxn.accountId) {
+            return { ...a, balance: Number(a.balance || 0) - oldDelta + newDelta };
+          }
+          if (a.id === oldTxn.accountId) return { ...a, balance: Number(a.balance || 0) - oldDelta };
+          if (a.id === updatedTxn.accountId) return { ...a, balance: Number(a.balance || 0) + newDelta };
+          return a;
+        });
+      }
+      return next;
+    });
 
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
@@ -1886,6 +1908,23 @@ function FinanceDashboard() {
         const isNetErr = (msg?: string) => !!(msg?.includes("Load failed") || msg?.includes("Failed to fetch") || msg?.includes("NetworkError") || msg?.includes("network"));
         const doUpdate = (patch: any) => supabase.from(table).update(patch).eq("id", id);
         const { error } = await doUpdate(finalPatch);
+        if (!error && wasApplied && oldTxn) {
+          const updatedTxn = { ...oldTxn, ...patch };
+          const oldDelta = oldTxn.type === "credit" ? Number(oldTxn.amount || 0) : -Number(oldTxn.amount || 0);
+          const newDelta = updatedTxn.type === "credit" ? Number(updatedTxn.amount || 0) : -Number(updatedTxn.amount || 0);
+          if (oldTxn.accountId === updatedTxn.accountId) {
+            const adjustment = newDelta - oldDelta;
+            if (adjustment !== 0) {
+              const linked = state.bankAccounts.find((a: any) => a.id === oldTxn.accountId);
+              if (linked) supabase.from("bank_accounts").update({ balance: Number(linked.balance || 0) - oldDelta + newDelta }).eq("id", oldTxn.accountId).then(({ error: e }) => { if (e) console.error("[Balance edit-update]", e.message); });
+            }
+          } else {
+            const oldLinked = state.bankAccounts.find((a: any) => a.id === oldTxn.accountId);
+            if (oldLinked) supabase.from("bank_accounts").update({ balance: Number(oldLinked.balance || 0) - oldDelta }).eq("id", oldTxn.accountId).then(({ error: e }) => { if (e) console.error("[Balance edit-reverse]", e.message); });
+            const newLinked = state.bankAccounts.find((a: any) => a.id === updatedTxn.accountId);
+            if (newLinked) supabase.from("bank_accounts").update({ balance: Number(newLinked.balance || 0) + newDelta }).eq("id", updatedTxn.accountId).then(({ error: e }) => { if (e) console.error("[Balance edit-apply]", e.message); });
+          }
+        }
         if (error) {
           if (isNetErr(error.message)) {
             setTimeout(async () => {

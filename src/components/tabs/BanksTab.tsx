@@ -275,7 +275,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
 
   const filteredTxns = state.transactions
     .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
-    .filter((t: any) => filterType === "all" || t.type === filterType)
+    .filter((t: any) => filterType === "all" || (filterType === "transfer" ? t.category === "Transfer" : t.type === filterType))
     .filter((t: any) => !dateFrom || t.date >= dateFrom)
     .filter((t: any) => !dateTo || t.date <= dateTo)
     .filter((t: any) =>
@@ -322,8 +322,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
   const now = new Date();
   const startOfMonth = now.toISOString().slice(0, 7) + "-01";
   const monthlyTxns = state.transactions.filter((t: any) => t.date >= startOfMonth);
-  const monthlyIncome = monthlyTxns.filter((t: any) => t.type === "credit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
-  const monthlyExpense = monthlyTxns.filter((t: any) => t.type === "debit").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
+  const monthlyIncome = monthlyTxns.filter((t: any) => t.type === "credit" && t.category !== "Transfer").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
+  const monthlyExpense = monthlyTxns.filter((t: any) => t.type === "debit" && t.category !== "Transfer").reduce((acc: any, t: any) => acc + (Number(t.amount) || 0), 0);
 
   // Savings, Category Spending, and Asset weights memo
   const { monthlySavingsRate, topSpendCategories, liquidityWeights } = useMemo(() => {
@@ -332,7 +332,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       : 0;
 
     const categorySpends: Record<string, number> = {};
-    monthlyTxns.filter((t: any) => t.type === "debit").forEach((t: any) => {
+    monthlyTxns.filter((t: any) => t.type === "debit" && t.category !== "Transfer").forEach((t: any) => {
       const cat = t.category || "Other";
       categorySpends[cat] = (categorySpends[cat] || 0) + Number(t.amount || 0);
     });
@@ -581,6 +581,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               <option value="all">All types</option>
               <option value="credit">Credit only</option>
               <option value="debit">Debit only</option>
+              <option value="transfer">↔ Transfers</option>
             </select>
             <input type="date" style={{ ...input, width: "auto" }} title="From date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
