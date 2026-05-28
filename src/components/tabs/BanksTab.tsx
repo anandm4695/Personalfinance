@@ -659,7 +659,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                           />
                         </td>
                         <td style={td}><select value={inlineEdit.category || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, category: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12 }}>{txnCats.map((c) => <option key={c}>{c}</option>)}</select></td>
-                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank?.bankName || "—"}</td>
+                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank ? accountLabel(bank) : "—"}</td>
                         <td style={{ ...td, textAlign: "right" }} colSpan={2}>
                           <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
                             <select 
@@ -721,7 +721,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                         </div>
                       </td>
                       <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{t.category}</td>
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank?.bankName || "—"}</td>
+                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank ? accountLabel(bank) : "—"}</td>
                       <td style={{ ...td, textAlign: "right", color: THEME.accent, fontVariantNumeric: "tabular-nums" }}>{t.type === "debit" ? fmtINRFull(t.amount) : ""}</td>
                       <td style={{ ...td, textAlign: "right", color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{t.type === "credit" ? fmtINRFull(t.amount) : ""}</td>
                       <td style={td}>
