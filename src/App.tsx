@@ -834,15 +834,11 @@ function FinanceDashboard() {
     }
   }, [loaded, session]);
 
-  // Auto-snapshot: save net worth on the 1st of each month, or on first load if no snapshot exists yet for this month
+  // Record a net-worth snapshot for the current month once per session after data loads
   useEffect(() => {
     if (!loaded) return;
-    const nowSnap = new Date();
-    const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
+    const ym = new Date().toISOString().slice(0, 7);
     setState((s) => {
-      // Keep existing snapshot unless today is the 1st (monthly refresh) or there's no entry yet
-      const hasSnapshot = (s.netWorthHistory || []).some((h) => h.month === ym);
-      if (hasSnapshot && nowSnap.getDate() > 1) return s;
       const nw = (() => {
         const cash = (s.bankAccounts || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const fd = (s.fixedDeposits || []).reduce((a, x) => a + Number(x.principal || 0), 0);
