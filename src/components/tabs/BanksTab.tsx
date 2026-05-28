@@ -97,6 +97,13 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
   );
 };
 
+const accountLabel = (a: any): string => {
+  const last4 = a.accountNumber ? `····${String(a.accountNumber).slice(-4)}` : "";
+  const type = a.type ? a.type : "";
+  const suffix = [type, last4].filter(Boolean).join(" ");
+  return suffix ? `${a.bankName} – ${suffix}` : a.bankName;
+};
+
 const OwnerBadge = ({ owner }: { owner?: string }) => {
   if (!owner) return null;
   const p = PROFILES.find(x => x.id === owner);
@@ -625,7 +632,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
             <input style={{ ...input, width: "auto", minWidth: 160 }} placeholder="Search notes or category…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <select style={{ ...input, width: "auto", minWidth: 140 }} value={filterAcc} onChange={(e) => setFilterAcc(e.target.value)}>
               <option value="all">All accounts</option>
-              {state.bankAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.bankName}</option>)}
+              {state.bankAccounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
             </select>
             <select style={{ ...input, width: "auto", minWidth: 120 }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
               <option value="all">All types</option>
@@ -809,7 +816,7 @@ function TxnModal({ accounts, onClose, onSave }: any) {
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Date"><input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-        <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.length === 0 && <option value="">Add account first</option>}{accounts.map((a: any) => <option key={a.id} value={a.id}>{a.bankName}</option>)}</select></Field>
+        <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.length === 0 && <option value="">Add account first</option>}{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select></Field>
@@ -830,7 +837,7 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Date"><input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-        <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.map((a: any) => <option key={a.id} value={a.id}>{a.bankName}</option>)}</select></Field>
+        <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select></Field>
