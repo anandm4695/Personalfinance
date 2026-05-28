@@ -2067,21 +2067,30 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                 ) : (
                   <div style={{ display: "grid", gap: 14 }}>
-                    {metrics.stockSectorBreakdown.slice(0, 10).map((s: any, i: number) => {
+                    {(() => {
+                      const totalSectorVal = metrics.stockSectorBreakdown.reduce((sum: number, s: any) => sum + s.value, 0);
                       const maxVal = metrics.stockSectorBreakdown[0].value;
-                      const pct = (s.value / maxVal) * 100;
-                      return (
-                        <div key={s.name}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                            <span style={{ fontWeight: 600 }}>{s.name}</span>
-                            <span style={{ fontWeight: 700, color: THEME.muted }}>{fmtINR(s.value)}</span>
+                      return metrics.stockSectorBreakdown.slice(0, 10).map((s: any, i: number) => {
+                        const barPct = (s.value / maxVal) * 100;
+                        const portfolioPct = totalSectorVal > 0 ? ((s.value / totalSectorVal) * 100).toFixed(1) : "0.0";
+                        return (
+                          <div key={s.name}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 6 }}>
+                              <span style={{ fontWeight: 600 }}>{s.name}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: PIE_COLORS[i % PIE_COLORS.length], background: PIE_COLORS[i % PIE_COLORS.length] + "18", padding: "1px 6px", borderRadius: 4 }}>
+                                  {portfolioPct}%
+                                </span>
+                                <span style={{ fontWeight: 700, color: THEME.muted }}>{fmtINR(s.value)}</span>
+                              </div>
+                            </div>
+                            <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: barPct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
+                            </div>
                           </div>
-                          <div style={{ height: 6, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: pct + "%", background: PIE_COLORS[i % PIE_COLORS.length], borderRadius: 3 }} />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>

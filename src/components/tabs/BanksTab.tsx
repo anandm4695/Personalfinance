@@ -772,6 +772,18 @@ function TxnModal({ accounts, onClose, onSave }: any) {
         <Field label="Date"><input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
         <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.length === 0 && <option value="">Add account first</option>}{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
       </div>
+      {(() => {
+        const sel = accounts.find((a: any) => a.id === f.accountId);
+        if (!sel) return null;
+        const bal = Number(sel.balance || 0);
+        const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px", background: color + "14", border: `1px solid ${color}33`, borderRadius: 10, marginTop: -4 }}>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Current Balance</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+          </div>
+        );
+      })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select></Field>
         <Field label="Amount"><input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
@@ -794,6 +806,18 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
         <Field label="Date"><input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
         <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
       </div>
+      {(() => {
+        const sel = accounts.find((a: any) => a.id === f.accountId);
+        if (!sel) return null;
+        const bal = Number(sel.balance || 0);
+        const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px", background: color + "14", border: `1px solid ${color}33`, borderRadius: 10, marginTop: -4 }}>
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Current Balance</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+          </div>
+        );
+      })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select></Field>
         <Field label="Amount"><input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
