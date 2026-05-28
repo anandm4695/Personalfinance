@@ -2663,8 +2663,9 @@ function FinanceDashboard() {
                 >
                   {(() => {
                     const avatarUrl = session?.user?.user_metadata?.avatar_url;
-                    const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || session?.user?.email || "A";
-                    const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                    const profileDisplayName = (state.profile?.name && state.profile.name !== "there") ? state.profile.name : "";
+                    const name = profileDisplayName || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || (session?.user?.email ? session.user.email.split("@")[0] : "A");
+                    const initials = name.split(/[\s.]+/).map((w: string) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
                     return avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -2686,20 +2687,22 @@ function FinanceDashboard() {
                     <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 12 }}>
                       {(() => {
                         const avatarUrl = session?.user?.user_metadata?.avatar_url;
-                        const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || session?.user?.email || "Anand";
+                        const profileDisplayName = (state.profile?.name && state.profile.name !== "there") ? state.profile.name : "";
+                        const name = profileDisplayName || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || "";
                         const email = session?.user?.email || "";
-                        const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                        const displayName = name || (email ? email.split("@")[0] : "My Account");
+                        const initials = displayName.split(/[\s.]+/).map((w: string) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
                         return (
                           <>
                             {avatarUrl ? (
-                              <img src={avatarUrl} alt={name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: `2px solid ${THEME.line}`, flexShrink: 0 }} />
+                              <img src={avatarUrl} alt={displayName} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: `2px solid ${THEME.line}`, flexShrink: 0 }} />
                             ) : (
                               <div style={{ width: 44, height: 44, borderRadius: "50%", background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`, border: `2px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: THEME.accent, flexShrink: 0 }}>
                                 {initials}
                               </div>
                             )}
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
                               {email && <div style={{ fontSize: 11, color: THEME.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{email}</div>}
                             </div>
                           </>
