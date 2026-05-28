@@ -708,7 +708,10 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             {t.note || "—"}
-                            {recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
+                            {t.category === "Transfer" && (
+                              <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#8B5CF633", color: "#8B5CF6", fontWeight: 700, whiteSpace: "nowrap" }}>↔ TRANSFER</span>
+                            )}
+                            {t.category !== "Transfer" && recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
                               <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
                             )}
                           </div>
@@ -739,7 +742,17 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       {editBankId && <BankEditModal account={state.bankAccounts.find((a: any) => a.id === editBankId)} onClose={() => setEditBankId(null)} onSave={(v: any) => { updateItem("bankAccounts", editBankId, v); setEditBankId(null); }} />}
       {editTxnId && <TxnEditModal txn={state.transactions.find((t: any) => t.id === editTxnId)} accounts={state.bankAccounts} onClose={() => setEditTxnId(null)} onSave={(v: any) => { updateItem("transactions", editTxnId, v); setEditTxnId(null); }} />}
       {showBank && <BankModal onClose={() => setShowBank(false)} onSave={(v: any) => { addItem("bankAccounts", v); setShowBank(false); }} />}
-      {showTxn && <TxnModal accounts={state.bankAccounts} onClose={() => setShowTxn(false)} onSave={(v: any) => { addItem("transactions", v); setShowTxn(false); }} />}
+      {showTxn && <TxnModal accounts={state.bankAccounts} onClose={() => setShowTxn(false)} onSave={(v: any) => {
+        if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
+          const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
+          const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
+          addItem("transactions", { owner: v.owner, date: v.date, accountId: v.accountId, type: "debit", amount: v.amount, category: "Transfer", note: v.note || `Transfer to ${destAcc?.bankName || "account"}`, narration: v.narration });
+          addItem("transactions", { owner: v.owner, date: v.date, accountId: v.toAccountId, type: "credit", amount: v.amount, category: "Transfer", note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`, narration: v.narration });
+        } else {
+          addItem("transactions", v);
+        }
+        setShowTxn(false);
+      }} />}
       {showImport && <CsvImportModal accounts={state.bankAccounts} onClose={() => setShowImport(false)} onImport={(rows: any) => { rows.forEach((v: any) => addItem("transactions", v)); setShowImport(false); }} />}
     </div>
   );
@@ -764,15 +777,31 @@ function BankModal({ onClose, onSave }: any) {
 
 function TxnModal({ accounts, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
-  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "", narration: "" });
+  const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
+  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "", narration: "", toAccountId: defaultToId });
+  const isTransfer = f.type === "transfer";
+
+  const BalanceChip = ({ accId, label }: { accId: string; label: string }) => {
+    const sel = accounts.find((a: any) => a.id === accId);
+    if (!sel) return null;
+    const bal = Number(sel.balance || 0);
+    const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+    return (
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 12px", background: color + "14", border: `1px solid ${color}33`, borderRadius: 10 }}>
+        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color }}>{fmtINRFull(bal)}</span>
+      </div>
+    );
+  };
+
   return (
     <Modal title="Record Transaction" onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Date"><input style={input} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-        <Field label="Account"><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.length === 0 && <option value="">Add account first</option>}{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
+        <Field label={isTransfer ? "From Account" : "Account"}><select style={input} value={f.accountId} onChange={(e) => setF({ ...f, accountId: e.target.value })}>{accounts.length === 0 && <option value="">Add account first</option>}{accounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}</select></Field>
       </div>
-      {(() => {
+      {!isTransfer && (() => {
         const sel = accounts.find((a: any) => a.id === f.accountId);
         if (!sel) return null;
         const bal = Number(sel.balance || 0);
@@ -785,13 +814,27 @@ function TxnModal({ accounts, onClose, onSave }: any) {
         );
       })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option></select></Field>
+        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option><option value="transfer">↔ Transfer (between accounts)</option></select></Field>
         <Field label="Amount"><input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
       </div>
-      <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
-      <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = autoCateg(note); setF({ ...f, note, ...(cat ? { category: cat } : {}) }); }} placeholder="e.g. Swiggy order — category auto-detected" /></Field>
+      {isTransfer && (
+        <>
+          <Field label="To Account">
+            <select style={input} value={f.toAccountId} onChange={(e) => setF({ ...f, toAccountId: e.target.value })}>
+              {accounts.filter((a: any) => a.id !== f.accountId).map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
+            </select>
+          </Field>
+          <div style={{ display: "flex", gap: 8, marginTop: -4 }}>
+            <BalanceChip accId={f.accountId} label="From Balance" />
+            <div style={{ display: "flex", alignItems: "center", color: THEME.muted, fontSize: 16 }}>→</div>
+            <BalanceChip accId={f.toAccountId} label="To Balance" />
+          </div>
+        </>
+      )}
+      {!isTransfer && <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>}
+      <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = !isTransfer ? autoCateg(note) : null; setF({ ...f, note, ...(cat ? { category: cat } : {}) }); }} placeholder={isTransfer ? "e.g. Monthly savings transfer" : "e.g. Swiggy order — category auto-detected"} /></Field>
       <Field label="Narration"><input style={input} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Bank description e.g. UPI/HDFC/REF123456" /></Field>
-      <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => f.amount && f.accountId && (!isTransfer || (f.toAccountId && f.accountId !== f.toAccountId)) && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
