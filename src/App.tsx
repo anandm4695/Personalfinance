@@ -370,6 +370,8 @@ function FinanceDashboard() {
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [missingTables, setMissingTables] = useState<string[]>([]);
 
@@ -833,6 +835,18 @@ function FinanceDashboard() {
       Notification.requestPermission().catch(() => {});
     }
   }, [loaded, session]);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showProfileMenu]);
 
   // Auto-snapshot: always refresh the current month's net worth on every load so it stays accurate
   useEffect(() => {
@@ -2639,26 +2653,90 @@ function FinanceDashboard() {
                 <Download size={15} />
               </button>
 
-              <button
-                onClick={() => setTab("settings")}
-                className="header-icon-btn"
-                style={tab === "settings" ? { background: THEME.accent, borderColor: THEME.accent, color: "#fff" } : {}}
-                aria-label="Settings"
-                title="Settings"
-              >
-                <Settings size={15} />
-              </button>
-
-              {session && (
+              {/* Profile Avatar + Dropdown */}
+              <div ref={profileMenuRef} style={{ position: "relative" }}>
                 <button
-                  onClick={async () => { if (getIsDemoMode()) { await signOutOfDemo().catch(() => {}); } else { await supabase.auth.signOut().catch(() => {}); } setDemoMode(false); setSession(null); }}
-                  className="header-icon-btn danger"
-                  aria-label="Sign out"
-                  title="Sign out"
+                  onClick={() => setShowProfileMenu(v => !v)}
+                  title="Profile & Settings"
+                  aria-label="Profile & Settings"
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", borderRadius: "50%" }}
                 >
-                  <LogOut size={15} />
+                  {(() => {
+                    const avatarUrl = session?.user?.user_metadata?.avatar_url;
+                    const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || session?.user?.email || "A";
+                    const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                    return avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={name}
+                        style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: `2px solid ${showProfileMenu ? THEME.accent : THEME.line}`, transition: "border-color 0.15s" }}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`, border: `2px solid ${showProfileMenu ? THEME.accent : THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: THEME.accent, transition: "border-color 0.15s", letterSpacing: "-0.02em" }}>
+                        {initials}
+                      </div>
+                    );
+                  })()}
                 </button>
-              )}
+
+                {showProfileMenu && (
+                  <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", width: 240, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.14)", zIndex: 300, overflow: "hidden" }}>
+                    {/* User info header */}
+                    <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", gap: 12 }}>
+                      {(() => {
+                        const avatarUrl = session?.user?.user_metadata?.avatar_url;
+                        const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || session?.user?.email || "Anand";
+                        const email = session?.user?.email || "";
+                        const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                        return (
+                          <>
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: `2px solid ${THEME.line}`, flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 44, height: 44, borderRadius: "50%", background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`, border: `2px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: THEME.accent, flexShrink: 0 }}>
+                                {initials}
+                              </div>
+                            )}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                              {email && <div style={{ fontSize: 11, color: THEME.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{email}</div>}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    {/* Menu items */}
+                    <div style={{ padding: "6px 0" }}>
+                      {[
+                        { icon: <Settings size={14} />, label: "Settings", action: () => { setTab("settings"); setShowProfileMenu(false); }, active: tab === "settings" },
+                      ].map(item => (
+                        <button key={item.label} onClick={item.action} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", background: item.active ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "none", border: "none", cursor: "pointer", color: item.active ? THEME.accent : THEME.ink, fontSize: 13, fontWeight: 600, textAlign: "left" as const, transition: "background 0.12s" }}
+                          onMouseEnter={e => { if (!item.active) e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 8%, transparent)`; }}
+                          onMouseLeave={e => { if (!item.active) e.currentTarget.style.background = "none"; }}
+                        >
+                          <span style={{ color: item.active ? THEME.accent : THEME.muted }}>{item.icon}</span>
+                          {item.label}
+                        </button>
+                      ))}
+                      {session && (
+                        <>
+                          <div style={{ margin: "6px 16px", borderTop: `1px solid ${THEME.line}` }} />
+                          <button
+                            onClick={async () => { setShowProfileMenu(false); if (getIsDemoMode()) { await signOutOfDemo().catch(() => {}); } else { await supabase.auth.signOut().catch(() => {}); } setDemoMode(false); setSession(null); }}
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", background: "none", border: "none", cursor: "pointer", color: THEME.rust, fontSize: 13, fontWeight: 600, textAlign: "left" as const, transition: "background 0.12s" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = `color-mix(in srgb, var(--t-rust) 8%, transparent)`; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "none"; }}
+                          >
+                            <LogOut size={14} />
+                            Sign Out
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
