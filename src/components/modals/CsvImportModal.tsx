@@ -27,18 +27,19 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
 
     const lines = [
       "# Bank Transaction Import Template",
-      "# Columns: date, amount, type, category, note, accountId",
+      "# Columns: date, amount, type, category, note, narration, accountId",
       "#",
       "# date      → YYYY-MM-DD format",
       "# amount    → number only, no ₹ symbol or commas  (e.g. 120000)",
       "# type      → credit  OR  debit",
       `# category  → one of: ${CATEGORIES.join(", ")}`,
       "# note      → optional description",
+      "# narration → optional bank-provided transaction description (e.g. UPI/HDFC/REF123)",
       "# accountId → copy the ID for the account from the list below:",
       "#",
       accountRef,
       "#",
-      "date,amount,type,category,note,accountId",
+      "date,amount,type,category,note,narration,accountId",
       `2025-04-01,120000,credit,Salary,April 2025 salary,${firstAccountId}`,
       `2025-04-05,15000,debit,Rent,House rent April,${firstAccountId}`,
       `2025-04-10,3500,debit,Groceries,Monthly groceries,${firstAccountId}`,
@@ -67,7 +68,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       const rows = dataLines.map((line, i) => {
         const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
         if (parts.length < 4) throw new Error(`Row ${i + 1}: need at least date, amount, type, category`);
-        const [date, amount, type, category, note, accountId] = parts;
+        const [date, amount, type, category, note, narration, accountId] = parts;
         if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD (got "${date}")`);
         const d = new Date(date);
         if (isNaN(d.getTime())) throw new Error(`Row ${i + 1}: invalid date "${date}"`);
@@ -80,6 +81,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
           type: type.toLowerCase(),
           category: category || "Other",
           note: note || "",
+          narration: narration || "",
           accountId: accountId || firstAccountId,
         };
       });
@@ -125,7 +127,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 8 }}>Step 2 — Paste your rows</div>
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>
-          Format: <code style={{ background: "rgba(128,128,128,0.1)", padding: "1px 4px", fontWeight: 400 }}>date, amount, type, category, note, accountId</code>
+          Format: <code style={{ background: "rgba(128,128,128,0.1)", padding: "1px 4px", fontWeight: 400 }}>date, amount, type, category, note, narration, accountId</code>
         </label>
         <textarea
           style={{ ...inputStyle, height: 130, resize: "vertical", fontFamily: "monospace", fontSize: 12 }}
@@ -154,7 +156,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
                 <span style={{ color: THEME.muted, minWidth: 70 }}>{r.date}</span>
                 <span style={{ color: r.type === "credit" ? THEME.sage : THEME.rust, fontWeight: 700, minWidth: 80 }}>{r.type === "credit" ? "+" : "−"}{fmtINRFull(r.amount)}</span>
                 <span style={{ color: THEME.muted, minWidth: 80 }}>{r.category}</span>
-                <span style={{ flex: 1, color: THEME.muted }}>{r.note}</span>
+                <span style={{ flex: 1, color: THEME.muted }}>{r.note}{r.narration ? ` · ${r.narration}` : ""}</span>
               </div>
             ))}
           </div>

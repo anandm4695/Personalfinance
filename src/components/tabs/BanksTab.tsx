@@ -281,7 +281,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
     .filter((t: any) =>
       !search ||
       (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
-      (t.category || "").toLowerCase().includes(search.toLowerCase())
+      (t.category || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.narration || "").toLowerCase().includes(search.toLowerCase())
     );
 
   // Sorting Logic
@@ -640,15 +641,21 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                       <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>
                         <td style={td}><input type="date" value={inlineEdit.date} onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 130 }} /></td>
                         <td style={td}>
-                          <input 
-                            value={inlineEdit.note || ""} 
-                            onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })} 
-                            onKeyDown={(e) => { 
-                              if (e.key === "Enter") handleSaveInline(); 
-                              if (e.key === "Escape") setInlineEditId(null); 
-                            }} 
-                            style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }} 
-                            autoFocus 
+                          <input
+                            value={inlineEdit.note || ""}
+                            onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveInline();
+                              if (e.key === "Escape") setInlineEditId(null);
+                            }}
+                            style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }}
+                            autoFocus
+                          />
+                          <input
+                            value={inlineEdit.narration || ""}
+                            onChange={(e) => setInlineEdit({ ...inlineEdit, narration: e.target.value })}
+                            placeholder="Narration (bank description)"
+                            style={{ ...input, padding: "4px 6px", fontSize: 11, minWidth: 140, marginTop: 4 }}
                           />
                         </td>
                         <td style={td}><select value={inlineEdit.category || ""} onChange={(e) => setInlineEdit({ ...inlineEdit, category: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12 }}>{txnCats.map((c) => <option key={c}>{c}</option>)}</select></td>
@@ -698,10 +705,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                     <tr key={t.id} onDoubleClick={() => { setInlineEditId(t.id); setInlineEdit({ ...t }); }} style={{ borderBottom: `1px dashed ${THEME.line}`, cursor: "default" }} title="Double-click to edit inline">
                       <td style={td}>{t.date}</td>
                       <td style={td}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {t.note || "—"}
-                          {recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
-                            <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {t.note || "—"}
+                            {recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
+                              <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
+                            )}
+                          </div>
+                          {t.narration && (
+                            <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>{t.narration}</div>
                           )}
                         </div>
                       </td>
@@ -752,7 +764,7 @@ function BankModal({ onClose, onSave }: any) {
 
 function TxnModal({ accounts, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
-  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "" });
+  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "", narration: "" });
   return (
     <Modal title="Record Transaction" onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
@@ -766,6 +778,7 @@ function TxnModal({ accounts, onClose, onSave }: any) {
       </div>
       <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
       <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = autoCateg(note); setF({ ...f, note, ...(cat ? { category: cat } : {}) }); }} placeholder="e.g. Swiggy order — category auto-detected" /></Field>
+      <Field label="Narration"><input style={input} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Bank description e.g. UPI/HDFC/REF123456" /></Field>
       <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
     </Modal>
   );
@@ -773,7 +786,7 @@ function TxnModal({ accounts, onClose, onSave }: any) {
 
 function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
-  const [f, setF] = useState({ owner: txn?.owner || "self", date: txn?.date || today(), accountId: txn?.accountId || accounts[0]?.id || "", type: txn?.type || "debit", amount: txn?.amount || "", category: txn?.category || "General", note: txn?.note || "" });
+  const [f, setF] = useState({ owner: txn?.owner || "self", date: txn?.date || today(), accountId: txn?.accountId || accounts[0]?.id || "", type: txn?.type || "debit", amount: txn?.amount || "", category: txn?.category || "General", note: txn?.note || "", narration: txn?.narration || "" });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>
       <Field label="Owner / Profile"><select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>{PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
@@ -787,6 +800,7 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
       </div>
       <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
       <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = autoCateg(note); setF({ ...f, note, ...(cat ? { category: cat } : {}) }); }} placeholder="e.g. Swiggy order — category auto-detected" /></Field>
+      <Field label="Narration"><input style={input} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Bank description e.g. UPI/HDFC/REF123456" /></Field>
       <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />
     </Modal>
   );
