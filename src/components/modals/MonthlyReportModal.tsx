@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import { Printer, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, Mail, CheckCircle2, AlertCircle } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate } from "../../utils/finance";
 import { Modal } from "../ui/Modal";
@@ -33,42 +33,183 @@ const btnSolid = {
   cursor: "pointer",
 };
 
+// Safe local-date ym string — avoids UTC timezone shift for IST (UTC+5:30)
+function toYM(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function DeltaBadge({ current, prev }: { current: number; prev: number }) {
+  if (prev === 0) return null;
+  const pct = Math.round(((current - prev) / prev) * 100);
+  if (pct === 0) return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+      <Minus size={9} /> same
+    </span>
+  );
+  const up = pct > 0;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10, fontWeight: 700, color: up ? THEME.sage : THEME.rust }}>
+      {up ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+      {up ? "+" : ""}{pct}% vs prev
+    </span>
+  );
+}
+
+// Determine if a subscription renewed in the given YYYY-MM
+function subRenewedInMonth(sub: any, ym: string): boolean {
+  if (sub.paused) return false;
+  const [y, m] = ym.split("-").map(Number);
+  if (sub.cycle === "monthly") return true;
+  if (!sub.renewalDate) return false;
+  const rd = new Date(sub.renewalDate);
+  if (sub.cycle === "quarterly") {
+    const monthsDiff = (y - rd.getFullYear()) * 12 + (m - (rd.getMonth() + 1));
+    return monthsDiff % 3 === 0;
+  }
+  if (sub.cycle === "yearly") {
+    return rd.getMonth() + 1 === m;
+  }
+  return false;
+}
+
 export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: any) {
   const [reportDate, setReportDate] = useState(() => selectedDate || new Date());
-  
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"" | "ok" | "err" | "no-email">("");
+
   const monthLabel = reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
-  const ym = reportDate.toISOString().slice(0, 7);
-  const txns = state.transactions.filter((t: any) => t.date?.startsWith(ym));
+  const ym = toYM(reportDate);
+  const prevDate = new Date(reportDate.getFullYear(), reportDate.getMonth() - 1, 1);
+  const ymPrev = toYM(prevDate);
+
+  const now = new Date();
+  const currentYm = toYM(now);
+  const isCurrentMonth = ym === currentYm;
+  const isPastMonth = ym < currentYm;
+
+  // Current month transactions
+  const txns = (state.transactions || []).filter((t: any) => t.date?.startsWith(ym));
   const income = txns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const expense = txns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const saving = income - expense;
   const savingRate = income > 0 ? ((saving / income) * 100).toFixed(1) : "0";
-  
+
+  // Previous month transactions for MoM comparison
+  const txnsPrev = (state.transactions || []).filter((t: any) => t.date?.startsWith(ymPrev));
+  const incomePrev = txnsPrev.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const expensePrev = txnsPrev.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const savingPrev = incomePrev - expensePrev;
+
+  // Income breakdown by source (credit transactions by category)
+  const incomeCatMap: Record<string, number> = {};
+  txns.filter((t: any) => t.type === "credit").forEach((t: any) => {
+    const c = t.category || "Other Income";
+    incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(t.amount || 0);
+  });
+  const incomeBySource = Object.entries(incomeCatMap).sort(([, a], [, b]) => b - a);
+
+  // Top expense categories
   const catMap: Record<string, number> = {};
   txns.filter((t: any) => t.type === "debit").forEach((t: any) => {
     const c = t.category || "Other";
     catMap[c] = (catMap[c] || 0) + Number(t.amount || 0);
   });
   const topCats = Object.entries(catMap).sort(([, a], [, b]) => b - a).slice(0, 6);
-  
-  const upcoming: { label: string; amount: number; date: string }[] = [];
-  state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed").forEach((c: any) => {
-    const due = getCCDueDate(c, reportDate);
-    if (due) upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
-  });
-  state.loansTaken.forEach((l: any) => {
-    upcoming.push({ label: `${l.lender} ${l.type} Loan`, amount: Number(l.emi || 0), date: "Monthly EMI" });
-  });
 
-  // Dynamic historical net worth lookup for selected month
+  // Investment activity: debit transactions categorised as Investment/SIP/Mutual Fund/Stocks
+  const investCats = new Set(["Investment", "SIP", "Mutual Fund", "Stocks"]);
+  const investTxns = txns.filter((t: any) => t.type === "debit" && investCats.has(t.category || ""));
+  const totalInvested = investTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+
+  // Budget vs Actual
+  const budgets = (state.budgets || []).filter((b: any) => b.monthly > 0);
+  const budgetRows = budgets.map((b: any) => {
+    const spent = catMap[b.category] || 0;
+    const over = spent > b.monthly;
+    return { category: b.category, budget: Number(b.monthly), spent, over };
+  }).sort((a, b) => b.spent - a.spent);
+
+  // Goal progress
+  const goalRows = (state.goals || [])
+    .filter((g: any) => Number(g.targetAmount || 0) > 0)
+    .map((g: any) => {
+      const target = Number(g.targetAmount || 0);
+      const current = Number(g.currentAmount || 0);
+      const pct = Math.min(100, target > 0 ? Math.round((current / target) * 100) : 0);
+      const done = current >= target;
+      return { name: g.name || "Goal", target, current, pct, done };
+    })
+    .sort((a, b) => b.pct - a.pct);
+
+  // Subscriptions that renewed this month
+  const subsThisMonth = (state.subscriptions || [])
+    .filter((s: any) => subRenewedInMonth(s, ym))
+    .map((s: any) => ({
+      name: s.name || s.serviceName || "Subscription",
+      amount: s.cycle === "yearly" ? Number(s.amount || 0)
+        : s.cycle === "quarterly" ? Number(s.amount || 0)
+        : Number(s.amount || 0),
+      cycle: s.cycle || "monthly",
+    }))
+    .sort((a, b) => b.amount - a.amount);
+  const totalSubsThisMonth = subsThisMonth.reduce((s, sub) => s + sub.amount, 0);
+
+  // Upcoming / scheduled dues — only for current or future months
+  const showDues = !isPastMonth;
+  const upcoming: { label: string; amount: number; date: string }[] = [];
+  if (showDues) {
+    (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.outstanding || 0) > 0)
+      .forEach((c: any) => {
+        const due = getCCDueDate(c, reportDate);
+        if (due) upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
+      });
+    (state.loansTaken || []).forEach((l: any) => {
+      upcoming.push({ label: `${l.lender} ${l.type} Loan`, amount: Number(l.emi || 0), date: "Monthly EMI" });
+    });
+  }
+
+  // Net worth: use historical record for the selected month, else fall back to current metrics
   const historicalNW = (state.netWorthHistory || []).find((h: any) => h.month === ym);
   const displayNetWorth = historicalNW ? (historicalNW.netWorth ?? historicalNW.net_worth ?? 0) : metrics.netWorth;
+
+  // Net worth change vs previous month
+  const historicalNWPrev = (state.netWorthHistory || []).find((h: any) => h.month === ymPrev);
+  const prevNW = historicalNWPrev ? (historicalNWPrev.netWorth ?? historicalNWPrev.net_worth ?? 0) : 0;
+  const nwDelta = prevNW > 0 ? displayNetWorth - prevNW : 0;
+
+  // Email report handler
+  async function handleEmailReport() {
+    const emailTo = state.settings?.emailAddress || "";
+    if (!emailTo) { setEmailStatus("no-email"); setTimeout(() => setEmailStatus(""), 6000); return; }
+    setEmailSending(true); setEmailStatus("");
+    try {
+      const res = await fetch("/api/send-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          state,
+          emailTo,
+          frequency: "monthly",
+          recipientName: state.profile?.name || "there",
+          fromEmail: state.settings?.fromEmail || undefined,
+        }),
+      });
+      const json = await res.json();
+      setEmailStatus(res.ok && json.sent ? "ok" : "err");
+    } catch { setEmailStatus("err"); }
+    finally { setEmailSending(false); setTimeout(() => setEmailStatus(""), 8000); }
+  }
+
+  const SectionLabel = ({ children }: any) => (
+    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>{children}</div>
+  );
 
   return (
     <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
       <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } .print-scroll { max-height: none !important; overflow: visible !important; } }`}</style>
       <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
-        
+
         {/* Month Selector Bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "rgba(128,128,128,0.06)", borderRadius: 10, marginBottom: 16, border: `1px solid ${THEME.line}` }} className="no-print">
           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Select Report Month</div>
@@ -99,30 +240,64 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           </div>
         </div>
 
+        {/* Net Worth Snapshot */}
         <div style={{ background: "#0f172a", borderRadius: 10, padding: "16px 20px", marginBottom: 16, textAlign: "center" }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 6 }}>Net Worth Snapshot</div>
           <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{fmtINRFull(displayNetWorth)}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-            Assets {fmtINRFull(metrics.totalAssets)} · Liabilities {fmtINRFull(metrics.totalLiabilities)}
-          </div>
+          {nwDelta !== 0 && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: nwDelta > 0 ? "#34d399" : "#f87171", marginTop: 4 }}>
+              {nwDelta > 0 ? "▲" : "▼"} {fmtINRFull(Math.abs(nwDelta))} vs {prevDate.toLocaleString("en-IN", { month: "short" })}
+            </div>
+          )}
+          {isCurrentMonth && (
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+              Assets {fmtINRFull(metrics.totalAssets)} · Liabilities {fmtINRFull(metrics.totalLiabilities)}
+            </div>
+          )}
         </div>
 
+        {/* Income / Expense / Saving tiles with MoM delta */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
           {[
-            { label: "Income", value: income, color: THEME.sage },
-            { label: "Expense", value: expense, color: THEME.rust },
-            { label: `Saved (${savingRate}%)`, value: saving, color: saving >= 0 ? THEME.sage : THEME.rust },
-          ].map(({ label, value, color }) => (
+            { label: "Income", value: income, prev: incomePrev, color: THEME.sage },
+            { label: "Expense", value: expense, prev: expensePrev, color: THEME.rust },
+            { label: `Saved (${savingRate}%)`, value: saving, prev: savingPrev, color: saving >= 0 ? THEME.sage : THEME.rust },
+          ].map(({ label, value, prev, color }) => (
             <div key={label} style={{ padding: 12, borderRadius: 8, background: "rgba(128,128,128,0.06)", textAlign: "center" }}>
               <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>{label}</div>
               <div style={{ fontSize: 16, fontWeight: 800, color }}>{fmtINRFull(value)}</div>
+              <div style={{ marginTop: 5 }}>
+                <DeltaBadge current={value} prev={prev} />
+              </div>
             </div>
           ))}
         </div>
 
+        {/* Income Breakdown by Source */}
+        {incomeBySource.length > 1 && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Income by Source</SectionLabel>
+            {incomeBySource.map(([cat, amt], i) => (
+              <div key={cat} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[(i + 4) % PIE_COLORS.length], display: "inline-block" }} />
+                  {cat}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 50, height: 4, background: THEME.line, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${income > 0 ? Math.min(100, (amt / income) * 100) : 0}%`, background: PIE_COLORS[(i + 4) % PIE_COLORS.length] }} />
+                  </div>
+                  <span style={{ fontWeight: 700, minWidth: 80, textAlign: "right", color: THEME.sage }}>{fmtINRFull(amt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Top Expenses */}
         {topCats.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Top Expenses</div>
+            <SectionLabel>Top Expenses</SectionLabel>
             {topCats.map(([cat, amt], i) => (
               <div key={cat} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -140,8 +315,92 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           </div>
         )}
 
+        {/* Budget vs Actual */}
+        {budgetRows.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Budget vs Actual</SectionLabel>
+            {budgetRows.map((row) => {
+              const pct = Math.min(100, row.budget > 0 ? (row.spent / row.budget) * 100 : 0);
+              return (
+                <div key={row.category} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 600, color: THEME.ink }}>{row.category}</span>
+                    <span style={{ fontWeight: 700, color: row.over ? THEME.rust : THEME.sage }}>
+                      {fmtINRFull(row.spent)} / {fmtINRFull(row.budget)}
+                    </span>
+                  </div>
+                  <div style={{ height: 5, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: row.over ? THEME.rust : THEME.sage, borderRadius: 3 }} />
+                  </div>
+                  {row.over && (
+                    <div style={{ fontSize: 10, color: THEME.rust, marginTop: 2, fontWeight: 600 }}>
+                      Over by {fmtINRFull(row.spent - row.budget)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Investment Activity */}
+        {investTxns.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Investment Activity · {fmtINRFull(totalInvested)} invested</SectionLabel>
+            {investTxns.slice(0, 6).map((t: any, i: number) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                <span style={{ color: THEME.ink }}>{t.note || t.category}</span>
+                <span style={{ fontWeight: 700, color: THEME.accent }}>{fmtINRFull(Number(t.amount || 0))}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Goal Progress */}
+        {goalRows.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Goal Progress</SectionLabel>
+            {goalRows.map((g) => (
+              <div key={g.name} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600, color: THEME.ink }}>{g.name}</span>
+                  <span style={{ fontWeight: 700, color: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.muted }}>
+                    {g.done ? "✓ Complete" : `${g.pct}%`}
+                  </span>
+                </div>
+                <div style={{ height: 5, background: THEME.line, borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${g.pct}%`, background: g.done ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.gold, borderRadius: 3 }} />
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
+                  {fmtINRFull(g.current)} saved of {fmtINRFull(g.target)}
+                  {!g.done && ` · ${fmtINRFull(g.target - g.current)} remaining`}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Subscriptions this month */}
+        {subsThisMonth.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Subscriptions This Month · {fmtINRFull(totalSubsThisMonth)}</SectionLabel>
+            {subsThisMonth.map((s, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: THEME.muted, background: "rgba(128,128,128,0.08)", padding: "1px 6px", borderRadius: 4 }}>
+                    {s.cycle === "monthly" ? "/mo" : s.cycle === "quarterly" ? "/qtr" : "/yr"}
+                  </span>
+                  {s.name}
+                </span>
+                <span style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(s.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Portfolio Snapshot */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Portfolio Snapshot</div>
+          <SectionLabel>Portfolio Snapshot <span style={{ fontWeight: 500, textTransform: "none", fontSize: 10, letterSpacing: 0 }}>(current allocation)</span></SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {([
               ["Bank Cash", metrics.cashInBanks],
@@ -159,9 +418,10 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           </div>
         </div>
 
-        {upcoming.length > 0 && (
+        {/* Upcoming Dues — only for current/future months */}
+        {showDues && upcoming.length > 0 && (
           <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 8, fontWeight: 700 }}>Upcoming Dues</div>
+            <SectionLabel>Upcoming Dues</SectionLabel>
             {upcoming.map((d, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
                 <span>{d.label}</span>
@@ -174,11 +434,39 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
           </div>
         )}
       </div>
-      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }} className="no-print">
-        <button style={btnGhost} onClick={onClose}>Close</button>
-        <button style={btnSolid} onClick={() => window.print()}>
-          <Printer size={14} /> Print / Save PDF
-        </button>
+
+      {/* Footer actions */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }} className="no-print">
+        {/* Email status messages */}
+        {emailStatus === "ok" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(52,211,153,0.08)", border: `1px solid rgba(52,211,153,0.25)`, borderRadius: 8, fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
+            <CheckCircle2 size={14} /> Report emailed to {state.settings?.emailAddress}
+          </div>
+        )}
+        {emailStatus === "err" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(239,68,68,0.07)", border: `1px solid rgba(239,68,68,0.2)`, borderRadius: 8, fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
+            <AlertCircle size={14} /> Failed to send — check email config in Settings
+          </div>
+        )}
+        {emailStatus === "no-email" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(251,191,36,0.07)", border: `1px solid rgba(251,191,36,0.25)`, borderRadius: 8, fontSize: 12, color: THEME.gold, fontWeight: 600 }}>
+            <AlertCircle size={14} /> No email address configured — go to Settings → Email Reports
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button style={btnGhost} onClick={onClose}>Close</button>
+          <button
+            style={{ ...btnGhost, color: emailSending ? THEME.muted : THEME.accent, borderColor: THEME.accent + "55", opacity: emailSending ? 0.7 : 1 }}
+            onClick={handleEmailReport}
+            disabled={emailSending}
+          >
+            <Mail size={13} />
+            {emailSending ? "Sending…" : "Email to me"}
+          </button>
+          <button style={btnSolid} onClick={() => window.print()}>
+            <Printer size={14} /> Print / Save PDF
+          </button>
+        </div>
       </div>
     </Modal>
   );
