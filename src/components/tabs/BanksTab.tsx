@@ -750,7 +750,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
           addItem("transactions", { owner: v.owner, date: v.date, accountId: v.accountId, type: "debit", amount: v.amount, category: "Transfer", note: v.note || `Transfer to ${destAcc?.bankName || "account"}`, narration: v.narration });
           addItem("transactions", { owner: v.owner, date: v.date, accountId: v.toAccountId, type: "credit", amount: v.amount, category: "Transfer", note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`, narration: v.narration });
         } else {
-          addItem("transactions", v);
+          const { toAccountId: _drop, ...txnData } = v;
+          addItem("transactions", txnData);
         }
         setShowTxn(false);
       }} />}
