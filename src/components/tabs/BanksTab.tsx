@@ -237,6 +237,60 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
   const [inlineEdit, setInlineEdit] = useState<any>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
+  const autoPostLinkedTransaction = (linkedKey: string, txn: any) => {
+    if (!linkedKey) return;
+    const ci = linkedKey.indexOf(":");
+    if (ci < 0) return;
+    const lt = linkedKey.slice(0, ci);
+    const lid = linkedKey.slice(ci + 1);
+    const amt = Number(txn.amount || 0);
+    if (amt <= 0) return;
+    const { date, note } = txn;
+    const newId = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+
+    if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
+      const policy = (state[lt] || []).find((p: any) => p.id === lid);
+      if (!policy) return;
+      updateItem(lt, lid, {
+        transactions: [...(policy.transactions || []), { id: newId, date, amount: String(amt) }],
+        premiumPaid: Number(policy.premiumPaid || 0) + amt
+      });
+    } else if (lt === "loansTaken") {
+      const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
+      if (!loan) return;
+      updateItem("loansTaken", lid, {
+        outstanding: Math.max(0, Number(loan.outstanding || 0) - amt),
+        monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1)
+      });
+    } else if (lt === "rentedProperties") {
+      const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
+      if (!prop) return;
+      updateItem("rentedProperties", lid, {
+        payments: [...(prop.payments || []), { id: newId, month: (date || "").slice(0, 7), date, amount: String(amt), note: note || "" }]
+      });
+    } else if (lt === "rentalProperties") {
+      const prop = (state.rentalProperties || []).find((p: any) => p.id === lid);
+      if (!prop) return;
+      updateItem("rentalProperties", lid, {
+        receipts: [...(prop.receipts || []), { id: newId, month: (date || "").slice(0, 7), date, amount: String(amt), note: note || "" }]
+      });
+    } else if (lt === "creditCards") {
+      const card = (state.creditCards || []).find((c: any) => c.id === lid);
+      if (!card) return;
+      updateItem("creditCards", lid, { outstanding: Math.max(0, Number(card.outstanding || 0) - amt) });
+    } else if (lt === "subscriptions") {
+      const sub = (state.subscriptions || []).find((s: any) => s.id === lid);
+      if (!sub || !sub.renewalDate) return;
+      const base = new Date(sub.renewalDate + "T00:00:00");
+      if (isNaN(base.getTime())) return;
+      const next = new Date(base);
+      if (sub.cycle === "monthly") next.setMonth(next.getMonth() + 1);
+      else if (sub.cycle === "quarterly") next.setMonth(next.getMonth() + 3);
+      else next.setFullYear(next.getFullYear() + 1);
+      updateItem("subscriptions", lid, { renewalDate: next.toISOString().slice(0, 10) });
+    }
+  };
+
   // Sorting State
   const [sortField, setSortField] = useState<"date" | "amount" | "note" | "category" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -712,6 +766,9 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                             {t.category === "Transfer" && (
                               <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#8B5CF633", color: "#8B5CF6", fontWeight: 700, whiteSpace: "nowrap" }}>↔ TRANSFER</span>
                             )}
+                            {t.linkedType && (
+                              <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#0EA5E933", color: "#0EA5E9", fontWeight: 700, whiteSpace: "nowrap" }}>🔗 LINKED</span>
+                            )}
                             {t.category !== "Transfer" && recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
                               <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
                             )}
@@ -743,21 +800,87 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       {editBankId && <BankEditModal account={state.bankAccounts.find((a: any) => a.id === editBankId)} onClose={() => setEditBankId(null)} onSave={(v: any) => { updateItem("bankAccounts", editBankId, v); setEditBankId(null); }} />}
       {editTxnId && <TxnEditModal txn={state.transactions.find((t: any) => t.id === editTxnId)} accounts={state.bankAccounts} onClose={() => setEditTxnId(null)} onSave={(v: any) => { updateItem("transactions", editTxnId, v); setEditTxnId(null); }} />}
       {showBank && <BankModal onClose={() => setShowBank(false)} onSave={(v: any) => { addItem("bankAccounts", v); setShowBank(false); }} />}
-      {showTxn && <TxnModal accounts={state.bankAccounts} onClose={() => setShowTxn(false)} onSave={(v: any) => {
+      {showTxn && <TxnModal accounts={state.bankAccounts} state={state} onClose={() => setShowTxn(false)} onSave={(v: any) => {
         if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
           const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
           const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
           addItem("transactions", { owner: v.owner, date: v.date, accountId: v.accountId, type: "debit", amount: v.amount, category: "Transfer", note: v.note || `Transfer to ${destAcc?.bankName || "account"}`, narration: v.narration });
           addItem("transactions", { owner: v.owner, date: v.date, accountId: v.toAccountId, type: "credit", amount: v.amount, category: "Transfer", note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`, narration: v.narration });
         } else {
-          const { toAccountId: _drop, ...txnData } = v;
-          addItem("transactions", txnData);
+          const { toAccountId: _drop, linkedKey, ...txnBase } = v;
+          const ci = linkedKey ? linkedKey.indexOf(":") : -1;
+          const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
+          const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
+          addItem("transactions", { ...txnBase, ...(linkedType ? { linkedType, linkedId } : {}) });
+          if (linkedKey) autoPostLinkedTransaction(linkedKey, v);
         }
         setShowTxn(false);
       }} />}
       {showImport && <CsvImportModal accounts={state.bankAccounts} onClose={() => setShowImport(false)} onImport={(rows: any) => { rows.forEach((v: any) => addItem("transactions", v)); setShowImport(false); }} />}
     </div>
   );
+}
+
+function getLinkConfig(category: string, type: string, state: any) {
+  if (!state) return null;
+  const fmt = (v: any) => Number(v || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+  if (category === "EMI" && type === "debit") {
+    return {
+      label: "Loan",
+      options: (state.loansTaken || []).map((l: any) => ({
+        key: `loansTaken:${l.id}`,
+        label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(l.outstanding)}`
+      }))
+    };
+  }
+  if (category === "Insurance" && type === "debit") {
+    return {
+      label: "Insurance Policy",
+      options: [
+        ...(state.lic || []).map((p: any) => ({ key: `lic:${p.id}`, label: `LIC – ${p.planName || "Policy"} – ${fmt(p.annualPremium)}/yr` })),
+        ...(state.termPlans || []).map((p: any) => ({ key: `termPlans:${p.id}`, label: `${p.insurer || "Term"} – ${p.planName || "Term Plan"} – ${fmt(p.annualPremium)}/yr` })),
+        ...(state.investmentPlans || []).map((p: any) => ({ key: `investmentPlans:${p.id}`, label: `${p.insurer || "Invest"} – ${p.planName || "Plan"} – ${fmt(p.annualPremium)}/yr` })),
+      ]
+    };
+  }
+  if (category === "Rent" && type === "debit") {
+    return {
+      label: "Rented Property (you pay)",
+      options: (state.rentedProperties || []).filter((p: any) => p.isActive !== false).map((p: any) => ({
+        key: `rentedProperties:${p.id}`,
+        label: `${p.propertyName || "Property"} – ${fmt(p.monthlyRent)}/mo`
+      }))
+    };
+  }
+  if (category === "Rent" && type === "credit") {
+    return {
+      label: "Rental Property (you receive)",
+      options: (state.rentalProperties || []).filter((p: any) => p.isActive !== false).map((p: any) => ({
+        key: `rentalProperties:${p.id}`,
+        label: `${p.propertyName || "Property"} – ${fmt(p.monthlyRent)}/mo`
+      }))
+    };
+  }
+  if (category === "Bills" && type === "debit") {
+    return {
+      label: "Credit Card",
+      options: (state.creditCards || []).filter((c: any) => c.status !== "closed").map((c: any) => ({
+        key: `creditCards:${c.id}`,
+        label: `${c.issuer || "Card"} ····${c.last4 || "????"} | Outstanding ${fmt(c.outstanding)}`
+      }))
+    };
+  }
+  if (category === "Subscription" && type === "debit") {
+    return {
+      label: "Subscription",
+      options: (state.subscriptions || []).filter((s: any) => !s.paused).map((s: any) => ({
+        key: `subscriptions:${s.id}`,
+        label: `${s.name || "Subscription"} – ${fmt(s.amount)}/${s.cycle || "month"}`
+      }))
+    };
+  }
+  return null;
 }
 
 function BankModal({ onClose, onSave }: any) {
@@ -777,10 +900,10 @@ function BankModal({ onClose, onSave }: any) {
   );
 }
 
-function TxnModal({ accounts, onClose, onSave }: any) {
+function TxnModal({ accounts, state, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
-  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "", narration: "", toAccountId: defaultToId });
+  const [f, setF] = useState({ owner: "self", date: today(), accountId: accounts[0]?.id || "", type: "debit", amount: "", category: cats[0] || "General", note: "", narration: "", toAccountId: defaultToId, linkedKey: "" });
   const isTransfer = f.type === "transfer";
 
   const BalanceChip = ({ accId, label }: { accId: string; label: string }) => {
@@ -816,7 +939,7 @@ function TxnModal({ accounts, onClose, onSave }: any) {
         );
       })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option><option value="transfer">↔ Transfer (between accounts)</option></select></Field>
+        <Field label="Type"><select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value, linkedKey: "" })}><option value="debit">Debit (money out)</option><option value="credit">Credit (money in)</option><option value="transfer">↔ Transfer (between accounts)</option></select></Field>
         <Field label="Amount"><input style={input} type="number" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
       </div>
       {isTransfer && (
@@ -833,8 +956,26 @@ function TxnModal({ accounts, onClose, onSave }: any) {
           </div>
         </>
       )}
-      {!isTransfer && <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>}
-      <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = !isTransfer ? autoCateg(note) : null; setF({ ...f, note, ...(cat ? { category: cat } : {}) }); }} placeholder={isTransfer ? "e.g. Monthly savings transfer" : "e.g. Swiggy order — category auto-detected"} /></Field>
+      {!isTransfer && <Field label="Category"><select style={input} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value, linkedKey: "" })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>}
+      {!isTransfer && (() => {
+        const cfg = getLinkConfig(f.category, f.type, state);
+        if (!cfg) return null;
+        return (
+          <Field label={`Link to ${cfg.label} (optional)`}>
+            <select style={input} value={f.linkedKey} onChange={(e) => setF({ ...f, linkedKey: e.target.value })}>
+              <option value="">— Bank ledger only —</option>
+              {cfg.options.map((o: any) => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+            {f.linkedKey
+              ? <div style={{ fontSize: 11, color: THEME.sage, marginTop: 6, fontWeight: 600, padding: "5px 10px", background: "rgba(5,150,105,0.07)", borderRadius: 8 }}>✓ Will auto-update {cfg.label} record when saved</div>
+              : cfg.options.length === 0
+                ? <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>No {cfg.label.toLowerCase()} records found — add them in the relevant tab first.</div>
+                : null
+            }
+          </Field>
+        );
+      })()}
+      <Field label="Note"><input style={input} value={f.note} onChange={(e) => { const note = e.target.value; const cat = !isTransfer ? autoCateg(note) : null; setF({ ...f, note, ...(cat ? { category: cat, linkedKey: "" } : {}) }); }} placeholder={isTransfer ? "e.g. Monthly savings transfer" : "e.g. Swiggy order — category auto-detected"} /></Field>
       <Field label="Narration"><input style={input} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Bank description e.g. UPI/HDFC/REF123456" /></Field>
       <ModalActions onSave={() => f.amount && f.accountId && (!isTransfer || (f.toAccountId && f.accountId !== f.toAccountId)) && onSave(f)} onClose={onClose} />
     </Modal>

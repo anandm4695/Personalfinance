@@ -16,7 +16,7 @@ export const DEFAULT_MASTER_DATA: MasterData = {
   transactionCategories: [
     "Food", "Rent", "Transport", "Shopping", "Bills", "Salary",
     "Investment", "Tax", "Medical", "Entertainment", "EMI",
-    "Groceries", "Utilities", "Transfer", "Other",
+    "Insurance", "Subscription", "Groceries", "Utilities", "Transfer", "Other",
   ],
   ccTransactionCategories: [
     "General", "Food", "Groceries", "Shopping", "Transport",
