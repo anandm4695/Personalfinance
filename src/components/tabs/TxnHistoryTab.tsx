@@ -10,7 +10,14 @@ import { Button } from "../ui/Button";
 const th = { textAlign: "left" as const, padding: "12px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid ${THEME.line}`, whiteSpace: "nowrap" as const };
 const td = { padding: "16px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid ${THEME.line}` };
 
-export function TxnHistoryTab({ state, removeItem }: any) {
+function livePrice(s: any, marketData: any): number {
+  const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
+  const yfSym = `${base}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+  const md = marketData?.[yfSym];
+  return md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
+}
+
+export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const currentFY = (() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -346,7 +353,7 @@ export function TxnHistoryTab({ state, removeItem }: any) {
                   stocksBoughtInFY,
                   `Stocks_Bought_${fyLabel}.csv`,
                   ["Company", "Exchange", "Qty", "Buy Date", "Buy Price", "Invested Amount", "Current Price", "Unrealized P&L"],
-                  (s) => [s.symbol?.replace(/\.(NS|BO)$/i, ""), s.exchange || "NSE", s.qty, s.buyDate, s.avgPrice, Number(s.qty) * Number(s.avgPrice), s.currentPrice || 0, (Number(s.currentPrice || 0) - Number(s.avgPrice)) * Number(s.qty)]
+                  (s) => { const cp = livePrice(s, marketData); const inv = Number(s.qty) * Number(s.avgPrice); return [s.symbol?.replace(/\.(NS|BO)$/i, ""), s.exchange || "NSE", s.qty, s.buyDate, s.avgPrice, inv, cp, (cp - Number(s.avgPrice)) * Number(s.qty)]; }
                 )}
               >
                 Export CSV
@@ -372,7 +379,7 @@ export function TxnHistoryTab({ state, removeItem }: any) {
                       <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                     </tr>
                   </thead>
-                  <tbody>{stocksBoughtInFY.map((s: any) => { const curr = Number(s.currentPrice || 0); const inv = Number(s.qty) * Number(s.avgPrice); const val = Number(s.qty) * curr; const pnl = val - inv; return (<tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover"><td style={{ ...td, paddingLeft: 10 }}><b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b><span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span></td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(s.buyDate)}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>₹{Number(s.avgPrice).toFixed(2)}</td><td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td><td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td></tr>); })}</tbody>
+                  <tbody>{stocksBoughtInFY.map((s: any) => { const curr = livePrice(s, marketData); const inv = Number(s.qty) * Number(s.avgPrice); const val = Number(s.qty) * curr; const pnl = val - inv; return (<tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover"><td style={{ ...td, paddingLeft: 10 }}><b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b><span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span></td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(s.buyDate)}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>₹{Number(s.avgPrice).toFixed(2)}</td><td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td><td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td></tr>); })}</tbody>
                 </table>
               </div>
             </Card>
