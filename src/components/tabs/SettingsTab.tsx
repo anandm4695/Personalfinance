@@ -7,7 +7,7 @@ import {
   ArrowUpAZ, ArrowDownAZ, Mail, Bot, HardDrive,
   Type, Eye, EyeOff,
 } from "lucide-react";
-import { THEME, ACCENT_PALETTES, DENSITY } from "../../utils/constants";
+import { THEME, ACCENT_PALETTES, DENSITY, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -330,17 +330,103 @@ function AppearanceSection({
   density, setDensity,
   fontKey, setFontKey,
   bgStyle, setBgStyle,
+  darkMode, toggleDarkMode,
 }: any) {
   const divider = <div style={{ borderTop: `1px solid ${THEME.line}` }} />;
 
+  const applyPreset = (preset: any) => {
+    if (preset.darkMode !== darkMode) toggleDarkMode();
+    setAccentKey(preset.accentKey);
+    setFontKey(preset.fontKey);
+  };
+
+  const activePreset = THEME_PRESETS.find(
+    p => p.darkMode === darkMode && p.accentKey === accentKey && p.fontKey === fontKey
+  );
+
   return (
     <Card style={{ padding: 28 }}>
-      <div style={{ display: "grid", gap: 24 }}>
+      <div style={{ display: "grid", gap: 28 }}>
 
-        {/* Accent color */}
+        {/* ── Preset Themes ── */}
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Accent Color</div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Theme Presets</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>One-click professional themes — sets color, mode, and font together</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
+            {THEME_PRESETS.map((preset) => {
+              const isActive = activePreset?.id === preset.id;
+              const pal = (ACCENT_PALETTES as any)[preset.accentKey];
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => applyPreset(preset)}
+                  style={{
+                    display: "flex", flexDirection: "column", gap: 0,
+                    border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
+                    borderRadius: 14, overflow: "hidden", cursor: "pointer",
+                    background: "var(--t-paper)",
+                    boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
+                    transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
+                  }}
+                >
+                  {/* Mini preview strip */}
+                  <div style={{
+                    height: 52, display: "flex", alignItems: "flex-end", padding: "0 14px 10px",
+                    background: preset.bgLight,
+                    position: "relative", overflow: "hidden",
+                  }}>
+                    {/* Simulated sidebar strip */}
+                    <div style={{
+                      position: "absolute", left: 0, top: 0, bottom: 0, width: 6,
+                      background: pal?.light || "#4F46E5",
+                    }} />
+                    {/* Card stub */}
+                    <div style={{
+                      width: "55%", height: 22, borderRadius: 6,
+                      background: preset.darkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.85)",
+                      border: `1px solid ${preset.darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)"}`,
+                      marginLeft: 10,
+                    }} />
+                    {/* Accent dot */}
+                    <div style={{
+                      position: "absolute", right: 14, top: 12,
+                      width: 18, height: 18, borderRadius: "50%",
+                      background: pal?.light || "#4F46E5",
+                      boxShadow: `0 2px 6px ${pal?.light || "#4F46E5"}55`,
+                    }} />
+                    {isActive && (
+                      <div style={{
+                        position: "absolute", top: 6, left: 12,
+                        fontSize: 9, fontWeight: 800, color: "#fff",
+                        background: pal?.light || THEME.accent,
+                        padding: "2px 7px", borderRadius: 20,
+                      }}>ACTIVE</div>
+                    )}
+                  </div>
+                  {/* Label */}
+                  <div style={{ padding: "10px 14px 12px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? (pal?.light || THEME.accent) : THEME.ink, marginBottom: 2 }}>{preset.label}</div>
+                    <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.4 }}>{preset.description}</div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 8, alignItems: "center" }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: pal?.light }} />
+                      <span style={{ fontSize: 9, color: THEME.muted, textTransform: "capitalize" }}>{preset.accentKey}</span>
+                      <span style={{ fontSize: 9, color: THEME.line, margin: "0 2px" }}>·</span>
+                      <span style={{ fontSize: 9, color: THEME.muted }}>{preset.darkMode ? "Dark" : "Light"}</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {divider}
+
+        {/* ── Accent color (fine-tune) ── */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Accent Color</div>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14 }}>Fine-tune the accent independently from the preset</div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
             {Object.entries(ACCENT_PALETTES).map(([k, p]: [string, any]) => {
               const active = accentKey === k;
               return (
@@ -354,7 +440,7 @@ function AppearanceSection({
                   }}
                 >
                   <div style={{
-                    width: 38, height: 38, borderRadius: "50%", background: p.light,
+                    width: 36, height: 36, borderRadius: "50%", background: p.light,
                     boxShadow: active ? `0 0 0 2px var(--t-paper), 0 0 0 4px ${p.light}` : "0 2px 6px rgba(0,0,0,0.15)",
                     transform: active ? "scale(1.18)" : "scale(1)",
                     transition: "all 0.2s",
@@ -1089,6 +1175,7 @@ export function SettingsTab({
           density={density} setDensity={setDensity}
           fontKey={fontKey} setFontKey={setFontKey}
           bgStyle={bgStyle} setBgStyle={setBgStyle}
+          darkMode={darkMode} toggleDarkMode={toggleDarkMode}
         />
       )}
 
