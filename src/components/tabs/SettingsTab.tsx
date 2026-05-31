@@ -474,6 +474,7 @@ function AppearanceSection({
             { value: "nunito",         label: "Nunito" },
             { value: "space-grotesk",  label: "Space Grotesk" },
             { value: "lato",           label: "Lato" },
+            { value: "sf-pro",         label: "SF Pro (System)" },
           ]}
         />
 

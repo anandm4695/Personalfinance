@@ -394,6 +394,7 @@ function FinanceDashboard() {
       nunito:          "'Nunito', sans-serif",
       "space-grotesk": "'Space Grotesk', sans-serif",
       lato:            "'Lato', sans-serif",
+      "sf-pro":        "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif",
     };
     const anims = { snappy: "0.15s", smooth: "0.4s", relaxed: "0.8s" };
     
