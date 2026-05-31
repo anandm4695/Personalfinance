@@ -618,32 +618,6 @@ tbody tr:hover td {
   overflow: hidden;
 }
 
-/* ── FAB ───────────────────────────────────────────────────────── */
-.fab {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
-  z-index: 999;
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 80%, #C4B5FD));
-  color: #fff;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--t-accent) 35%, transparent),
-              0 2px 6px rgba(0,0,0,0.1);
-  transition: all 0.3s var(--ease-spring);
-}
-.fab:hover {
-  transform: scale(1.06) translateY(-2px);
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--t-accent) 45%, transparent),
-              0 4px 10px rgba(0,0,0,0.15);
-}
-.fab:active { transform: scale(0.96); }
 
 /* ── Notification badge ────────────────────────────────────────── */
 .notif-badge {
@@ -956,7 +930,7 @@ input[type="date"].form-input {
 
 /* ── Print ─────────────────────────────────────────────────────── */
 @media print {
-  nav, header, footer, button, .no-print, .mobile-bottom-nav, .fab { display: none !important; }
+  nav, header, footer, button, .no-print, .mobile-bottom-nav { display: none !important; }
   body { background: #fff !important; color: #000 !important; font-size: 11pt; }
   main { padding: 0 !important; max-width: 100% !important; }
   * { box-shadow: none !important; border-radius: 0 !important; }
@@ -973,12 +947,6 @@ input[type="date"].form-input {
   .mobile-bottom-nav { display: flex; }
   /* Sidebar uses inline display:flex — override it on mobile so the full width goes to content */
   .app-sidebar { display: none !important; }
-  .fab {
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    right: 16px;
-    width: 46px; height: 46px;
-    border-radius: 14px;
-  }
   .desktop-tab-nav { display: none !important; }
   .header-search { display: none !important; }
   .modal-backdrop { padding: 0; align-items: flex-end; }

@@ -31,7 +31,6 @@ import {
   IndianRupee,
   History,
   CreditCard,
-  Plus,
   Trash2,
   ChevronDown,
   ChevronLeft,
@@ -81,7 +80,6 @@ import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
 
 // Modal Imports
-import { QuickAddModal } from "./components/modals/QuickAddModal";
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
 
 // UI Imports
@@ -371,7 +369,6 @@ function FinanceDashboard() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
-  const [fabModal, setFabModal] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -3027,24 +3024,6 @@ function FinanceDashboard() {
         );
       })()}
 
-      {/* QUICK-ADD FAB */}
-      <button
-        className="fab"
-        onClick={() => setFabModal(true)}
-        style={{ border: "none" }}
-        aria-label="Quick add transaction"
-      >
-        <Plus size={24} strokeWidth={3} />
-      </button>
-
-      {fabModal && (
-        <QuickAddModal
-          onClose={() => setFabModal(false)}
-          onSave={(v) => { addItem("transactions", v); setFabModal(false); }}
-          bankAccounts={state.bankAccounts}
-        />
-      )}
-
       {/* ── TOAST NOTIFICATIONS ── */}
       <ToastStack toasts={toasts} />
 
@@ -3063,7 +3042,7 @@ function FinanceDashboard() {
         onClose={() => setShowCmdPalette(false)}
         onNavigate={(t) => setTab(t)}
         onAction={(a) => {
-          if (a === "quick-add") setFabModal(true);
+          void a;
         }}
       />
 
