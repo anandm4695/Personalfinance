@@ -197,16 +197,15 @@ function FinanceDashboard() {
     return newState;
   });
 
-  // 2. Cross-tab sync: If another tab clears storage, this one should reload/wipe
+  // 2. Cross-tab sync: If another tab calls localStorage.clear() (full reset), reload this tab too.
+  // IMPORTANT: Do NOT reload on normal data writes (e.g. finance_dashboard_v1 key changes).
+  // The storage event fires in ALL other tabs on every saveStateLocal call, so reloading on key
+  // matches causes an infinite reload storm when 2+ tabs are open simultaneously.
+  // Only e.key === null means localStorage.clear() was called — that is the only safe reload trigger.
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      // StorageEvent only fires for OTHER tabs/windows.
-      // If storage is cleared (key is null) or our dashboard key is changed
-      // We only reload if it's a genuine data change from another tab, NOT a reset we are currently handling.
-      if (e.storageArea === localStorage && !isResetting) {
-        if (!e.key || e.key.includes("finance_dashboard")) {
-          window.location.reload();
-        }
+      if (e.storageArea === localStorage && !isResetting && !e.key) {
+        window.location.reload();
       }
     };
     window.addEventListener("storage", handleStorage);
