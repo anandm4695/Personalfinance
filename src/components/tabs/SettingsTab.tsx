@@ -358,131 +358,88 @@ function AppearanceSection({
               <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, padding: "2px 10px", borderRadius: 20 }}>Custom</span>
             )}
           </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>One-click professional themes — sets color, mode, and font together</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-            {THEME_PRESETS.map((preset) => {
-              const isActive = activePreset?.id === preset.id;
-              const pal = (ACCENT_PALETTES as any)[preset.accentKey];
-              return (
-                <button
-                  key={preset.id}
-                  onClick={() => applyPreset(preset)}
-                  style={{
-                    display: "flex", flexDirection: "column", gap: 0,
-                    border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
-                    borderRadius: 14, overflow: "hidden", cursor: "pointer",
-                    background: "var(--t-paper)",
-                    boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
-                    transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
-                  }}
-                >
-                  {/* Mini preview strip */}
-                  <div style={{
-                    height: 50, display: "flex", alignItems: "flex-end", padding: "0 12px 8px",
-                    background: preset.bgPreview,
-                    position: "relative", overflow: "hidden",
-                  }}>
-                    {/* Sidebar accent strip */}
-                    <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: pal?.light || "#4F46E5" }} />
-                    {/* Card stub */}
-                    <div style={{
-                      width: "52%", height: 20, borderRadius: 5, marginLeft: 10,
-                      background: preset.darkMode ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.88)",
-                      border: `1px solid ${preset.darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"}`,
-                    }} />
-                    {/* Second smaller card stub */}
-                    <div style={{
-                      width: "28%", height: 14, borderRadius: 5, marginLeft: 6,
-                      background: preset.darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.65)",
-                      border: `1px solid ${preset.darkMode ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)"}`,
-                    }} />
-                    {/* Accent dot top-right */}
-                    <div style={{
-                      position: "absolute", right: 12, top: 10,
-                      width: 16, height: 16, borderRadius: "50%",
-                      background: pal?.light || "#4F46E5",
-                      boxShadow: `0 2px 5px ${pal?.light || "#4F46E5"}66`,
-                    }} />
-                    {isActive && (
-                      <div style={{
-                        position: "absolute", top: 5, left: 10,
-                        fontSize: 8, fontWeight: 800, color: "#fff",
-                        background: pal?.light || THEME.accent,
-                        padding: "2px 6px", borderRadius: 20, letterSpacing: "0.05em",
-                      }}>ACTIVE</div>
-                    )}
-                  </div>
-                  {/* Label row */}
-                  <div style={{ padding: "9px 12px 11px" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? (pal?.light || THEME.accent) : THEME.ink, marginBottom: 1 }}>{preset.label}</div>
-                    <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.35, marginBottom: 7 }}>{preset.description}</div>
-                    <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                      <div style={{ width: 9, height: 9, borderRadius: "50%", background: pal?.light, flexShrink: 0 }} />
-                      <span style={{ fontSize: 9, color: THEME.muted }}>{pal?.label}</span>
-                      <span style={{ fontSize: 9, color: THEME.line }}>·</span>
-                      <span style={{ fontSize: 9, color: THEME.muted }}>{preset.darkMode ? "Dark" : "Light"}</span>
+          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>10 accent colors × light & dark — one click sets color, mode & font</div>
+
+          {/* Light presets */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Light Mode</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+              {THEME_PRESETS.filter(p => !p.darkMode).map((preset) => {
+                const isActive = activePreset?.id === preset.id;
+                const pal = (ACCENT_PALETTES as any)[preset.accentKey];
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    style={{
+                      display: "flex", flexDirection: "column", gap: 0,
+                      border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
+                      borderRadius: 14, overflow: "hidden", cursor: "pointer",
+                      background: "var(--t-paper)",
+                      boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
+                      transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
+                    }}
+                  >
+                    <div style={{ height: 50, display: "flex", alignItems: "flex-end", padding: "0 12px 8px", background: preset.bgPreview, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: pal?.light || "#4F46E5" }} />
+                      <div style={{ width: "52%", height: 20, borderRadius: 5, marginLeft: 10, background: "rgba(255,255,255,0.88)", border: "1px solid rgba(0,0,0,0.06)" }} />
+                      <div style={{ width: "28%", height: 14, borderRadius: 5, marginLeft: 6, background: "rgba(255,255,255,0.65)", border: "1px solid rgba(0,0,0,0.04)" }} />
+                      <div style={{ position: "absolute", right: 12, top: 10, width: 16, height: 16, borderRadius: "50%", background: pal?.light || "#4F46E5", boxShadow: `0 2px 5px ${pal?.light || "#4F46E5"}66` }} />
+                      {isActive && <div style={{ position: "absolute", top: 5, left: 10, fontSize: 8, fontWeight: 800, color: "#fff", background: pal?.light || THEME.accent, padding: "2px 6px", borderRadius: 20, letterSpacing: "0.05em" }}>ACTIVE</div>}
                     </div>
-                  </div>
-                </button>
-              );
-            })}
+                    <div style={{ padding: "9px 12px 11px" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? (pal?.light || THEME.accent) : THEME.ink, marginBottom: 1 }}>{preset.label}</div>
+                      <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.35, marginBottom: 7 }}>{preset.description}</div>
+                      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                        <div style={{ width: 9, height: 9, borderRadius: "50%", background: pal?.light, flexShrink: 0 }} />
+                        <span style={{ fontSize: 9, color: THEME.muted }}>{pal?.label}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {divider}
-
-        {/* ── Accent Color — in sync with presets ── */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>Accent Color</div>
-            {activePreset && (
-              <span style={{ fontSize: 10, color: THEME.muted }}>
-                Currently: <strong style={{ color: THEME.ink }}>{activePreset.label}</strong> preset
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14 }}>
-            Selecting an accent here updates the corresponding preset automatically
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", rowGap: 18, columnGap: 4 }}>
-            {Object.entries(ACCENT_PALETTES).map(([k, p]: [string, any]) => {
-              const active = (accentKey || "blue") === k;
-              // No darkMode filter — all 10 dots always show a preset label
-              const matchedPreset = THEME_PRESETS.find(pr => pr.accentKey === k);
-              return (
-                <button
-                  key={k}
-                  onClick={() => {
-                    setAccentKey(k);
-                    if (matchedPreset) {
-                      setFontKey(matchedPreset.fontKey);
-                      // Match the preset's mode so the ACTIVE badge fires
-                      if (matchedPreset.darkMode !== darkMode) toggleDarkMode();
-                    }
-                  }}
-                  title={`${p.label}${matchedPreset ? ` — ${matchedPreset.label} preset` : ""}`}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                  }}
-                >
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", background: p.light,
-                    boxShadow: active ? `0 0 0 2px var(--t-paper), 0 0 0 4px ${p.light}` : "0 2px 6px rgba(0,0,0,0.14)",
-                    transform: active ? "scale(1.18)" : "scale(1)",
-                    transition: "all 0.2s",
-                  }} />
-                  <span style={{ fontSize: 10, fontWeight: active ? 800 : 400, color: active ? THEME.ink : THEME.muted, textAlign: "center" }}>
-                    {p.label}
-                  </span>
-                  {matchedPreset && (
-                    <span style={{ fontSize: 8, color: active ? THEME.accent : THEME.muted, fontWeight: active ? 700 : 400 }}>
-                      {matchedPreset.label}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Dark presets */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Dark Mode</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+              {THEME_PRESETS.filter(p => p.darkMode).map((preset) => {
+                const isActive = activePreset?.id === preset.id;
+                const pal = (ACCENT_PALETTES as any)[preset.accentKey];
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    style={{
+                      display: "flex", flexDirection: "column", gap: 0,
+                      border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
+                      borderRadius: 14, overflow: "hidden", cursor: "pointer",
+                      background: "var(--t-paper)",
+                      boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
+                      transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
+                    }}
+                  >
+                    <div style={{ height: 50, display: "flex", alignItems: "flex-end", padding: "0 12px 8px", background: preset.bgPreview, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: pal?.light || "#4F46E5" }} />
+                      <div style={{ width: "52%", height: 20, borderRadius: 5, marginLeft: 10, background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <div style={{ width: "28%", height: 14, borderRadius: 5, marginLeft: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }} />
+                      <div style={{ position: "absolute", right: 12, top: 10, width: 16, height: 16, borderRadius: "50%", background: pal?.light || "#4F46E5", boxShadow: `0 2px 5px ${pal?.light || "#4F46E5"}66` }} />
+                      {isActive && <div style={{ position: "absolute", top: 5, left: 10, fontSize: 8, fontWeight: 800, color: "#fff", background: pal?.light || THEME.accent, padding: "2px 6px", borderRadius: 20, letterSpacing: "0.05em" }}>ACTIVE</div>}
+                    </div>
+                    <div style={{ padding: "9px 12px 11px" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? (pal?.light || THEME.accent) : THEME.ink, marginBottom: 1 }}>{preset.label}</div>
+                      <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.35, marginBottom: 7 }}>{preset.description}</div>
+                      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                        <div style={{ width: 9, height: 9, borderRadius: "50%", background: pal?.light, flexShrink: 0 }} />
+                        <span style={{ fontSize: 9, color: THEME.muted }}>{pal?.label}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

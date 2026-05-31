@@ -25,80 +25,32 @@ export const ACCENT_PALETTES = {
   crimson: { light: "#B91C1C", dark: "#FCA5A5",  label: "Crimson",    dot: "#B91C1C" },
 };
 
-// 10 named presets — one per accent color, perfect 1:1 sync.
-// Preset matching uses darkMode + accentKey only (fontKey is excluded so that manually
-// changing the font does not break the active-preset indicator).
+// 20 presets — light & dark for every accent color (perfect 2:1 mapping).
+// Matching uses darkMode + accentKey only; fontKey excluded so manually
+// changing font does not break the active-preset indicator.
 export const THEME_PRESETS = [
-  {
-    id: "classic",
-    label: "Classic",
-    description: "Clean indigo on white",
-    darkMode: false, accentKey: "blue",    fontKey: "inter",
-    bgPreview: "#F8FAFC",
-  },
-  {
-    id: "corporate",
-    label: "Corporate",
-    description: "Deep navy — executive standard",
-    darkMode: false, accentKey: "navy",    fontKey: "inter",
-    bgPreview: "#F0F4F8",
-  },
-  {
-    id: "executive",
-    label: "Executive",
-    description: "Teal precision — modern fintech",
-    darkMode: false, accentKey: "teal",    fontKey: "inter",
-    bgPreview: "#F0FAFA",
-  },
-  {
-    id: "authority",
-    label: "Authority",
-    description: "Authoritative red — traditional banking",
-    darkMode: false, accentKey: "crimson", fontKey: "inter",
-    bgPreview: "#FFF8F8",
-  },
-  {
-    id: "evergreen",
-    label: "Evergreen",
-    description: "Forest green — growth & wealth",
-    darkMode: false, accentKey: "forest",  fontKey: "outfit",
-    bgPreview: "#F0FAF4",
-  },
-  {
-    id: "bloomberg",
-    label: "Bloomberg",
-    description: "Dark terminal — sky blue data",
-    darkMode: true,  accentKey: "sky",     fontKey: "inter",
-    bgPreview: "#0B0F1A",
-  },
-  {
-    id: "goldman",
-    label: "Goldman",
-    description: "Premium dark — gold accent",
-    darkMode: true,  accentKey: "amber",   fontKey: "inter",
-    bgPreview: "#0C0F14",
-  },
-  {
-    id: "midnight",
-    label: "Midnight",
-    description: "Deep dark — smooth violet",
-    darkMode: true,  accentKey: "purple",  fontKey: "outfit",
-    bgPreview: "#0D0D1A",
-  },
-  {
-    id: "trading",
-    label: "Trading",
-    description: "Dark emerald — markets & growth",
-    darkMode: true,  accentKey: "emerald", fontKey: "inter",
-    bgPreview: "#061410",
-  },
-  {
-    id: "carbon",
-    label: "Carbon",
-    description: "Minimal dark — sharp Roboto type",
-    darkMode: true,  accentKey: "indigo",  fontKey: "roboto",
-    bgPreview: "#111318",
-  },
+  // ── Light (10) ──────────────────────────────────────────────────────────────
+  { id: "classic",    label: "Classic",    description: "Clean indigo on white",                  darkMode: false, accentKey: "blue",    fontKey: "inter",  bgPreview: "#F8FAFC" },
+  { id: "corporate",  label: "Corporate",  description: "Deep navy — executive standard",          darkMode: false, accentKey: "navy",    fontKey: "inter",  bgPreview: "#F0F4F8" },
+  { id: "executive",  label: "Executive",  description: "Teal precision — modern fintech",         darkMode: false, accentKey: "teal",    fontKey: "inter",  bgPreview: "#F0FAFA" },
+  { id: "authority",  label: "Authority",  description: "Authoritative red — traditional banking", darkMode: false, accentKey: "crimson", fontKey: "inter",  bgPreview: "#FFF8F8" },
+  { id: "evergreen",  label: "Evergreen",  description: "Forest green — growth & wealth",          darkMode: false, accentKey: "forest",  fontKey: "outfit", bgPreview: "#F0FAF4" },
+  { id: "horizon",    label: "Horizon",    description: "Sky blue — clear & focused",              darkMode: false, accentKey: "sky",     fontKey: "inter",  bgPreview: "#F0F8FF" },
+  { id: "prestige",   label: "Prestige",   description: "Warm amber — premium light",              darkMode: false, accentKey: "amber",   fontKey: "inter",  bgPreview: "#FFFBF0" },
+  { id: "lavender",   label: "Lavender",   description: "Soft violet — clean & creative",          darkMode: false, accentKey: "purple",  fontKey: "outfit", bgPreview: "#FAF8FF" },
+  { id: "jade",       label: "Jade",       description: "Emerald — fresh growth on white",         darkMode: false, accentKey: "emerald", fontKey: "inter",  bgPreview: "#F0FAF6" },
+  { id: "pacific",    label: "Pacific",    description: "Ocean blue — calm & professional",        darkMode: false, accentKey: "indigo",  fontKey: "inter",  bgPreview: "#F0F4FF" },
+  // ── Dark (10) ───────────────────────────────────────────────────────────────
+  { id: "noir",       label: "Noir",       description: "Dark indigo — deep professional",         darkMode: true,  accentKey: "blue",    fontKey: "inter",  bgPreview: "#0D0F18" },
+  { id: "navy-night", label: "Navy Night", description: "Midnight navy — elite executive",         darkMode: true,  accentKey: "navy",    fontKey: "inter",  bgPreview: "#080D18" },
+  { id: "aqua",       label: "Aqua",       description: "Dark teal — deep fintech terminal",       darkMode: true,  accentKey: "teal",    fontKey: "inter",  bgPreview: "#041412" },
+  { id: "ember",      label: "Ember",      description: "Dark crimson — bold & dramatic",          darkMode: true,  accentKey: "crimson", fontKey: "inter",  bgPreview: "#140808" },
+  { id: "canopy",     label: "Canopy",     description: "Dark forest — deep wealth & growth",      darkMode: true,  accentKey: "forest",  fontKey: "outfit", bgPreview: "#071410" },
+  { id: "bloomberg",  label: "Bloomberg",  description: "Dark terminal — sky blue data",           darkMode: true,  accentKey: "sky",     fontKey: "inter",  bgPreview: "#0B0F1A" },
+  { id: "goldman",    label: "Goldman",    description: "Premium dark — gold accent",              darkMode: true,  accentKey: "amber",   fontKey: "inter",  bgPreview: "#0C0F14" },
+  { id: "midnight",   label: "Midnight",   description: "Deep dark — smooth violet",               darkMode: true,  accentKey: "purple",  fontKey: "outfit", bgPreview: "#0D0D1A" },
+  { id: "trading",    label: "Trading",    description: "Dark emerald — markets & growth",         darkMode: true,  accentKey: "emerald", fontKey: "inter",  bgPreview: "#061410" },
+  { id: "carbon",     label: "Carbon",     description: "Minimal dark — sharp Roboto type",        darkMode: true,  accentKey: "indigo",  fontKey: "roboto", bgPreview: "#111318" },
 ];
 
 export const DENSITY = {
