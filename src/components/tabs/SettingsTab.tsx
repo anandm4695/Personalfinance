@@ -444,18 +444,21 @@ function AppearanceSection({
           <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14 }}>
             Selecting an accent here updates the corresponding preset automatically
           </div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", rowGap: 18, columnGap: 4 }}>
             {Object.entries(ACCENT_PALETTES).map(([k, p]: [string, any]) => {
               const active = (accentKey || "blue") === k;
-              // Find which preset this color belongs to (for the current dark/light mode)
-              const matchedPreset = THEME_PRESETS.find(pr => pr.accentKey === k && pr.darkMode === darkMode);
+              // No darkMode filter — all 10 dots always show a preset label
+              const matchedPreset = THEME_PRESETS.find(pr => pr.accentKey === k);
               return (
                 <button
                   key={k}
                   onClick={() => {
                     setAccentKey(k);
-                    // Auto-apply the matched preset's font too, so both sections stay in sync
-                    if (matchedPreset) setFontKey(matchedPreset.fontKey);
+                    if (matchedPreset) {
+                      setFontKey(matchedPreset.fontKey);
+                      // Match the preset's mode so the ACTIVE badge fires
+                      if (matchedPreset.darkMode !== darkMode) toggleDarkMode();
+                    }
                   }}
                   title={`${p.label}${matchedPreset ? ` — ${matchedPreset.label} preset` : ""}`}
                   style={{
