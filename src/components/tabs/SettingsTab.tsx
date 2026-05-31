@@ -5,7 +5,7 @@ import {
   X as XIcon, LogOut, Tags, Palette,
   RotateCcw, Plus, AlertTriangle, Settings,
   ArrowUpAZ, ArrowDownAZ, Mail, Bot, HardDrive,
-  Type, Eye, EyeOff,
+  Eye, EyeOff,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, DENSITY, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -466,24 +466,14 @@ function AppearanceSection({
           value={fontKey || "inter"}
           onChange={setFontKey}
           options={[
-            { value: "inter",  label: "Inter", icon: Type },
-            { value: "outfit", label: "Outfit", icon: Type },
-            { value: "roboto", label: "Roboto", icon: Type },
-          ]}
-        />
-
-        {divider}
-
-        {/* Background */}
-        <OptionRow
-          label="Background Style"
-          hint="Subtle texture behind all content"
-          value={bgStyle || "plain"}
-          onChange={setBgStyle}
-          options={[
-            { value: "plain", label: "Plain" },
-            { value: "dots",  label: "Dots" },
-            { value: "mesh",  label: "Mesh Gradient" },
+            { value: "inter",          label: "Inter" },
+            { value: "outfit",         label: "Outfit" },
+            { value: "roboto",         label: "Roboto" },
+            { value: "poppins",        label: "Poppins" },
+            { value: "dm-sans",        label: "DM Sans" },
+            { value: "nunito",         label: "Nunito" },
+            { value: "space-grotesk",  label: "Space Grotesk" },
+            { value: "lato",           label: "Lato" },
           ]}
         />
 

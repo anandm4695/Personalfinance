@@ -385,10 +385,15 @@ function FinanceDashboard() {
     const d = DENSITY[density] || DENSITY.normal;
     
     const radiuses = { sharp: "4px", modern: "12px", round: "24px" };
-    const fonts = { 
-      inter: "'Inter', sans-serif", 
-      outfit: "'Outfit', sans-serif", 
-      roboto: "'Roboto', sans-serif" 
+    const fonts: Record<string,string> = {
+      inter:           "'Inter', sans-serif",
+      outfit:          "'Outfit', sans-serif",
+      roboto:          "'Roboto', sans-serif",
+      poppins:         "'Poppins', sans-serif",
+      "dm-sans":       "'DM Sans', sans-serif",
+      nunito:          "'Nunito', sans-serif",
+      "space-grotesk": "'Space Grotesk', sans-serif",
+      lato:            "'Lato', sans-serif",
     };
     const anims = { snappy: "0.15s", smooth: "0.4s", relaxed: "0.8s" };
     
