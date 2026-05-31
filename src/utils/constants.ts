@@ -10,15 +10,14 @@ export const THEME = {
   darkInk: "var(--t-darkInk)",
 };
 
+// 10 corporate accent colors — one per theme preset (perfect 1:1 mapping).
+// Rose removed (not corporate enough per user preference).
 export const ACCENT_PALETTES = {
-  // Original
   blue:    { light: "#4F46E5", dark: "#818CF8",  label: "Indigo",     dot: "#4F46E5" },
   purple:  { light: "#7C3AED", dark: "#A78BFA",  label: "Violet",     dot: "#7C3AED" },
   emerald: { light: "#059669", dark: "#34D399",  label: "Emerald",    dot: "#059669" },
   amber:   { light: "#D97706", dark: "#FBBF24",  label: "Amber",      dot: "#D97706" },
-  rose:    { light: "#E11D48", dark: "#FB7185",  label: "Rose",       dot: "#E11D48" },
   indigo:  { light: "#2563EB", dark: "#60A5FA",  label: "Ocean Blue", dot: "#2563EB" },
-  // Corporate / professional additions
   navy:    { light: "#1E40AF", dark: "#93C5FD",  label: "Navy",       dot: "#1E40AF" },
   teal:    { light: "#0D9488", dark: "#5EEAD4",  label: "Teal",       dot: "#0D9488" },
   sky:     { light: "#0284C7", dark: "#38BDF8",  label: "Sky Blue",   dot: "#0284C7" },
@@ -26,64 +25,79 @@ export const ACCENT_PALETTES = {
   crimson: { light: "#B91C1C", dark: "#FCA5A5",  label: "Crimson",    dot: "#B91C1C" },
 };
 
-// Named theme presets — each sets darkMode + accentKey + fontKey together.
-// These are the "one-click" theme options shown at the top of Appearance settings.
+// 10 named presets — one per accent color, perfect 1:1 sync.
+// Preset matching uses darkMode + accentKey only (fontKey is excluded so that manually
+// changing the font does not break the active-preset indicator).
 export const THEME_PRESETS = [
   {
     id: "classic",
     label: "Classic",
     description: "Clean indigo on white",
-    darkMode: false, accentKey: "blue", fontKey: "inter",
-    bgLight: "#F8FAFC", bgDark: "#F8FAFC", accentDot: "#4F46E5",
+    darkMode: false, accentKey: "blue",    fontKey: "inter",
+    bgPreview: "#F8FAFC",
   },
   {
     id: "corporate",
     label: "Corporate",
     description: "Deep navy — executive standard",
-    darkMode: false, accentKey: "navy", fontKey: "inter",
-    bgLight: "#F0F4F8", bgDark: "#F0F4F8", accentDot: "#1E40AF",
-  },
-  {
-    id: "bloomberg",
-    label: "Bloomberg",
-    description: "Dark terminal, sky-blue data",
-    darkMode: true, accentKey: "sky", fontKey: "inter",
-    bgLight: "#0B0F1A", bgDark: "#0B0F1A", accentDot: "#0284C7",
-  },
-  {
-    id: "goldman",
-    label: "Goldman",
-    description: "Premium dark, gold accent",
-    darkMode: true, accentKey: "amber", fontKey: "inter",
-    bgLight: "#0C0F14", bgDark: "#0C0F14", accentDot: "#D97706",
+    darkMode: false, accentKey: "navy",    fontKey: "inter",
+    bgPreview: "#F0F4F8",
   },
   {
     id: "executive",
     label: "Executive",
-    description: "Light mode with teal precision",
-    darkMode: false, accentKey: "teal", fontKey: "inter",
-    bgLight: "#F0FAFA", bgDark: "#F0FAFA", accentDot: "#0D9488",
+    description: "Teal precision — modern fintech",
+    darkMode: false, accentKey: "teal",    fontKey: "inter",
+    bgPreview: "#F0FAFA",
   },
   {
-    id: "midnight",
-    label: "Midnight",
-    description: "Deep dark, smooth indigo",
-    darkMode: true, accentKey: "purple", fontKey: "outfit",
-    bgLight: "#0D0D1A", bgDark: "#0D0D1A", accentDot: "#7C3AED",
+    id: "authority",
+    label: "Authority",
+    description: "Authoritative red — traditional banking",
+    darkMode: false, accentKey: "crimson", fontKey: "inter",
+    bgPreview: "#FFF8F8",
   },
   {
     id: "evergreen",
     label: "Evergreen",
-    description: "Calm forest green, wealth-first",
-    darkMode: false, accentKey: "forest", fontKey: "outfit",
-    bgLight: "#F0FAF4", bgDark: "#F0FAF4", accentDot: "#15803D",
+    description: "Forest green — growth & wealth",
+    darkMode: false, accentKey: "forest",  fontKey: "outfit",
+    bgPreview: "#F0FAF4",
+  },
+  {
+    id: "bloomberg",
+    label: "Bloomberg",
+    description: "Dark terminal — sky blue data",
+    darkMode: true,  accentKey: "sky",     fontKey: "inter",
+    bgPreview: "#0B0F1A",
+  },
+  {
+    id: "goldman",
+    label: "Goldman",
+    description: "Premium dark — gold accent",
+    darkMode: true,  accentKey: "amber",   fontKey: "inter",
+    bgPreview: "#0C0F14",
+  },
+  {
+    id: "midnight",
+    label: "Midnight",
+    description: "Deep dark — smooth violet",
+    darkMode: true,  accentKey: "purple",  fontKey: "outfit",
+    bgPreview: "#0D0D1A",
+  },
+  {
+    id: "trading",
+    label: "Trading",
+    description: "Dark emerald — markets & growth",
+    darkMode: true,  accentKey: "emerald", fontKey: "inter",
+    bgPreview: "#061410",
   },
   {
     id: "carbon",
     label: "Carbon",
-    description: "Minimal dark, sharp Roboto type",
-    darkMode: true, accentKey: "indigo", fontKey: "roboto",
-    bgLight: "#111318", bgDark: "#111318", accentDot: "#2563EB",
+    description: "Minimal dark — sharp Roboto type",
+    darkMode: true,  accentKey: "indigo",  fontKey: "roboto",
+    bgPreview: "#111318",
   },
 ];
 
