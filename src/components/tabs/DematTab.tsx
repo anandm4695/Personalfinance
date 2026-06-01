@@ -123,10 +123,10 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
 
   const markFailed = (url: string) => setFailedUrls(prev => new Set([...prev, url]));
 
-  // Clearbit (from API) → EODHD CDN (client direct) → initials.
-  // Google Favicon is intentionally excluded: it always returns an image even for unknown domains,
-  // so onError never fires and the chain gets stuck on a generic placeholder instead of falling through.
-  const candidates: string[] = [logoUrl, eohdUrl !== logoUrl ? eohdUrl : null]
+  // Fallback chain: Clearbit/EODHD (from API) → EODHD CDN (client-direct, if not already logoUrl)
+  // → faviconUrl (Yahoo-sourced Google Favicon, last resort — always returns something).
+  // faviconUrl sits last so EODHD is tried first; it never triggers onError so acts as a guaranteed net.
+  const candidates: string[] = [logoUrl, eohdUrl !== logoUrl ? eohdUrl : null, faviconUrl]
     .filter(Boolean) as string[];
   const activeSrc = candidates.find(u => !failedUrls.has(u));
 
