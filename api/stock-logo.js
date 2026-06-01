@@ -396,7 +396,7 @@ const STOCK_DOMAINS = {
   GNFC:          "gnfc.in",
   CHAMBAL:       "chambalfertilisers.com",
   DEEPAKFERT:    "deepakfertilisers.com",
-  KSCL:          "kavericooking.com",
+  KSCL:          "kaveriseeds.com",
 
   // ── Electricals / Cables / Wires ─────────────────────────────────────────
   POLYCAB:       "polycab.com",
@@ -474,7 +474,7 @@ const STOCK_DOMAINS = {
   ALOKIND:       "alokind.com",
   TRIDENT:       "tridentgroup.com",
   KPR:           "kprmill.com",
-  MAFANG:        "mafangskin.com",
+  MAFANG:        "miraeassetmf.com",
   HIMATSEIDE:    "himatsingka.com",
 
   // ── Logistics ────────────────────────────────────────────────────────────
@@ -487,6 +487,101 @@ const STOCK_DOMAINS = {
   ALLCARGO:      "allcargologistics.com",
   CONTAINERC:    "concorindia.com",
   CONCOR:        "concorindia.com",
+
+  // ── ETFs / Index Funds ────────────────────────────────────────────────────
+  NIFTYBEES:     "nipponindiaim.com",
+  JUNIORBEES:    "nipponindiaim.com",
+  GOLDBEES:      "nipponindiaim.com",
+  LIQUIDBEES:    "nipponindiaim.com",
+  BANKBEES:      "nipponindiaim.com",
+  PSUBNKBEES:    "nipponindiaim.com",
+  INFRABEES:     "nipponindiaim.com",
+  CPSE:          "nipponindiaim.com",
+  NETF:          "nipponindiaim.com",
+  ICICINXT50:    "icicimf.com",
+  ICICIB22:      "icicimf.com",
+  ICICISENSX:    "icicimf.com",
+  SETFNIF50:     "sbimf.com",
+  SETFNN50:      "sbimf.com",
+  SETFGOLD:      "sbimf.com",
+  HDFCNIFTY:     "hdfcmf.com",
+  HDFCSENSEX:    "hdfcmf.com",
+  AXISBPSETF:    "axismf.com",
+  MOM100:        "motilaloswalmf.com",
+  MOM50:         "motilaloswalmf.com",
+  MOM30:         "motilaloswalmf.com",
+  MIDCAPETF:     "nipponindiaim.com",
+  QNIFTY:        "quantummf.com",
+  ITBEES:        "nipponindiaim.com",
+  PHARMABEES:    "nipponindiaim.com",
+  AUTOBEES:      "nipponindiaim.com",
+  SHARIABEES:    "nipponindiaim.com",
+  UTINIFTETF:    "utimf.com",
+  UTISENSETF:    "utimf.com",
+  LICNFNHGP:     "licindia.in",
+  KOTAKGOLD:     "kotak.com",
+  KOTAKNIFTY:    "kotak.com",
+  KOTAKBKETF:    "kotak.com",
+  ABSLBANETF:    "adityabirlamf.com",
+  ABSLNN50ET:    "adityabirlamf.com",
+  MIRAERASETF:   "miraeassetmf.com",
+  MIRAE_ASSET:   "miraeassetmf.com",
+  CPSEETF:       "sbimf.com",
+  NV20:          "nipponindiaim.com",
+  ALPHA:         "nipponindiaim.com",
+  LOWVOL:        "nipponindiaim.com",
+  QUAL30:        "nipponindiaim.com",
+  MOVALUE:       "motilaloswalmf.com",
+  MOQUALITY:     "motilaloswalmf.com",
+  MONIFTY500:    "motilaloswalmf.com",
+  ITETF:         "sbimf.com",
+  CONSUMIETF:    "sbimf.com",
+
+  // ── New-age Tech / Startup Listings ──────────────────────────────────────
+  AFFLE:         "affle.com",
+  NAZARA:        "nazara.com",
+  EASEMYTRIP:    "easemytrip.com",
+  CARTRADE:      "cartrade.com",
+  NYKAA:         "nykaa.com",
+  POLICYBZR:     "policybazaar.com",
+  DROOM:         "droom.in",
+  CMSINFO:       "cmsinfotech.com",
+  MAPMYINDIA:    "mappls.com",
+  CAMPUS:        "campusshoes.com",
+  VEDANT:        "manyavar.com",
+  MANYAVAR:      "manyavar.com",
+  DOMS:          "domsindia.com",
+  SENCO:         "sencogold.com",
+  KAYNES:        "kaynes.in",
+  SANSERA:       "sanseragroup.com",
+  ROLEX:         "rolexrings.com",
+  BIKAJI:        "bikaji.com",
+  DRONEACHARYA:  "droneacharya.com",
+  IDEAFORGE:     "ideaforgetech.com",
+  RATEGAIN:      "rategain.com",
+  YATHARTH:      "yatharthhospital.com",
+
+  // ── MFI / Small Finance ───────────────────────────────────────────────────
+  CREDITACC:     "creditaccess.in",
+  SPANDANA:      "spandanasphoorty.in",
+  ARMANFIN:      "armanfin.com",
+  PGEL:          "pgeindia.com",
+  FUSION:        "fusionmicrofinance.com",
+  IIFL:          "iiflfinance.com",
+  IIFLFIN:       "iiflfinance.com",
+  UGROCAP:       "ugrocapital.com",
+  FIVESTAR:      "fivestargroup.in",
+  SBFC:          "sbfc.in",
+
+  // ── Infrastructure / Utilities ────────────────────────────────────────────
+  ATGL:          "adanigas.com",
+  MGL:           "mahanagargas.com",
+  IGL:           "iglonline.net",
+  GSPL:          "gspc.co.in",
+  PETRONET:      "petronetlng.com",
+  AEGISCHEM:     "aegislogistics.com",
+  GUJGASLTD:     "gujaratgas.com",
+  GULFOILLUB:    "gulfoil.in",
 };
 
 async function resolveWithTwelveData(base, exchange, apiKey) {
@@ -536,12 +631,14 @@ module.exports = async function handler(req, res) {
   let logoUrl = null;
   let faviconUrl = null;
 
-  // Priority 1: High-coverage local mapping (returns crisp 256px favicons)
+  // Priority 1: High-coverage local mapping
+  // logoUrl  = Clearbit Logo API — curated corporate logos, returns proper 404 so client fallback chain works
+  // faviconUrl = Google Favicon — always returns something, used as secondary fallback
   const baseUpper = base.toUpperCase();
   if (STOCK_DOMAINS[baseUpper]) {
     const domain = STOCK_DOMAINS[baseUpper];
-    logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-    faviconUrl = logoUrl;
+    logoUrl    = `https://logo.clearbit.com/${domain}`;
+    faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
   }
 
   // Priority 2: Twelve Data (if API key configured)

@@ -82,18 +82,19 @@ function brokerInitials(broker: string): string {
 }
 
 // Module-level cache so logos persist across re-renders without extra fetches
-const _logoCache: Record<string, string | null> = {};
+const _logoCache: Record<string, { logoUrl: string | null; faviconUrl: string | null } | null> = {};
 
 export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
-  const [primaryErr, setPrimaryErr] = React.useState(false);
-  const [faviconErr, setFaviconErr] = React.useState(false);
-  const [eohdErr, setEohdErr] = React.useState(false);
+  // Track failed URLs by URL string — avoids eohdErr timing bug where initial EODHD attempt
+  // poisons the fallback state before the API responds with better sources.
+  const [failedUrls, setFailedUrls] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
+    setFailedUrls(new Set()); // reset failures when symbol changes
     if (yfSym in _logoCache) {
-      const c = _logoCache[yfSym] as any;
+      const c = _logoCache[yfSym];
       setLogoUrl(c?.logoUrl ?? null);
       setFaviconUrl(c?.faviconUrl ?? null);
       return;
@@ -112,6 +113,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   const base = yfSym.replace(/\.(NS|BO)$/i, "");
   const isBSE = /\.BO$/i.test(yfSym);
   const exch = isBSE ? "BSE" : "NSE";
+  const eohdUrl = `https://eodhd.com/img/logos/${exch}/${base}.png`;
   const hue = Array.from(base).reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   const br = Math.round(size * 0.28);
   const pad = Math.round(size * 0.1);
@@ -119,32 +121,19 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   const imgStyle: React.CSSProperties = { width: "100%", height: "100%", objectFit: "contain" };
   const wrapStyle: React.CSSProperties = { width: size, height: size, borderRadius: br, background: "#fff", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, padding: pad, boxSizing: "border-box" };
 
-  if (logoUrl && !primaryErr) {
-    return (
-      <div style={wrapStyle}>
-        <img src={logoUrl} alt={base} onError={() => setPrimaryErr(true)} style={imgStyle} />
-      </div>
-    );
-  }
+  const markFailed = (url: string) => setFailedUrls(prev => new Set([...prev, url]));
 
-  if (faviconUrl && !faviconErr) {
-    return (
-      <div style={wrapStyle}>
-        <img src={faviconUrl} alt={base} onError={() => setFaviconErr(true)} style={imgStyle} />
-      </div>
-    );
-  }
+  // Build candidate list: Clearbit (from API) → Google Favicon (from API) → EODHD CDN (client direct)
+  // EODHD is always added so it works both as an immediate placeholder before the API responds
+  // AND as a final fallback after API sources fail — the Set tracks failures per-URL, not per-tier.
+  const candidates: string[] = [logoUrl, faviconUrl, eohdUrl !== logoUrl ? eohdUrl : null]
+    .filter(Boolean) as string[];
+  const activeSrc = candidates.find(u => !failedUrls.has(u));
 
-  // Direct EODHD CDN fallback — catches stocks missing from the API's domain map
-  if (!eohdErr) {
+  if (activeSrc) {
     return (
       <div style={wrapStyle}>
-        <img
-          src={`https://eodhd.com/img/logos/${exch}/${base}.png`}
-          alt={base}
-          onError={() => setEohdErr(true)}
-          style={imgStyle}
-        />
+        <img src={activeSrc} alt={base} onError={() => markFailed(activeSrc)} style={imgStyle} />
       </div>
     );
   }
