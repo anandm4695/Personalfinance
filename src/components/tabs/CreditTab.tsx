@@ -579,6 +579,22 @@ function PrepaidEmptyState({ onAdd }: any) {
   );
 }
 
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function getNextFeeDate(c: any): { dateStr: string; daysLeft: number } | null {
+  if (!Number(c.annualFee) || !c.feeMonth) return null;
+  const now = new Date();
+  const month = Number(c.feeMonth) - 1;
+  const day = Number(c.feeDay) || 1;
+  let candidate = new Date(now.getFullYear(), month, day);
+  if (candidate.getTime() < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) {
+    candidate = new Date(now.getFullYear() + 1, month, day);
+  }
+  const daysLeft = Math.ceil((candidate.getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000);
+  const dateStr = `${day} ${MONTH_NAMES[month]}`;
+  return { dateStr, daysLeft };
+}
+
 function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
@@ -680,7 +696,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups }
         <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11, color: "rgba(245,239,227,0.7)" }}>
           <div>Bill Date: <strong>{c.billDate ? `${c.billDate}th` : "—"}</strong></div>
           <div>Due Day: <strong>{c.dueDay ? `${c.dueDay}th` : "—"}</strong></div>
-          <div>Fee: <strong>{fmtINR(c.annualFee)}</strong></div>
+          <div>Fee: <strong>{fmtINR(c.annualFee)}{c.feeMonth ? ` · ${Number(c.feeDay)||1} ${MONTH_NAMES[Number(c.feeMonth)-1]}` : ""}</strong></div>
           <div>Helpline: <strong>{c.helpline || "—"}</strong></div>
         </div>
         {c.waiverInfo && <div style={{ marginTop: 12, fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "6px 10px", borderRadius: 6, color: THEME.gold }}>Waiver: {c.waiverInfo}</div>}
@@ -697,6 +713,22 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups }
           const label = daysLeft <= 0 ? "⚠ Due today!" : daysLeft === 1 ? "⚠ Due tomorrow!" : `Payment due in ${daysLeft} days`;
           return (
             <div style={{ marginTop: 10, fontSize: 11, color: urgentColor, fontWeight: daysLeft <= 7 ? 700 : 500 }}>
+              {label}
+            </div>
+          );
+        })()}
+
+        {/* Annual fee countdown */}
+        {!isClosed && (() => {
+          const fee = getNextFeeDate(c);
+          if (!fee) return null;
+          const { dateStr, daysLeft } = fee;
+          const urgentColor = daysLeft <= 7 ? "#ff8080" : daysLeft <= 30 ? "#fbbf24" : "rgba(245,239,227,0.55)";
+          const label = daysLeft === 0 ? `⚠ Annual fee ${fmtINR(c.annualFee)} due today!`
+            : daysLeft === 1 ? `⚠ Annual fee ${fmtINR(c.annualFee)} due tomorrow!`
+            : `Annual fee ${fmtINR(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
+          return (
+            <div style={{ marginTop: 6, fontSize: 11, color: urgentColor, fontWeight: daysLeft <= 30 ? 700 : 400 }}>
               {label}
             </div>
           );
@@ -1706,7 +1738,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
 
 function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) {
   const { ccNetworks } = useMasterData();
-  const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", interestRate: "36", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "", sharedGroup: "", sharedGroupLimit: "" });
+  const [f, setF] = useState(initial || { issuer: "", network: ccNetworks[0] || "Visa", last4: "", limit: "", outstanding: "0", billDate: "", dueDay: "", annualFee: "0", feeMonth: "", feeDay: "", interestRate: "36", waiverInfo: "", helpline: "", transactions: [], owner: "self", status: "active", closedDate: "", sharedGroup: "", sharedGroupLimit: "" });
   const isClosed = (f.status || "active").toLowerCase() === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
@@ -1714,7 +1746,20 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}><Field label="Issuer"><input style={input} value={f.issuer} onChange={(e) => setF({ ...f, issuer: e.target.value })} placeholder="e.g. HDFC Regalia" /></Field><Field label="Network"><select style={input} value={f.network} onChange={(e) => setF({ ...f, network: e.target.value })}>{ccNetworks.map((n: string) => <option key={n}>{n}</option>)}</select></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}><Field label="Last 4 digits"><input style={input} maxLength={4} value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value })} /></Field><Field label="Card Sub-Limit"><input style={input} type="number" value={f.limit} onChange={(e) => setF({ ...f, limit: e.target.value })} placeholder={f.sharedGroup ? "Individual sub-limit" : "Credit limit"} /></Field><Field label="Outstanding"><input style={input} type="number" value={f.outstanding} onChange={(e) => setF({ ...f, outstanding: e.target.value })} /></Field></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><Field label="Statement Date (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 20" value={f.billDate} onChange={(e) => setF({ ...f, billDate: e.target.value })} /></Field><Field label="Due Day (Day of Month)"><input style={input} type="number" min="1" max="31" placeholder="e.g. 10" value={f.dueDay} onChange={(e) => setF({ ...f, dueDay: e.target.value })} /></Field></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}><Field label="Annual Fee"><input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} /></Field><Field label="Interest Rate (% APR)"><input style={input} type="number" min="0" max="60" step="0.1" value={f.interestRate ?? "36"} onChange={(e) => setF({ ...f, interestRate: e.target.value })} placeholder="36" /></Field><Field label="Helpline Number"><input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" /></Field></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}><Field label="Annual Fee (₹)"><input style={input} type="number" value={f.annualFee} onChange={(e) => setF({ ...f, annualFee: e.target.value })} /></Field><Field label="Interest Rate (% APR)"><input style={input} type="number" min="0" max="60" step="0.1" value={f.interestRate ?? "36"} onChange={(e) => setF({ ...f, interestRate: e.target.value })} placeholder="36" /></Field><Field label="Helpline Number"><input style={input} value={f.helpline} onChange={(e) => setF({ ...f, helpline: e.target.value })} placeholder="1800-xxx-xxxx" /></Field></div>
+      {Number(f.annualFee) > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Annual Fee Month">
+            <select style={input} value={f.feeMonth || ""} onChange={(e) => setF({ ...f, feeMonth: e.target.value })}>
+              <option value="">— Select month —</option>
+              {MONTH_NAMES.map((m, i) => <option key={i+1} value={String(i+1)}>{m}</option>)}
+            </select>
+          </Field>
+          <Field label="Annual Fee Day">
+            <input style={input} type="number" min="1" max="31" placeholder="e.g. 15" value={f.feeDay || ""} onChange={(e) => setF({ ...f, feeDay: e.target.value })} />
+          </Field>
+        </div>
+      )}
       <Field label="Waiver Details"><textarea style={{ ...input, height: 60, resize: "none" }} value={f.waiverInfo} onChange={(e) => setF({ ...f, waiverInfo: e.target.value })} placeholder="e.g. Spend 1L in a year to waive off annual fee" /></Field>
 
       {/* Shared Limit Pool */}

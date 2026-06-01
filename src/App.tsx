@@ -1458,6 +1458,18 @@ function FinanceDashboard() {
       const days = Math.ceil((new Date(s.renewalDate).getTime() - now.getTime()) / 86400000);
       if (days >= 0 && days <= 7) list.push({ level: "info", title: `${s.name} renews in ${days}d`, detail: fmtINRFull(s.amount), tab: "subs" });
     });
+    // Credit card annual fee due in ≤30 days
+    state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth).forEach((c: any) => {
+      const month = Number(c.feeMonth) - 1;
+      const day = Number(c.feeDay) || 1;
+      let candidate = new Date(now.getFullYear(), month, day);
+      if (candidate.getTime() < new Date(today() + "T00:00:00").getTime()) candidate = new Date(now.getFullYear() + 1, month, day);
+      const days = Math.ceil((candidate.getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000);
+      if (days >= 0 && days <= 30) {
+        const lvl = days <= 7 ? "warn" : "info";
+        list.push({ level: lvl, title: `${c.issuer} annual fee in ${days}d`, detail: fmtINRFull(c.annualFee), tab: "credit" });
+      }
+    });
     // Credit card utilization — compute from state (unfiltered) for consistent alert coverage
     const totalCCLimitForAlert = state.creditCards
       .filter((c) => (c.status || "").toLowerCase() !== "closed")
