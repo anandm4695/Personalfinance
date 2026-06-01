@@ -338,6 +338,7 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
 
   const [chartData, setChartData] = useState<any>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
+  const [lotSortDir, setLotSortDir] = useState<Record<string, "asc" | "desc">>({});
   const [fetchingChart, setFetchingChart] = useState<string | null>(null);
   const [sellLot, setSellLot] = useState<any>(null);
   const [fifoSellGroup, setFifoSellGroup] = useState<any>(null);
@@ -860,14 +861,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", paddingLeft: 8 }}>Broker</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Qty</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Buy Price</th>
-                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Period</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right", cursor: "pointer", userSelect: "none", color: THEME.accent }} onClick={() => setLotSortDir(prev => ({ ...prev, [yfSym]: (prev[yfSym] ?? "asc") === "asc" ? "desc" : "asc" }))}>Period {(lotSortDir[yfSym] ?? "asc") === "asc" ? "↑" : "↓"}</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Return</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Value</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px" }}></th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {lots.map((lot: any) => {
+                                  {[...lots].sort((a: any, b: any) => {
+                                    const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
+                                    const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
+                                    return (lotSortDir[yfSym] ?? "asc") === "asc" ? da - db : db - da;
+                                  }).map((lot: any) => {
                                     const lInv = Number(lot.qty) * Number(lot.avgPrice);
                                     const lCurr = Number(lot.qty) * currentPrice;
                                     const lPnl = lCurr - lInv;
