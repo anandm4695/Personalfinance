@@ -568,6 +568,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         if (daysLeft >= 0 && ms <= plus30Ms) dues.push({ name: (c.issuer || "Card") + " Bill", amount: Number(c.outstanding || 0), daysLeft, date: dueDate });
       }
     });
+    // Annual fees for active cards that have a fee date set
+    state.creditCards.filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth).forEach((c: any) => {
+      const fMonth = Number(c.feeMonth) - 1;
+      const fDay = Number(c.feeDay) || 1;
+      const nowD = new Date();
+      let candidate = new Date(nowD.getFullYear(), fMonth, fDay);
+      if (candidate.getTime() < todayMs) candidate = new Date(nowD.getFullYear() + 1, fMonth, fDay);
+      const ms = candidate.getTime();
+      const daysLeft = Math.ceil((ms - todayMs) / 86400000);
+      if (daysLeft >= 0 && ms <= plus30Ms) {
+        const yyyy = candidate.getFullYear(), mmo = String(candidate.getMonth() + 1).padStart(2, "0"), ddo = String(candidate.getDate()).padStart(2, "0");
+        dues.push({ name: (c.issuer || "Card") + " Annual Fee", amount: Number(c.annualFee), daysLeft, date: `${yyyy}-${mmo}-${ddo}` });
+      }
+    });
     state.subscriptions.forEach((s: any) => {
       if (s.renewalDate) {
         const [syy, smm, sdd] = s.renewalDate.split("-").map(Number);
@@ -932,6 +946,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       }, 0);
     if (ccInterestMonthly > 500) {
       insights.push({ icon: CreditCard, title: "CC Interest Risk", value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+    }
+
+    // Annual fee cost across all active cards
+    const totalAnnualFees = (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0)
+      .reduce((s: number, c: any) => s + Number(c.annualFee), 0);
+    const feeCardCount = (state.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0).length;
+    if (totalAnnualFees > 0) {
+      const pctOfIncome = annualIncome > 0 ? ((totalAnnualFees / annualIncome) * 100).toFixed(1) : null;
+      const sub = pctOfIncome ? `${fmtINR(Math.round(totalAnnualFees / 12))}/mo · ${pctOfIncome}% of annual income` : `${fmtINR(Math.round(totalAnnualFees / 12))}/mo across ${feeCardCount} card${feeCardCount !== 1 ? "s" : ""}`;
+      insights.push({ icon: CreditCard, title: "CC Annual Fees", value: `${fmtINRFull(totalAnnualFees)}/yr · ${sub}`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
     }
 
     if (insights.length === 0 && metrics.netWorth > 0)
@@ -3644,6 +3669,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     const targetDay = Math.min(day, daysInMonth);
                     dueDays[targetDay] = (dueDays[targetDay] || []).concat({ label: (c.issuer || "Card") + " Bill", color: THEME.rust });
                   }
+                }
+              });
+
+              // 1b. CREDIT CARD ANNUAL FEES: mark the fee month/day in amber
+              (state.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth).forEach((c: any) => {
+                if (Number(c.feeMonth) - 1 === month) {
+                  const fDay = Math.min(Number(c.feeDay) || 1, daysInMonth);
+                  dueDays[fDay] = (dueDays[fDay] || []).concat({ label: (c.issuer || "Card") + " Annual Fee", color: "#fbbf24" });
                 }
               });
 

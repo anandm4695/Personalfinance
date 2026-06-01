@@ -332,6 +332,11 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                 const totalAvailable = totalLimit - totalOutstandingCC;
                 const utilPct = totalLimit > 0 ? Math.round((totalOutstandingCC / totalLimit) * 100) : 0;
 
+                const totalAnnualFees = activeCards
+                  .filter((c: any) => Number(c.annualFee) > 0)
+                  .reduce((acc: number, c: any) => acc + Number(c.annualFee), 0);
+                const feeCardCount = activeCards.filter((c: any) => Number(c.annualFee) > 0).length;
+
                 const statCards = [
                   {
                     label: "Total Limit",
@@ -360,6 +365,15 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                     iconBg: "color-mix(in srgb, var(--t-sage) 12%, transparent)",
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
                   },
+                  ...(totalAnnualFees > 0 ? [{
+                    label: "Annual Fees / yr",
+                    sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
+                    value: fmtINRFull(totalAnnualFees),
+                    color: THEME.gold,
+                    borderColor: "var(--t-gold)",
+                    iconBg: "color-mix(in srgb, var(--t-gold) 12%, transparent)",
+                    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+                  }] : []),
                 ];
 
                 return (

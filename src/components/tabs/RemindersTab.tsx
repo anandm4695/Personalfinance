@@ -210,6 +210,30 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       });
     });
 
+    // ── 1b. CREDIT CARD ANNUAL FEES ──
+    (state.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed" && Number(c.annualFee) > 0 && c.feeMonth).forEach((c: any) => {
+      const month = Number(c.feeMonth) - 1;
+      const day = Number(c.feeDay) || 1;
+      const now = new Date();
+      let candidate = new Date(now.getFullYear(), month, day);
+      const todayStr = today();
+      if (candidate.getTime() < new Date(todayStr + "T00:00:00").getTime()) {
+        candidate = new Date(now.getFullYear() + 1, month, day);
+      }
+      const yyyy = candidate.getFullYear();
+      const mm = String(candidate.getMonth() + 1).padStart(2, "0");
+      const dd = String(candidate.getDate()).padStart(2, "0");
+      list.push({
+        id: "ccfee-" + c.id,
+        title: (c.issuer || "Card") + " — Annual Fee",
+        subtitle: `Yearly charge · ${fmtINRFull(c.annualFee)}`,
+        date: `${yyyy}-${mm}-${dd}`,
+        type: "Credit Card",
+        amount: Number(c.annualFee),
+        isOutflow: true,
+      });
+    });
+
     // ── 2. SUBSCRIPTIONS ──
     (state.subscriptions || []).filter((s: any) => !s.paused).forEach((s: any) => {
       if (s.renewalDate) list.push({
