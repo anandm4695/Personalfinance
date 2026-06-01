@@ -3602,10 +3602,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div className="animate-fade-in-up">
           {/* Month navigation bar */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}` }}>
-            <button
-              onClick={() => navToMonth(-1)}
-              style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${THEME.line}`, background: "transparent", cursor: "pointer", color: THEME.ink, display: "flex", alignItems: "center", justifyContent: "center" }}
-            ><ChevronLeft size={16} /></button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => navToMonth(-1)}
+                style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${THEME.line}`, background: "transparent", cursor: "pointer", color: THEME.ink, display: "flex", alignItems: "center", justifyContent: "center" }}
+              ><ChevronLeft size={16} /></button>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  setSpendingViewMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+                  setSelectedExpenseCategory(null);
+                  setActiveExpenseIndex(null);
+                }}
+                disabled={isCurrentMonth}
+                style={{ fontSize: 11, fontWeight: 700, height: 32, padding: "0 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "transparent", cursor: isCurrentMonth ? "default" : "pointer", color: isCurrentMonth ? THEME.muted : THEME.ink, opacity: isCurrentMonth ? 0.4 : 1 }}
+              >Today</button>
+            </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.01em" }}>{spendMonthLabel}</div>
               {spendingData.total > 0 && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Total spent: {fmtINRFull(spendingData.total)}</div>}
