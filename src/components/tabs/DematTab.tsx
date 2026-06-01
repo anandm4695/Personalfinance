@@ -123,10 +123,10 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
 
   const markFailed = (url: string) => setFailedUrls(prev => new Set([...prev, url]));
 
-  // Build candidate list: Clearbit (from API) → Google Favicon (from API) → EODHD CDN (client direct)
-  // EODHD is always added so it works both as an immediate placeholder before the API responds
-  // AND as a final fallback after API sources fail — the Set tracks failures per-URL, not per-tier.
-  const candidates: string[] = [logoUrl, faviconUrl, eohdUrl !== logoUrl ? eohdUrl : null]
+  // Clearbit (from API) → EODHD CDN (client direct) → initials.
+  // Google Favicon is intentionally excluded: it always returns an image even for unknown domains,
+  // so onError never fires and the chain gets stuck on a generic placeholder instead of falling through.
+  const candidates: string[] = [logoUrl, eohdUrl !== logoUrl ? eohdUrl : null]
     .filter(Boolean) as string[];
   const activeSrc = candidates.find(u => !failedUrls.has(u));
 

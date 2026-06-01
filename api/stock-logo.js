@@ -299,7 +299,7 @@ const STOCK_DOMAINS = {
   RVNL:          "rvnl.org",
   IRCON:         "ircon.org",
   RITES:         "rites.com",
-  IRFC:          "irfc.nic.in",
+  // IRFC intentionally omitted — irfc.nic.in is government-hosted and not indexed by Clearbit; EODHD CDN handles it client-side
   RAILVIKAS:     "rvnl.org",
   NCC:           "ncclimited.com",
   KNRCON:        "knrconstructions.com",
