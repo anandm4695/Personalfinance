@@ -296,6 +296,39 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
+type FifoAlloc = {
+  lot: any;
+  consume: number;
+  buyPrice: number;
+  pnl: number;
+  isLTCG: boolean;
+  fullyConsumed: boolean;
+};
+
+function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number): FifoAlloc[] {
+  const sorted = [...lots].sort((a: any, b: any) => {
+    if (!a.buyDate && !b.buyDate) return 0;
+    if (!a.buyDate) return 1;
+    if (!b.buyDate) return -1;
+    return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
+  });
+  const result: FifoAlloc[] = [];
+  let remaining = sellQty;
+  const now = Date.now();
+  for (const lot of sorted) {
+    if (remaining <= 0) break;
+    const available = Number(lot.qty);
+    const consume = Math.min(available, remaining);
+    const buyPrice = Number(lot.avgPrice);
+    const isLTCG = lot.buyDate
+      ? (now - new Date(lot.buyDate).getTime()) > 365 * 86400 * 1000
+      : false;
+    result.push({ lot, consume, buyPrice, pnl: (sellPrice - buyPrice) * consume, isLTCG, fullyConsumed: consume >= available });
+    remaining -= consume;
+  }
+  return result;
+}
+
 export function DematTab({ state, addItem, removeItem, updateItem, missingTables = [], marketData, fetchLivePrices, fetchingPrices, marketDataTs }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
@@ -307,6 +340,7 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
   const [fetchingChart, setFetchingChart] = useState<string | null>(null);
   const [sellLot, setSellLot] = useState<any>(null);
+  const [fifoSellGroup, setFifoSellGroup] = useState<any>(null);
   const [splitBonusGroup, setSplitBonusGroup] = useState<any>(null);
   const [selectedDematId, setSelectedDematId] = useState<string | null>(null);
   const [sortBy, setSortBy] = React.useState<"value" | "pnl" | "name" | "change">(() => {
@@ -915,6 +949,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               {/* Nested bottom action buttons */}
                               <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap", borderTop: `1px solid ${THEME.line}`, paddingTop: 12 }}>
                                 <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px" }} onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}><Plus size={11} /> Add Lot</button>
+                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.rust, borderColor: `${THEME.rust}60` }} onClick={(e) => { e.stopPropagation(); setFifoSellGroup({ base, exchange, yfSym, lots }); }}><ArrowLeftRight size={11} /> Sell Shares</button>
                                 <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.gold }} onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}><Scissors size={11} /> Split / Bonus</button>
                               </div>
                             </div>
@@ -937,6 +972,35 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       {showStock && <StockModal demats={state.demat} defaults={stockDefaults} onClose={() => { setShowStock(false); setStockDefaults(null); }} onSave={(v: any) => { addItem("stocks", v); setShowStock(false); setStockDefaults(null); }} />}
       {editStockId && <StockModal demats={state.demat} initial={state.stocks.find((x: any) => x.id === editStockId)} onClose={() => setEditStockId(null)} onSave={(v: any) => { updateItem("stocks", editStockId, v); setEditStockId(null); }} />}
       {sellLot && <SellStockModal lot={sellLot} onClose={() => setSellLot(null)} onSave={(sellRecord: any, remainingQty: number) => { addItem("stockSells", sellRecord); if (remainingQty <= 0) removeItem("stocks", sellLot.id); else updateItem("stocks", sellLot.id, { qty: String(remainingQty) }); setSellLot(null); }} />}
+      {fifoSellGroup && (
+        <FifoSellModal
+          group={fifoSellGroup}
+          currentPrice={marketData[fifoSellGroup.yfSym]?.price ?? Number(fifoSellGroup.lots[0]?.currentPrice ?? 0)}
+          demats={state.demat}
+          onClose={() => setFifoSellGroup(null)}
+          onSave={(allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) => {
+            allocs.forEach((alloc, i) => {
+              addItem("stockSells", {
+                id: `ss-${Date.now()}-${i}`,
+                owner: alloc.lot.owner || "self",
+                symbol: fifoSellGroup.base,
+                exchange: fifoSellGroup.exchange,
+                qty: alloc.consume,
+                buyPrice: alloc.buyPrice,
+                buyDate: alloc.lot.buyDate || "",
+                sellPrice,
+                sellDate,
+                broker,
+                dematId: alloc.lot.dematId || "",
+                profit: Number(alloc.pnl.toFixed(2)),
+              });
+              if (alloc.fullyConsumed) removeItem("stocks", alloc.lot.id);
+              else updateItem("stocks", alloc.lot.id, { qty: String(Number(alloc.lot.qty) - alloc.consume) });
+            });
+            setFifoSellGroup(null);
+          }}
+        />
+      )}
       {splitBonusGroup && <SplitBonusModal group={splitBonusGroup} onClose={() => setSplitBonusGroup(null)} onApply={(updates: any[], actionLog: any) => { updates.forEach((u: any) => updateItem("stocks", u.id, { qty: u.qty, avgPrice: u.avgPrice })); addItem("corporateActions", actionLog); setSplitBonusGroup(null); }} />}
     </div>
   );
@@ -996,6 +1060,185 @@ function SellStockModal({ lot, onClose, onSave }: any) {
       <Field label="Broker">{lot.broker ? <input style={{ ...input, background: "rgba(128,128,128,0.08)", cursor: "default" }} value={f.broker} readOnly /> : <input style={input} value={f.broker} placeholder="e.g. Zerodha" onChange={(e) => setF({ ...f, broker: e.target.value })} />}</Field>
       {sellQtyNum > 0 && sellPriceNum > 0 && <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? "rgba(72,199,142,0.1)" : "rgba(255,99,99,0.1)", marginTop: 4 }}><span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span><b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>{profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>{remainingQty > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingQty} shares remain</span>}</div>}
       <ModalActions onSave={handleSave} onClose={onClose} />
+    </Modal>
+  );
+}
+
+function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
+  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
+  const sortedForDefault = [...group.lots].sort((a: any, b: any) => {
+    if (!a.buyDate) return 1;
+    if (!b.buyDate) return -1;
+    return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
+  });
+  const defaultBroker = (() => {
+    const d = demats.find((x: any) => x.id === sortedForDefault[0]?.dematId);
+    return d?.broker || "";
+  })();
+
+  const [f, setF] = useState({
+    sellQty: String(totalQty),
+    sellPrice: currentPrice ? String(Number(currentPrice).toFixed(2)) : "",
+    sellDate: today(),
+    broker: defaultBroker,
+  });
+
+  const sellQtyNum = Number(f.sellQty) || 0;
+  const sellPriceNum = Number(f.sellPrice) || 0;
+  const allocs: FifoAlloc[] = sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalQty
+    ? computeFifoAlloc(group.lots, sellQtyNum, sellPriceNum)
+    : [];
+
+  const totalProceeds = sellQtyNum * sellPriceNum;
+  const totalCost     = allocs.reduce((s, a) => s + a.consume * a.buyPrice, 0);
+  const totalPnl      = totalProceeds - totalCost;
+  const stcgPnl       = allocs.filter(a => !a.isLTCG).reduce((s, a) => s + a.pnl, 0);
+  const ltcgPnl       = allocs.filter(a =>  a.isLTCG).reduce((s, a) => s + a.pnl, 0);
+  const remainingAfter = totalQty - sellQtyNum;
+  const qtyOver = sellQtyNum > totalQty;
+  const isValid = sellQtyNum > 0 && sellPriceNum > 0 && !qtyOver && !!f.sellDate;
+
+  const fmt = (n: number) => Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const fmt2 = (n: number) => Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  return (
+    <Modal title={`Sell ${group.base} — FIFO`} onClose={onClose} maxWidth={720}>
+      {/* Info bar */}
+      <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(128,128,128,0.06)", marginBottom: 16, fontSize: 13, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <span><span style={{ color: THEME.muted }}>Available: </span><b>{totalQty} shares</b></span>
+        <span><span style={{ color: THEME.muted }}>Lots: </span><b>{group.lots.length}</b></span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.muted }}>Oldest lot consumed first (FIFO)</span>
+      </div>
+
+      {/* Inputs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <Field label="Qty to Sell">
+          <input
+            style={{ ...input, borderColor: qtyOver ? THEME.rust : undefined }}
+            type="number" min="1" max={totalQty}
+            value={f.sellQty}
+            onChange={e => setF({ ...f, sellQty: e.target.value })}
+          />
+        </Field>
+        <Field label="Sell Price (₹)">
+          <input style={input} type="number" step="0.01" value={f.sellPrice}
+            onChange={e => setF({ ...f, sellPrice: e.target.value })} />
+        </Field>
+        <Field label="Sell Date">
+          <input style={input} type="date" value={f.sellDate}
+            onChange={e => setF({ ...f, sellDate: e.target.value })} />
+        </Field>
+        <Field label="Broker">
+          <input style={input} value={f.broker} placeholder="e.g. Zerodha"
+            onChange={e => setF({ ...f, broker: e.target.value })} />
+        </Field>
+      </div>
+
+      {qtyOver && (
+        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginBottom: 10 }}>
+          Cannot sell more than {totalQty} shares available
+        </div>
+      )}
+
+      {/* FIFO Breakdown Table */}
+      {allocs.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+            FIFO Allocation
+          </div>
+          <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "hidden", marginBottom: 14 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "rgba(128,128,128,0.05)" }}>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9 }}>Buy Date</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Buy Price</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Available</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Selling</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Cost Basis</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>P&L</th>
+                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "center" }}>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allocs.map((a, i) => (
+                  <tr key={a.lot.id} style={{ borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined, background: i % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)" }}>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none" }}>
+                      {a.lot.buyDate
+                        ? new Date(a.lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
+                        : <span style={{ color: THEME.muted }}>—</span>}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "right" }}>
+                      ₹{Number(a.buyPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "right", color: THEME.muted }}>
+                      {Number(a.lot.qty)}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "right", fontWeight: 800 }}>
+                      {a.consume}
+                      {a.fullyConsumed
+                        ? <span style={{ display: "block", fontSize: 8, color: THEME.rust, fontWeight: 700, lineHeight: 1.2 }}>full lot</span>
+                        : <span style={{ display: "block", fontSize: 8, color: THEME.gold, fontWeight: 700, lineHeight: 1.2 }}>partial</span>}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "right", color: THEME.muted }}>
+                      ₹{fmt(a.consume * a.buyPrice)}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "right", fontWeight: 700, color: a.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                      {a.pnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(a.pnl))}
+                    </td>
+                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "center" }}>
+                      <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: a.isLTCG ? "rgba(5,150,105,0.12)" : "rgba(217,119,6,0.12)", color: a.isLTCG ? THEME.sage : THEME.gold }}>
+                        {a.isLTCG ? "LTCG" : "STCG"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Summary card */}
+          <div style={{ padding: "14px 16px", borderRadius: 10, background: totalPnl >= 0 ? "rgba(72,199,142,0.07)" : "rgba(220,38,38,0.07)", border: `1px solid ${totalPnl >= 0 ? THEME.sage : THEME.rust}35`, marginBottom: 4 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Total Proceeds</div>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis (FIFO)</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>₹{fmt2(totalCost)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Net P&L</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                  {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 16, paddingTop: 10, borderTop: `1px solid ${THEME.line}40`, flexWrap: "wrap" }}>
+              {stcgPnl !== 0 && (
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: "rgba(217,119,6,0.12)", color: THEME.gold, marginRight: 6 }}>STCG</span>
+                  <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>{stcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(stcgPnl))}</b>
+                </span>
+              )}
+              {ltcgPnl !== 0 && (
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: "rgba(5,150,105,0.12)", color: THEME.sage, marginRight: 6 }}>LTCG</span>
+                  <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>{ltcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(ltcgPnl))}</b>
+                </span>
+              )}
+              {remainingAfter > 0 && (
+                <span style={{ fontSize: 12, marginLeft: "auto" }}>
+                  <span style={{ color: THEME.muted }}>Remaining after sell: </span>
+                  <b>{remainingAfter} shares</b>
+                </span>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <ModalActions onSave={() => isValid && onSave(allocs, sellPriceNum, f.sellDate, f.broker)} onClose={onClose} saveLabel="Confirm Sell" disabled={!isValid || allocs.length === 0} />
     </Modal>
   );
 }
