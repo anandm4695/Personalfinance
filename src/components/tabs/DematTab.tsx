@@ -89,6 +89,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
   const [primaryErr, setPrimaryErr] = React.useState(false);
   const [faviconErr, setFaviconErr] = React.useState(false);
+  const [eohdErr, setEohdErr] = React.useState(false);
 
   React.useEffect(() => {
     if (yfSym in _logoCache) {
@@ -109,6 +110,8 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   }, [yfSym]);
 
   const base = yfSym.replace(/\.(NS|BO)$/i, "");
+  const isBSE = /\.BO$/i.test(yfSym);
+  const exch = isBSE ? "BSE" : "NSE";
   const hue = Array.from(base).reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   const br = Math.round(size * 0.28);
   const pad = Math.round(size * 0.1);
@@ -128,6 +131,20 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
     return (
       <div style={wrapStyle}>
         <img src={faviconUrl} alt={base} onError={() => setFaviconErr(true)} style={imgStyle} />
+      </div>
+    );
+  }
+
+  // Direct EODHD CDN fallback — catches stocks missing from the API's domain map
+  if (!eohdErr) {
+    return (
+      <div style={wrapStyle}>
+        <img
+          src={`https://eodhd.com/img/logos/${exch}/${base}.png`}
+          alt={base}
+          onError={() => setEohdErr(true)}
+          style={imgStyle}
+        />
       </div>
     );
   }
