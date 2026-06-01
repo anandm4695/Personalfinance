@@ -50,6 +50,75 @@ import { Modal } from "../ui/Modal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StockLogo } from "./DematTab";
 
+// ─── BADGE CATALOG ───────────────────────────────────────────────────────────
+// Each category is a sequential tier chain. Badges unlock when the previous tier
+// in the same category is earned. Standalone badges (tier 1 only) are always "active".
+const BADGE_CATALOG = [
+  // Savings Streak
+  { id: "s1",   cat: "Savings Streak",  tier: 1, icon: "✅", label: "First Win",        desc: "Save more than you spend for 1 month" },
+  { id: "s3",   cat: "Savings Streak",  tier: 2, icon: "⚡", label: "On a Roll",        desc: "3-month savings streak" },
+  { id: "s6",   cat: "Savings Streak",  tier: 3, icon: "🔥", label: "Fire Saver",       desc: "6 consecutive months of net saving" },
+  { id: "s12",  cat: "Savings Streak",  tier: 4, icon: "🏆", label: "Savings Champion", desc: "12-month savings streak" },
+  { id: "s24",  cat: "Savings Streak",  tier: 5, icon: "👑", label: "Legendary Saver",  desc: "24 months of consistent saving" },
+  // Wealth Builder
+  { id: "w1",   cat: "Wealth Builder",  tier: 1, icon: "🌱", label: "₹1L Club",         desc: "Net worth crossed ₹1 Lakh" },
+  { id: "w5",   cat: "Wealth Builder",  tier: 2, icon: "🌿", label: "₹5L Club",         desc: "Net worth crossed ₹5 Lakh" },
+  { id: "w10",  cat: "Wealth Builder",  tier: 3, icon: "💰", label: "₹10L Club",        desc: "Net worth crossed ₹10 Lakh" },
+  { id: "w25",  cat: "Wealth Builder",  tier: 4, icon: "💎", label: "₹25L Club",        desc: "Net worth crossed ₹25 Lakh" },
+  { id: "w50",  cat: "Wealth Builder",  tier: 5, icon: "🏅", label: "₹50L Club",        desc: "Net worth crossed ₹50 Lakh" },
+  { id: "w1c",  cat: "Wealth Builder",  tier: 6, icon: "🥇", label: "Crorepati",        desc: "Net worth crossed ₹1 Crore" },
+  // Smart Saver
+  { id: "sr10", cat: "Smart Saver",     tier: 1, icon: "🐣", label: "Saver",            desc: "Savings rate above 10%" },
+  { id: "sr20", cat: "Smart Saver",     tier: 2, icon: "🐥", label: "Smart Saver",      desc: "Savings rate above 20%" },
+  { id: "sr30", cat: "Smart Saver",     tier: 3, icon: "🦅", label: "Power Saver",      desc: "Savings rate above 30%" },
+  { id: "sr50", cat: "Smart Saver",     tier: 4, icon: "🚀", label: "Super Saver",      desc: "Saving 50%+ of monthly income" },
+  // Safety Net
+  { id: "ef1",  cat: "Safety Net",      tier: 1, icon: "🛡️", label: "Buffer Started",   desc: "1 month of expenses in cash reserves" },
+  { id: "ef3",  cat: "Safety Net",      tier: 2, icon: "🔒", label: "Safety Net",       desc: "3-month emergency fund" },
+  { id: "ef6",  cat: "Safety Net",      tier: 3, icon: "🏰", label: "Fortress",         desc: "6-month emergency fund — fully covered" },
+  // Investor
+  { id: "iv1",  cat: "Investor",        tier: 1, icon: "🌱", label: "First Investment", desc: "Invested in at least one instrument" },
+  { id: "iv3",  cat: "Investor",        tier: 2, icon: "🌿", label: "Diversified",      desc: "Spread across 3+ asset types" },
+  { id: "iv5",  cat: "Investor",        tier: 3, icon: "🌳", label: "Master Investor",  desc: "Invested in 5+ different asset types" },
+  // SIP Habit (standalone mini-chain)
+  { id: "sip1", cat: "SIP Habit",       tier: 1, icon: "⚙️", label: "SIP Started",      desc: "Running at least 1 active SIP" },
+  { id: "sip5", cat: "SIP Habit",       tier: 2, icon: "🔄", label: "SIP Warrior",      desc: "Total SIP ≥ ₹5,000/month" },
+  // Debt Smart
+  { id: "d40",  cat: "Debt Smart",      tier: 1, icon: "📉", label: "Light Borrower",   desc: "Total EMIs below 40% of income (FOIR)" },
+  { id: "d20",  cat: "Debt Smart",      tier: 2, icon: "💡", label: "Lean Borrower",    desc: "Total EMIs below 20% of income" },
+  { id: "df",   cat: "Debt Smart",      tier: 3, icon: "🕊️", label: "Debt Free",        desc: "Zero loans and liabilities" },
+  // Credit Smart
+  { id: "cc0",  cat: "Credit Smart",    tier: 1, icon: "💳", label: "Zero Balance",     desc: "No outstanding on any credit card" },
+  { id: "cc30", cat: "Credit Smart",    tier: 2, icon: "🎯", label: "Credit Ace",       desc: "Credit utilization below 30%" },
+  // Protected
+  { id: "p1",   cat: "Protected",       tier: 1, icon: "🛡️", label: "Insured",          desc: "Has at least one term plan or LIC" },
+  { id: "p2",   cat: "Protected",       tier: 2, icon: "🏛️", label: "Well Protected",   desc: "Insurance cover ≥ 10× annual income" },
+  // Goal Setter
+  { id: "g1",   cat: "Goal Setter",     tier: 1, icon: "🎯", label: "Goal Setter",      desc: "Created your first financial goal" },
+  { id: "g2",   cat: "Goal Setter",     tier: 2, icon: "🏃", label: "Goal Chaser",      desc: "One goal is 50%+ funded" },
+  { id: "g3",   cat: "Goal Setter",     tier: 3, icon: "🏁", label: "Goal Crusher",     desc: "Fully achieved at least one goal" },
+  // Finance Nerd
+  { id: "fn1",  cat: "Finance Nerd",    tier: 1, icon: "📊", label: "Tracker",          desc: "1+ months of transactions logged" },
+  { id: "fn3",  cat: "Finance Nerd",    tier: 2, icon: "📈", label: "Consistent",       desc: "3+ months of financial data" },
+  { id: "fn6",  cat: "Finance Nerd",    tier: 3, icon: "🔬", label: "Data Driven",      desc: "6+ months of financial history" },
+  { id: "fn12", cat: "Finance Nerd",    tier: 4, icon: "🎓", label: "Finance Nerd",     desc: "12+ months of full tracking" },
+];
+
+// Tip shown when a milestone category is fully earned
+const CATEGORY_UNLOCK_TIP: Record<string, string> = {
+  "Savings Streak":  "Unlock: Check FIRE calculator to see how your streak accelerates retirement",
+  "Wealth Builder":  "Unlock: Use Net Worth History to track your wealth velocity over time",
+  "Smart Saver":     "Unlock: Your savings rate qualifies you for aggressive investment allocation",
+  "Safety Net":      "Unlock: With 6mo buffer you can take calculated investment risks",
+  "Investor":        "Unlock: Explore Allocation tab to rebalance your diversified portfolio",
+  "SIP Habit":       "Unlock: SIP Tracker tab shows compounding projections on your SIPs",
+  "Debt Smart":      "Unlock: Low FOIR means you can qualify for better loan rates",
+  "Credit Smart":    "Unlock: Low utilization improves your credit score for future loans",
+  "Protected":       "Unlock: Review Insurance tab to fine-tune cover vs premium tradeoff",
+  "Goal Setter":     "Unlock: Planning tab shows projections toward your goals",
+  "Finance Nerd":    "Unlock: Trends tab has 12-month expense pattern analysis enabled",
+};
+
 interface AnalyticsTabProps {
   metrics: any;
   state: any;
@@ -722,6 +791,116 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const progress = fireCorpus > 0 ? Math.min((Math.max(metrics.netWorth, 0) / fireCorpus) * 100, 100) : 0;
     return { fireCorpus, progress, annualExpense };
   }, [metrics.monthExpense, metrics.netWorth]);
+
+  // ── Habits & Rewards: badge evaluation ───────────────────────────────────
+  const habitsBadges = useMemo(() => {
+    const earned = new Set<string>();
+    const prog: Record<string, { current: number; target: number; label: string }> = {};
+
+    // Savings Streak
+    const streak = dashboardData.streak;
+    if (streak >= 1)  earned.add("s1");
+    if (streak >= 3)  earned.add("s3");
+    if (streak >= 6)  earned.add("s6");
+    if (streak >= 12) earned.add("s12");
+    if (streak >= 24) earned.add("s24");
+    const nextS = [["s1",1],["s3",3],["s6",6],["s12",12],["s24",24]].find(([id]) => !earned.has(id)) as [string,number]|undefined;
+    if (nextS) prog[nextS[0]] = { current: streak, target: nextS[1], label: `${streak} of ${nextS[1]} months` };
+
+    // Wealth Builder
+    const nw = metrics.netWorth;
+    const nwMiles = [["w1",100000],["w5",500000],["w10",1000000],["w25",2500000],["w50",5000000],["w1c",10000000]] as [string,number][];
+    nwMiles.forEach(([id, thr]) => { if (nw >= thr) earned.add(id); });
+    const nextNW = nwMiles.find(([id]) => !earned.has(id));
+    if (nextNW) {
+      const idx = nwMiles.findIndex(([id]) => id === nextNW[0]);
+      const prevThr = idx > 0 ? nwMiles[idx - 1][1] : 0;
+      prog[nextNW[0]] = { current: Math.max(0, nw - prevThr), target: nextNW[1] - prevThr, label: `${fmtINR(Math.max(0, nw))} of ${fmtINR(nextNW[1])}` };
+    }
+
+    // Smart Saver
+    const sr = metrics.savingsRate;
+    const srMiles = [["sr10",10],["sr20",20],["sr30",30],["sr50",50]] as [string,number][];
+    srMiles.forEach(([id, thr]) => { if (sr >= thr) earned.add(id); });
+    const nextSR = srMiles.find(([id]) => !earned.has(id));
+    if (nextSR) prog[nextSR[0]] = { current: Math.max(0, sr), target: nextSR[1], label: `${Math.max(0,sr).toFixed(0)}% of ${nextSR[1]}%` };
+
+    // Safety Net
+    const efM = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
+    const efMiles = [["ef1",1],["ef3",3],["ef6",6]] as [string,number][];
+    efMiles.forEach(([id, thr]) => { if (efM >= thr) earned.add(id); });
+    const nextEF = efMiles.find(([id]) => !earned.has(id));
+    if (nextEF) prog[nextEF[0]] = { current: efM, target: nextEF[1], label: `${efM.toFixed(1)} of ${nextEF[1]} months` };
+
+    // Investor — asset type count
+    const assetTypes = [
+      (state.mutualFunds?.length || 0) > 0, (state.stocks?.length || 0) > 0,
+      (state.fixedDeposits?.length || 0) > 0, (state.ppf?.length || 0) > 0,
+      (state.nps?.length || 0) > 0, (state.epf?.length || 0) > 0, (state.bonds?.length || 0) > 0,
+    ].filter(Boolean).length;
+    if (assetTypes >= 1) earned.add("iv1");
+    if (assetTypes >= 3) earned.add("iv3");
+    if (assetTypes >= 5) earned.add("iv5");
+    if (!earned.has("iv3")) prog["iv3"] = { current: assetTypes, target: 3, label: `${assetTypes} of 3 asset types` };
+    else if (!earned.has("iv5")) prog["iv5"] = { current: assetTypes, target: 5, label: `${assetTypes} of 5 asset types` };
+
+    // SIP Habit
+    const totalSIPAmt = (state.sips || []).reduce((s: number, sip: any) => s + Number(sip.amount || 0), 0);
+    if ((state.sips?.length || 0) > 0) earned.add("sip1");
+    if (totalSIPAmt >= 5000) earned.add("sip5");
+    if (!earned.has("sip1")) prog["sip1"] = { current: 0, target: 1, label: "Start 1 SIP to unlock" };
+    else if (!earned.has("sip5")) prog["sip5"] = { current: totalSIPAmt, target: 5000, label: `${fmtINR(totalSIPAmt)} of ${fmtINR(5000)}/mo` };
+
+    // Debt Smart
+    const activeLoans = (state.loansTaken || []).filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0);
+    const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    const foirPct = metrics.monthIncome > 0 ? (totalEMI / metrics.monthIncome) * 100 : 0;
+    if (metrics.monthIncome > 0 && foirPct < 40) earned.add("d40");
+    if (metrics.monthIncome > 0 && foirPct < 20) earned.add("d20");
+    if (metrics.totalLiabilities === 0 && metrics.netWorth >= 0) earned.add("df");
+
+    // Credit Smart
+    const activeCC = (state.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed");
+    const ccOut = activeCC.reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+    const ccLim = activeCC.reduce((s: number, c: any) => s + Number(c.limit || 0), 0);
+    const ccUtil = ccLim > 0 ? (ccOut / ccLim) * 100 : 0;
+    if (activeCC.length > 0 && ccOut === 0) earned.add("cc0");
+    if (ccLim > 0 && ccUtil < 30) earned.add("cc30");
+
+    // Protected
+    const hasIns = (state.termPlans?.length || 0) + (state.lic?.length || 0) > 0;
+    if (hasIns) earned.add("p1");
+    const totalCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
+    if (metrics.monthIncome > 0 && totalCover >= metrics.monthIncome * 12 * 10) earned.add("p2");
+
+    // Goal Setter
+    if ((state.goals?.length || 0) > 0) earned.add("g1");
+    if ((state.goals || []).some((g: any) => Number(g.targetAmount||0) > 0 && Number(g.currentAmount||0) / Number(g.targetAmount||0) >= 0.5)) earned.add("g2");
+    if ((state.goals || []).some((g: any) => Number(g.targetAmount||0) > 0 && Number(g.currentAmount||0) >= Number(g.targetAmount||0))) earned.add("g3");
+
+    // Finance Nerd
+    const trackedMonths = new Set((state.transactions || []).map((t: any) => (t.date || "").slice(0, 7))).size;
+    const fnMiles = [["fn1",1],["fn3",3],["fn6",6],["fn12",12]] as [string,number][];
+    fnMiles.forEach(([id, thr]) => { if (trackedMonths >= thr) earned.add(id); });
+    const nextFN = fnMiles.find(([id]) => !earned.has(id));
+    if (nextFN) prog[nextFN[0]] = { current: trackedMonths, target: nextFN[1], label: `${trackedMonths} of ${nextFN[1]} months logged` };
+
+    // Build category map for rendering
+    const cats: Record<string, { badges: any[]; earnedCount: number; total: number }> = {};
+    for (const b of BADGE_CATALOG) {
+      if (!cats[b.cat]) cats[b.cat] = { badges: [], earnedCount: 0, total: 0 };
+      const isEarned = earned.has(b.id);
+      const catBadges = BADGE_CATALOG.filter(x => x.cat === b.cat);
+      const prevBadge = catBadges.find(x => x.tier === b.tier - 1);
+      const prevEarned = !prevBadge || earned.has(prevBadge.id);
+      const status: "earned" | "active" | "locked" = isEarned ? "earned" : prevEarned ? "active" : "locked";
+      cats[b.cat].badges.push({ ...b, status, progress: prog[b.id] });
+      cats[b.cat].total++;
+      if (isEarned) cats[b.cat].earnedCount++;
+    }
+
+    return { earned, cats, totalEarned: earned.size, totalBadges: BADGE_CATALOG.length };
+  }, [metrics, dashboardData.streak, state]);
 
   // ── Financial Runway & 10-Year Projection Engine Calculations ──
   const projectionData = useMemo(() => {
@@ -3976,75 +4155,152 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: HABITS & REWARDS ────────────────── */}
       {sub === "habits" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Streaks & Badges */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${dashboardData.streak >= 3 ? THEME.sage : THEME.line}` }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: dashboardData.streak >= 3 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {dashboardData.streak >= 3 ? "🔥" : "⏳"}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Savings Champion</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{dashboardData.streak} Month Streak</div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Save more than you spend for 3+ months.</div>
-              </div>
-            </Card>
 
-            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${metrics.totalLiabilities === 0 ? THEME.sage : THEME.line}` }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: metrics.totalLiabilities === 0 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {metrics.totalLiabilities === 0 ? "🕊️" : "⛓️"}
-              </div>
+          {/* ── Master progress bar ── */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Debt Free</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{metrics.totalLiabilities === 0 ? "Achieved" : "In Progress"}</div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Pay off all active loans.</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Financial Journey</div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{habitsBadges.totalEarned} of {habitsBadges.totalBadges} badges earned across {Object.keys(habitsBadges.cats).length} categories</div>
               </div>
-            </Card>
-
-            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${dashboardData.subScores[3].score >= 20 ? THEME.sage : THEME.line}` }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: dashboardData.subScores[3].score >= 20 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {dashboardData.subScores[3].score >= 20 ? "🌟" : "🌱"}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Diversification Master</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>{dashboardData.subScores[3].score >= 20 ? "Achieved" : "In Progress"}</div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Invest in MFs, Stocks, FDs, and PPF.</div>
-              </div>
-            </Card>
-            
-            <Card style={{ padding: 24, display: "flex", alignItems: "center", gap: 16, border: `1.5px solid ${metrics.netWorth >= 1000000 ? THEME.sage : THEME.line}` }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: metrics.netWorth >= 1000000 ? "rgba(52,211,153,0.1)" : "var(--t-paper)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-                {metrics.netWorth >= 10000000 ? "👑" : metrics.netWorth >= 1000000 ? "💎" : "🎯"}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Net Worth Milestone</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
-                  {metrics.netWorth >= 10000000 ? "₹1 Cr+ Club" : metrics.netWorth >= 1000000 ? "₹10L+ Club" : "Building Wealth"}
+              <div style={{ fontSize: 28, fontWeight: 900, color: THEME.accent }}>{Math.round((habitsBadges.totalEarned / habitsBadges.totalBadges) * 100)}%</div>
+            </div>
+            <div style={{ height: 8, background: "var(--t-line)", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${(habitsBadges.totalEarned / habitsBadges.totalBadges) * 100}%`, background: `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`, borderRadius: 99, transition: "width 0.6s ease" }} />
+            </div>
+            <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
+              {Object.entries(habitsBadges.cats).map(([cat, data]: [string, any]) => (
+                <div key={cat} style={{ fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: data.earnedCount === data.total ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.line, display: "inline-block", flexShrink: 0 }} />
+                  {cat} {data.earnedCount}/{data.total}
                 </div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>Reach your next big milestone.</div>
-              </div>
-            </Card>
-          </div>
+              ))}
+            </div>
+          </Card>
 
-          {/* Peer Benchmarking */}
+          {/* ── Badge categories ── */}
+          {Object.entries(habitsBadges.cats).map(([catName, catData]: [string, any]) => {
+            const allEarned = catData.earnedCount === catData.total;
+            const unlock = CATEGORY_UNLOCK_TIP[catName];
+            return (
+              <div key={catName}>
+                {/* Category header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{catName}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: allEarned ? THEME.sage : THEME.muted, background: allEarned ? "rgba(52,211,153,0.1)" : "var(--t-line)", padding: "2px 8px", borderRadius: 99 }}>
+                      {catData.earnedCount}/{catData.total}
+                    </div>
+                  </div>
+                  {allEarned && <span style={{ fontSize: 11, color: THEME.sage, fontWeight: 700 }}>✓ Complete</span>}
+                </div>
+
+                {/* Badge cards row */}
+                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                  {catData.badges.map((b: any) => {
+                    const isEarned = b.status === "earned";
+                    const isActive = b.status === "active";
+                    const pct = b.progress ? Math.min(100, Math.round((b.progress.current / b.progress.target) * 100)) : 0;
+                    return (
+                      <div
+                        key={b.id}
+                        style={{
+                          minWidth: 148,
+                          maxWidth: 148,
+                          padding: "16px 14px",
+                          borderRadius: 16,
+                          background: isEarned
+                            ? "linear-gradient(135deg, color-mix(in srgb, var(--t-sage) 14%, var(--t-paper)), var(--t-paper))"
+                            : isActive
+                            ? "var(--t-paper)"
+                            : "var(--surface-0)",
+                          border: isEarned
+                            ? `1.5px solid ${THEME.sage}`
+                            : isActive
+                            ? `1.5px solid ${THEME.accent}66`
+                            : `1px solid ${THEME.line}`,
+                          opacity: b.status === "locked" ? 0.5 : 1,
+                          flexShrink: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                          position: "relative",
+                          transition: "box-shadow 0.2s ease",
+                          boxShadow: isEarned ? `0 0 0 1px ${THEME.sage}22, 0 4px 16px ${THEME.sage}18` : "none",
+                        }}
+                      >
+                        {/* Tier dots */}
+                        <div style={{ display: "flex", gap: 3, position: "absolute", top: 10, right: 10 }}>
+                          {catData.badges.map((_: any, ti: number) => (
+                            <div key={ti} style={{ width: 4, height: 4, borderRadius: "50%", background: ti < catData.earnedCount ? THEME.sage : THEME.line }} />
+                          ))}
+                        </div>
+
+                        {/* Icon */}
+                        <div style={{ fontSize: 28, lineHeight: 1, filter: b.status === "locked" ? "grayscale(1)" : "none" }}>{b.icon}</div>
+
+                        {/* Label */}
+                        <div style={{ fontSize: 12, fontWeight: 800, color: isEarned ? THEME.sage : isActive ? THEME.ink : THEME.muted, lineHeight: 1.2 }}>{b.label}</div>
+
+                        {/* Desc */}
+                        <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.4, flex: 1 }}>{b.desc}</div>
+
+                        {/* Status / Progress */}
+                        {isEarned && (
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.sage, background: "rgba(52,211,153,0.1)", padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4 }}>
+                            ✓ Earned
+                          </div>
+                        )}
+                        {isActive && b.progress && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{b.progress.label}</span>
+                              <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 800 }}>{pct}%</span>
+                            </div>
+                            <div style={{ height: 4, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${pct}%`, background: THEME.accent, borderRadius: 99, transition: "width 0.4s ease" }} />
+                            </div>
+                          </div>
+                        )}
+                        {isActive && !b.progress && (
+                          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.accent, background: `${THEME.accent}14`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start" }}>
+                            Next up →
+                          </div>
+                        )}
+                        {b.status === "locked" && (
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>🔒 Locked</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Category complete unlock tip */}
+                {allEarned && unlock && (
+                  <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(52,211,153,0.07)", border: `1px solid ${THEME.sage}33`, borderRadius: 10, fontSize: 11, color: THEME.sage, fontWeight: 600 }}>
+                    🎉 {unlock}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* ── Peer Benchmarking ── */}
           <Card style={{ padding: 24 }}>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>Peer Benchmarking</div>
-              <div style={{ fontSize: 13, color: THEME.muted }}>Compare your financial habits with community averages.</div>
+              <div style={{ fontSize: 13, color: THEME.muted }}>How your key metrics compare with Indian personal finance averages.</div>
             </div>
-            
-            <div style={{ height: 300 }}>
+            <div style={{ height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
-                  { name: "Savings Rate", You: metrics.savingsRate, Average: 15, Top10: 40 },
-                  { name: "Debt-to-Asset", You: metrics.debtToAssetRatio, Average: 35, Top10: 10 }
+                  { name: "Savings Rate", You: Math.max(0, metrics.savingsRate), Average: 15, Top10: 40 },
+                  { name: "Debt-to-Asset", You: metrics.debtToAssetRatio, Average: 35, Top10: 10 },
                 ]} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.line} />
                   <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
                   <YAxis tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => v + "%"} />
-                  <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.02)" }}
-                    contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)" }}
-                  />
+                  <Tooltip cursor={{ fill: "rgba(255,255,255,0.02)" }} contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)" }} />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20 }} iconType="circle" />
                   <Bar dataKey="You" fill={THEME.accent} radius={[4, 4, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="Average" fill={THEME.muted} radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -4053,6 +4309,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </ResponsiveContainer>
             </div>
           </Card>
+
         </div>
       )}
 
