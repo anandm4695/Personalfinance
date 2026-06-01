@@ -732,9 +732,14 @@ function FinanceDashboard() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Fire browser push notifications for upcoming reminders (runs once per session)
+  // Fire browser push notifications for upcoming reminders (runs once per tab session)
   useEffect(() => {
     if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    // Guard: sessionStorage persists across page refreshes within the same tab,
+    // so notifications fire at most once per tab open — not on every refresh.
+    const sessionKey = "finance-notif-fired-" + today();
+    if (sessionStorage.getItem(sessionKey)) return;
+    sessionStorage.setItem(sessionKey, "1");
 
     const getNotificationIcon = (type: string) => {
       const icons: Record<string, string> = {
