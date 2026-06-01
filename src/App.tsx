@@ -133,7 +133,7 @@ const NUMERIC_COLS = new Set([
   "expected_maturity_amount","policy_term","ytm_rate","face_value_per_unit","number_of_units",
   "clean_price_per_unit","accrued_interest_per_unit","total_principal_amount","total_accrued_interest",
   "total_consideration","brokerage","stamp_duty","total_investment_amount","market_cap","due_day",
-  "shared_group_limit"
+  "shared_group_limit","fee_month","fee_day"
 ]);
 
 // ================== MAIN APP ==================
