@@ -258,6 +258,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   // Expense Breakup states
   const [activeExpenseIndex, setActiveExpenseIndex] = useState<number | null>(null);
   const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
+  const [spendingViewMonth, setSpendingViewMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   // Interactive dashboard states
   const [trendPeriod, setTrendPeriod] = useState<"3M" | "6M" | "12M" | "All">("6M");
@@ -361,14 +365,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   };
 
   const getExpenseAssets = (catName: string) => {
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     return (state.transactions || [])
       .filter(
         (t: any) =>
           t.type === "debit" &&
           t.date &&
-          t.date.startsWith(ym) &&
+          t.date.startsWith(spendingViewMonth) &&
           (t.category || "Uncategorized") === catName
       )
       .map((t: any) => ({
@@ -784,6 +786,49 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       });
     return catMap;
   }, [state.transactions]);
+
+  // Spending breakdown for the user-selected month (supports navigation)
+  const spendingData = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    (state.transactions || [])
+      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(spendingViewMonth))
+      .forEach((t: any) => {
+        const cat = t.category || "Uncategorized";
+        catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
+      });
+    const rentFromProps = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      return sum + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(spendingViewMonth))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+    }, 0);
+    if (rentFromProps > 0 && !catMap["Rent"]) catMap["Rent"] = rentFromProps;
+    const breakdown = Object.keys(catMap)
+      .map((k) => ({ name: k, value: catMap[k] }))
+      .sort((a, b) => b.value - a.value);
+    const total = breakdown.reduce((s, x) => s + x.value, 0);
+    return { breakdown, total };
+  }, [spendingViewMonth, state.transactions, state.rentedProperties]);
+
+  // Previous-month expenses relative to spendingViewMonth (for MoM comparison)
+  const spendingPrevData = useMemo(() => {
+    const [y, m] = spendingViewMonth.split("-").map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+    const catMap: Record<string, number> = {};
+    (state.transactions || [])
+      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(prevYm))
+      .forEach((t: any) => {
+        const cat = t.category || "Uncategorized";
+        catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
+      });
+    const rentFromProps = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      return sum + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(prevYm))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+    }, 0);
+    if (rentFromProps > 0 && !catMap["Rent"]) catMap["Rent"] = rentFromProps;
+    return catMap;
+  }, [spendingViewMonth, state.transactions, state.rentedProperties]);
 
   const fireData = useMemo(() => {
     const annualExpense = metrics.monthExpense * 12;
@@ -3539,13 +3584,44 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       )}
 
       {/* ────────────────── SUB-TAB: SPENDING ────────────────── */}
-      {sub === "spending" && (
+      {sub === "spending" && (() => {
+        const now = new Date();
+        const currYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const isCurrentMonth = spendingViewMonth >= currYm;
+        const [svy, svm] = spendingViewMonth.split("-").map(Number);
+        const spendMonthLabel = new Date(svy, svm - 1, 1).toLocaleString("en-IN", { month: "long", year: "numeric" });
+        const prevMonthDate = new Date(svy, svm - 2, 1);
+        const prevMonthLabel = prevMonthDate.toLocaleString("en-IN", { month: "long" });
+        const navToMonth = (offset: number) => {
+          const next = new Date(svy, svm - 1 + offset, 1);
+          setSpendingViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+          setSelectedExpenseCategory(null);
+          setActiveExpenseIndex(null);
+        };
+        return (
         <div className="animate-fade-in-up">
+          {/* Month navigation bar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}` }}>
+            <button
+              onClick={() => navToMonth(-1)}
+              style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${THEME.line}`, background: "transparent", cursor: "pointer", color: THEME.ink, display: "flex", alignItems: "center", justifyContent: "center" }}
+            ><ChevronLeft size={16} /></button>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.01em" }}>{spendMonthLabel}</div>
+              {spendingData.total > 0 && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>Total spent: {fmtINRFull(spendingData.total)}</div>}
+            </div>
+            <button
+              onClick={() => navToMonth(1)}
+              disabled={isCurrentMonth}
+              style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${THEME.line}`, background: "transparent", cursor: isCurrentMonth ? "default" : "pointer", color: isCurrentMonth ? THEME.muted : THEME.ink, display: "flex", alignItems: "center", justifyContent: "center", opacity: isCurrentMonth ? 0.35 : 1 }}
+            ><ChevronRight size={16} /></button>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
             <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div>
-                  <div className="section-label" style={{ marginBottom: 2 }}>Expense Breakup (This Month)</div>
+                  <div className="section-label" style={{ marginBottom: 2 }}>Expense Breakup</div>
                   <div style={{ fontSize: 12, color: THEME.muted }}>
                     {selectedExpenseCategory ? `Drill down: ${selectedExpenseCategory}` : "Interactive monthly spending map"}
                   </div>
@@ -3556,9 +3632,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </Button>
                 )}
               </div>
-              {metrics.expenseBreakdown?.length === 0 ? (
+              {spendingData.breakdown?.length === 0 ? (
                 <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
-                  No expenses recorded this month. Add debit transactions to see your spending breakup.
+                  No expenses recorded for {spendMonthLabel}. Add debit transactions to see your spending breakup.
                 </div>
               ) : (
                 <div className="allocation-interactive-container" style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 24, minHeight: 300 }}>
@@ -3567,7 +3643,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <ResponsiveContainer width="100%" height={260}>
                       <PieChart>
                         <Pie
-                          data={metrics.expenseBreakdown}
+                          data={spendingData.breakdown}
                           dataKey="value"
                           nameKey="name"
                           cx="50%"
@@ -3578,18 +3654,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           onMouseEnter={(_, index) => setActiveExpenseIndex(index)}
                           onMouseLeave={() => setActiveExpenseIndex(null)}
                           onClick={(_, index) => {
-                            const selectedName = metrics.expenseBreakdown[index]?.name;
+                            const selectedName = spendingData.breakdown[index]?.name;
                             setSelectedExpenseCategory(selectedName === selectedExpenseCategory ? null : selectedName);
                           }}
                           style={{ cursor: "pointer" }}
                         >
-                          {metrics.expenseBreakdown.map((item: any, i: number) => {
+                          {spendingData.breakdown.map((item: any, i: number) => {
                             const isSelected = selectedExpenseCategory === item.name;
                             const isHovered = activeExpenseIndex === i;
                             return (
-                              <Cell 
-                                key={i} 
-                                fill={PIE_COLORS[i % PIE_COLORS.length]} 
+                              <Cell
+                                key={i}
+                                fill={PIE_COLORS[i % PIE_COLORS.length]}
                                 opacity={selectedExpenseCategory ? (isSelected ? 1 : 0.4) : (activeExpenseIndex !== null ? (isHovered ? 1 : 0.6) : 1)}
                                 style={{
                                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -3602,7 +3678,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
-                    
+
                     {/* Central display inside the donut hole */}
                     <div style={{
                       position: "absolute",
@@ -3619,25 +3695,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       zIndex: 2
                     }}>
                       <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
-                        {activeExpenseIndex !== null ? metrics.expenseBreakdown[activeExpenseIndex]?.name : (selectedExpenseCategory ? selectedExpenseCategory : "Total Spend")}
+                        {activeExpenseIndex !== null ? spendingData.breakdown[activeExpenseIndex]?.name : (selectedExpenseCategory ? selectedExpenseCategory : "Total Spend")}
                       </span>
                       <span style={{ fontSize: 17, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>
                         {fmtINRFull(
-                          activeExpenseIndex !== null 
-                            ? metrics.expenseBreakdown[activeExpenseIndex]?.value 
-                            : (selectedExpenseCategory 
-                                ? (metrics.expenseBreakdown.find(x => x.name === selectedExpenseCategory)?.value || 0) 
-                                : metrics.monthExpense)
+                          activeExpenseIndex !== null
+                            ? spendingData.breakdown[activeExpenseIndex]?.value
+                            : (selectedExpenseCategory
+                                ? (spendingData.breakdown.find((x: any) => x.name === selectedExpenseCategory)?.value || 0)
+                                : spendingData.total)
                         )}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
                         {(() => {
-                          const val = activeExpenseIndex !== null 
-                            ? metrics.expenseBreakdown[activeExpenseIndex]?.value 
-                            : (selectedExpenseCategory 
-                                ? (metrics.expenseBreakdown.find(x => x.name === selectedExpenseCategory)?.value || 0) 
-                                : metrics.monthExpense);
-                          const total = metrics.monthExpense || 1;
+                          const val = activeExpenseIndex !== null
+                            ? spendingData.breakdown[activeExpenseIndex]?.value
+                            : (selectedExpenseCategory
+                                ? (spendingData.breakdown.find((x: any) => x.name === selectedExpenseCategory)?.value || 0)
+                                : spendingData.total);
+                          const total = spendingData.total || 1;
                           return `${((val / total) * 100).toFixed(1)}%`;
                         })()}
                       </span>
@@ -3656,7 +3732,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         {(() => {
                           const subList = getExpenseAssets(selectedExpenseCategory);
                           if (subList.length === 0) {
-                            return <div style={{ fontSize: 12, color: THEME.muted, padding: "12px 0", textAlign: "center" }}>No transactions this month</div>;
+                            return <div style={{ fontSize: 12, color: THEME.muted, padding: "12px 0", textAlign: "center" }}>No transactions for {spendMonthLabel}</div>;
                           }
                           return subList.map((item: any, idx: number) => (
                             <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderRadius: 8, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
@@ -3672,23 +3748,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     ) : (
                       // OVERALL EXPENSE CATEGORY ALLOCATION LIST
                       <div style={{ display: "grid", gap: 8 }}>
-                        {metrics.expenseBreakdown.map((item: any, i: number) => {
+                        {spendingData.breakdown.map((item: any, i: number) => {
                           const isHovered = activeExpenseIndex === i;
                           const color = PIE_COLORS[i % PIE_COLORS.length];
-                          const pct = ((item.value / (metrics.monthExpense || 1)) * 100).toFixed(1);
+                          const pct = ((item.value / (spendingData.total || 1)) * 100).toFixed(1);
                           return (
-                            <div 
-                              key={i} 
+                            <div
+                              key={i}
                               onMouseEnter={() => setActiveExpenseIndex(i)}
                               onMouseLeave={() => setActiveExpenseIndex(null)}
                               onClick={() => setSelectedExpenseCategory(item.name)}
-                              style={{ 
-                                display: "flex", 
-                                justifyContent: "space-between", 
-                                alignItems: "center", 
-                                padding: "8px 10px", 
-                                borderRadius: 8, 
-                                background: isHovered ? "rgba(128,128,128,0.05)" : "rgba(128,128,128,0.02)", 
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                background: isHovered ? "rgba(128,128,128,0.05)" : "rgba(128,128,128,0.02)",
                                 border: isHovered ? `1px solid ${color}` : `1px solid ${THEME.line}`,
                                 cursor: "pointer",
                                 transition: "all 0.2s ease"
@@ -3712,14 +3788,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             <Card style={{ padding: 24 }}>
               <div className="section-label">Top Expenses</div>
-              {metrics.expenseBreakdown?.length === 0 ? (
+              {spendingData.breakdown?.length === 0 ? (
                 <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 13, background: "rgba(128,128,128,0.03)", borderRadius: 12, textAlign: "center", padding: 24 }}>
                   No spending details available
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 16 }}>
-                  {metrics.expenseBreakdown.slice(0, 5).map((cat: any, i: number) => {
-                    const maxVal = metrics.expenseBreakdown[0].value;
+                  {spendingData.breakdown.slice(0, 5).map((cat: any, i: number) => {
+                    const maxVal = spendingData.breakdown[0].value;
                     const pct = maxVal > 0 ? (cat.value / maxVal) * 100 : 0;
                     return (
                       <div key={cat.name}>
@@ -3737,18 +3813,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </div>
 
           {/* MoM Category Comparison */}
-          {metrics.expenseBreakdown?.length > 0 && (
+          {spendingData.breakdown?.length > 0 && (
             <Card style={{ padding: 24, marginTop: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <div>
-                  <div className="section-label" style={{ marginBottom: 4 }}>Category vs Last Month</div>
-                  <div style={{ fontSize: 12, color: THEME.muted }}>How your spending has shifted across categories</div>
+                  <div className="section-label" style={{ marginBottom: 4 }}>Category vs {prevMonthLabel}</div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>How your spending shifted compared to the previous month</div>
                 </div>
                 <Badge variant="muted">Month-over-month</Badge>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
-                {metrics.expenseBreakdown.slice(0, 7).map((cat: any) => {
-                  const prevVal = prevMonthExpenses[cat.name] || 0;
+                {spendingData.breakdown.slice(0, 7).map((cat: any) => {
+                  const prevVal = spendingPrevData[cat.name] || 0;
                   const delta = cat.value - prevVal;
                   const deltaPct = prevVal > 0 ? (delta / prevVal) * 100 : null;
                   const isUp = delta > 0;
@@ -3761,7 +3837,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <span style={{ fontSize: 14, fontWeight: 800 }}>{fmtINR(cat.value)}</span>
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted }}>
-                          <span>Last month: {prevVal > 0 ? fmtINR(prevVal) : "—"}</span>
+                          <span>{prevMonthLabel}: {prevVal > 0 ? fmtINR(prevVal) : "—"}</span>
                           {isNew ? (
                             <span style={{ color: THEME.gold, fontWeight: 700 }}>New this month</span>
                           ) : delta !== 0 ? (
@@ -3780,7 +3856,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </Card>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ────────────────── SUB-TAB: CALENDAR ────────────────── */}
       {sub === "calendar" && (
