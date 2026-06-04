@@ -842,7 +842,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           <Calculator size={24} />
         </div>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Wealth Calculators</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Financial Calculators</h2>
           <p style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>Interactive planning suite for growth projection, liabilities, and retirement targeting</p>
         </div>
       </div>
