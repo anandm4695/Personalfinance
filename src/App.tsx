@@ -2932,7 +2932,7 @@ function FinanceDashboard() {
             )}
             {tab === "demat" && <DematTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} missingTables={missingTables} marketData={marketData} fetchLivePrices={fetchLivePrices} fetchingPrices={fetchingPrices} marketDataTs={marketDataTs} />}
             {tab === "txnhistory" && <TxnHistoryTab state={filteredState} removeItem={removeItem} marketData={marketData} />}
-            {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} />}
+            {tab === "credit" && <CreditTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} onSubTabChange={setSubTab} />}
             {tab === "subs" && <SubsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "sip" && <SIPTrackerTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} metrics={metrics} />}
             {tab === "insurance" && <InsuranceSummaryTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}

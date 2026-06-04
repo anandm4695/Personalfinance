@@ -10,7 +10,6 @@ import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
-import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 
 /** Renders authentic SVG logos for each payment network */
@@ -242,8 +241,8 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const InvestCard = ({ children, onRemove, onEdit }: any) => (
-  <div style={{ ...card, position: "relative" }}>
+const InvestCard = ({ children, onRemove, onEdit, cardStyle }: any) => (
+  <div style={{ ...card, position: "relative", ...cardStyle }}>
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
       <button onClick={onEdit} style={iconBtn}><Edit3 size={14} /></button>
       <button onClick={onRemove} style={iconBtn}><Trash2 size={14} /></button>
@@ -262,7 +261,7 @@ const Stat = ({ k, v }: { k: string; v: any }) => (
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
-export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: any) {
+export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSubTabChange }: any) {
   const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -290,9 +289,18 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
 
   const activeLabel = subs.find(s => s.id === sub)?.label || "";
 
+  const subCounts: Record<string, number> = {
+    cc: state.creditCards.length,
+    prepaid: state.prepaidCards.length,
+    taken: state.loansTaken.length,
+    given: state.loansGiven.length,
+    borrowed: (state.informalBorrowed || []).length,
+    lent: (state.informalLent || []).length,
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <SectionTitle sub="Manage cards, debts, and personal lending portfolios">
           Credit & Liabilities
         </SectionTitle>
@@ -308,11 +316,37 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
         )}
       </div>
 
+      {/* Inline sub-tab navigation */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+        {subs.map((s) => {
+          const Icon = s.icon;
+          const active = sub === s.id;
+          const count = subCounts[s.id];
+          return (
+            <button key={s.id} onClick={() => { setSub(s.id); onSubTabChange?.(s.id); }} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", height: 34, borderRadius: 10,
+              border: active ? "none" : `1px solid ${THEME.line}`,
+              background: active ? THEME.accent : "var(--surface-0)",
+              color: active ? "#fff" : THEME.ink,
+              cursor: "pointer", fontSize: 12, fontWeight: 700,
+              transition: "all 0.2s ease",
+            }}>
+              <Icon size={13} />
+              {s.label}
+              {count !== undefined && count > 0 && (
+                <span style={{ padding: "1px 6px", borderRadius: 20, fontSize: 10, fontWeight: 800,
+                  background: active ? "rgba(255,255,255,0.25)" : `${THEME.accent}18`,
+                  color: active ? "#fff" : THEME.accent }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <div>
-        {/* ── CONTENT AREA ── */}
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>{activeLabel}</h3>
-        </div>
 
           {sub === "cc" && (
             <>
@@ -378,18 +412,13 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
 
                 return (
                   <>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 14 }}>
-                      {statCards.map((s) => (
-                        <StatCard
-                          key={s.label}
-                          label={s.label}
-                          value={s.value}
-                          sub={s.sub}
-                          icon={s.icon}
-                          color={s.color}
-                          borderColor={s.borderColor}
-                          iconBg={s.iconBg}
-                        />
+                    <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                      {statCards.map(({ label, value, color, sub: subText }) => (
+                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                          <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                          <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                          {subText && <span style={{ fontSize: 10, color: THEME.muted }}>{subText}</span>}
+                        </div>
                       ))}
                     </div>
                     {activeCards.length > 0 && (
@@ -437,11 +466,18 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                           <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
                             <div style={{ height: "100%", width: Math.min(paidPct, 100) + "%", background: paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust, borderRadius: 5, transition: "width 0.6s" }} />
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, fontSize: 12 }}>
-                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Principal paid</div><div style={{ fontWeight: 700, color: THEME.sage }}>{fmtINR(paid)}</div></div>
-                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>EMI</div><div style={{ fontWeight: 700 }}>{fmtINR(emi)}/mo</div></div>
-                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Interest remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINR(interestRemaining)}</div></div>
-                            <div><div style={{ color: THEME.muted, marginBottom: 2 }}>Payoff date</div><div style={{ fontWeight: 700 }}>{months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—"}</div></div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {[
+                              { k: "Principal Paid", v: fmtINR(paid),        color: THEME.sage  },
+                              { k: "EMI",            v: `${fmtINR(emi)}/mo`, color: THEME.accent },
+                              { k: "Interest Left",  v: fmtINR(interestRemaining), color: THEME.rust },
+                              { k: "Payoff Date",    v: months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—", color: THEME.muted },
+                            ].map(({ k, v, color }) => (
+                              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "7px 12px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 100px" }}>
+                                <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
+                                <span style={{ fontSize: 13, fontWeight: 800, color }}>{v}</span>
+                              </div>
+                            ))}
                           </div>
                           <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted }}>{paidPct.toFixed(1)}% of principal repaid · {months} months left</div>
 
@@ -497,15 +533,15 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab }: an
                                   const newPayoff = new Date();
                                   newPayoff.setMonth(newPayoff.getMonth() + newMonths);
                                   return (
-                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                       {[
-                                        { label: "Months Saved", value: `${monthsSaved} mo`, color: THEME.sage },
-                                        { label: "Interest Saved", value: fmtINR(interestSaved), color: THEME.sage },
-                                        { label: "New Payoff", value: newPayoff.toLocaleString("en-IN", { month: "short", year: "numeric" }), color: THEME.ink },
+                                        { label: "Months Saved",   value: `${monthsSaved} mo`, color: THEME.sage   },
+                                        { label: "Interest Saved", value: fmtINR(interestSaved), color: THEME.sage  },
+                                        { label: "New Payoff",     value: newPayoff.toLocaleString("en-IN", { month: "short", year: "numeric" }), color: THEME.accent },
                                       ].map(({ label, value, color }) => (
-                                        <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: "rgba(255,255,255,0.7)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
-                                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>{label}</div>
-                                          <div style={{ fontSize: 14, fontWeight: 800, color }}>{value}</div>
+                                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "8px 14px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px", textAlign: "center" as const }}>
+                                          <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                                          <span style={{ fontSize: 14, fontWeight: 800, color }}>{value}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -1683,20 +1719,27 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         })() : null;
         const totalInterest = months > 0 ? Math.max(0, Number(l.emi || 0) * months - Number(l.outstanding || 0)) : 0;
         return (
-          <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
+          <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)} cardStyle={{ borderTop: `3px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.accent }}>{l.type || "Loan"}</div>
+              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.rust }}>{l.type || "Loan"}</div>
               {isPaidOff && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.08em" }}>PAID OFF</span>}
             </div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : THEME.accent }}>{fmtINRFull(l.outstanding)}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
-              <Stat k="Principal" v={fmtINR(l.principal)} />
-              <Stat k="EMI" v={fmtINR(l.emi)} />
-              <Stat k="Rate" v={`${l.rate}%`} />
-              <Stat k="Months Left" v={`${months > 0 ? months : "—"}`} />
-              {payoffDate && <Stat k="Payoff By" v={payoffDate} />}
-              {totalInterest > 0 && <Stat k="Interest Left" v={fmtINR(totalInterest)} />}
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : THEME.rust }}>{fmtINRFull(l.outstanding)}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+              {[
+                { k: "Principal",    v: fmtINR(l.principal),                         color: THEME.muted  },
+                { k: "EMI",          v: `${fmtINR(l.emi)}/mo`,                        color: THEME.accent },
+                { k: "Rate",         v: `${l.rate}%`,                                 color: THEME.muted  },
+                { k: "Months Left",  v: months > 0 ? String(months) : "—",            color: THEME.ink    },
+                ...(payoffDate ? [{ k: "Payoff By",     v: payoffDate,                color: THEME.sage   }] : []),
+                ...(totalInterest > 0 ? [{ k: "Interest Left", v: fmtINR(totalInterest), color: THEME.rust }] : []),
+              ].map(({ k, v, color }) => (
+                <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 10px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 70px" }}>
+                  <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+                </div>
+              ))}
             </div>
           </InvestCard>
         );
@@ -1711,12 +1754,21 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
   const totalLent = items.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
   const totalOutstanding = items.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
   const overdueItems = items.filter((l: any) => l.dueDate && new Date(l.dueDate) < now && Number(l.outstanding || 0) > 0);
+  const fmtLoanDate = (d: string) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard label="Total Lent" value={fmtINRFull(totalLent)} sub={`${items.length} loan${items.length !== 1 ? "s" : ""} given`} color={THEME.sage} borderColor="var(--t-sage)" iconBg="color-mix(in srgb, var(--t-sage) 12%, transparent)" icon={<TrendingUp size={16} />} />
-        <StatCard label="Outstanding" value={fmtINRFull(totalOutstanding)} sub={totalOutstanding > 0 ? "Pending recovery" : "Fully recovered"} color={totalOutstanding > 0 ? THEME.gold : THEME.sage} borderColor={totalOutstanding > 0 ? "var(--t-gold)" : "var(--t-sage)"} iconBg={totalOutstanding > 0 ? "color-mix(in srgb, var(--t-gold) 12%, transparent)" : "color-mix(in srgb, var(--t-sage) 12%, transparent)"} icon={<IndianRupee size={16} />} />
-        <StatCard label="Overdue" value={`${overdueItems.length}`} sub={overdueItems.length > 0 ? "Require follow-up" : "All on schedule"} color={overdueItems.length > 0 ? THEME.rust : THEME.sage} borderColor={overdueItems.length > 0 ? "var(--t-rust)" : "var(--t-sage)"} iconBg={overdueItems.length > 0 ? "color-mix(in srgb, var(--t-rust) 12%, transparent)" : "color-mix(in srgb, var(--t-sage) 12%, transparent)"} icon={<AlertCircle size={16} />} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {[
+          { label: "Total Lent",   value: fmtINRFull(totalLent),        sub: `${items.length} loan${items.length !== 1 ? "s" : ""} given`, color: THEME.sage },
+          { label: "Outstanding",  value: fmtINRFull(totalOutstanding),  sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered", color: totalOutstanding > 0 ? THEME.gold : THEME.sage },
+          { label: "Overdue",      value: String(overdueItems.length),   sub: overdueItems.length > 0 ? "Require follow-up" : "All on schedule", color: overdueItems.length > 0 ? THEME.rust : THEME.sage },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          </div>
+        ))}
       </div>
       <Grid>
         {items.map((l: any) => {
@@ -1726,7 +1778,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
           const dueSoon = !isPaidOff && !isOverdue && l.dueDate && Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) <= 7;
           const daysUntilDue = dueSoon ? Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
           return (
-            <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)}>
+            <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)} cardStyle={{ borderTop: `3px solid ${isOverdue ? THEME.rust : isPaidOff ? THEME.sage : THEME.sage}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.sage }}>Receivable</div>
                 {isOverdue && <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: THEME.rust, padding: "2px 8px", borderRadius: 99, letterSpacing: "0.05em" }}>{daysOverdue}d OVERDUE</span>}
@@ -1735,11 +1787,18 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
               </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.borrower}</div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : isOverdue ? THEME.rust : THEME.sage }}>{fmtINRFull(l.outstanding)}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12, fontSize: 12 }}>
-                <Stat k="Principal" v={fmtINR(l.principal)} />
-                <Stat k="Rate" v={l.rate ? `${l.rate}%` : "—"} />
-                <Stat k="Given on" v={l.date || "—"} />
-                <Stat k="Due" v={l.dueDate || "—"} />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                {[
+                  { k: "Principal", v: fmtINR(l.principal),           color: THEME.sage },
+                  { k: "Rate",      v: l.rate ? `${l.rate}%` : "—",   color: THEME.muted },
+                  { k: "Given On",  v: fmtLoanDate(l.date),            color: THEME.muted },
+                  { k: "Due By",    v: fmtLoanDate(l.dueDate),         color: isOverdue ? THEME.rust : THEME.muted },
+                ].map(({ k, v, color }) => (
+                  <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 10px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 70px" }}>
+                    <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+                  </div>
+                ))}
               </div>
               {l.note && <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>"{l.note}"</div>}
             </InvestCard>
@@ -1913,28 +1972,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   const fmtD = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard
-          icon={<TrendingUp />}
-          label={isBorrowed ? "Total Borrowed" : "Total Lent"}
-          value={fmtINRFull(totalBorrowed)}
-          color={isBorrowed ? THEME.rust : THEME.sage}
-          sub="Principal amount"
-        />
-        <StatCard
-          icon={<ArrowLeftRight />}
-          label={isBorrowed ? "Total Repaid" : "Received Back"}
-          value={fmtINRFull(totalPaid)}
-          color={THEME.sage}
-          sub="Payment history"
-        />
-        <StatCard
-          icon={<IndianRupee />}
-          label="Outstanding"
-          value={fmtINRFull(totalOutstanding)}
-          color={totalOutstanding > 0 ? accentColor : THEME.sage}
-          sub={totalOutstanding > 0 ? "Pending settlement" : "Fully settled"}
-        />
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {[
+          { label: isBorrowed ? "Total Borrowed" : "Total Lent", value: fmtINRFull(totalBorrowed), sub: "Principal amount",    color: isBorrowed ? THEME.rust : THEME.sage },
+          { label: isBorrowed ? "Total Repaid" : "Received Back", value: fmtINRFull(totalPaid),    sub: "Payment history",    color: THEME.sage },
+          { label: "Outstanding", value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled", color: totalOutstanding > 0 ? accentColor : THEME.sage },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          </div>
+        ))}
       </div>
       {items.length > 0 && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
