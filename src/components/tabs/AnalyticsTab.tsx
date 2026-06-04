@@ -1343,17 +1343,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         ];
         return (
           <div style={{ background: "transparent", overflowX: "auto", marginBottom: 24 }} className="no-scrollbar">
-            <div style={{ display: "flex", alignItems: "center", minWidth: "max-content", background: "var(--surface-0)", borderRadius: 12, padding: "12px 10px", border: `1px solid ${THEME.line}`, boxShadow: "var(--shadow-sm)" }}>
+            <div style={{ display: "flex", alignItems: "stretch", minWidth: "max-content", background: "var(--surface-0)", borderRadius: 14, padding: "6px 8px", border: `1px solid ${THEME.line}`, boxShadow: "var(--shadow-sm)", gap: 4 }}>
               {items.map(({ label, value, color }, idx) => (
-                <React.Fragment key={label}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 24px" }}>
-                    <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase", color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
-                  </div>
-                  {idx < items.length - 1 && (
-                    <div style={{ width: 1, height: 28, background: THEME.line, flexShrink: 0 }} />
-                  )}
-                </React.Fragment>
+                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, transition: "background 0.2s ease" }}>
+                  <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -1400,16 +1395,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "dashboard" && (
         <>
           {smartInsights.length > 0 && (
-            <div style={{ overflowX: "auto", marginBottom: 20 }} className="no-scrollbar">
-              <div style={{ display: "flex", gap: 10, minWidth: "max-content" }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
                 {smartInsights.map((ins: any, i: number) => {
                   const Icon = ins.icon;
                   return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 12, background: ins.bg, border: `1px solid ${ins.color}28`, flexShrink: 0 }}>
-                      <Icon size={15} color={ins.color} />
-                      <div>
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 12, background: ins.bg, border: `1px solid ${ins.color}28` }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${ins.color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Icon size={15} color={ins.color} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 800, color: ins.color, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{ins.title}</div>
-                        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, fontWeight: 500 }}>{ins.value}</div>
+                        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ins.value}</div>
                       </div>
                     </div>
                   );
@@ -1503,8 +1500,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 20 }}>Debt-to-Asset Ratio</div>
                 <div>
-                  <div style={{ fontSize: 38, fontWeight: 900, color: metrics.debtToAssetRatio < 25 ? THEME.sage : metrics.debtToAssetRatio < 40 ? THEME.gold : THEME.rust, lineHeight: 1, marginBottom: 16, letterSpacing: "-0.02em" }}>{metrics.debtToAssetRatio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
-                  <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5, fontWeight: 500 }}>Healthy if under 40% · Your liabilities {fmtINRFull(metrics.totalLiabilities)}</div>
+                  <div style={{ fontSize: 38, fontWeight: 900, color: metrics.debtToAssetRatio < 25 ? THEME.sage : metrics.debtToAssetRatio < 40 ? THEME.gold : THEME.rust, lineHeight: 1, marginBottom: 10, letterSpacing: "-0.02em" }}>{metrics.debtToAssetRatio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
+                  <div style={{ height: 6, borderRadius: 4, background: `${THEME.line}`, overflow: "hidden", marginBottom: 10 }}>
+                    <div style={{ height: "100%", borderRadius: 4, width: `${Math.min(100, metrics.debtToAssetRatio)}%`, background: metrics.debtToAssetRatio < 25 ? THEME.sage : metrics.debtToAssetRatio < 40 ? THEME.gold : THEME.rust, transition: "width 0.6s ease" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 700 }}>Safe &lt;25%</span>
+                    <span style={{ fontSize: 10, color: THEME.gold, fontWeight: 700 }}>Caution &lt;40%</span>
+                    <span style={{ fontSize: 10, color: THEME.rust, fontWeight: 700 }}>High &gt;40%</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>Liabilities {fmtINRFull(metrics.totalLiabilities)}</div>
                 </div>
               </Card>
 
@@ -1520,10 +1525,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     return (
                       <>
                         <div style={{ fontSize: 38, fontWeight: 900, color: ratioColor, lineHeight: 1, marginBottom: 10, letterSpacing: "-0.02em" }}>{ratio.toFixed(1)}<span style={{ fontSize: 24 }}>%</span></div>
-                        <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, fontWeight: 500 }}>
-                          Cash {fmtINRFull(metrics.cashInBanks)}<br />
-                          MF+Stocks {fmtINRFull(metrics.mfValue + metrics.stockValue)}<br />
-                          Locked {fmtINRFull(locked)}
+                        <div style={{ height: 6, borderRadius: 4, background: `${THEME.line}`, overflow: "hidden", marginBottom: 10 }}>
+                          <div style={{ height: "100%", borderRadius: 4, width: `${Math.min(100, ratio)}%`, background: ratioColor, transition: "width 0.6s ease" }} />
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.7, fontWeight: 500 }}>
+                          Cash {fmtINRFull(metrics.cashInBanks)} · MF+Stocks {fmtINRFull(metrics.mfValue + metrics.stockValue)}<br />
+                          Locked {fmtINRFull(locked)} · Target ≥30%
                         </div>
                       </>
                     );
@@ -1662,21 +1669,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>No major dues coming up</div>
               ) : (
                 <div style={{ display: "grid", gap: 12, flex: 1, alignContent: "flex-start" }}>
-                  {dashboardData.dues.slice(0, 5).map((d, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 12, background: d.isFdMaturity ? "rgba(52,211,153,0.04)" : "rgba(128,128,128,0.04)", border: d.isFdMaturity ? `1px solid ${THEME.sage}22` : "none" }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700 }}>{d.name}</div>
-                        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{d.date}</div>
+                  {dashboardData.dues.slice(0, 5).map((d, i) => {
+                    const borderColor = d.isFdMaturity ? THEME.sage : d.daysLeft <= 5 ? THEME.rust : d.daysLeft <= 14 ? THEME.gold : THEME.muted;
+                    return (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px 10px 0", borderRadius: 12, background: d.isFdMaturity ? "rgba(52,211,153,0.04)" : d.daysLeft <= 5 ? "rgba(220,38,38,0.03)" : "rgba(128,128,128,0.03)", border: `1px solid ${borderColor}22`, overflow: "hidden", position: "relative" }}>
+                      <div style={{ width: 3, position: "absolute", left: 0, top: 0, bottom: 0, background: borderColor, borderRadius: "12px 0 0 12px" }} />
+                      <div style={{ paddingLeft: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{d.date}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: d.isFdMaturity ? THEME.sage : THEME.ink }}>{fmtINR(d.amount)}</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: d.isFdMaturity ? THEME.sage : THEME.ink }}>{fmtINR(d.amount)}</div>
                         {d.isFdMaturity
                           ? <Badge variant="sage" style={{ fontSize: 10, marginTop: 4 }}>Matures in {d.daysLeft}d</Badge>
                           : <Badge variant={d.daysLeft <= 5 ? "rust" : "gold"} style={{ fontSize: 10, marginTop: 4 }}>{d.daysLeft}d left</Badge>
                         }
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
@@ -1684,10 +1695,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             <Card className="bento-col-3 bento-row-2" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%", justifyContent: "center" }}>
               <div className="section-label" style={{ textAlign: "center" }}>Savings Streak</div>
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <div style={{ fontSize: 56, marginBottom: 12 }}>{dashboardData.streakEmoji}</div>
-                <div style={{ fontSize: 56, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>{dashboardData.streak}</div>
-                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 8, fontWeight: 600 }}>Months Saved</div>
-                <Badge variant="sage" style={{ marginTop: 16, padding: "6px 12px", fontSize: 12 }}>{dashboardData.streakMsg}</Badge>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>{dashboardData.streakEmoji}</div>
+                <div style={{ fontSize: 52, fontWeight: 900, color: THEME.sage, lineHeight: 1 }}>{dashboardData.streak}</div>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>Months Saved</div>
+                <Badge variant="sage" style={{ marginTop: 12, padding: "5px 12px", fontSize: 11 }}>{dashboardData.streakMsg}</Badge>
+                {/* Mini month dots — last 12 months */}
+                <div style={{ display: "flex", justifyContent: "center", gap: 5, marginTop: 16, flexWrap: "wrap" }}>
+                  {trendData.slice(-12).map((t: any, i: number) => {
+                    const saved = t.net > 0;
+                    const hasData = t.income > 0 || t.expense > 0;
+                    return (
+                      <div key={i} title={`${t.month}: ${saved ? "+" : hasData ? "−" : "no data"}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: hasData ? (saved ? THEME.sage : THEME.rust) : THEME.line, opacity: hasData ? 1 : 0.4, transition: "background 0.3s ease" }} />
+                        <span style={{ fontSize: 8, color: THEME.muted, fontWeight: 600 }}>{t.month.slice(0, 1)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </Card>
 
@@ -1804,22 +1828,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     .slice(0, showAllTxns ? undefined : 5)
                     .map((t: any) => (
                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {t.type === "credit" ? <TrendingUp size={18} /> : <Receipt size={18} />}
                           </div>
                           <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{t.note || t.category}</div>
-                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{t.date} · {t.category}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{t.note || t.category || "Transaction"}</div>
+                            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                              {t.date ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                              {t.category ? ` · ${t.category}` : ""}
+                            </div>
                           </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: t.type === "credit" ? THEME.sage : THEME.ink }}>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: t.type === "credit" ? THEME.sage : THEME.rust }}>
                             {t.type === "credit" ? "+" : "-"}{fmtINR(t.amount)}
                           </div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: t.type === "credit" ? THEME.sage : THEME.rust, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                            {t.type === "credit" ? "Credit" : "Debit"}
-                          </div>
+                          <span style={{ display: "inline-block", marginTop: 4, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.04em", background: t.type === "credit" ? "rgba(5,150,105,0.1)" : "rgba(220,38,38,0.1)", color: t.type === "credit" ? THEME.sage : THEME.rust }}>
+                            {t.type === "credit" ? "▲ Credit" : "▼ Debit"}
+                          </span>
                         </div>
                       </div>
                     ))}
