@@ -1028,6 +1028,10 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                   return fdMaturity(Number(f.principal), Number(f.rate), elapsed);
                 })();
                 const gain = accrued - (Number(f.principal) || 0);
+                const gainPct = (Number(f.principal) || 0) > 0 ? (gain / (Number(f.principal) || 1)) * 100 : 0;
+                const fdProgress = (f.years && f.startDate)
+                  ? Math.min(100, Math.max(0, (monthsBetween(f.startDate, today()) / (Number(f.years) * 12)) * 100))
+                  : 0;
                 const borderColor = isMatured ? THEME.muted : isDueSoon ? THEME.rust : FD_AMBER;
                 const lbl = { fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 3 };
 
@@ -1054,8 +1058,8 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                       {[
                         ["Rate", `${f.rate}%`],
                         ["Tenure", `${f.years}y`],
-                        ["Start", f.startDate ? f.startDate.slice(5).replace("-", "/") : "—"],
-                        ["Maturity", f.maturityDate ? f.maturityDate.slice(5).replace("-", "/") : "—"],
+                        ["Start",   f.startDate    ? new Date(f.startDate    + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "—"],
+                        ["Matures", f.maturityDate ? new Date(f.maturityDate + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "—"],
                       ].map(([l, v]) => (
                         <div key={l} style={{ padding: "7px 6px", background: "rgba(217,119,6,0.06)", borderRadius: 8, border: "1px solid rgba(217,119,6,0.14)", textAlign: "center" as const }}>
                           <div style={{ ...lbl, marginBottom: 2 }}>{l}</div>
@@ -1064,11 +1068,22 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                       ))}
                     </div>
 
+                    {f.years && f.startDate && (
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                          <span>TENURE PROGRESS</span>
+                          <span style={{ color: isMatured ? THEME.sage : FD_AMBER, fontWeight: 700 }}>{fdProgress.toFixed(0)}%</span>
+                        </div>
+                        <div className="progress-track">
+                          <div className="progress-fill" style={{ width: `${fdProgress}%`, background: isMatured ? THEME.muted : FD_AMBER }} />
+                        </div>
+                      </div>
+                    )}
                     <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <div>
                         <div style={lbl}>Current Accrued</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(accrued)}</Prv></div>
-                        <div style={{ fontSize: 10, color: THEME.sage }}>+{fmtINR(gain)} gain</div>
+                        <div style={{ fontSize: 10, color: gain >= 0 ? THEME.sage : THEME.rust }}>{gain >= 0 ? "+" : ""}{fmtINR(gain)} · {gainPct.toFixed(1)}%</div>
                       </div>
                       <div>
                         <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
@@ -1172,6 +1187,12 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
                     {r.rate}% p.a. · {tenureMonths} months
+                    {r.startDate && tenureMonths > 0 && (() => {
+                      const d = new Date(r.startDate + "T00:00:00");
+                      d.setMonth(d.getMonth() + tenureMonths);
+                      const lbl = d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+                      return <span style={{ marginLeft: 8, color: isMatured ? THEME.sage : THEME.ink, fontWeight: 600 }}>· Matures {lbl}</span>;
+                    })()}
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginBottom: 5 }}>
@@ -1277,6 +1298,12 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                 const annualCoupon = ((Number(b.totalPrincipalAmount || 0) ||
                   (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0))) * Number(b.coupon || 0)) / 100;
                 const charges = Number(b.brokerage || 0) + Number(b.stampDuty || 0);
+                const bondProgress = b.orderDate && b.maturityDate ? (() => {
+                  const start = new Date(b.orderDate    + "T00:00:00").getTime();
+                  const end   = new Date(b.maturityDate + "T00:00:00").getTime();
+                  return end > start ? Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100)) : 0;
+                })() : 0;
+                const fmtBondDate = (d: string) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
                 return (
                   <Card key={b.id} style={{ padding: 22, borderTop: `3px solid ${BOND_AMBER}` }}>
@@ -1324,8 +1351,19 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 0", borderTop: `1px solid ${THEME.line}`, borderBottom: `1px solid ${THEME.line}`, marginBottom: 14 }}>
                       <div>
                         <div style={lbl}>Maturity Date</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{b.maturityDate || "—"}</div>
-                        {ml && <div style={{ fontSize: 10, fontWeight: 700, color: ml.color, marginTop: 2 }}>{ml.text}</div>}
+                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{fmtBondDate(b.maturityDate)}</div>
+                        {ml && <div style={{ fontSize: 10, fontWeight: 700, color: ml.color, marginTop: 2, marginBottom: 6 }}>{ml.text}</div>}
+                        {bondProgress > 0 && (
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 3, fontWeight: 600 }}>
+                              <span>ELAPSED</span>
+                              <span style={{ color: ml?.matured ? THEME.sage : BOND_AMBER }}>{bondProgress.toFixed(0)}%</span>
+                            </div>
+                            <div className="progress-track">
+                              <div className="progress-fill" style={{ width: `${bondProgress}%`, background: ml?.matured ? THEME.muted : BOND_AMBER }} />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div style={lbl}>Annual Income</div>
@@ -1565,7 +1603,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
   const btnGhost = { background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px" } as const;
 
   return (
-    <Card style={{ padding: 20 }}>
+    <Card style={{ padding: 20, borderTop: `3px solid ${THEME.sage}` }}>
       {/* Header row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
@@ -2341,7 +2379,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const sortedEsts    = [...ests].sort((a, b) => (b.joiningDate || "").localeCompare(a.joiningDate || ""));
 
   return (
-    <Card style={{ padding: 20 }}>
+    <Card style={{ padding: 20, borderTop: "3px solid #6366f1" }}>
 
       {/* ── Account Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
