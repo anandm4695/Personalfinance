@@ -41,6 +41,12 @@ function getCatIcon(cat: string) {
   return CATEGORY_ICONS[cat] || HelpCircle;
 }
 
+const fmtDate = (dateStr: string) => {
+  if (!dateStr) return "—";
+  try { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+  catch { return dateStr; }
+};
+
 export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -405,29 +411,31 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
 
         {/* Sub Navigation Segmented Control */}
         <div style={{ display: "flex", background: "rgba(128,128,128,0.06)", padding: 4, borderRadius: 10, border: "1px solid var(--t-line)" }}>
-          <button 
-            onClick={() => setActiveSubTab("budget")} 
-            style={{ 
+          <button
+            onClick={() => setActiveSubTab("budget")}
+            style={{
               border: "none", background: activeSubTab === "budget" ? "var(--t-darkInk)" : "transparent",
               color: activeSubTab === "budget" ? THEME.ink : THEME.muted,
               padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
               boxShadow: activeSubTab === "budget" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.2s"
+              transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6
             }}
           >
-            📊 Budget Tracker
+            <BarChart2 size={13} />
+            Budget Tracker
           </button>
-          <button 
-            onClick={() => setActiveSubTab("recurring")} 
-            style={{ 
+          <button
+            onClick={() => setActiveSubTab("recurring")}
+            style={{
               border: "none", background: activeSubTab === "recurring" ? "var(--t-darkInk)" : "transparent",
               color: activeSubTab === "recurring" ? THEME.ink : THEME.muted,
               padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
               boxShadow: activeSubTab === "recurring" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.2s"
+              transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6
             }}
           >
-            🔁 Fixed & Recurring
+            <Repeat size={13} />
+            Fixed & Recurring
           </button>
         </div>
       </div>
@@ -488,50 +496,29 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             Budgeting
           </SectionTitle>
 
-          {/* Stat Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
-            <StatCard
-              icon={<Wallet />}
-              label="Total Budgeted"
-              value={fmtINRFull(totalBudget)}
-              color={THEME.accent}
-              sub={`Target for ${selectedMonthLabel}`}
-            />
-            <StatCard
-              icon={<Receipt />}
-              label="Spent in Month"
-              value={fmtINRFull(totalSpent)}
-              color={totalSpent > totalBudget ? THEME.rust : THEME.accent}
-              sub={`Used ${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget`}
-            />
-            <StatCard
-              icon={<TrendingUp />}
-              label="Remaining Balance"
-              value={fmtINRFull(Math.max(0, totalBudget - totalSpent))}
-              color={totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust}
-              sub={totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded"}
-            />
-            <StatCard
-              icon={<Target />}
-              label="Active Buckets"
-              value={String(budgetsToUse.length)}
-              color={THEME.muted}
-              sub={totalUnbudgetedSpent > 0 ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted` : "Budgeted categories"}
-            />
-            {selectedMonthIncome > 0 && (() => {
-              const savingsAmt = selectedMonthIncome - totalSpent;
-              const savingsRate = (savingsAmt / selectedMonthIncome) * 100;
-              return (
-                <StatCard
-                  icon={<BarChart2 />}
-                  label="Savings Rate"
-                  value={`${Math.max(0, savingsRate).toFixed(1)}%`}
-                  color={savingsRate >= 20 ? THEME.sage : savingsRate >= 10 ? THEME.gold : THEME.rust}
-                  sub={`Income: ${fmtINRFull(selectedMonthIncome)}`}
-                />
-              );
-            })()}
-          </div>
+          {/* Summary Tiles */}
+          {(() => {
+            const savingsAmt = selectedMonthIncome - totalSpent;
+            const savingsRate = selectedMonthIncome > 0 ? (savingsAmt / selectedMonthIncome) * 100 : null;
+            const savingsColor = savingsRate === null ? THEME.muted : savingsRate >= 20 ? THEME.sage : savingsRate >= 10 ? THEME.gold : THEME.rust;
+            return (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+                {[
+                  { label: "Total Budgeted", value: fmtINRFull(totalBudget), sub: `Target for ${selectedMonthLabel}`, color: THEME.accent },
+                  { label: "Spent in Month", value: fmtINRFull(totalSpent), sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used`, color: totalSpent > totalBudget ? THEME.rust : THEME.accent },
+                  { label: "Remaining Balance", value: fmtINRFull(Math.max(0, totalBudget - totalSpent)), sub: totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded", color: totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust },
+                  { label: "Active Buckets", value: String(budgetsToUse.length), sub: totalUnbudgetedSpent > 0 ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted` : "Budgeted categories", color: THEME.muted },
+                  { label: "Savings Rate", value: savingsRate !== null ? `${Math.max(0, savingsRate).toFixed(1)}%` : "—", sub: selectedMonthIncome > 0 ? `Income: ${fmtINRFull(selectedMonthIncome)}` : "Add income data", color: savingsColor },
+                ].map(({ label, value, sub, color }) => (
+                  <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Burn Rate Widget */}
           {totalBudget > 0 && (() => {
@@ -627,13 +614,13 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                 const projectedPct = budget > 0 ? (projected / budget) * 100 : 0;
 
                 return (
-                  <Card key={b.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${barColor}`, position: "relative" }}>
+                  <Card key={b.id} style={{ padding: "18px 20px", borderTop: `3px solid ${barColor}`, position: "relative" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                       {/* Icon Box */}
                       <div style={{
                         width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                        background: `color-mix(in srgb, ${barColor} 12%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${barColor} 25%, transparent)`,
+                        background: `${barColor}15`,
+                        border: `1px solid ${barColor}33`,
                         display: "flex", alignItems: "center", justifyContent: "center"
                       }}>
                         <Icon size={22} color={barColor} />
@@ -670,14 +657,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                     </div>
 
                     {/* Progress Bar */}
-                    <div style={{ height: 6, background: "rgba(128,128,128,0.06)", borderRadius: 3, overflow: "hidden", marginTop: 16, marginBottom: 12 }}>
-                      <div style={{ 
-                        height: "100%", 
-                        width: Math.min(pct, 100) + "%", 
-                        background: barColor, 
-                        borderRadius: 3, 
-                        transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" 
-                      }} />
+                    <div className="progress-track" style={{ marginTop: 16, marginBottom: 12 }}>
+                      <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
                     </div>
 
                     {spent > 0 && (
@@ -731,8 +712,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                   );
                 })}
               </div>
-              <div style={{ marginTop: 10, fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-                💡 Add budget categories for these to get a full spending picture.
+              <div style={{ marginTop: 10, fontSize: 11, color: THEME.muted, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
+                <HelpCircle size={11} />
+                Add budget categories for these to get a full spending picture.
               </div>
             </Card>
           )}
@@ -755,36 +737,20 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             Fixed & Recurring Expenses
           </SectionTitle>
 
-          {/* Stats Bar */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
-            <StatCard 
-              icon={<Repeat />} 
-              label="Monthly Commitment" 
-              value={fmtINRFull(recurringStats.monthlyCommitment)} 
-              color={THEME.accent}
-              sub="Sum of active recurring costs"
-            />
-            <StatCard 
-              icon={<Wallet />} 
-              label="Annual Equivalent" 
-              value={fmtINRFull(recurringStats.annualCost)} 
-              color={THEME.gold}
-              sub="Projected yearly outgo"
-            />
-            <StatCard 
-              icon={<CheckCircle2 />} 
-              label="Paid This Month" 
-              value={`${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`} 
-              color={THEME.sage}
-              sub={`Recorded total: ${fmtINRFull(recurringStats.paidTotal)}`}
-            />
-            <StatCard 
-              icon={<AlertCircle />} 
-              label="Overdue / Unpaid" 
-              value={String(recurringStats.overdueCount)} 
-              color={recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage}
-              sub={`Pending outgo: ${fmtINRFull(recurringStats.overdueTotal)}`}
-            />
+          {/* Stats Tiles */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+            {[
+              { label: "Monthly Commitment", value: fmtINRFull(recurringStats.monthlyCommitment), sub: "Sum of active recurring costs", color: THEME.accent },
+              { label: "Annual Equivalent", value: fmtINRFull(recurringStats.annualCost), sub: "Projected yearly outgo", color: THEME.gold },
+              { label: "Paid This Month", value: `${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`, sub: `Recorded: ${fmtINRFull(recurringStats.paidTotal)}`, color: THEME.sage },
+              { label: "Overdue / Unpaid", value: String(recurringStats.overdueCount), sub: `Pending: ${fmtINRFull(recurringStats.overdueTotal)}`, color: recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage },
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
           </div>
 
           {activeRecurringExpenses.length === 0 ? (
@@ -848,13 +814,13 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                 const bank = state.bankAccounts.find((b: any) => b.id === re.accountId);
 
                 return (
-                  <Card key={re.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${re.isActive ? (hasPaid ? THEME.sage : THEME.gold) : THEME.line}`, opacity: re.isActive ? 1 : 0.7 }}>
+                  <Card key={re.id} style={{ padding: "18px 20px", borderTop: `3px solid ${re.isActive ? (hasPaid ? THEME.sage : statusColor) : THEME.line}`, opacity: re.isActive ? 1 : 0.7 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                       {/* Logo Box / Circle */}
                       <div style={{
                         width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                        background: hasPaid ? "rgba(5,150,105,0.06)" : "rgba(128,128,128,0.04)",
-                        border: `1px solid ${hasPaid ? THEME.sage + "33" : THEME.line}`,
+                        background: `${hasPaid ? THEME.sage : statusColor}09`,
+                        border: `1px solid ${hasPaid ? THEME.sage : statusColor}22`,
                         display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20
                       }}>
                         {re.category === "Rent" ? "🏠" : re.category === "EMI" ? "💸" : re.category === "Bills" ? "⚡" : "💼"}
@@ -888,23 +854,25 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
 
                         {/* Repeat Dates Range */}
                         <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 4, opacity: 0.9 }}>
-                          <span>📅 {re.startDate}</span>
+                          <Calendar size={10} />
+                          <span>{fmtDate(re.startDate)}</span>
                           {re.endDate ? (
                             <>
                               <ArrowRight size={10} style={{ margin: "0 2px" }} />
-                              <span>{re.endDate}</span>
+                              <span>{fmtDate(re.endDate)}</span>
                             </>
                           ) : (
-                            <span style={{ fontStyle: "italic", marginLeft: 4 }}>(Indefinite)</span>
+                            <span style={{ fontStyle: "italic", marginLeft: 4 }}>(No end date)</span>
                           )}
                         </div>
 
                         {/* Match details if paid */}
                         {hasPaid && (
-                          <div style={{ marginTop: 8, fontSize: 11, padding: "6px 10px", borderRadius: 6, background: "rgba(5,150,105,0.04)", color: THEME.sage, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                            <span>✓ Matched ledger transaction:</span>
-                            <span style={{ textDecoration: "underline", cursor: "pointer" }} title={`Recorded on ${match.date} to account: ${match.note}`}>
-                              {fmtINR(match.amount)} on {match.date}
+                          <div style={{ marginTop: 8, fontSize: 11, padding: "6px 10px", borderRadius: 6, background: `${THEME.sage}06`, border: `1px solid ${THEME.sage}22`, color: THEME.sage, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                            <CheckCircle2 size={11} />
+                            <span>Matched:</span>
+                            <span style={{ textDecoration: "underline", cursor: "pointer" }} title={`Recorded on ${match.date}: ${match.note}`}>
+                              {fmtINR(match.amount)} on {fmtDate(match.date)}
                             </span>
                           </div>
                         )}
