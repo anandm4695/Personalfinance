@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet, Download, AlertTriangle, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Play, Pause, Pencil, Trash2, Repeat, Wallet, Download, AlertTriangle, Clock, ChevronDown, ChevronRight, MessageSquare } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
@@ -59,7 +59,7 @@ const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
   }
 
   return (
-    <div style={{ width: size, height: size, borderRadius: 10, background: "rgba(128,128,128,0.1)", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: 10, background: `${THEME.muted}15`, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: size/2.5, fontWeight: 800, color: THEME.muted }}>{name.slice(0, 2).toUpperCase()}</span>
     </div>
   );
@@ -76,6 +76,12 @@ function getRenewalInfo(renewalDate: string | undefined) {
   if (days <= 30) return { days, label: `Due in ${days}d`, color: THEME.accent, urgent: false };
   return { days, label: `${days}d away`, color: THEME.muted, urgent: false };
 }
+
+const fmtDate = (dateStr: string) => {
+  if (!dateStr) return "—";
+  try { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+  catch { return dateStr; }
+};
 
 export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
@@ -168,50 +174,31 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
         Subscriptions
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
-        <StatCard
-          icon={<Repeat />}
-          label="Active Subscriptions"
-          value={activeSubs.length}
-          color={THEME.accent}
-          sub="Monthly/Annual recurring"
-        />
-        <StatCard
-          icon={<Wallet />}
-          label="Monthly Equivalent"
-          value={fmtINRFull(totalMonthly)}
-          color={THEME.gold}
-          sub={metrics?.monthIncome > 0 ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Projected monthly spend"}
-        />
-        <StatCard
-          icon={<Wallet />}
-          label="Annual Cost"
-          value={fmtINRFull(totalAnnual)}
-          color={THEME.rust}
-          sub={metrics?.annualIncome > 0 ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income` : "Total annual outgo"}
-        />
-        {pausedMonthlySavings > 0 ? (
-          <StatCard
-            icon={<Pause />}
-            label="Paused Savings"
-            value={fmtINRFull(pausedMonthlySavings)}
-            color={THEME.muted}
-            sub={`${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`}
-          />
-        ) : (
-          <StatCard
-            icon={<Repeat />}
-            label="Total Tracked"
-            value={state.subscriptions.length}
-            color={THEME.muted}
-            sub="Including paused services"
-          />
-        )}
-      </div>
+      {(() => {
+        const tile4 = pausedMonthlySavings > 0
+          ? { label: "Paused Savings", value: fmtINRFull(pausedMonthlySavings), sub: `${pausedSubs.length} paused service${pausedSubs.length !== 1 ? "s" : ""} · /mo equiv`, color: THEME.muted }
+          : { label: "Total Tracked", value: String(state.subscriptions.length), sub: "Including paused services", color: THEME.muted };
+        return (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+            {[
+              { label: "Active Subscriptions", value: String(activeSubs.length), sub: "Monthly/Annual recurring", color: THEME.accent },
+              { label: "Monthly Equivalent", value: fmtINRFull(totalMonthly), sub: metrics?.monthIncome > 0 ? `${((totalMonthly / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Projected monthly spend", color: THEME.gold },
+              { label: "Annual Cost", value: fmtINRFull(totalAnnual), sub: metrics?.annualIncome > 0 ? `${((totalAnnual / metrics.annualIncome) * 100).toFixed(1)}% of annual income` : "Total annual outgo", color: THEME.rust },
+              tile4,
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── Upcoming Renewals Section ── */}
       {upcomingSubs.length > 0 && (
-        <Card style={{ marginBottom: 24, padding: "14px 18px", border: `1px solid ${THEME.gold}44`, background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)` }}>
+        <Card style={{ marginBottom: 24, padding: "14px 18px", border: `1px solid ${THEME.gold}44`, background: `${THEME.gold}09` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <Clock size={15} color={THEME.gold} />
             <span style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
@@ -290,7 +277,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       const color = renewal.urgent ? renewal.color : THEME.accent;
 
                       return (
-                        <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${color}` }}>
+                        <Card key={s.id} style={{ padding: "16px 20px", borderTop: `3px solid ${color}` }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                             <ServiceLogo name={s.name} />
 
@@ -307,12 +294,12 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 {/* Renewal countdown with urgency coloring */}
                                 <span style={{ color: renewal.color, fontWeight: 700, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 3 }}>
                                   {renewal.urgent && <AlertTriangle size={10} />}
-                                  {s.renewalDate ? `${s.renewalDate} (${renewal.label})` : "No date set"}
+                                  {s.renewalDate ? `${fmtDate(s.renewalDate)} (${renewal.label})` : "No date set"}
                                 </span>
                               </div>
                               {s.remark && (
                                 <div style={{ fontSize: 11, color: THEME.muted, marginTop: 5, display: "flex", alignItems: "center", gap: 4, fontWeight: 500, opacity: 0.9 }} title={s.remark}>
-                                  <span style={{ opacity: 0.7 }}>💬</span>
+                                  <MessageSquare size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
                                   <span style={{ fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.remark}</span>
                                 </div>
                               )}
@@ -347,6 +334,17 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                               </Button>
                             </div>
                           </div>
+                          {totalMonthly > 0 && (
+                            <div style={{ marginTop: 10 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                                <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Share of monthly</span>
+                                <span style={{ fontSize: 9, color, fontWeight: 700 }}>{((monthly / totalMonthly) * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="progress-track">
+                                <div className="progress-fill" style={{ width: `${Math.min((monthly / totalMonthly) * 100, 100)}%`, background: color }} />
+                              </div>
+                            </div>
+                          )}
                         </Card>
                       );
                     })}
@@ -369,7 +367,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                 {pausedSubs.map((s: any) => {
                   const monthly = s.cycle === "yearly" ? Number(s.amount) / 12 : s.cycle === "quarterly" ? Number(s.amount) / 3 : Number(s.amount);
                   return (
-                    <Card key={s.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${THEME.muted}`, opacity: 0.7 }}>
+                    <Card key={s.id} style={{ padding: "16px 20px", borderTop: `3px solid ${THEME.muted}`, opacity: 0.7 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <ServiceLogo name={s.name} />
                         <div style={{ flex: 1, minWidth: 0 }}>
