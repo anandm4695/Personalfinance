@@ -1,10 +1,9 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Plus, Pencil, Trash2, Flag, TrendingUp, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Flag } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
-import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -103,6 +102,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const ringColor = (pct: number) =>
     pct >= 100 ? THEME.sage : pct >= 75 ? THEME.gold : pct >= 40 ? THEME.accent : THEME.rust;
 
+  const fmtGoalDate = (d: string) =>
+    d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "";
+
   return (
     <div className="tab-content-enter">
       <SectionTitle 
@@ -115,51 +117,25 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
           )
         }
       >
-        Goals & Future Planning
+        Financial Goals
       </SectionTitle>
 
       {state.goals.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 28 }}>
-            <StatCard
-              icon={<Flag />}
-              label="Total Target"
-              value={fmtINRFull(totalTarget)}
-              color={THEME.accent}
-              sub={`${state.goals.length} active goals`}
-            />
-            <StatCard
-              icon={<TrendingUp />}
-              label="Saved So Far"
-              value={fmtINRFull(totalSaved)}
-              color={THEME.sage}
-              sub={`${overallPct.toFixed(1)}% of global target`}
-            />
-            <StatCard
-              icon={<Flag />}
-              label="Balance Left"
-              value={fmtINRFull(totalRemaining)}
-              color={THEME.rust}
-              sub="Required capital to finish"
-            />
-            {totalMonthlyRequired > 0 && (
-              <StatCard
-                icon={<Sparkles />}
-                label="Monthly Required"
-                value={fmtINRFull(totalMonthlyRequired)}
-                color={monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold}
-                sub={monthlySavings > 0 ? (totalMonthlyRequired > monthlySavings ? `Exceeds ${fmtINRFull(monthlySavings)} savings capacity` : `Within ${fmtINRFull(monthlySavings)} monthly savings`) : "Needed/mo to stay on track"}
-              />
-            )}
-            {totalMonthlyRequired === 0 && (
-              <StatCard
-                icon={<Sparkles />}
-                label="Status"
-                value={onTrackCount + completedCount}
-                color={ringColor(overallPct)}
-                sub={`${onTrackCount} on track, ${completedCount} done`}
-              />
-            )}
+          {/* Tinted summary strip */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+            {[
+              { label: "Total Target",     value: fmtINRFull(totalTarget),                                                         color: THEME.accent },
+              { label: "Total Saved",      value: fmtINRFull(totalSaved),                                                          color: THEME.sage   },
+              { label: "Remaining",        value: fmtINRFull(totalRemaining),                                                      color: THEME.rust   },
+              { label: "Overall Progress", value: `${overallPct.toFixed(1)}%`,                                                     color: ringColor(overallPct) },
+              { label: "Monthly Required", value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",        color: totalMonthlyRequired > 0 && monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+              </div>
+            ))}
           </div>
 
           <Card style={{ marginBottom: 32, padding: 28 }}>
@@ -188,8 +164,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     <div key={p.priority} style={{
                       padding: "16px 20px",
                       borderRadius: 14,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "rgba(128,128,128,0.02)",
+                      border: `1px solid ${PRIORITY_COLOR[p.priority]}28`,
+                      background: `${PRIORITY_COLOR[p.priority]}08`,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <span style={{ fontSize: 12, fontWeight: 800, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
@@ -269,7 +245,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             const rc = ringColor(progress);
 
             return (
-              <Card key={g.id} style={{ border: isComplete ? `1.5px solid ${THEME.sage}44` : undefined, padding: 24 }}>
+              <Card key={g.id} style={{ padding: 24, borderTop: `3px solid ${isComplete ? THEME.sage : (PRIORITY_COLOR[g.priority] || THEME.muted)}` }}>
                 {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -305,8 +281,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800 }}>{g.name}</div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 6, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      {g.startDate && <span>Started: {g.startDate}</span>}
-                      {g.targetDate && <span>Target: {g.targetDate} · {monthsLeft}m left</span>}
+                      {g.startDate && <span>Started: {fmtGoalDate(g.startDate)}</span>}
+                      {g.targetDate && <span>Target: {fmtGoalDate(g.targetDate)} · {monthsLeft}m left</span>}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -337,16 +313,44 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     );
                   })()}
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, fontSize: 12 }}>
-                      <div><div style={{ color: THEME.muted }}>Saved so far</div><div style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(g.currentAmount)}</div></div>
-                      <div><div style={{ color: THEME.muted }}>Remaining</div><div style={{ fontWeight: 700, color: THEME.rust }}>{fmtINRFull(remaining)}</div></div>
-                      {g.targetDate && <div><div style={{ color: THEME.muted }}>Months left</div><div style={{ fontWeight: 700 }}>{monthsLeft}</div></div>}
+                    {/* Tinted stat tiles */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                      {[
+                        { label: "Saved",      value: fmtINRFull(g.currentAmount), color: THEME.sage },
+                        { label: "Remaining",  value: fmtINRFull(remaining),       color: THEME.rust },
+                        ...(g.targetDate ? [{ label: "Months Left", value: String(monthsLeft), color: isBehind ? THEME.rust : THEME.accent }] : []),
+                      ].map(({ label, value, color }) => (
+                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "7px 12px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px" }}>
+                          <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color }}>{value}</span>
+                        </div>
+                      ))}
                     </div>
+
+                    {/* Time-elapsed progress bar */}
+                    {g.startDate && g.targetDate && (() => {
+                      const totalM = monthsBetween(g.startDate, g.targetDate);
+                      const elapsedM = Math.max(0, monthsBetween(g.startDate, today()));
+                      const timePct = totalM > 0 ? Math.min(100, (elapsedM / totalM) * 100) : 0;
+                      if (totalM <= 0) return null;
+                      return (
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                            <span>TIME ELAPSED</span>
+                            <span style={{ color: isBehind ? THEME.rust : THEME.accent, fontWeight: 700 }}>{timePct.toFixed(0)}%</span>
+                          </div>
+                          <div className="progress-track">
+                            <div className="progress-fill" style={{ width: `${timePct}%`, background: isBehind ? THEME.rust : THEME.accent }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {monthlyNeeded > 0 && !isComplete && (
                       <div style={{ marginTop: 12 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ fontSize: 13, color: THEME.ink }}>
-                            → Simple: <b>{fmtINRFull(monthlyNeeded)}</b>/mo without returns
+                          <div style={{ fontSize: 12, color: THEME.muted }}>
+                            Monthly needed: <span style={{ fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthlyNeeded)}</span><span style={{ fontSize: 10 }}> /mo</span>
                           </div>
                           <button
                             onClick={() => setSipExpanded(prev => {
@@ -354,9 +358,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               next.has(g.id) ? next.delete(g.id) : next.add(g.id);
                               return next;
                             })}
-                            style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "2px 6px" }}
+                            style={{ fontSize: 10, fontWeight: 700, color: sipExpanded.has(g.id) ? "#fff" : THEME.accent, background: sipExpanded.has(g.id) ? THEME.accent : `${THEME.accent}15`, border: `1px solid ${THEME.accent}33`, borderRadius: 20, padding: "3px 10px", cursor: "pointer" }}
                           >
-                            {sipExpanded.has(g.id) ? "SIP Calc ▲" : "SIP Calc ▼"}
+                            SIP Calc {sipExpanded.has(g.id) ? "▲" : "▼"}
                           </button>
                         </div>
 
