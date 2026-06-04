@@ -265,8 +265,6 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
   const [sub, setSub] = useState(subTab || "cc");
   const [modal, setModal] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
-  const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
 
   // Existing shared group names — passed to modals for datalist suggestions
   const existingGroups: string[] = [...new Set(
@@ -440,123 +438,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           )}
           {sub === "prepaid" && <PrepaidList items={state.prepaidCards} onRemove={(id: any) => removeItem("prepaidCards", id)} onEdit={setEditId} onUpdateCard={(id: any, updates: any) => updateItem("prepaidCards", id, updates)} onAdd={() => setModal("prepaid")} />}
           {sub === "taken" && (
-            <>
-              <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} onAdd={() => setModal("taken")} />
-              {state.loansTaken.length > 0 && (
-                <div style={{ marginTop: 32 }}>
-                  <div style={{ fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>Payoff Progress</div>
-                  <div style={{ display: "grid", gap: 16 }}>
-                    {state.loansTaken.map((l: any) => {
-                      const principal = Number(l.principal) || 0;
-                      const outstanding = Number(l.outstanding) || 0;
-                      const emi = Number(l.emi) || 0;
-                      const months = Number(l.monthsRemaining) || 0;
-                      const paid = principal - outstanding;
-                      const paidPct = principal > 0 ? (paid / principal) * 100 : 0;
-                      const totalRemaining = emi * months;
-                      const interestRemaining = Math.max(0, totalRemaining - outstanding);
-                      const payoffDate = new Date();
-                      payoffDate.setMonth(payoffDate.getMonth() + months);
-                      return (
-                        <Card key={l.id}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                            <div><div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>{l.type || "Loan"}</div><div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{l.lender}</div></div>
-                            <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: THEME.rust }}>{fmtINRFull(outstanding)}</div><div style={{ fontSize: 11, color: THEME.muted }}>outstanding</div></div>
-                          </div>
-                          <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 8 }}>
-                            <div style={{ height: "100%", width: Math.min(paidPct, 100) + "%", background: paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust, borderRadius: 5, transition: "width 0.6s" }} />
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            {[
-                              { k: "Principal Paid", v: fmtINR(paid),        color: THEME.sage  },
-                              { k: "EMI",            v: `${fmtINR(emi)}/mo`, color: THEME.accent },
-                              { k: "Interest Left",  v: fmtINR(interestRemaining), color: THEME.rust },
-                              { k: "Payoff Date",    v: months > 0 ? payoffDate.toLocaleString("en-IN", { month: "short", year: "numeric" }) : "—", color: THEME.muted },
-                            ].map(({ k, v, color }) => (
-                              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "7px 12px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 100px" }}>
-                                <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
-                                <span style={{ fontSize: 13, fontWeight: 800, color }}>{v}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted }}>{paidPct.toFixed(1)}% of principal repaid · {months} months left</div>
-
-                          {/* Prepayment Calculator */}
-                          <div style={{ marginTop: 14, borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>Prepayment Calculator</div>
-                              <button
-                                onClick={() => setPrepayExpanded(prev => {
-                                  const next = new Set(prev);
-                                  next.has(l.id) ? next.delete(l.id) : next.add(l.id);
-                                  return next;
-                                })}
-                                style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "2px 6px" }}
-                              >
-                                {prepayExpanded.has(l.id) ? "Hide ▲" : "Show ▼"}
-                              </button>
-                            </div>
-                            {prepayExpanded.has(l.id) && (
-                              <div style={{ marginTop: 12, padding: 14, background: "rgba(99,102,241,0.04)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.1)" }}>
-                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const, marginBottom: 12 }}>
-                                  <span style={{ fontSize: 12, color: THEME.muted }}>If I prepay</span>
-                                  <input
-                                    type="number"
-                                    placeholder="₹ amount"
-                                    value={prepayInputs[l.id] || ""}
-                                    onChange={e => setPrepayInputs(prev => ({ ...prev, [l.id]: e.target.value }))}
-                                    style={{ width: 110, padding: "5px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
-                                  />
-                                  <span style={{ fontSize: 12, color: THEME.muted }}>today</span>
-                                </div>
-                                {prepayInputs[l.id] && Number(prepayInputs[l.id]) > 0 && (() => {
-                                  const prepay = Number(prepayInputs[l.id]);
-                                  if (prepay >= outstanding) {
-                                    return (
-                                      <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", fontSize: 13, fontWeight: 700, color: THEME.sage }}>
-                                        Full payoff! Save {fmtINR(interestRemaining)} in interest & close loan today.
-                                      </div>
-                                    );
-                                  }
-                                  const newOutstanding = outstanding - prepay;
-                                  const r = Number(l.rate || 0) / 100 / 12;
-                                  let newMonths: number;
-                                  if (r > 0 && emi > r * newOutstanding) {
-                                    newMonths = -Math.log(1 - (r * newOutstanding) / emi) / Math.log(1 + r);
-                                  } else {
-                                    newMonths = emi > 0 ? newOutstanding / emi : months;
-                                  }
-                                  newMonths = Math.ceil(newMonths);
-                                  const newInterestRemaining = Math.max(0, emi * newMonths - newOutstanding);
-                                  const monthsSaved = Math.max(0, months - newMonths);
-                                  const interestSaved = Math.max(0, interestRemaining - newInterestRemaining);
-                                  const newPayoff = new Date();
-                                  newPayoff.setMonth(newPayoff.getMonth() + newMonths);
-                                  return (
-                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                      {[
-                                        { label: "Months Saved",   value: `${monthsSaved} mo`, color: THEME.sage   },
-                                        { label: "Interest Saved", value: fmtINR(interestSaved), color: THEME.sage  },
-                                        { label: "New Payoff",     value: newPayoff.toLocaleString("en-IN", { month: "short", year: "numeric" }), color: THEME.accent },
-                                      ].map(({ label, value, color }) => (
-                                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "8px 14px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px", textAlign: "center" as const }}>
-                                          <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                                          <span style={{ fontSize: 14, fontWeight: 800, color }}>{value}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </>
+            <LoanTakenList items={state.loansTaken} onRemove={(id: any) => removeItem("loansTaken", id)} onEdit={setEditId} onAdd={() => setModal("taken")} />
           )}
           {sub === "given" && <LoanGivenList items={state.loansGiven} onRemove={(id: any) => removeItem("loansGiven", id)} onEdit={setEditId} onAdd={() => setModal("given")} />}
           {sub === "borrowed" && <InformalLoanView direction="borrowed" items={state.informalBorrowed || []} onAddPerson={(v: any) => addItem("informalBorrowed", v)} onUpdate={(id: any, patch: any) => updateItem("informalBorrowed", id, patch)} onRemove={(id: any) => removeItem("informalBorrowed", id)} />}
@@ -1706,45 +1588,169 @@ function LoanEmptyState({ type, onAdd }: any) {
 }
 
 function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
+  const [prepayExpanded, setPrepayExpanded] = useState<Set<string>>(new Set());
+  const [prepayInputs, setPrepayInputs] = useState<Record<string, string>>({});
+
   if (!items.length) return <LoanEmptyState type="taken" onAdd={onAdd} />;
+
+  const totalPrincipal = items.reduce((s: number, l: any) => s + (Number(l.principal) || 0), 0);
+  const totalOutstanding = items.reduce((s: number, l: any) => s + (Number(l.outstanding) || 0), 0);
+  const totalEMI = items.reduce((s: number, l: any) => s + (Number(l.emi) || 0), 0);
+
   return (
-    <Grid>
-      {items.map((l: any) => {
-        const months = Number(l.monthsRemaining) || 0;
-        const isPaidOff = months === 0 && Number(l.outstanding || 0) === 0;
-        const payoffDate = months > 0 ? (() => {
-          const d = new Date();
-          d.setMonth(d.getMonth() + months);
-          return d.toLocaleString("en-IN", { month: "short", year: "numeric" });
-        })() : null;
-        const totalInterest = months > 0 ? Math.max(0, Number(l.emi || 0) * months - Number(l.outstanding || 0)) : 0;
-        return (
-          <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)} cardStyle={{ borderTop: `3px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: THEME.rust }}>{l.type || "Loan"}</div>
-              {isPaidOff && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.08em" }}>PAID OFF</span>}
-            </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800, marginTop: 12, color: isPaidOff ? THEME.sage : THEME.rust }}>{fmtINRFull(l.outstanding)}</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-              {[
-                { k: "Principal",    v: fmtINR(l.principal),                         color: THEME.muted  },
-                { k: "EMI",          v: `${fmtINR(l.emi)}/mo`,                        color: THEME.accent },
-                { k: "Rate",         v: `${l.rate}%`,                                 color: THEME.muted  },
-                { k: "Months Left",  v: months > 0 ? String(months) : "—",            color: THEME.ink    },
-                ...(payoffDate ? [{ k: "Payoff By",     v: payoffDate,                color: THEME.sage   }] : []),
-                ...(totalInterest > 0 ? [{ k: "Interest Left", v: fmtINR(totalInterest), color: THEME.rust }] : []),
-              ].map(({ k, v, color }) => (
-                <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 10px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 70px" }}>
-                  <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {[
+          { label: "Total Borrowed", value: fmtINRFull(totalPrincipal), sub: `${items.length} loan${items.length !== 1 ? "s" : ""}`, color: THEME.muted },
+          { label: "Outstanding",    value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Balance remaining" : "All paid off", color: THEME.rust },
+          { label: "Monthly EMI",    value: fmtINRFull(totalEMI), sub: "Combined monthly payment", color: THEME.accent },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          </div>
+        ))}
+      </div>
+
+      <Grid>
+        {items.map((l: any) => {
+          const principal = Number(l.principal) || 0;
+          const outstanding = Number(l.outstanding) || 0;
+          const emi = Number(l.emi) || 0;
+          const months = Number(l.monthsRemaining) || 0;
+          const isPaidOff = months === 0 && outstanding === 0;
+          const paid = principal - outstanding;
+          const paidPct = principal > 0 ? (paid / principal) * 100 : 0;
+          const interestRemaining = Math.max(0, emi * months - outstanding);
+          const payoffDate = months > 0 ? (() => {
+            const d = new Date();
+            d.setMonth(d.getMonth() + months);
+            return d.toLocaleString("en-IN", { month: "short", year: "numeric" });
+          })() : null;
+          const barColor = paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust;
+
+          return (
+            <InvestCard key={l.id} onRemove={() => onRemove(l.id)} onEdit={() => onEdit(l.id)} cardStyle={{ borderTop: `3px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase", color: isPaidOff ? THEME.sage : THEME.rust }}>{l.type || "Loan"}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
                 </div>
-              ))}
-            </div>
-          </InvestCard>
-        );
-      })}
-    </Grid>
+                {isPaidOff && <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.08em" }}>PAID OFF</span>}
+              </div>
+
+              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 10, color: isPaidOff ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                {fmtINRFull(outstanding)}
+              </div>
+
+              {/* Payoff progress bar */}
+              {principal > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <span>Repaid</span>
+                    <span style={{ color: barColor, fontWeight: 700 }}>{paidPct.toFixed(1)}%{months > 0 ? ` · ${months} mo left` : ""}</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${Math.min(paidPct, 100)}%`, background: barColor }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Stat cells */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                {[
+                  { k: "Principal",   v: fmtINR(l.principal),               color: THEME.muted  },
+                  { k: "EMI",         v: `${fmtINR(emi)}/mo`,               color: THEME.accent },
+                  { k: "Rate",        v: `${l.rate}%`,                       color: THEME.muted  },
+                  { k: "Months Left", v: months > 0 ? String(months) : "—", color: THEME.ink    },
+                  ...(payoffDate    ? [{ k: "Payoff By",      v: payoffDate,        color: THEME.sage }] : []),
+                  ...(paid > 0      ? [{ k: "Principal Paid", v: fmtINR(paid),      color: THEME.sage }] : []),
+                  ...(interestRemaining > 0 ? [{ k: "Interest Left", v: fmtINR(interestRemaining), color: THEME.rust }] : []),
+                ].map(({ k, v, color }) => (
+                  <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 10px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 70px" }}>
+                    <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{k}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Prepayment Calculator */}
+              {!isPaidOff && outstanding > 0 && (
+                <div style={{ marginTop: 14, borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>Prepayment Calculator</div>
+                    <button
+                      onClick={() => setPrepayExpanded(prev => {
+                        const next = new Set(prev);
+                        next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                        return next;
+                      })}
+                      style={{ fontSize: 11, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "2px 6px" }}
+                    >
+                      {prepayExpanded.has(l.id) ? "Hide ▲" : "Show ▼"}
+                    </button>
+                  </div>
+                  {prepayExpanded.has(l.id) && (
+                    <div style={{ marginTop: 12, padding: 14, background: "rgba(99,102,241,0.04)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.1)" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const, marginBottom: 12 }}>
+                        <span style={{ fontSize: 12, color: THEME.muted }}>If I prepay</span>
+                        <input
+                          type="number"
+                          placeholder="₹ amount"
+                          value={prepayInputs[l.id] || ""}
+                          onChange={e => setPrepayInputs(prev => ({ ...prev, [l.id]: e.target.value }))}
+                          style={{ width: 110, padding: "5px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                        />
+                        <span style={{ fontSize: 12, color: THEME.muted }}>today</span>
+                      </div>
+                      {prepayInputs[l.id] && Number(prepayInputs[l.id]) > 0 && (() => {
+                        const prepay = Number(prepayInputs[l.id]);
+                        if (prepay >= outstanding) {
+                          return (
+                            <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", fontSize: 13, fontWeight: 700, color: THEME.sage }}>
+                              Full payoff! Save {fmtINR(interestRemaining)} in interest & close loan today.
+                            </div>
+                          );
+                        }
+                        const newOutstanding = outstanding - prepay;
+                        const r = Number(l.rate || 0) / 100 / 12;
+                        let newMonths: number;
+                        if (r > 0 && emi > r * newOutstanding) {
+                          newMonths = -Math.log(1 - (r * newOutstanding) / emi) / Math.log(1 + r);
+                        } else {
+                          newMonths = emi > 0 ? newOutstanding / emi : months;
+                        }
+                        newMonths = Math.ceil(newMonths);
+                        const newInterestRemaining = Math.max(0, emi * newMonths - newOutstanding);
+                        const monthsSaved = Math.max(0, months - newMonths);
+                        const interestSaved = Math.max(0, interestRemaining - newInterestRemaining);
+                        const newPayoff = new Date();
+                        newPayoff.setMonth(newPayoff.getMonth() + newMonths);
+                        return (
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {[
+                              { label: "Months Saved",   value: `${monthsSaved} mo`,  color: THEME.sage  },
+                              { label: "Interest Saved", value: fmtINR(interestSaved), color: THEME.sage  },
+                              { label: "New Payoff",     value: newPayoff.toLocaleString("en-IN", { month: "short", year: "numeric" }), color: THEME.accent },
+                            ].map(({ label, value, color }) => (
+                              <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "8px 14px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px", textAlign: "center" as const }}>
+                                <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                                <span style={{ fontSize: 14, fontWeight: 800, color }}>{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </InvestCard>
+          );
+        })}
+      </Grid>
+    </div>
   );
 }
 
