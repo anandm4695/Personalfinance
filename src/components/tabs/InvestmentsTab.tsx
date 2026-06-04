@@ -45,6 +45,7 @@ interface InvestmentsTabProps {
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
   subTab?: string;
+  onSubTabChange?: (sub: string) => void;
 }
 
 /* ── shared input style (matches GoalModal) ─────────────────────────── */
@@ -436,6 +437,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   removeItem,
   updateItem,
   subTab,
+  onSubTabChange,
 }) => {
   const [sub, setSub] = useState(subTab || "fd");
   const [showModal, setShowModal] = useState(false);
@@ -566,7 +568,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             const Icon = s.icon;
             const active = sub === s.id;
             return (
-              <button key={s.id} onClick={() => setSub(s.id)} style={{
+              <button key={s.id} onClick={() => { setSub(s.id); onSubTabChange?.(s.id); }} style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "6px 14px", height: 34, borderRadius: 10,
                 border: active ? "none" : `1px solid ${THEME.line}`,
