@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Search, PieChart as PieIcon, Activity } from "lucide-react";
+import { Plus, Briefcase, TrendingUp, Percent, ArrowLeftRight, RefreshCw, ChevronDown, Edit3, Trash2, Scissors, BarChart3, Search, PieChart as PieIcon, Activity, ArrowUp, ArrowDown } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -750,11 +750,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{base}</span>
                               <span style={{ fontSize: 8, background: THEME.line, color: THEME.muted, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>{exchange}</span>
                             </div>
-                            {isLive && (
-                              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}>
-                                {md.sector || "Sector N/A"}
-                              </div>
-                            )}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                              {isLive && <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{md.sector || "Sector N/A"}</span>}
+                              <span style={{ fontSize: 9, background: "rgba(128,128,128,0.08)", color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>{lots.length} {lots.length === 1 ? "lot" : "lots"}</span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -852,8 +851,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             
                             {/* Right Panel: Buy lots detail & actions */}
                             <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
-                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                Holdings Lot Breakdown
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Holdings Lot Breakdown</span>
+                                <span style={{ fontSize: 10, fontWeight: 800, background: `${THEME.accent}15`, color: THEME.accent, padding: "1px 8px", borderRadius: 20, border: `1px solid ${THEME.accent}25` }}>{lots.length} {lots.length === 1 ? "lot" : "lots"}</span>
                               </div>
                               <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 6px", fontSize: 12 }}>
                                 <thead>
@@ -861,7 +861,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", paddingLeft: 8 }}>Broker</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Qty</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Buy Price</th>
-                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right", cursor: "pointer", userSelect: "none", color: THEME.accent }} onClick={() => setLotSortDir(prev => ({ ...prev, [yfSym]: (prev[yfSym] ?? "asc") === "asc" ? "desc" : "asc" }))}>Period {(lotSortDir[yfSym] ?? "asc") === "asc" ? "↑" : "↓"}</th>
+                                    <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right", cursor: "pointer", userSelect: "none", color: THEME.accent }} onClick={() => setLotSortDir(prev => ({ ...prev, [yfSym]: (prev[yfSym] ?? "asc") === "asc" ? "desc" : "asc" }))}><span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Period {(lotSortDir[yfSym] ?? "asc") === "asc" ? <ArrowUp size={9} /> : <ArrowDown size={9} />}</span></th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Return</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: "right" }}>Value</th>
                                     <th style={{ ...th, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px" }}></th>
@@ -892,24 +892,28 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 600 }}>₹{Number(lot.avgPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right" }}>
                                           <div style={{ fontWeight: 600 }}>{lot.buyDate ? new Date(lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</div>
-                                          {lot.buyDate && (
-                                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>
-                                              {(() => {
-                                                const diff = new Date().getTime() - new Date(lot.buyDate).getTime();
-                                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                                if (days > 365) return `LTCG (${(days/365).toFixed(1)}y)`;
-                                                return `STCG (${days}d)`;
-                                              })()}
-                                            </div>
-                                          )}
+                                          {lot.buyDate && (() => {
+                                            const diff = new Date().getTime() - new Date(lot.buyDate).getTime();
+                                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                            const isLTCG = days > 365;
+                                            const nearLTCG = !isLTCG && days > 300;
+                                            return (
+                                              <span style={{ marginTop: 3, display: "inline-block", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 4, background: isLTCG ? "rgba(5,150,105,0.12)" : "rgba(217,119,6,0.1)", color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold }}>
+                                                {isLTCG ? `LTCG · ${(days/365).toFixed(1)}y` : `STCG · ${days}d`}
+                                              </span>
+                                            );
+                                          })()}
                                         </td>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right" }}>
                                           <div style={{ color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
                                             {lPnl >= 0 ? "+" : ""}{Math.round(lPnlPct)}%
                                           </div>
-                                          {lot.buyDate && (() => { 
-                                            const cagr = calcCAGR(lInv, lCurr, lot.buyDate); 
-                                            return cagr !== null ? <div style={{ fontSize: 9, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 800 }}>{cagr.toFixed(0)}% CAGR</div> : null; 
+                                          <div style={{ fontSize: 10, color: lPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 600 }}>
+                                            {lPnl >= 0 ? "+" : ""}{fmtINR(lPnl)}
+                                          </div>
+                                          {lot.buyDate && (() => {
+                                            const cagr = calcCAGR(lInv, lCurr, lot.buyDate);
+                                            return cagr !== null ? <div style={{ fontSize: 9, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust, fontWeight: 800 }}>{cagr.toFixed(0)}% CAGR</div> : null;
                                           })()}
                                         </td>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
@@ -924,8 +928,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     );
                                   })}
                                 </tbody>
+                                <tfoot>
+                                  <tr>
+                                    <td colSpan={2} style={{ padding: "8px", borderTop: `1.5px solid ${THEME.line}`, fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Total · {totalQty} shares</td>
+                                    <td style={{ padding: "8px", borderTop: `1.5px solid ${THEME.line}`, textAlign: "right", fontWeight: 700, fontSize: 12, color: THEME.ink }}>₹{Number(totalQty > 0 ? totalInv / totalQty : 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
+                                    <td style={{ padding: "8px", borderTop: `1.5px solid ${THEME.line}`, textAlign: "right" }}>
+                                      <div style={{ fontWeight: 800, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>{totalPnl >= 0 ? "+" : ""}{Math.round(totalPnlPct)}%</div>
+                                      <div style={{ fontSize: 10, fontWeight: 600, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>{totalPnl >= 0 ? "+" : ""}{fmtINR(totalPnl)}</div>
+                                    </td>
+                                    <td style={{ padding: "8px", borderTop: `1.5px solid ${THEME.line}`, textAlign: "right", fontWeight: 800, fontSize: 13, color: THEME.ink }}>{fmtINR(totalCurr)}</td>
+                                    <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
+                                  </tr>
+                                </tfoot>
                               </table>
-                              
+
                               {/* Corporate actions logs */}
                               {(() => {
                                 const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
