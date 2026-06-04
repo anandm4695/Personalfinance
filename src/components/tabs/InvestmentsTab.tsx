@@ -543,35 +543,50 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         Investments Portfolio
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
-        <StatCard 
-          label="Total Invested" 
-          value={fmtINRFull(totalPrincipal)} 
-          icon={<Briefcase />} 
-          color={THEME.accent}
-          sub="Principal contributions"
-        />
-        <StatCard 
-          label="Current Value" 
-          value={fmtINRFull(totalCurrent)} 
-          icon={<Activity />} 
-          color={THEME.sage}
-          sub="Estimated portfolio value"
-        />
-        <StatCard 
-          label="Net Returns" 
-          value={fmtINRFull(netGain)} 
-          icon={<TrendingUp />} 
-          color={netGain >= 0 ? THEME.sage : THEME.rust}
-          sub={netGain >= 0 ? `${gainPct.toFixed(1)}% overall gain` : `${Math.abs(gainPct).toFixed(1)}% overall loss`}
-        />
+      {/* Portfolio summary strip */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+        {[
+          { label: "Total Invested", value: fmtINRFull(totalPrincipal), color: THEME.accent },
+          { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage },
+          { label: "Net Returns",    value: `${netGain >= 0 ? "+" : ""}${fmtINRFull(Math.abs(netGain))}`, color: netGain >= 0 ? THEME.sage : THEME.rust },
+          { label: "Return %",       value: `${netGain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`, color: netGain >= 0 ? THEME.sage : THEME.rust },
+          { label: "Instruments",    value: String(subs.filter(s => s.id !== "income" && (s.count ?? 0) > 0).length), color: THEME.muted },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 140px" }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+          </div>
+        ))}
       </div>
 
       <div>
-        <div style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-            {subs.find(s => s.id === sub)?.label}
-          </h3>
+        {/* Inline sub-tab navigation */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+          {subs.map((s) => {
+            const Icon = s.icon;
+            const active = sub === s.id;
+            return (
+              <button key={s.id} onClick={() => setSub(s.id)} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", height: 34, borderRadius: 10,
+                border: active ? "none" : `1px solid ${THEME.line}`,
+                background: active ? THEME.accent : "var(--surface-0)",
+                color: active ? "#fff" : THEME.ink,
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
+                transition: "all 0.2s ease",
+              }}>
+                <Icon size={13} />
+                {s.label}
+                {s.count !== undefined && s.count > 0 && (
+                  <span style={{ padding: "1px 6px", borderRadius: 20, fontSize: 10, fontWeight: 800,
+                    background: active ? "rgba(255,255,255,0.25)" : `${THEME.accent}18`,
+                    color: active ? "#fff" : THEME.accent }}>
+                    {s.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
         {renderContent()}
       </div>
@@ -987,16 +1002,16 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
               {[
                 { label: "Total Invested", value: fmtINRFull(totalInvested), color: FD_AMBER },
                 { label: "Total Maturity", value: fmtINRFull(totalMaturity), color: THEME.sage },
-                { label: "Avg. Rate", value: `${avgRate.toFixed(2)}%`, color: THEME.accent },
+                { label: "Avg. Rate",      value: `${avgRate.toFixed(2)}%`,  color: THEME.accent },
                 { label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active", value: String(items.length - maturedCount), color: maturedCount > 0 ? THEME.rust : THEME.sage },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
-                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -1101,7 +1116,31 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
             onAdd={onAdd}
           />
         : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+          <>
+            {/* RD summary strip */}
+            {(() => {
+              const rdElapsedFn    = (r: any) => r.startDate ? Math.min(Number(r.tenureMonths) || 0, Math.max(0, monthsBetween(r.startDate, today()))) : Number(r.tenureMonths) || 0;
+              const totalMonthly   = items.reduce((s: number, r: any) => s + (Number(r.monthly) || 0), 0);
+              const totalDeposited = items.reduce((s: number, r: any) => s + (Number(r.monthly) || 0) * rdElapsedFn(r), 0);
+              const totalMaturity  = items.reduce((s: number, r: any) => s + rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths) || 0), 0);
+              const activeCount    = items.filter((r: any) => rdElapsedFn(r) < (Number(r.tenureMonths) || 0)).length;
+              return (
+                <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Monthly SIP Total",  value: fmtINRFull(totalMonthly),   color: RD_BLUE },
+                    { label: "Total Deposited",     value: fmtINRFull(totalDeposited), color: THEME.accent },
+                    { label: "Projected Maturity",  value: fmtINRFull(totalMaturity),  color: THEME.sage },
+                    { label: "RDs Active",          value: String(activeCount),        color: activeCount > 0 ? THEME.sage : THEME.muted },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                      <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
             {items.map((r: any) => {
               const tenureMonths = Number(r.tenureMonths) || 0;
               const elapsed = r.startDate ? Math.max(0, monthsBetween(r.startDate, today())) : 0;
@@ -1158,6 +1197,7 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
               );
             })}
           </div>
+          </>
         )}
       {editRD && (
         <EditRDModal
@@ -1216,15 +1256,15 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
               {[
                 { label: "Total Invested", value: fmtINRFull(totalInvested), color: BOND_AMBER },
-                { label: "Annual Coupon", value: fmtINRFull(annualIncome), color: THEME.sage },
-                { label: "Bonds Held", value: String(items.length), color: THEME.accent },
+                { label: "Annual Coupon",  value: fmtINRFull(annualIncome),  color: THEME.sage },
+                { label: "Bonds Held",     value: String(items.length),      color: THEME.accent },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
-                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -1688,9 +1728,16 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {items.length > 1 && (
-              <div style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", fontWeight: 700 }}>Total NPS Corpus</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: NPS_ORANGE }}><Prv>{fmtINRFull(totalCorpus)}</Prv></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+                {[
+                  { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE },
+                  { label: "Accounts",          value: String(items.length),    color: THEME.accent },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                    <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                  </div>
+                ))}
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
@@ -2760,15 +2807,16 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
               {[
-                { label: "Total Invested", value: fmtINRFull(totalInvested), color: THEME.accent },
-                { label: "Current Value",  value: fmtINRFull(totalCurrent),  color: THEME.sage },
-                { label: "Overall P&L",    value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
+                { label: "Total Invested", value: fmtINRFull(totalInvested),  color: THEME.accent },
+                { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage },
+                { label: "Overall P&L",    value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
+                { label: "Return %",       value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
-                  <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</div>
+                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
+                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -2811,9 +2859,14 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                     )}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
                       <div style={{ fontSize: 11, color: THEME.muted }}>P&L</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
-                        {current > 0 ? `${pnl >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%` : "—"}
-                      </div>
+                      {current > 0 ? (
+                        <div style={{ textAlign: "right" as const }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                            {pnl >= 0 ? "+" : ""}{fmtINR(pnl)}
+                          </div>
+                          <div style={{ fontSize: 10, color: THEME.muted }}>{pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%</div>
+                        </div>
+                      ) : <span style={{ fontSize: 13, color: THEME.muted }}>—</span>}
                     </div>
                   </Card>
                 );
