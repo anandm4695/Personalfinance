@@ -550,12 +550,12 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
     const daysLabel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
 
     return (
-      <Card key={r.id + r.date} style={{ padding: compact ? "14px 18px" : "16px 20px", borderLeft: `3px solid ${color}` }}>
+      <Card key={r.id + r.date} style={{ padding: compact ? "14px 18px" : "16px 20px", borderTop: `3px solid ${color}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{
             width: compact ? 36 : 42, height: compact ? 36 : 42, borderRadius: 12, flexShrink: 0,
-            background: `color-mix(in srgb, ${color} 12%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+            background: `${color}15`,
+            border: `1px solid ${color}33`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <Icon size={compact ? 17 : 20} color={color} />
@@ -566,10 +566,10 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               <span style={{ fontWeight: 800, fontSize: compact ? 13 : 15, color: THEME.ink, letterSpacing: "-0.01em" }}>{r.title}</span>
               <span style={{
                 fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
-                background: `color-mix(in srgb, ${color} 10%, transparent)`,
+                background: `${color}15`,
                 color,
                 textTransform: "uppercase", letterSpacing: "0.06em",
-                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+                border: `1px solid ${color}22`,
               }}>{r.type}</span>
             </div>
             {r.subtitle && (
@@ -582,7 +582,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               <div style={{
                 padding: "4px 14px", borderRadius: 8,
                 background: urgencyBg,
-                border: `1px solid color-mix(in srgb, ${urgencyCol} 20%, transparent)`,
+                border: `1px solid ${urgencyCol}33`,
               }}>
                 <span style={{ fontWeight: 900, fontSize: 15, color: urgencyCol, letterSpacing: "-0.02em" }}>{daysLabel}</span>
               </div>
@@ -608,11 +608,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               title="Mark as Done"
               style={{
                 width: 34, height: 34, borderRadius: "50%",
-                border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
+                border: `1px dashed ${THEME.sage}66`,
                 background: "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
-                color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
+                color: THEME.sage,
                 transition: "all 0.2s ease-in-out",
               }}
               onMouseEnter={(e) => {
@@ -623,8 +623,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderStyle = "dashed";
-                e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
-                e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
+                e.currentTarget.style.borderColor = `${THEME.sage}66`;
+                e.currentTarget.style.color = THEME.sage;
                 e.currentTarget.style.background = "transparent";
               }}
             >
@@ -692,19 +692,33 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         Reminders &amp; Alerts
       </SectionTitle>
 
-      {/* ── STAT CARDS ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard icon={<Bell />} label="Upcoming Alerts" value={upcoming.length} color={THEME.accent} sub="Reminders within next 365 days" />
-        <StatCard icon={<AlertCircle size={20} />} label="Due Soon (7 days)" value={upcoming.filter((r) => daysLeft(r.date) <= 7).length} color={upcoming.filter((r) => daysLeft(r.date) <= 7).length > 0 ? THEME.rust : THEME.sage} sub="Critical window alerts" />
-        <StatCard icon={<Trash2 size={20} />} label="Past Due" value={past.length} color={past.length > 0 ? THEME.rust : THEME.muted} sub="Unresolved past alerts" />
-        <StatCard icon={<IndianRupee size={20} />} label="Next 30d Outflow" value={fmtINRFull(next30Outflow)} color={next30Outflow > 0 ? THEME.rust : THEME.muted} sub="Payments due in next 30 days" />
-      </div>
+      {/* ── STAT TILES ── */}
+      {(() => {
+        const critCount = upcoming.filter((r) => daysLeft(r.date) <= 7).length;
+        const tiles = [
+          { label: "Upcoming Alerts", value: String(upcoming.length), sub: "Reminders within next 365 days", color: THEME.accent },
+          { label: "Due Soon (7 days)", value: String(critCount), sub: "Critical window alerts", color: critCount > 0 ? THEME.rust : THEME.sage },
+          { label: "Past Due", value: String(past.length), sub: "Unresolved past alerts", color: past.length > 0 ? THEME.rust : THEME.muted },
+          { label: "Next 30d Outflow", value: fmtINRFull(next30Outflow), sub: "Payments due in next 30 days", color: next30Outflow > 0 ? THEME.rust : THEME.muted },
+        ];
+        return (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+            {tiles.map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── NOTIFICATION SETTINGS CARD ── */}
       {notifPerm !== "unsupported" && (
-        <Card style={{ padding: 20, marginBottom: 24, border: `1px solid ${notifPerm === "granted" ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : THEME.line}` }}>
+        <Card style={{ padding: 20, marginBottom: 24, border: `1px solid ${notifPerm === "granted" ? `${THEME.sage}33` : THEME.line}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: notifPerm === "granted" ? 18 : 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: notifPerm === "granted" ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: notifPerm === "granted" ? `${THEME.sage}15` : `${THEME.muted}09`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {notifPerm === "granted" ? <BellRing size={15} color={THEME.sage} /> : notifPerm === "denied" ? <BellOff size={15} color={THEME.rust} /> : <Bell size={15} color={THEME.muted} />}
             </div>
             <div style={{ flex: 1 }}>
@@ -725,7 +739,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   {[2, 3, 7].map(d => {
                     const active = (notifSettings.leadDays || 3) === d;
                     return (
-                      <button key={d} onClick={() => updateNotifSettings({ leadDays: d })} style={{ padding: "6px 18px", borderRadius: 8, border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`, background: active ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "var(--t-paper)", color: active ? THEME.accent : THEME.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <button key={d} onClick={() => updateNotifSettings({ leadDays: d })} style={{ padding: "6px 18px", borderRadius: 8, border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`, background: active ? `${THEME.accent}15` : "var(--t-paper)", color: active ? THEME.accent : THEME.muted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
                         {d} days
                       </button>
                     );
@@ -746,8 +760,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   ].map(({ key, label, Icon }) => {
                     const on = notifSettings.categories?.[key] !== false;
                     return (
-                      <button key={key} onClick={() => updateNotifSettings({ categories: { ...(notifSettings.categories || {}), [key]: !on } })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: on ? `1.5px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)` : `1px solid ${THEME.line}`, background: on ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)` : "var(--t-paper)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.15s" }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: on ? `color-mix(in srgb, ${THEME.sage} 15%, transparent)` : "rgba(128,128,128,0.08)", flexShrink: 0 }}>
+                      <button key={key} onClick={() => updateNotifSettings({ categories: { ...(notifSettings.categories || {}), [key]: !on } })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: on ? `1.5px solid ${THEME.sage}44` : `1px solid ${THEME.line}`, background: on ? `${THEME.sage}09` : "var(--t-paper)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.15s" }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: on ? `${THEME.sage}22` : `${THEME.muted}15`, flexShrink: 0 }}>
                           <Icon size={13} color={on ? THEME.sage : THEME.muted} />
                         </div>
                         <span style={{ fontSize: 12, fontWeight: 600, color: on ? THEME.ink : THEME.muted, flex: 1 }}>{label}</span>
@@ -779,8 +793,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         <>
           {/* All Caught Up Premium Empty State */}
           {upcoming.length === 0 && past.length === 0 && completed.length > 0 && (
-            <Card style={{ padding: "40px 24px", textAlign: "center", background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`, border: `1.5px dashed color-mix(in srgb, ${THEME.sage} 25%, transparent)`, borderRadius: 16, marginBottom: 24 }}>
-              <div style={{ width: 54, height: 54, borderRadius: "50%", background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Card style={{ padding: "40px 24px", textAlign: "center", background: `${THEME.sage}09`, border: `1.5px dashed ${THEME.sage}33`, borderRadius: 16, marginBottom: 24 }}>
+              <div style={{ width: 54, height: 54, borderRadius: "50%", background: `${THEME.sage}15`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                 <Check size={28} color={THEME.sage} />
               </div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>All Caught Up!</h3>
@@ -820,7 +834,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                     style={{
                       padding: "5px 14px", borderRadius: 99,
                       border: active ? `1.5px solid ${col}` : `1px solid ${THEME.line}`,
-                      background: active ? `color-mix(in srgb, ${col} 12%, transparent)` : "transparent",
+                      background: active ? `${col}15` : "transparent",
                       color: active ? col : THEME.muted,
                       fontSize: 11, fontWeight: 700, cursor: "pointer",
                       transition: "all 0.18s", letterSpacing: "0.03em",
@@ -886,13 +900,13 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   return (
                     <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.85 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: `${THEME.muted}09`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <Icon size={15} color={THEME.muted} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{r.title}</div>
                           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                            <span style={{ color: `color-mix(in srgb, ${color} 70%, ${THEME.muted})`, fontWeight: 700 }}>{r.type}</span>
+                            <span style={{ color, fontWeight: 700 }}>{r.type}</span>
                             {" · "}
                             {fmtDisplayDate(r.date)}
                           </div>
@@ -911,11 +925,11 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             title="Mark as Done"
                             style={{
                               width: 28, height: 28, borderRadius: "50%",
-                              border: `1px dashed color-mix(in srgb, ${THEME.sage} 40%, transparent)`,
+                              border: `1px dashed ${THEME.sage}66`,
                               background: "transparent",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               cursor: "pointer",
-                              color: `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`,
+                              color: THEME.sage,
                               transition: "all 0.2s ease-in-out",
                             }}
                             onMouseEnter={(e) => {
@@ -926,8 +940,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderStyle = "dashed";
-                              e.currentTarget.style.borderColor = `color-mix(in srgb, ${THEME.sage} 40%, transparent)`;
-                              e.currentTarget.style.color = `color-mix(in srgb, ${THEME.sage} 70%, ${THEME.muted})`;
+                              e.currentTarget.style.borderColor = `${THEME.sage}66`;
+                              e.currentTarget.style.color = THEME.sage;
                               e.currentTarget.style.background = "transparent";
                             }}
                           >
@@ -991,7 +1005,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                   {completed.map((r) => {
                     const color = TYPE_COLORS[r.type] || THEME.muted;
                     return (
-                      <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.55, background: "rgba(128,128,128,0.02)", borderLeft: `3px solid ${THEME.sage}` }}>
+                      <Card key={r.id} style={{ padding: "12px 20px", opacity: 0.55, background: `${THEME.muted}05`, borderTop: `3px solid ${THEME.sage}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                           <div style={{
                             width: 32, height: 32, borderRadius: "50%",
@@ -1004,7 +1018,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, textDecoration: "line-through" }}>{r.title}</div>
                             <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                              <span style={{ color: `color-mix(in srgb, ${color} 70%, ${THEME.muted})`, fontWeight: 700 }}>{r.type}</span>
+                              <span style={{ color, fontWeight: 700 }}>{r.type}</span>
                               {" · "}
                               {fmtDisplayDate(r.date)}
                             </div>
@@ -1022,7 +1036,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                             onMouseEnter={(e) => {
                               e.currentTarget.style.borderColor = THEME.accent;
                               e.currentTarget.style.color = THEME.accent;
-                              e.currentTarget.style.background = `color-mix(in srgb, ${THEME.accent} 10%, transparent)`;
+                              e.currentTarget.style.background = `${THEME.accent}15`;
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderColor = THEME.line;
