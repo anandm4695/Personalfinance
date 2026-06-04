@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo, useCallback } from "react";
-import { Trash2, BarChart3, ArrowLeftRight, Layers, Coins, Download, Search, Receipt } from "lucide-react";
+import { Trash2, BarChart3, ArrowLeftRight, Layers, Coins, Download, Search, TrendingUp, TrendingDown, Package } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -30,7 +30,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
 
   const fyStart = (fy: number) => new Date(`${fy}-04-01`);
   const fyEnd = (fy: number) => new Date(`${fy + 1}-03-31T23:59:59`);
-  
+
   const inFY = useCallback((dateStr: string) => {
     if (!dateStr) return false;
     const d = new Date(dateStr);
@@ -97,30 +97,63 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
 
   const totalCredits = cashTransactionsInFY.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   const totalDebits = cashTransactionsInFY.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const cashNetFlow = totalCredits - totalDebits;
 
-  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const stocksBoughtTotals = useMemo(() => {
+    let invested = 0, pnl = 0, hasCurr = false;
+    stocksBoughtInFY.forEach((s: any) => {
+      const curr = livePrice(s, marketData);
+      const inv = Number(s.qty) * Number(s.avgPrice);
+      invested += inv;
+      if (curr) { pnl += Number(s.qty) * curr - inv; hasCurr = true; }
+    });
+    return { invested, pnl, hasCurr };
+  }, [stocksBoughtInFY, marketData]);
+
+  const mfBoughtTotals = useMemo(() => {
+    let invested = 0, pnl = 0, hasCurr = false;
+    mfBoughtInFY.forEach((m: any) => {
+      const buyNav = m.buyNav ? Number(m.buyNav) : (m.invested && m.units ? Number(m.invested) / Number(m.units) : 0);
+      const currNav = Number(m.currentNav || 0);
+      const inv = Number(m.units) * buyNav;
+      invested += inv;
+      if (currNav) { pnl += Number(m.units) * currNav - inv; hasCurr = true; }
+    });
+    return { invested, pnl, hasCurr };
+  }, [mfBoughtInFY]);
+
+  const totalStocksInvested = stocksBoughtTotals.invested;
+  const totalMFInvested = mfBoughtTotals.invested;
+
+  const fmtDate = (d: string) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
   const fyLabel = `FY ${String(selectedFY).slice(2)}-${String(selectedFY + 1).slice(2)}`;
 
   const sections = [
-    { id: "all", label: "All Assets" },
-    { id: "stocks_bought", label: "Stocks Bought" },
-    { id: "stocks_sold", label: "Stocks Sold" },
-    { id: "mf_bought", label: "MF Bought" },
-    { id: "mf_sold", label: "MF Sold" },
-    { id: "cash_ledger", label: "Bank & Cash Ledger" },
+    { id: "all", label: "All Assets", icon: Layers },
+    { id: "stocks_bought", label: "Stocks Bought", icon: TrendingUp },
+    { id: "stocks_sold", label: "Stocks Sold", icon: TrendingDown },
+    { id: "mf_bought", label: "MF Bought", icon: BarChart3 },
+    { id: "mf_sold", label: "MF Sold", icon: ArrowLeftRight },
+    { id: "cash_ledger", label: "Bank Ledger", icon: Coins },
   ] as const;
+
+  const sectionCounts: Record<string, number> = {
+    all: stocksBoughtInFY.length + stocksSoldInFY.length + mfBoughtInFY.length + mfSoldInFY.length + cashTransactionsInFY.length,
+    stocks_bought: stocksBoughtInFY.length,
+    stocks_sold: stocksSoldInFY.length,
+    mf_bought: mfBoughtInFY.length,
+    mf_sold: mfSoldInFY.length,
+    cash_ledger: cashTransactionsInFY.length,
+  };
 
   const show = (id: typeof sections[number]["id"]) => activeSection === "all" || activeSection === id;
 
-  // ── Excel CSV Exporter ──
   const exportToCSV = (data: any[], filename: string, headers: string[], rowMapper: (row: any) => string[]) => {
     if (!data || data.length === 0) return;
     const csvRows = [
       headers.join(","),
-      ...data.map(row => 
-        rowMapper(row)
-          .map(val => `"${String(val ?? "").replace(/"/g, '""')}"`)
-          .join(",")
+      ...data.map(row =>
+        rowMapper(row).map(val => `"${String(val ?? "").replace(/"/g, '""')}"`).join(",")
       )
     ];
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -133,12 +166,36 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
     document.body.removeChild(link);
   };
 
+  const SectionHeader = ({ icon: Icon, title, count, color = THEME.accent, subText }: any) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon size={15} color={color} />
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>{title}</span>
+        {count > 0 && (
+          <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: `${color}14`, color }}>
+            {count}
+          </span>
+        )}
+      </div>
+      {subText && <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, paddingLeft: 40 }}>{subText}</div>}
+    </div>
+  );
+
+  const EmptyState = ({ message }: { message: string }) => (
+    <Card style={{ padding: 48, textAlign: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+        <Package size={32} color={THEME.muted} style={{ opacity: 0.35 }} />
+      </div>
+      <div style={{ fontSize: 14, color: THEME.muted }}>{message}</div>
+    </Card>
+  );
+
   const SoldTable = ({ rows, type }: { rows: any[], type: "stock" | "mf" }) => {
     const total = rows.reduce((s: number, r: any) => s + Number(r.profit || 0), 0);
     if (rows.length === 0) return (
-      <Card style={{ padding: 48, textAlign: "center" }}>
-        <div style={{ fontSize: 14, color: THEME.muted }}>No {type === "stock" ? "stock sales" : "MF redemptions"} recorded in {fyLabel}</div>
-      </Card>
+      <EmptyState message={`No ${type === "stock" ? "stock sales" : "MF redemptions"} recorded in ${fyLabel}`} />
     );
     return (
       <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -212,8 +269,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         Global Ledger
       </SectionTitle>
 
-      {/* Glassmorphic Search & Filter Bar */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+      {/* Search & Period bar */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", flex: "1 1 280px", position: "relative", alignItems: "center" }}>
           <Search size={16} color={THEME.muted} style={{ position: "absolute", left: 14, pointerEvents: "none" }} />
           <input
@@ -238,9 +295,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(128,128,128,0.04)", padding: "4px 14px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 42 }}>
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>Period</span>
-          <select 
-            style={{ background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, fontSize: 13, cursor: "pointer", outline: "none" }} 
-            value={selectedFY} 
+          <select
+            style={{ background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, fontSize: 13, cursor: "pointer", outline: "none" }}
+            value={selectedFY}
             onChange={(e) => setSelectedFY(Number(e.target.value))}
           >
             {allFYs.map((fy) => <option key={fy} value={fy}>FY {String(fy).slice(2)}-{String(fy + 1).slice(2)}</option>)}
@@ -248,122 +305,115 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
-        {sections.map((s) => (
-          <Button 
-            key={s.id} 
-            size="sm"
-            variant={activeSection === s.id ? "accent" : "ghost"} 
-            onClick={() => setActiveSection(s.id)}
-            style={{ padding: "6px 16px", height: 34, borderRadius: 10 }}
-          >
-            {s.label}
-          </Button>
+      {/* FY Summary strip */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          { label: "Stocks Invested", value: `₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: THEME.accent },
+          { label: "MF Invested", value: `₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: "#7C3AED" },
+          { label: "Realized P&L", value: `${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: totalRealizedPnl >= 0 ? THEME.sage : THEME.rust },
+          { label: "Cash Net Flow", value: `${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: cashNetFlow >= 0 ? THEME.sage : THEME.rust },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 140px" }}>
+            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+          </div>
         ))}
+      </div>
+
+      {/* Section tabs with icons + count badges */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+        {sections.map((s) => {
+          const Icon = s.icon;
+          const count = sectionCounts[s.id] || 0;
+          const active = activeSection === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", height: 34, borderRadius: 10,
+                border: active ? "none" : `1px solid ${THEME.line}`,
+                background: active ? THEME.accent : "var(--surface-0)",
+                color: active ? "#fff" : THEME.ink,
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
+                transition: "all 0.2s ease",
+              }}
+            >
+              <Icon size={13} />
+              {s.label}
+              {count > 0 && (
+                <span style={{
+                  padding: "1px 6px", borderRadius: 20, fontSize: 10, fontWeight: 800,
+                  background: active ? "rgba(255,255,255,0.25)" : `${THEME.accent}18`,
+                  color: active ? "#fff" : THEME.accent,
+                }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {(state.demat || []).length > 1 && activeSection !== "cash_ledger" && (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24, alignItems: "center" }}>
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>Account:</span>
-          <Button 
-            size="sm"
-            variant={txnDematId === null ? "accent" : "ghost"}
-            onClick={() => setTxnDematId(null)} 
-            style={{ height: 28, padding: "0 12px", fontSize: 11 }}
-          >
+          <Button size="sm" variant={txnDematId === null ? "accent" : "ghost"} onClick={() => setTxnDematId(null)} style={{ height: 28, padding: "0 12px", fontSize: 11 }}>
             All Accounts
           </Button>
           {(state.demat || []).map((d: any) => (
-            <Button 
-              key={d.id} 
-              size="sm"
-              variant={txnDematId === d.id ? "accent" : "ghost"}
-              onClick={() => setTxnDematId(d.id)} 
-              style={{ height: 28, padding: "0 12px", fontSize: 11 }}
-            >
+            <Button key={d.id} size="sm" variant={txnDematId === d.id ? "accent" : "ghost"} onClick={() => setTxnDematId(d.id)} style={{ height: 28, padding: "0 12px", fontSize: 11 }}>
               {d.broker || d.dpId || "Account"}
             </Button>
           ))}
         </div>
       )}
 
-      {/* Interactive Drill-Down Stat Cards */}
+      {/* Drill-Down Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 14, marginBottom: 32 }}>
         <div onClick={() => setActiveSection("stocks_bought")} style={{ cursor: "pointer", transition: "transform 0.2s ease" }} className="hover:scale-[1.02]">
-          <StatCard 
-            icon={<BarChart3 />} 
-            label="Stocks Bought" 
-            value={String(stocksBoughtInFY.length)} 
-            sub={`${fyLabel} lots`} 
-            color={THEME.accent}
-          />
+          <StatCard icon={<TrendingUp />} label="Stocks Bought" value={String(stocksBoughtInFY.length)}
+            sub={`${fyLabel} · ₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            color={THEME.accent} />
         </div>
         <div onClick={() => setActiveSection("stocks_sold")} style={{ cursor: "pointer", transition: "transform 0.2s ease" }} className="hover:scale-[1.02]">
-          <StatCard 
-            icon={<ArrowLeftRight />} 
-            label="Stocks Sold" 
-            value={String(stocksSoldInFY.length)} 
-            sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} 
-            subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust} 
-            color={THEME.accent}
-          />
+          <StatCard icon={<ArrowLeftRight />} label="Stocks Sold" value={String(stocksSoldInFY.length)}
+            sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust} color={THEME.accent} />
         </div>
         <div onClick={() => setActiveSection("mf_bought")} style={{ cursor: "pointer", transition: "transform 0.2s ease" }} className="hover:scale-[1.02]">
-          <StatCard 
-            icon={<Layers />} 
-            label="MF Bought" 
-            value={String(mfBoughtInFY.length)} 
-            sub={`${fyLabel} lots`} 
-            color={THEME.accent}
-          />
+          <StatCard icon={<BarChart3 />} label="MF Bought" value={String(mfBoughtInFY.length)}
+            sub={`${fyLabel} · ₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            color={THEME.accent} />
         </div>
         <div onClick={() => setActiveSection("mf_sold")} style={{ cursor: "pointer", transition: "transform 0.2s ease" }} className="hover:scale-[1.02]">
-          <StatCard 
-            icon={<ArrowLeftRight />} 
-            label="MF Redeemed" 
-            value={String(mfSoldInFY.length)} 
-            sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} 
-            subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust} 
-            color={THEME.accent}
-          />
+          <StatCard icon={<ArrowLeftRight />} label="MF Redeemed" value={String(mfSoldInFY.length)}
+            sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust} color={THEME.accent} />
         </div>
         <div onClick={() => setActiveSection("cash_ledger")} style={{ cursor: "pointer", transition: "transform 0.2s ease" }} className="hover:scale-[1.02]">
-          <StatCard 
-            icon={<Coins />} 
-            label="Bank & Cash ledger" 
-            value={String(cashTransactionsInFY.length)} 
-            sub={`Credits: +${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} 
-            subColor={THEME.sage} 
-            color="#0891B2"
-          />
+          <StatCard icon={<Coins />} label="Bank & Cash Ledger" value={String(cashTransactionsInFY.length)}
+            sub={`In +₹${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹${totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            subColor={THEME.sage} color="#0891B2" />
         </div>
       </div>
 
-      {/* ────────────────── SECTION: STOCKS BOUGHT ────────────────── */}
+      {/* ── STOCKS BOUGHT ── */}
       {show("stocks_bought") && (
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Stocks Bought</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <SectionHeader icon={TrendingUp} title="Stocks Bought" count={stocksBoughtInFY.length} color={THEME.accent} />
             {stocksBoughtInFY.length > 0 && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Download size={14} />} 
-                onClick={() => exportToCSV(
-                  stocksBoughtInFY,
-                  `Stocks_Bought_${fyLabel}.csv`,
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => exportToCSV(stocksBoughtInFY, `Stocks_Bought_${fyLabel}.csv`,
                   ["Company", "Exchange", "Qty", "Buy Date", "Buy Price", "Invested Amount", "Current Price", "Unrealized P&L"],
                   (s) => { const cp = livePrice(s, marketData); const inv = Number(s.qty) * Number(s.avgPrice); return [s.symbol?.replace(/\.(NS|BO)$/i, ""), s.exchange || "NSE", s.qty, s.buyDate, s.avgPrice, inv, cp, (cp - Number(s.avgPrice)) * Number(s.qty)]; }
-                )}
-              >
-                Export CSV
-              </Button>
+                )}>Export CSV</Button>
             )}
           </div>
           {stocksBoughtInFY.length === 0 ? (
-            <Card style={{ padding: 48, textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: THEME.muted }}>No stock purchases recorded in {fyLabel}</div>
-            </Card>
+            <EmptyState message={`No stock purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={{ overflowX: "auto" }}>
@@ -379,7 +429,42 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                     </tr>
                   </thead>
-                  <tbody>{stocksBoughtInFY.map((s: any) => { const curr = livePrice(s, marketData); const inv = Number(s.qty) * Number(s.avgPrice); const val = Number(s.qty) * curr; const pnl = val - inv; return (<tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover"><td style={{ ...td, paddingLeft: 10 }}><b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b><span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span></td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(s.buyDate)}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>₹{Number(s.avgPrice).toFixed(2)}</td><td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td><td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td></tr>); })}</tbody>
+                  <tbody>
+                    {stocksBoughtInFY.map((s: any) => {
+                      const curr = livePrice(s, marketData);
+                      const inv = Number(s.qty) * Number(s.avgPrice);
+                      const val = Number(s.qty) * curr;
+                      const pnl = val - inv;
+                      return (
+                        <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 10 }}>
+                            <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
+                            <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span>
+                          </td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td>
+                          <td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(s.buyDate)}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>₹{Number(s.avgPrice).toFixed(2)}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{curr ? `₹${curr.toFixed(2)}` : "—"}</td>
+                          <td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
+                            {curr ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                      <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>Total Invested</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
+                        ₹{stocksBoughtTotals.invested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </td>
+                      <td style={td}></td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 900, color: stocksBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust, fontSize: 15 }}>
+                        {stocksBoughtTotals.hasCurr ? `${stocksBoughtTotals.pnl >= 0 ? "+" : ""}₹${Math.abs(stocksBoughtTotals.pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </Card>
@@ -387,59 +472,40 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
       )}
 
-      {/* ────────────────── SECTION: STOCKS SOLD ────────────────── */}
+      {/* ── STOCKS SOLD ── */}
       {show("stocks_sold") && (
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Stocks Sold</div>
-              {stocksSoldInFY.length > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>Net Realized: <b style={{ color: stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust, fontSize: 13 }}>{stocksRealizedPnl >= 0 ? "+" : ""}₹{Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</b></div>}
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <SectionHeader icon={TrendingDown} title="Stocks Sold" count={stocksSoldInFY.length}
+              color={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust}
+              subText={stocksSoldInFY.length > 0 ? `Net Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : undefined} />
             {stocksSoldInFY.length > 0 && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Download size={14} />} 
-                onClick={() => exportToCSV(
-                  stocksSoldInFY,
-                  `Stocks_Sold_${fyLabel}.csv`,
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => exportToCSV(stocksSoldInFY, `Stocks_Sold_${fyLabel}.csv`,
                   ["Company", "Buy Date", "Buy Price", "Qty", "Sell Date", "Sell Price", "Profit/Loss", "Broker"],
                   (s) => [s.symbol?.replace(/\.(NS|BO)$/i, ""), s.buyDate, s.buyPrice, s.qty, s.sellDate, s.sellPrice, s.profit, s.broker]
-                )}
-              >
-                Export CSV
-              </Button>
+                )}>Export CSV</Button>
             )}
           </div>
           <SoldTable rows={stocksSoldInFY} type="stock" />
         </div>
       )}
 
-      {/* ────────────────── SECTION: MF BOUGHT ────────────────── */}
+      {/* ── MF BOUGHT ── */}
       {show("mf_bought") && (
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Mutual Funds Bought</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <SectionHeader icon={BarChart3} title="Mutual Funds Bought" count={mfBoughtInFY.length} color="#7C3AED" />
             {mfBoughtInFY.length > 0 && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Download size={14} />} 
-                onClick={() => exportToCSV(
-                  mfBoughtInFY,
-                  `MF_Bought_${fyLabel}.csv`,
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => exportToCSV(mfBoughtInFY, `MF_Bought_${fyLabel}.csv`,
                   ["Scheme", "Category/Type", "Units", "Buy Date", "Buy NAV", "Invested Amount", "Current NAV", "Unrealized P&L"],
                   (m) => [m.scheme, m.type || "Equity", m.units, m.buyDate, m.buyNav || 0, Number(m.units) * Number(m.buyNav || 0), m.currentNav || 0, (Number(m.currentNav || 0) - Number(m.buyNav || 0)) * Number(m.units)]
-                )}
-              >
-                Export CSV
-              </Button>
+                )}>Export CSV</Button>
             )}
           </div>
           {mfBoughtInFY.length === 0 ? (
-            <Card style={{ padding: 48, textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: THEME.muted }}>No MF purchases recorded in {fyLabel}</div>
-            </Card>
+            <EmptyState message={`No MF purchases recorded in ${fyLabel}`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={{ overflowX: "auto" }}>
@@ -455,7 +521,43 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       <th style={{ ...th, textAlign: "right" }}>Unrealized P&L</th>
                     </tr>
                   </thead>
-                  <tbody>{mfBoughtInFY.map((m: any) => { const buyNav = m.buyNav ? Number(m.buyNav) : (m.invested && m.units ? Number(m.invested) / Number(m.units) : 0); const currNav = Number(m.currentNav || 0); const inv = Number(m.units) * buyNav; const val = Number(m.units) * currNav; const pnl = val - inv; return (<tr key={m.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover"><td style={{ ...td, paddingLeft: 10 }}><b>{m.scheme}</b>{m.type && <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{m.type}</span>}</td><td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{Number(m.units).toFixed(3)}</td><td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(m.buyDate)}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{buyNav ? `₹${buyNav.toFixed(4)}` : "—"}</td><td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{currNav ? `₹${currNav.toFixed(4)}` : "—"}</td><td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{currNav ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td></tr>); })}</tbody>
+                  <tbody>
+                    {mfBoughtInFY.map((m: any) => {
+                      const buyNav = m.buyNav ? Number(m.buyNav) : (m.invested && m.units ? Number(m.invested) / Number(m.units) : 0);
+                      const currNav = Number(m.currentNav || 0);
+                      const inv = Number(m.units) * buyNav;
+                      const val = Number(m.units) * currNav;
+                      const pnl = val - inv;
+                      return (
+                        <tr key={m.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 10 }}>
+                            <b>{m.scheme}</b>
+                            {m.type && <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{m.type}</span>}
+                          </td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{Number(m.units).toFixed(3)}</td>
+                          <td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(m.buyDate)}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{buyNav ? `₹${buyNav.toFixed(4)}` : "—"}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>₹{inv.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{currNav ? `₹${currNav.toFixed(4)}` : "—"}</td>
+                          <td style={{ ...td, textAlign: "right", color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
+                            {currNav ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                      <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>Total Invested</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
+                        ₹{mfBoughtTotals.invested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </td>
+                      <td style={td}></td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 900, color: mfBoughtTotals.pnl >= 0 ? THEME.sage : THEME.rust, fontSize: 15 }}>
+                        {mfBoughtTotals.hasCurr ? `${mfBoughtTotals.pnl >= 0 ? "+" : ""}₹${Math.abs(mfBoughtTotals.pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </Card>
@@ -463,68 +565,41 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
       )}
 
-      {/* ────────────────── SECTION: MF SOLD ────────────────── */}
+      {/* ── MF SOLD ── */}
       {show("mf_sold") && (
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Mutual Funds Redeemed</div>
-              {mfSoldInFY.length > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>Net Realized: <b style={{ color: mfRealizedPnl >= 0 ? THEME.sage : THEME.rust, fontSize: 13 }}>{mfRealizedPnl >= 0 ? "+" : ""}₹{Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</b></div>}
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <SectionHeader icon={ArrowLeftRight} title="Mutual Funds Redeemed" count={mfSoldInFY.length}
+              color={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust}
+              subText={mfSoldInFY.length > 0 ? `Net Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : undefined} />
             {mfSoldInFY.length > 0 && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Download size={14} />} 
-                onClick={() => exportToCSV(
-                  mfSoldInFY,
-                  `MF_Redeemed_${fyLabel}.csv`,
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => exportToCSV(mfSoldInFY, `MF_Redeemed_${fyLabel}.csv`,
                   ["Scheme", "Buy Date", "Buy NAV", "Units", "Sell Date", "Sell NAV", "Profit/Loss", "Broker"],
                   (m) => [m.scheme, m.buyDate, m.buyNav, m.units, m.sellDate, m.sellNav, m.profit, m.broker]
-                )}
-              >
-                Export CSV
-              </Button>
+                )}>Export CSV</Button>
             )}
           </div>
           <SoldTable rows={mfSoldInFY} type="mf" />
         </div>
       )}
 
-      {/* ────────────────── SECTION: CASH & BANK LEDGER ────────────────── */}
+      {/* ── CASH & BANK LEDGER ── */}
       {show("cash_ledger") && (
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Bank & Cash Ledger</div>
-              {cashTransactionsInFY.length > 0 && (
-                <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>
-                  Total Inflow: <span style={{ color: THEME.sage }}>+₹{totalCredits.toLocaleString("en-IN")}</span> · 
-                  Total Outflow: <span style={{ color: THEME.rust }}>-₹{totalDebits.toLocaleString("en-IN")}</span>
-                </div>
-              )}
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+            <SectionHeader icon={Coins} title="Bank & Cash Ledger" count={cashTransactionsInFY.length} color="#0891B2"
+              subText={cashTransactionsInFY.length > 0 ? `Inflow +₹${totalCredits.toLocaleString("en-IN")} · Outflow -₹${totalDebits.toLocaleString("en-IN")}` : undefined} />
             {cashTransactionsInFY.length > 0 && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                icon={<Download size={14} />} 
-                onClick={() => exportToCSV(
-                  cashTransactionsInFY,
-                  `Cash_Ledger_${fyLabel}.csv`,
+              <Button variant="secondary" size="sm" icon={<Download size={14} />}
+                onClick={() => exportToCSV(cashTransactionsInFY, `Cash_Ledger_${fyLabel}.csv`,
                   ["Date", "Note", "Category", "Type", "Amount", "Description"],
                   (t) => [t.date, t.note, t.category, t.type, t.amount, t.description || ""]
-                )}
-              >
-                Export CSV
-              </Button>
+                )}>Export CSV</Button>
             )}
           </div>
-
           {cashTransactionsInFY.length === 0 ? (
-            <Card style={{ padding: 48, textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: THEME.muted }}>No bank/cash transactions recorded in {fyLabel} matching your search</div>
-            </Card>
+            <EmptyState message={`No bank/cash transactions recorded in ${fyLabel} matching your search`} />
           ) : (
             <Card style={{ padding: 0, overflow: "hidden" }}>
               <div style={{ overflowX: "auto" }}>
@@ -555,7 +630,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                               {isCredit ? "▲ Credit" : "▼ Debit"}
                             </span>
                           </td>
-                          <td style={{ ...td, textAlign: "right", color: isCredit ? THEME.sage : THEME.ink, fontWeight: 800, fontSize: 14 }}>
+                          <td style={{ ...td, textAlign: "right", color: isCredit ? THEME.sage : THEME.rust, fontWeight: 800, fontSize: 14 }}>
                             {isCredit ? "+" : "-"}₹{amount.toLocaleString("en-IN")}
                           </td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -570,6 +645,24 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       );
                     })}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                      <td colSpan={2} style={{ ...td, paddingLeft: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                          {cashTransactionsInFY.filter((t: any) => t.type === "credit").length} credits · {cashTransactionsInFY.filter((t: any) => t.type === "debit").length} debits
+                        </div>
+                      </td>
+                      <td style={td}></td>
+                      <td style={{ ...td, textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 900, color: THEME.sage }}>+₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
+                        <div style={{ fontSize: 13, fontWeight: 900, color: THEME.rust }}>-₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: cashNetFlow >= 0 ? THEME.sage : THEME.rust, borderTop: `1px solid ${THEME.line}`, paddingTop: 4, marginTop: 4 }}>
+                          Net {cashNetFlow >= 0 ? "+" : ""}₹{Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </div>
+                      </td>
+                      <td colSpan={2} style={td}></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </Card>
