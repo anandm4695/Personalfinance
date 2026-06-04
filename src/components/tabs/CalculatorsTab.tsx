@@ -847,6 +847,29 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         </div>
       </div>
 
+      {/* ── CONTEXT TILE STRIP ── */}
+      {(() => {
+        const totalEMIs = (state?.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+        const monthlySavings = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
+        const tiles = [
+          { label: "Current Net Worth", value: fmtINRFull(metrics?.netWorth || 0), sub: "Total assets minus liabilities", color: THEME.accent },
+          { label: "Monthly Expenses", value: fmtINRFull(metrics?.monthExpense || 0), sub: "Baseline for FIRE & runway calcs", color: THEME.gold },
+          { label: "Est. Monthly Savings", value: fmtINRFull(monthlySavings), sub: metrics?.monthIncome > 0 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate` : "Use in SIP & projection", color: monthlySavings > 0 ? THEME.sage : THEME.muted },
+          { label: "Total Loan EMIs", value: fmtINRFull(totalEMIs), sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans", color: totalEMIs > 0 ? THEME.rust : THEME.muted },
+        ];
+        return (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+            {tiles.map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── PILL SELECTION BAR ── */}
       <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24, padding: "4px" }}>
         {[
@@ -870,10 +893,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               onClick={() => setCalcTab(t.id as any)}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
               style={active ? {
-                background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                background: `${THEME.accent}15`,
                 color: THEME.accent,
                 fontWeight: 700,
-                border: `1.5px solid color-mix(in srgb, var(--t-accent) 25%, transparent)`
+                border: `1.5px solid ${THEME.accent}33`
               } : {}}
             >
               <Icon size={14} />
@@ -905,7 +928,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Principal vs Interest Breakdown</div>
                 <div className="bento-grid" style={{ gap: 24 }}>
                   <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                       {resultRow("Monthly EMI Due", emiResult.emi, true, THEME.accent)}
                       {resultRow("Principal Amount", Number(emiP) || 0)}
                       {resultRow("Total Interest Paid", emiResult.interest, false, THEME.gold)}
@@ -958,7 +981,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Compounded Returns Projection</div>
                 <div className="bento-grid" style={{ gap: 24 }}>
                   <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                       {resultRow("Estimated Future Value", sipResult.corpus, true, THEME.sage)}
                       {resultRow("Invested Amount", sipResult.invested)}
                       {resultRow("Wealth Gain", sipResult.gains, false, THEME.sage)}
@@ -1015,15 +1038,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               {/* Key results */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: "color-mix(in srgb, var(--t-accent) 8%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-accent) 20%, transparent)` }}>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.accent}15`, border: `1.5px solid ${THEME.accent}33` }}>
                   <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Final Corpus</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>{fmtINRFull(stepSipResult.corpus)}</div>
                 </div>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(128,128,128,0.04)", border: `1.5px solid ${THEME.line}` }}>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.muted}09`, border: `1.5px solid ${THEME.line}` }}>
                   <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Total Invested</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.invested)}</div>
                 </div>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: "color-mix(in srgb, var(--t-sage) 8%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-sage) 20%, transparent)` }}>
+                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.sage}15`, border: `1.5px solid ${THEME.sage}33` }}>
                   <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Net Gains</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(stepSipResult.gains)}</div>
                 </div>
@@ -1033,19 +1056,19 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               <Card style={{ padding: 20 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 14 }}>Step-Up vs Flat SIP Comparison</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "color-mix(in srgb, var(--t-gold) 7%, transparent)", border: `1.5px solid color-mix(in srgb, var(--t-gold) 20%, transparent)` }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.gold}09`, border: `1.5px solid ${THEME.gold}33` }}>
                     <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Step-Up SIP Corpus</div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>{fmtINRFull(stepSipResult.corpus)}</div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.invested)}</div>
                   </div>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1.5px solid ${THEME.line}` }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.muted}09`, border: `1.5px solid ${THEME.line}` }}>
                     <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Flat SIP Corpus</div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.flatCorpus)}</div>
                     <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.flatInvested)}</div>
                   </div>
                 </div>
                 {stepSipResult.extraGains > 0 && (
-                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: "color-mix(in srgb, var(--t-sage) 6%, transparent)", border: `1px solid color-mix(in srgb, var(--t-sage) 15%, transparent)`, fontSize: 12.5, fontWeight: 700, color: THEME.sage, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}22`, fontSize: 12.5, fontWeight: 700, color: THEME.sage, display: "flex", alignItems: "center", gap: 8 }}>
                     <TrendingUp size={14} />
                     Step-Up earns {fmtINRFull(stepSipResult.extraGains)} more than flat SIP over {stepSipYrs} years
                   </div>
@@ -1099,7 +1122,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             <div className="bento-col-8">
               <Card style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Annualized Compounded Growth Rate</div>
-                <div style={{ padding: 24, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                <div style={{ padding: 24, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 15 }}>
                     <span style={{ color: THEME.muted, fontWeight: 600 }}>CAGR Yield (Annualized)</span>
                     <span style={{ fontWeight: 900, fontSize: 26, color: cagrResult.cagr !== null && cagrResult.cagr >= 0 ? THEME.sage : THEME.rust }}>
@@ -1152,8 +1175,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{
                   padding: "12px 16px",
                   borderRadius: 10,
-                  background: "rgba(234,179,8,0.08)",
-                  border: `1.5px solid ${THEME.gold}55`,
+                  background: `${THEME.gold}15`,
+                  border: `1.5px solid ${THEME.gold}33`,
                   display: "flex",
                   gap: 10,
                   alignItems: "flex-start",
@@ -1170,7 +1193,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               )}
 
               {/* Tracker Card */}
-              <Card style={{ padding: 24, borderLeft: `4px solid ${fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust}` }}>
+              <Card style={{ padding: 24, borderTop: `4px solid ${fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em" }}>Retirement Savings Status</div>
@@ -1185,21 +1208,19 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 {/* Progress fill bar */}
-                <div style={{ height: 8, background: "rgba(128,128,128,0.06)", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
-                  <div style={{ 
-                    height: "100%", 
-                    width: `${fireResult.percentOnTrack}%`, 
+                <div className="progress-track" style={{ marginBottom: 16 }}>
+                  <div className="progress-fill" style={{
+                    width: `${fireResult.percentOnTrack}%`,
                     background: fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust,
-                    borderRadius: 10, 
-                    transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" 
+                    transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)"
                   }} />
                 </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                  <span style={{ background: "rgba(128,128,128,0.04)", padding: "4px 8px", borderRadius: 6 }}>
+                  <span style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}>
                     ⏱️ Years to Retire: {fireResult.yrsToRet}
                   </span>
-                  <span style={{ background: "rgba(128,128,128,0.04)", padding: "4px 8px", borderRadius: 6 }}>
+                  <span style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}>
                     🗓️ Years in Retirement: {fireResult.yrsInRet}
                   </span>
                 </div>
@@ -1208,7 +1229,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               {/* Corpus Breakdown */}
               <Card style={{ padding: 24, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 16 }}>Corpus & Safe Withdrawal Projection</div>
-                <div style={{ padding: 18, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                   {resultRow("Monthly Expense at Retirement", fireResult.retMonthlyExp, false, THEME.gold)}
                   {resultRow("Target Corpus Required", fireResult.reqCorpus, true, THEME.accent)}
                   {resultRow("Projected Corpus Available", fireResult.projectedCorpus, false, THEME.sage)}
@@ -1233,7 +1254,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   marginTop: 18, 
                   padding: "12px 14px", 
                   borderRadius: 10, 
-                  background: fireResult.gap <= 0 ? "rgba(5,150,105,0.05)" : "rgba(220,38,38,0.05)", 
+                  background: fireResult.gap <= 0 ? `${THEME.sage}09` : `${THEME.rust}09`,
                   border: `1.5px solid ${fireResult.gap <= 0 ? THEME.sage : THEME.rust}22`,
                   fontSize: 12.5, 
                   lineHeight: 1.5,
@@ -1265,7 +1286,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           <>
             <div className="bento-col-4">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 20, background: "rgba(128,128,128,0.03)", padding: 4, borderRadius: 10 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 20, background: `${THEME.muted}09`, padding: 4, borderRadius: 10 }}>
                   <button 
                     onClick={() => setFdrdType("fd")} 
                     style={{ 
@@ -1333,7 +1354,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Maturity Proceeds Breakdown</div>
                 <div className="bento-grid" style={{ gap: 24 }}>
                   <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                       {resultRow("Estimated Maturity proceeds", fdrdResult.maturity, true, THEME.sage)}
                       {resultRow("Total Invested Principal", fdrdResult.invested)}
                       {resultRow("Compounded Interest Earned", fdrdResult.interest, false, THEME.sage)}
@@ -1376,7 +1397,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <div style={{ fontSize: 16, fontWeight: 700 }}>Comparison Inputs</div>
                 </div>
                 
-                <div style={{ display: "flex", gap: 8, marginBottom: 16, background: "rgba(128,128,128,0.03)", padding: 4, borderRadius: 10 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16, background: `${THEME.muted}09`, padding: 4, borderRadius: 10 }}>
                   <button 
                     onClick={() => setLviMode("sip")} 
                     style={{ 
@@ -1411,11 +1432,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             
             <div className="bento-col-8" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               {/* Recommendation Advisory Card */}
-              <Card style={{ padding: 24, borderLeft: `4px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.gold}` }}>
+              <Card style={{ padding: 24, borderTop: `4px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.gold}` }}>
                 <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                   <div style={{ 
                     width: 44, height: 44, borderRadius: 12, 
-                    background: lviResult.isInvestBetter ? "rgba(5,150,105,0.08)" : "rgba(217,119,6,0.08)",
+                    background: lviResult.isInvestBetter ? `${THEME.sage}15` : `${THEME.gold}15`,
                     display: "flex", alignItems: "center", justifyContent: "center", color: lviResult.isInvestBetter ? THEME.sage : THEME.gold,
                     flexShrink: 0
                   }}>
@@ -1438,7 +1459,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 16 }}>Financial Breakdown</div>
                 <div className="bento-grid" style={{ gap: 20 }}>
                   <div className="bento-col-6">
-                    <div style={{ padding: 16, background: "rgba(128,128,128,0.02)", borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.line : THEME.gold}44` }}>
+                    <div style={{ padding: 16, background: `${THEME.muted}05`, borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.line : THEME.gold}44` }}>
                       <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 8 }}>Path A: Prepay Loan</div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(lviResult.wealthPrepay)}</div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Net wealth at month {lviLoanTenure}</div>
@@ -1454,7 +1475,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                   
                   <div className="bento-col-6">
-                    <div style={{ padding: 16, background: "rgba(128,128,128,0.02)", borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.line}44` }}>
+                    <div style={{ padding: 16, background: `${THEME.muted}05`, borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.line}44` }}>
                       <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 8 }}>Path B: Invest Surplus</div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(lviResult.wealthInvest)}</div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Net wealth at month {lviLoanTenure}</div>
@@ -1470,7 +1491,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(128,128,128,0.03)", padding: "14px 18px", borderRadius: 12, border: `1px solid ${THEME.line}`, marginTop: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: `${THEME.muted}09`, padding: "14px 18px", borderRadius: 12, border: `1px solid ${THEME.line}`, marginTop: 20 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>Net Benefit Difference</span>
                   <span style={{ fontSize: 18, fontWeight: 900, color: THEME.sage }}>
                     {fmtINRFull(lviResult.netBenefit)}
@@ -1514,11 +1535,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </ResponsiveContainer>
                 </div>
                 <div className="bento-col-4" style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
-                  <div style={{ padding: 16, background: "rgba(128,128,128,0.03)", borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                  <div style={{ padding: 16, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
                     <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Starting Net Worth Today</div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(nwpData[0]?.value)}</div>
                   </div>
-                  <div style={{ padding: 16, background: "color-mix(in srgb, var(--t-sage) 8%, transparent)", borderRadius: 12, border: `1px solid ${THEME.sage}22` }}>
+                  <div style={{ padding: 16, background: `${THEME.sage}09`, borderRadius: 12, border: `1px solid ${THEME.sage}22` }}>
                     <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Projected Value in {nwpYears} Years</div>
                     <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(nwpData[nwpData.length - 1]?.value)}</div>
                   </div>
@@ -1562,7 +1583,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                       style={{
                         padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
                         textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
                         transition: "all 0.15s"
                       }}
@@ -1581,7 +1602,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                       style={{
                         padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
                         textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
                         transition: "all 0.15s"
                       }}
@@ -1600,7 +1621,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                       style={{
                         padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: "rgba(128,128,128,0.03)", color: THEME.ink, fontSize: 12.5, fontWeight: 600,
+                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
                         textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
                         transition: "all 0.15s"
                       }}
@@ -1701,16 +1722,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {/* Level Indicator Pill */}
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-                  background: stressResult.safetyLevel === "critical" ? "rgba(220,38,38,0.08)"
-                            : stressResult.safetyLevel === "caution" ? "rgba(245,158,11,0.08)"
-                            : stressResult.safetyLevel === "elite" ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.08)",
+                  background: stressResult.safetyLevel === "critical" ? `${THEME.rust}15`
+                            : stressResult.safetyLevel === "caution" ? `${THEME.gold}15`
+                            : stressResult.safetyLevel === "elite" ? `${THEME.gold}22` : `${THEME.sage}15`,
                   color: stressResult.safetyLevel === "critical" ? THEME.rust
                        : stressResult.safetyLevel === "caution" ? THEME.gold
                        : stressResult.safetyLevel === "elite" ? "#D97706" : THEME.sage,
                   border: `1.5px solid ${
-                    stressResult.safetyLevel === "critical" ? "rgba(220,38,38,0.2)"
-                    : stressResult.safetyLevel === "caution" ? "rgba(245,158,11,0.2)"
-                    : stressResult.safetyLevel === "elite" ? "rgba(245,158,11,0.3)" : "rgba(34,197,94,0.2)"
+                    stressResult.safetyLevel === "critical" ? `${THEME.rust}33`
+                    : stressResult.safetyLevel === "caution" ? `${THEME.gold}33`
+                    : stressResult.safetyLevel === "elite" ? `${THEME.gold}44` : `${THEME.sage}33`
                   }`
                 }}>
                   {stressResult.safetyLevel === "critical" ? "🚨 CRITICAL LIQUIDITY RISK"
@@ -1820,7 +1841,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 const statusText = score >= 80 ? "High Success Rate" : score >= 50 ? "Moderate Sequence Risk" : "High Failure Risk";
                 
                 return (
-                  <Card style={{ padding: 24, borderLeft: `4px solid ${statusColor}` }}>
+                  <Card style={{ padding: 24, borderTop: `4px solid ${statusColor}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                       <div>
                         <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>FIRE Longevity Success Score</div>
@@ -1833,8 +1854,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </Badge>
                     </div>
 
-                    <div style={{ height: 10, background: THEME.line, borderRadius: 5, overflow: "hidden", marginBottom: 12 }}>
-                      <div style={{ height: "100%", width: `${score}%`, background: statusColor, borderRadius: 5, transition: "width 0.4s ease" }} />
+                    <div className="progress-track" style={{ marginBottom: 12 }}>
+                      <div className="progress-fill" style={{ width: `${score}%`, background: statusColor, transition: "width 0.4s ease" }} />
                     </div>
 
                     <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
@@ -1890,9 +1911,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               </Card>
 
               {/* CFO STOCHASTIC ADVISORY CARD */}
-              <Card style={{ padding: 20, borderLeft: `4px solid ${THEME.accent}` }}>
+              <Card style={{ padding: 20, borderTop: `4px solid ${THEME.accent}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--t-accent) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.accent}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Info size={18} color={THEME.accent} />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -1941,7 +1962,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 {/* Preset 1: Career Gap / Sabbatical Accordion Card */}
                 <div style={{ 
-                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`, 
+                  background: `${THEME.muted}05`, border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`, 
                   borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1982,7 +2003,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 {/* Preset 2: Startup Venture Accordion Card */}
                 <div style={{ 
-                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`, 
+                  background: `${THEME.muted}05`, border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`, 
                   borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -2026,7 +2047,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 {/* Preset 3: Real Estate Purchase Accordion Card */}
                 <div style={{ 
-                  background: "rgba(128,128,128,0.02)", border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`, 
+                  background: `${THEME.muted}05`, border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`, 
                   borderRadius: 12, padding: 16, transition: "all 0.2s ease" 
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -2157,9 +2178,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               </Card>
 
               {/* CEO / CFO STRATEGIC ADVISORY */}
-              <Card style={{ padding: 20, borderLeft: `4px solid ${THEME.gold}` }}>
+              <Card style={{ padding: 20, borderTop: `4px solid ${THEME.gold}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--t-gold) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.gold}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Info size={18} color={THEME.gold} />
                   </div>
                   <div style={{ flex: 1 }}>
