@@ -78,9 +78,10 @@ const PillNav = ({ tabs, active, onChange }: any) => (
           onClick={() => onChange(t.id)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 7,
-            padding: "8px 16px", borderRadius: 10, border: "none",
-            background: isActive ? THEME.accent : "transparent",
-            color: isActive ? "#fff" : THEME.muted,
+            padding: "8px 16px", borderRadius: 10,
+            border: isActive ? `1.5px solid ${THEME.accent}33` : "1.5px solid transparent",
+            background: isActive ? `${THEME.accent}15` : "transparent",
+            color: isActive ? THEME.accent : THEME.muted,
             fontWeight: isActive ? 700 : 500, fontSize: 13,
             cursor: "pointer", transition: "all 0.18s", fontFamily: "inherit",
             whiteSpace: "nowrap",
@@ -91,8 +92,8 @@ const PillNav = ({ tabs, active, onChange }: any) => (
             <span style={{
               fontSize: 10, fontWeight: 800, padding: "1px 6px",
               borderRadius: 20,
-              background: isActive ? "rgba(255,255,255,0.25)" : "color-mix(in srgb, var(--t-accent) 14%, transparent)",
-              color: isActive ? "#fff" : THEME.accent,
+              background: `${THEME.accent}22`,
+              color: THEME.accent,
             }}>{t.count}</span>
           )}
         </button>
@@ -123,11 +124,9 @@ function OptionRow({ label, options, value, onChange, hint }: {
               onClick={() => onChange(opt.value)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", borderRadius: 10, border: "none",
-                background: active
-                  ? `color-mix(in srgb, var(--t-accent) 12%, transparent)`
-                  : "var(--surface-0)",
-                outline: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
+                padding: "8px 16px", borderRadius: 10,
+                border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
+                background: active ? `${THEME.accent}15` : "var(--surface-0)",
                 color: active ? THEME.accent : THEME.muted,
                 fontWeight: active ? 700 : 500, fontSize: 13,
                 cursor: "pointer", transition: "all 0.15s", fontFamily: "inherit",
@@ -180,7 +179,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
         padding: "12px 16px", borderBottom: `1px solid ${THEME.line}`,
-        background: "color-mix(in srgb, var(--t-accent) 4%, var(--t-paper))",
+        background: `${THEME.accent}09`,
         flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -188,7 +187,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
           <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{MD_LABELS[listKey]}</span>
           <span style={{
             fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 20,
-            background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
+            background: `${THEME.accent}22`,
             color: THEME.accent,
           }}>{items.length}</span>
         </div>
@@ -262,8 +261,8 @@ function EditableList({ listKey, items, onUpdate }: any) {
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               padding: "5px 8px 5px 12px", borderRadius: 20, fontSize: 13, fontWeight: 500,
-              background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--t-accent) 22%, transparent)",
+              background: `${THEME.accent}15`,
+              border: `1px solid ${THEME.accent}33`,
               color: THEME.ink,
             }}
           >
@@ -271,7 +270,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             <button
               onClick={() => remove(item)}
               style={{
-                background: "color-mix(in srgb, var(--t-ink) 8%, transparent)",
+                background: `${THEME.muted}14`,
                 border: "none", cursor: "pointer", color: THEME.muted,
                 padding: 3, lineHeight: 1, display: "flex", alignItems: "center",
                 borderRadius: "50%", transition: "all 0.12s",
@@ -288,7 +287,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
       <div style={{
         display: "flex", alignItems: "center", gap: 0,
         borderTop: `1px solid ${THEME.line}`,
-        background: focused ? "color-mix(in srgb, var(--t-accent) 3%, var(--t-paper))" : "var(--t-paper)",
+        background: focused ? `${THEME.accent}05` : "var(--t-paper)",
         transition: "background 0.15s",
       }}>
         <Plus size={14} style={{ marginLeft: 14, flexShrink: 0, color: THEME.muted }} />
@@ -376,7 +375,7 @@ function AppearanceSection({
                       border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
                       borderRadius: 14, overflow: "hidden", cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
+                      boxShadow: isActive ? `0 0 0 3px ${pal?.light || THEME.accent}33` : "none",
                       transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
                     }}
                   >
@@ -417,7 +416,7 @@ function AppearanceSection({
                       border: isActive ? `2px solid ${pal?.light || THEME.accent}` : `1.5px solid ${THEME.line}`,
                       borderRadius: 14, overflow: "hidden", cursor: "pointer",
                       background: "var(--t-paper)",
-                      boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${pal?.light || THEME.accent} 20%, transparent)` : "none",
+                      boxShadow: isActive ? `0 0 0 3px ${pal?.light || THEME.accent}33` : "none",
                       transition: "all 0.18s", padding: 0, textAlign: "left", fontFamily: "inherit",
                     }}
                   >
@@ -526,8 +525,8 @@ function ProfileSection({ state, updateProfile }: any) {
       <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 28, paddingBottom: 24, borderBottom: `1px solid ${THEME.line}` }}>
         <div style={{
           width: 64, height: 64, borderRadius: "50%",
-          background: "color-mix(in srgb, var(--t-accent) 18%, transparent)",
-          border: `2px solid color-mix(in srgb, var(--t-accent) 30%, transparent)`,
+          background: `${THEME.accent}22`,
+          border: `2px solid ${THEME.accent}44`,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 22, fontWeight: 900, color: THEME.accent, flexShrink: 0,
         }}>
@@ -595,8 +594,8 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{
         padding: "14px 18px", borderRadius: 10,
-        background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-        border: `1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)`,
+        background: `${THEME.accent}15`,
+        border: `1px solid ${THEME.accent}33`,
         fontSize: 13, color: THEME.ink, lineHeight: 1.6,
       }}>
         <strong>Master Data</strong> controls every dropdown in the app — categories, types, networks. Add or remove values here and they reflect instantly everywhere.
@@ -626,7 +625,7 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {/* Cleanup */}
-      <Card style={{ padding: 24, border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)` }}>
+      <Card style={{ padding: 24, border: `1px solid ${THEME.gold}33` }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
           <RotateCcw size={16} color={THEME.gold} /> Cleanup & Maintenance
         </div>
@@ -669,7 +668,7 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
       </Card>
 
       {/* Danger zone */}
-      <Card style={{ padding: 24, border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)` }}>
+      <Card style={{ padding: 24, border: `1px solid ${THEME.rust}44` }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, color: THEME.rust }}>
           <AlertTriangle size={16} /> Danger Zone
         </div>
@@ -688,8 +687,8 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
         ) : (
           <div style={{
             padding: "16px", borderRadius: 10,
-            background: "color-mix(in srgb, var(--t-rust) 8%, transparent)",
-            border: `1px solid color-mix(in srgb, var(--t-rust) 25%, transparent)`,
+            background: `${THEME.rust}15`,
+            border: `1px solid ${THEME.rust}44`,
           }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: THEME.rust, marginBottom: 12 }}>
               Are you sure? This will delete ALL your financial data.
@@ -707,18 +706,27 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
       </Card>
 
       {/* Sign out */}
-      <div style={{ textAlign: "center", paddingTop: 8 }}>
-        <button
-          onClick={onSignOut}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "none", border: "none", cursor: "pointer",
-            color: THEME.muted, fontSize: 14, fontWeight: 500, fontFamily: "inherit",
-          }}
-        >
-          <LogOut size={15} /> Sign Out of Account
-        </button>
-      </div>
+      <Card style={{ padding: "18px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginBottom: 2 }}>Sign Out</div>
+            <div style={{ fontSize: 12, color: THEME.muted }}>You'll be redirected to the login page</div>
+          </div>
+          <button
+            onClick={onSignOut}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "none", border: `1.5px solid ${THEME.line}`,
+              borderRadius: 8, cursor: "pointer",
+              color: THEME.muted, fontSize: 13, fontWeight: 600,
+              padding: "8px 16px", fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            <LogOut size={14} /> Sign Out
+          </button>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -844,8 +852,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         </div>
 
         {enabled && (
-          <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.15)", fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
-            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>Resend_Email_API</code> and <code style={{ background: "rgba(99,102,241,0.1)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_EMAIL_ROLE_KEY</code> to your Vercel environment variables.
+          <div style={{ marginTop: 20, padding: "16px 20px", background: `${THEME.accent}09`, borderRadius: 12, border: `1px solid ${THEME.accent}22`, fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
+            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add <code style={{ background: `${THEME.accent}15`, padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>Resend_Email_API</code> and <code style={{ background: `${THEME.accent}15`, padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>SUPABASE_SERVICE_EMAIL_ROLE_KEY</code> to your Vercel environment variables.
           </div>
         )}
       </Card>
@@ -868,12 +876,12 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 />
               </Field>
               {!fromEmail && (
-                <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`, fontSize: 12, color: THEME.ink, lineHeight: 1.6 }}>
+                <div style={{ padding: "10px 14px", borderRadius: 8, background: `${THEME.gold}15`, border: `1px solid ${THEME.gold}44`, fontSize: 12, color: THEME.ink, lineHeight: 1.6 }}>
                   <strong style={{ color: THEME.gold }}>⚠ Action needed:</strong> Enter your Resend account email above. Without it, emails can only be sent to the Resend-registered address, not to any custom recipient. <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}>Check your Resend account →</a>
                 </div>
               )}
               {fromEmail && (
-                <div style={{ padding: "10px 14px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`, fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
+                <div style={{ padding: "10px 14px", borderRadius: 8, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}33`, fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
                   ✓ Emails will be sent from: <strong>{fromEmail}</strong>
                 </div>
               )}
@@ -894,7 +902,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     style={{
                       flex: "1 1 140px", padding: "12px 16px", borderRadius: 12,
                       border: frequency === f.value ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
-                      background: frequency === f.value ? `color-mix(in srgb, var(--t-accent) 8%, var(--surface-0))` : "var(--surface-0)",
+                      background: frequency === f.value ? `${THEME.accent}15` : "var(--surface-0)",
                       cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit",
                       transition: "all 0.15s ease",
                     }}
@@ -1030,8 +1038,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   <div key={row.label} style={{
                     display: "flex", gap: 10, alignItems: "flex-start",
                     padding: "10px 12px", borderRadius: 8,
-                    background: row.ok ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
-                    border: `1px solid ${row.ok ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
+                    background: row.ok ? `${THEME.sage}09` : `${THEME.rust}09`,
+                    border: row.ok ? `1px solid ${THEME.sage}33` : `1px solid ${THEME.rust}33`,
                   }}>
                     <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{row.ok ? "✅" : "❌"}</span>
                     <div>
@@ -1146,6 +1154,35 @@ export function SettingsTab({
       <SectionTitle sub="Customize your experience, manage dropdown values, and control your data">
         Settings
       </SectionTitle>
+
+      {(() => {
+        const activePreset = THEME_PRESETS.find(
+          p => p.darkMode === darkMode && p.accentKey === (accentKey || "blue")
+        );
+        const fontLabels: Record<string, string> = {
+          "inter": "Inter", "outfit": "Outfit", "roboto": "Roboto",
+          "poppins": "Poppins", "dm-sans": "DM Sans", "nunito": "Nunito",
+          "space-grotesk": "Space Grotesk", "lato": "Lato", "sf-pro": "SF Pro",
+        };
+        const regime = state?.profile?.regime || "new";
+        const tiles = [
+          { label: "Active Theme", value: activePreset?.label || "Custom", sub: darkMode ? "Dark mode" : "Light mode", color: THEME.accent },
+          { label: "Interface Font", value: fontLabels[fontKey || "inter"] || "Inter", sub: density === "compact" ? "Compact density" : density === "comfortable" ? "Comfortable density" : "Normal density", color: THEME.muted },
+          { label: "Financial Year", value: `FY ${state?.profile?.fy || "—"}`, sub: "Active fiscal year for reports", color: THEME.gold },
+          { label: "Tax Regime", value: regime === "new" ? "New Regime" : "Old Regime", sub: regime === "new" ? "Default from FY 2024-25" : "Deductions & exemptions", color: THEME.sage },
+        ];
+        return (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+            {tiles.map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <div style={{ marginBottom: 24, overflowX: "auto" }}>
         <PillNav tabs={TOP_TABS} active={tab} onChange={setTab} />
