@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Activity, Repeat, Plus, Trash2, Pencil, CheckCircle, Clock } from "lucide-react";
+import { Activity, Repeat, Plus, Trash2, Pencil, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween, getLocalDateString } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -194,8 +194,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           },
           {
             label: "Est. Returns",
-            value: totalGains > 0 ? `+${fmtINRFull(totalGains)}` : fmtINRFull(0),
-            sub: totalInvested > 0 ? `+${overallGainPct.toFixed(1)}% overall gain` : "Returns after first installment",
+            value: totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—",
+            sub: totalGains > 0 ? `+${fmtINRFull(totalGains)} total return` : "Returns after first installment",
             color: totalGains > 0 ? THEME.gold : THEME.muted,
           },
           {
@@ -418,6 +418,14 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
     : isDueSoon ? THEME.gold
     : THEME.sage;
   const fundColor = FUND_COLORS[sip.fundType] || THEME.muted;
+  const alertColor = isOverdue ? THEME.rust : THEME.gold;
+
+  const ownerProfile = PROFILES?.find?.((p: any) => p.id === sip.owner);
+  const ownerLabel = ownerProfile?.name || (sip.owner ? sip.owner.charAt(0).toUpperCase() + sip.owner.slice(1) : null);
+
+  const annualAmt = sip.frequency === "quarterly"
+    ? Number(sip.amount) * 4
+    : Number(sip.amount) * 12;
 
   let nextLabel: string | null = null;
   if (!sip.isCompleted && sip.nextDueDateStr) {
@@ -425,10 +433,14 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
     nextLabel = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   }
 
+  const startedLabel = sip.startDate
+    ? new Date(sip.startDate + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+    : null;
+
   return (
     <Card style={{ padding: "18px 20px", borderTop: `3px solid ${statusColor}`, position: "relative" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: (isOverdue || isDueSoon) ? 10 : 14 }}>
         <div style={{
           width: 40, height: 40, borderRadius: 10, flexShrink: 0,
           background: `${fundColor}12`,
@@ -445,7 +457,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, letterSpacing: "-0.01em", marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {sip.scheme}
           </div>
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
             {sip.fundType && (
               <span style={{ fontSize: 9, fontWeight: 700, color: fundColor, background: `${fundColor}12`, border: `1px solid ${fundColor}25`, borderRadius: 4, padding: "2px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
                 {sip.fundType}
@@ -461,12 +473,22 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
                 {sip.broker}
               </span>
             )}
+            {ownerLabel && (
+              <span style={{ fontSize: 9, fontWeight: 700, color: THEME.accent, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}22`, borderRadius: 4, padding: "2px 6px" }}>
+                {ownerLabel}
+              </span>
+            )}
             {sip.isCompleted && (
               <span style={{ fontSize: 9, fontWeight: 700, color: THEME.sage, background: `${THEME.sage}12`, border: `1px solid ${THEME.sage}25`, borderRadius: 4, padding: "2px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
                 ✓ Completed
               </span>
             )}
           </div>
+          {startedLabel && (
+            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 500 }}>
+              Started {startedLabel}
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
@@ -479,6 +501,22 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
         </div>
       </div>
 
+      {/* Overdue / Due-soon alert band */}
+      {(isOverdue || isDueSoon) && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 8, marginBottom: 14,
+          background: `${alertColor}10`, border: `1px solid ${alertColor}35`,
+          color: alertColor, fontSize: 11, fontWeight: 700,
+        }}>
+          <AlertCircle size={12} />
+          {isOverdue
+            ? `Overdue by ${Math.abs(sip.daysUntilDue)} day${Math.abs(sip.daysUntilDue) !== 1 ? "s" : ""} — ${nextLabel}`
+            : `Due in ${sip.daysUntilDue} day${sip.daysUntilDue !== 1 ? "s" : ""} — ${nextLabel}`
+          }
+        </div>
+      )}
+
       {/* Amount + installments row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div>
@@ -488,11 +526,9 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
           <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
             /{sip.frequency === "quarterly" ? "qtr" : "mo"}
           </span>
-          {sip.frequency === "quarterly" && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: THEME.muted, marginLeft: 6 }}>
-              (≈{fmtINRFull(sip.monthlyEquivalent)}/mo)
-            </span>
-          )}
+          <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginLeft: 8 }}>
+            · {fmtINRFull(annualAmt)}/yr
+          </span>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{sip.paid} / {sip.totalInstallments}</div>
@@ -516,9 +552,9 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
       {/* Corpus tinted tiles */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {[
-          { k: "Invested",                            v: fmtINRFull(sip.totalInvested),   color: THEME.muted  },
-          { k: "Est. Value",                          v: fmtINRFull(sip.currentCorpus),   color: THEME.sage   },
-          { k: sip.isCompleted ? "Final" : "Projected", v: fmtINRFull(sip.projectedCorpus), color: THEME.gold   },
+          { k: "Invested",                              v: fmtINRFull(sip.totalInvested),    color: THEME.muted },
+          { k: "Est. Value",                            v: fmtINRFull(sip.currentCorpus),    color: THEME.sage  },
+          { k: sip.isCompleted ? "Final" : "Projected", v: fmtINRFull(sip.projectedCorpus), color: THEME.gold  },
         ].map(({ k, v, color }) => (
           <div key={k} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "7px 10px", borderRadius: 9, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px" }}>
             <span style={{ fontSize: 9, textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, letterSpacing: "0.07em" }}>{k}</span>
@@ -527,18 +563,23 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
         ))}
       </div>
 
-      {/* Bottom row: gains + next due */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4, paddingTop: 10, borderTop: `1px solid ${THEME.line}` }}>
+      {/* Bottom row: total return + next due pill (on-track only) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, paddingTop: 10, borderTop: `1px solid ${THEME.line}` }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: sip.estimatedGains > 0 ? THEME.sage : THEME.muted }}>
           {sip.estimatedGains > 0
-            ? `+${fmtINRFull(sip.estimatedGains)} (${sip.gainPct.toFixed(1)}% gain)`
+            ? `+${fmtINRFull(sip.estimatedGains)} (${sip.gainPct.toFixed(1)}% total return)`
             : sip.paid === 0 ? "Not started" : "—"
           }
         </div>
-        {!sip.isCompleted && nextLabel && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isOverdue ? THEME.rust : isDueSoon ? THEME.gold : THEME.muted }}>
-            <Clock size={11} />
-            {isOverdue ? "Overdue: " : isDueSoon ? "Due soon: " : "Next: "}{nextLabel}
+        {!sip.isCompleted && nextLabel && !isOverdue && !isDueSoon && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700,
+            padding: "3px 8px", borderRadius: 6,
+            background: `${THEME.muted}09`, border: `1px solid ${THEME.line}`,
+            color: THEME.muted,
+          }}>
+            <Clock size={10} />
+            Next: {nextLabel}
           </div>
         )}
       </div>
