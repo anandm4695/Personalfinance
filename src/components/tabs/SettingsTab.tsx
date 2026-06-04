@@ -349,6 +349,33 @@ function AppearanceSection({
     <Card style={{ padding: 28 }}>
       <div style={{ display: "grid", gap: 28 }}>
 
+        {/* ── Dark Mode ── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Dark Mode</div>
+            <div style={{ fontSize: 11, color: THEME.muted }}>Switch to dark interface — or pick a preset below</div>
+          </div>
+          <button
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            style={{
+              position: "relative", width: 52, height: 28, borderRadius: 99,
+              background: darkMode ? THEME.accent : THEME.line,
+              border: "none", cursor: "pointer", flexShrink: 0,
+              transition: "background 0.2s ease",
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 4, left: darkMode ? 26 : 4,
+              width: 20, height: 20, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s ease",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            }} />
+          </button>
+        </div>
+
+        {divider}
+
         {/* ── Preset Themes ── */}
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
@@ -496,6 +523,8 @@ function ProfileSection({ state, updateProfile }: any) {
   const initials = (prof.name || "U")
     .split(" ").map((w: string) => w[0] || "").join("").slice(0, 2).toUpperCase();
 
+  const isDirty = JSON.stringify(prof) !== JSON.stringify(state.profile);
+
   const saveProfile = () => {
     updateProfile(prof);
     setSaved(true);
@@ -565,11 +594,19 @@ function ProfileSection({ state, updateProfile }: any) {
         </Field>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        {isDirty ? (
+          <span style={{ fontSize: 11, fontWeight: 700, color: THEME.gold, display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.gold, display: "inline-block" }} />
+            Unsaved changes
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: THEME.muted }}>Profile settings</span>
+        )}
         <Button
           onClick={saveProfile}
           icon={saved ? <Check size={15} /> : undefined}
-          style={saved ? { background: THEME.sage } : {}}
+          style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
         >
           {saved ? "Saved!" : "Save Profile"}
         </Button>
@@ -593,12 +630,14 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{
-        padding: "14px 18px", borderRadius: 10,
-        background: `${THEME.accent}15`,
-        border: `1px solid ${THEME.accent}33`,
+        padding: "12px 16px", borderRadius: 10,
+        background: `${THEME.accent}09`,
+        border: `1px solid ${THEME.accent}22`,
         fontSize: 13, color: THEME.ink, lineHeight: 1.6,
+        display: "flex", alignItems: "flex-start", gap: 10,
       }}>
-        <strong>Master Data</strong> controls every dropdown in the app — categories, types, networks. Add or remove values here and they reflect instantly everywhere.
+        <Tags size={16} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+        <span><strong>Master Data</strong> controls every dropdown in the app — categories, types, networks. Add or remove values here and they reflect instantly everywhere.</span>
       </div>
 
       <PillNav tabs={tabsWithCounts} active={mdTab} onChange={setMdTab} />
@@ -625,7 +664,7 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {/* Cleanup */}
-      <Card style={{ padding: 24, border: `1px solid ${THEME.gold}33` }}>
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
           <RotateCcw size={16} color={THEME.gold} /> Cleanup & Maintenance
         </div>
@@ -642,7 +681,7 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
       </Card>
 
       {/* Backup */}
-      <Card style={{ padding: 24 }}>
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.sage}` }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
           <Database size={16} color={THEME.sage} /> Backup & Restore
         </div>
@@ -668,7 +707,7 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
       </Card>
 
       {/* Danger zone */}
-      <Card style={{ padding: 24, border: `1px solid ${THEME.rust}44` }}>
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.rust}` }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, color: THEME.rust }}>
           <AlertTriangle size={16} /> Danger Zone
         </div>
@@ -923,10 +962,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                       key={d.value}
                       onClick={() => updateEmailSettings({ emailDay: d.value })}
                       style={{
-                        padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                        padding: "7px 14px", borderRadius: 8, cursor: "pointer",
+                        border: day === d.value ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
                         fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                        background: day === d.value ? THEME.accent : THEME.line,
-                        color: day === d.value ? "#fff" : THEME.muted,
+                        background: day === d.value ? `${THEME.accent}15` : "var(--surface-0)",
+                        color: day === d.value ? THEME.accent : THEME.muted,
                         transition: "all 0.15s ease",
                       }}
                     >{d.label}</button>
@@ -956,16 +996,16 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>What's in each email</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
               {[
-                { icon: "💰", title: "Net Worth Snapshot", desc: "Total wealth with asset breakdown" },
-                { icon: "💸", title: "Monthly Cash Flow", desc: "Income vs expenses + savings rate" },
-                { icon: "📈", title: "Investment Portfolio", desc: "MF, stocks, FD, PPF, NPS values" },
-                { icon: "💳", title: "Credit Card Status", desc: "Outstanding + utilization % per card" },
-                { icon: "🛍️", title: "Top Spending", desc: "Your biggest expense categories" },
-                { icon: "🎯", title: "Goals Progress", desc: "How close you are to each goal" },
-                { icon: "📅", title: "Upcoming Dues", desc: "Bills, EMIs and subscriptions in 7 days" },
-                { icon: "⚡", title: "Smart Alerts", desc: "Over-budget, high credit util, overdue" },
+                { icon: "💰", title: "Net Worth Snapshot", desc: "Total wealth with asset breakdown", color: THEME.sage },
+                { icon: "💸", title: "Monthly Cash Flow", desc: "Income vs expenses + savings rate", color: THEME.accent },
+                { icon: "📈", title: "Investment Portfolio", desc: "MF, stocks, FD, PPF, NPS values", color: THEME.sage },
+                { icon: "💳", title: "Credit Card Status", desc: "Outstanding + utilization % per card", color: THEME.rust },
+                { icon: "🛍️", title: "Top Spending", desc: "Your biggest expense categories", color: THEME.gold },
+                { icon: "🎯", title: "Goals Progress", desc: "How close you are to each goal", color: THEME.accent },
+                { icon: "📅", title: "Upcoming Dues", desc: "Bills, EMIs and subscriptions in 7 days", color: THEME.gold },
+                { icon: "⚡", title: "Smart Alerts", desc: "Over-budget, high credit util, overdue", color: THEME.rust },
               ].map(item => (
-                <div key={item.title} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--surface-0)", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+                <div key={item.title} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--surface-0)", borderRadius: 10, border: `1px solid ${THEME.line}`, borderTop: `3px solid ${item.color}44` }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{item.title}</div>
@@ -1116,6 +1156,18 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
         <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
           Get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: THEME.accent, textDecoration: "none" }}>Google AI Studio</a> — free tier supports up to 15 requests/minute.
         </div>
+
+        {geminiApiKey ? (
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}33`, display: "flex", alignItems: "center", gap: 8 }}>
+            <Check size={14} color={THEME.sage} />
+            <span style={{ fontSize: 12, color: THEME.sage, fontWeight: 600 }}>API key configured — AI Financial Advisor is active</span>
+          </div>
+        ) : (
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: `${THEME.gold}09`, border: `1px solid ${THEME.gold}33`, display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertTriangle size={14} color={THEME.gold} />
+            <span style={{ fontSize: 12, color: THEME.gold, fontWeight: 600 }}>No key set — enter your Gemini API key above to enable AI analysis</span>
+          </div>
+        )}
       </Card>
     </div>
   );
