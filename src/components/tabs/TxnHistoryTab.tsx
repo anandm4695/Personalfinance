@@ -550,8 +550,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                             <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{t.category || "Other"}</span>
                           </td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(t.date)}</td>
-                          <td style={{ ...td, textAlign: "right", color: isCredit ? THEME.sage : THEME.rust, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.02em" }}>
-                            {t.type || "debit"}
+                          <td style={{ ...td, textAlign: "right" }}>
+                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", background: isCredit ? "rgba(5,150,105,0.1)" : "rgba(220,38,38,0.1)", color: isCredit ? THEME.sage : THEME.rust, whiteSpace: "nowrap" }}>
+                              {isCredit ? "▲ Credit" : "▼ Debit"}
+                            </span>
                           </td>
                           <td style={{ ...td, textAlign: "right", color: isCredit ? THEME.sage : THEME.ink, fontWeight: 800, fontSize: 14 }}>
                             {isCredit ? "+" : "-"}₹{amount.toLocaleString("en-IN")}

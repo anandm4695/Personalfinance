@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText, TrendingUp, TrendingDown, IndianRupee } from "lucide-react";
+import { Plus, FileUp, Edit3, Trash2, Check, X, Building2, ReceiptText, TrendingUp, TrendingDown, IndianRupee, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, autoCateg, getLocalDateString } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
@@ -221,6 +221,37 @@ const iconBtn = {
 
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
+
+const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
+  salary:       { color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  income:       { color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  interest:     { color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  dividend:     { color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  savings:      { color: "#059669", bg: "rgba(5,150,105,0.1)" },
+  transfer:     { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+  food:         { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  dining:       { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  groceries:    { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  emi:          { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
+  loan:         { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
+  rent:         { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
+  utilities:    { color: "#0891b2", bg: "rgba(8,145,178,0.1)" },
+  bills:        { color: "#0891b2", bg: "rgba(8,145,178,0.1)" },
+  shopping:     { color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
+  travel:       { color: "#0284c7", bg: "rgba(2,132,199,0.1)" },
+  health:       { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
+  medical:      { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
+  insurance:    { color: "#ea580c", bg: "rgba(234,88,12,0.1)" },
+  investment:   { color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
+  subscription: { color: "#6366f1", bg: "rgba(99,102,241,0.1)" },
+};
+function getCategoryStyle(cat: string) {
+  const key = (cat || "").toLowerCase().trim();
+  for (const [k, v] of Object.entries(CATEGORY_COLORS)) {
+    if (key.includes(k)) return v;
+  }
+  return { color: THEME.muted as string, bg: "rgba(128,128,128,0.08)" };
+}
 
 export function BanksTab({ state, addItem, removeItem, updateItem, masterData, updateMasterData }: any) {
   const [showBank, setShowBank] = useState(false);
@@ -617,16 +648,45 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                   •••• {(a.accountNumber || "").slice(-4)}
                 </div>
               </div>
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                  {state.transactions.filter((t: any) => t.accountId === a.id).length} transactions
+                </span>
+                <button
+                  style={{ fontSize: 11, padding: "3px 12px", borderRadius: 8, background: "transparent", border: `1px solid ${THEME.accent}40`, color: THEME.accent, fontWeight: 700, cursor: "pointer" }}
+                  onClick={() => setFilterAcc(a.id)}
+                >
+                  View →
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
       <div style={card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700 }}>Transaction Ledger</div>
+        <div style={{ marginBottom: 16 }}>
+          {/* Row 1: Title + count + quick range presets */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>Transaction Ledger</span>
+              <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{sortedTxns.length} {sortedTxns.length === 1 ? "entry" : "entries"}</span>
+            </div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+              {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => (
+                <button key={p} style={{ ...btnGhost, padding: "4px 10px", fontSize: 10, whiteSpace: "nowrap", borderRadius: 8 }} onClick={() => setQuickRange(p)}>
+                  {{ thisMonth: "This Month", lastMonth: "Last Month", "3months": "Last 3M", thisFY: "This FY" }[p]}
+                </button>
+              ))}
+              {(dateFrom || dateTo) && <button style={{ ...btnGhost, padding: "3px 8px", fontSize: 10, color: THEME.rust, borderColor: `${THEME.rust}50`, borderRadius: 8 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>}
+            </div>
+          </div>
+          {/* Row 2: Search + account + type + date range */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, width: "auto", minWidth: 160 }} placeholder="Search notes or category…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <div style={{ position: "relative", flex: "1 1 180px", minWidth: 160 }}>
+              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: THEME.muted, fontSize: 14, pointerEvents: "none" }}>🔍</span>
+              <input style={{ ...input, paddingLeft: 32 }} placeholder="Search notes, category…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
             <select style={{ ...input, width: "auto", minWidth: 140 }} value={filterAcc} onChange={(e) => setFilterAcc(e.target.value)}>
               <option value="all">All accounts</option>
               {state.bankAccounts.map((a: any) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
@@ -637,15 +697,11 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               <option value="debit">Debit only</option>
               <option value="transfer">↔ Transfers</option>
             </select>
-            <input type="date" style={{ ...input, width: "auto" }} title="From date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
-            <input type="date" style={{ ...input, width: "auto" }} title="To date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => (
-              <button key={p} style={{ ...btnGhost, padding: "6px 10px", fontSize: 11, whiteSpace: "nowrap" }} onClick={() => setQuickRange(p)}>
-                {{ thisMonth: "This Month", lastMonth: "Last Month", "3months": "Last 3M", thisFY: "This FY" }[p]}
-              </button>
-            ))}
-            {(dateFrom || dateTo) && <button style={{ ...btnGhost, padding: "4px 8px", fontSize: 12 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>Clear</button>}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="date" style={{ ...input, width: "auto" }} title="From date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <span style={{ color: THEME.muted, fontSize: 12, flexShrink: 0 }}>to</span>
+              <input type="date" style={{ ...input, width: "auto" }} title="To date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </div>
           </div>
         </div>
 
@@ -659,20 +715,20 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               <thead>
                 <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
                   <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("date")}>
-                    Date {sortField === "date" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Date {sortField === "date" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
                   <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("note")}>
-                    Particulars {sortField === "note" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Particulars {sortField === "note" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
                   <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("category")}>
-                    Category {sortField === "category" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Category {sortField === "category" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
                   <th style={th}>Account</th>
                   <th style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("amount")}>
-                    Debit {sortField === "amount" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Debit {sortField === "amount" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
                   <th style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("amount")}>
-                    Credit {sortField === "amount" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Credit {sortField === "amount" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
                   <th style={th}></th>
                 </tr>
@@ -758,7 +814,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                   }
                   return (
                     <tr key={t.id} onDoubleClick={() => { setInlineEditId(t.id); setInlineEdit({ ...t }); }} style={{ borderBottom: `1px dashed ${THEME.line}`, cursor: "default" }} title="Double-click to edit inline">
-                      <td style={td}>{t.date}</td>
+                      <td style={{ ...td, color: THEME.muted, fontSize: 12, whiteSpace: "nowrap" }}>{t.date ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
                       <td style={td}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -778,9 +834,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                           )}
                         </div>
                       </td>
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{t.category}</td>
+                      <td style={{ ...td, fontSize: 12 }}>
+                        {t.category ? (
+                          <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: getCategoryStyle(t.category).bg, color: getCategoryStyle(t.category).color, whiteSpace: "nowrap" }}>
+                            {t.category}
+                          </span>
+                        ) : <span style={{ color: THEME.muted }}>—</span>}
+                      </td>
                       <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>{bank ? accountLabel(bank) : "—"}</td>
-                      <td style={{ ...td, textAlign: "right", color: THEME.accent, fontVariantNumeric: "tabular-nums" }}>{t.type === "debit" ? fmtINRFull(t.amount) : ""}</td>
+                      <td style={{ ...td, textAlign: "right", color: THEME.rust, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>{t.type === "debit" ? fmtINRFull(t.amount) : ""}</td>
                       <td style={{ ...td, textAlign: "right", color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{t.type === "credit" ? fmtINRFull(t.amount) : ""}</td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 2 }}>
@@ -792,6 +854,22 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                   );
                 })}
               </tbody>
+              {sortedTxns.length > 0 && (
+                <tfoot>
+                  <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                    <td colSpan={4} style={{ padding: "10px", fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.04em", borderTop: `1.5px solid ${THEME.line}` }}>
+                      {sortedTxns.length} {sortedTxns.length === 1 ? "transaction" : "transactions"}
+                    </td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 900, color: THEME.rust, fontSize: 13, borderTop: `1.5px solid ${THEME.line}` }}>
+                      -{fmtINRFull(sortedTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0))}
+                    </td>
+                    <td style={{ padding: "10px", textAlign: "right", fontWeight: 900, color: THEME.sage, fontSize: 13, borderTop: `1.5px solid ${THEME.line}` }}>
+                      +{fmtINRFull(sortedTxns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0))}
+                    </td>
+                    <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         )}
