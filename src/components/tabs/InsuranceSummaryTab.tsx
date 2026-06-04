@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles, Download, Calendar, TrendingUp } from "lucide-react";
+import { Shield, Heart, Wallet, Zap, Plus, Trash2, Pencil, Sparkles, Download, Calendar, TrendingUp, AlertCircle, Clock } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { StatCard } from "../ui/StatCard";
@@ -783,6 +783,12 @@ const estimateLICSurrenderValue = (premiumPaid: number, commencementDate: string
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════════ */
 
+const fmtDate = (dateStr: string) => {
+  if (!dateStr) return "—";
+  try { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+  catch { return dateStr; }
+};
+
 export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updateItem }: any) {
   const [modal, setModal] = useState<null | "lic" | "term" | "invest">(null);
   const [editPolicy, setEditPolicy] = useState<any>(null);
@@ -875,13 +881,21 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         Insurance Portfolio
       </SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard icon={<Shield />} label="Total LIC Sum Assured" value={fmtINRFull(totalLICAssured)} color={THEME.rust} sub="Life Insurance Corp policies" />
-        <StatCard icon={<Heart />} label="Total Term Cover" value={fmtINRFull(totalTermCover)} color={THEME.rust} sub="Pure protection cover" />
-        <StatCard icon={<TrendingUp />} label="Total Life Cover" value={fmtINRFull(totalLifeCover)} color={THEME.accent} sub="LIC + Term combined" />
-        <StatCard icon={<Wallet />} label="Total Annual Premium" value={fmtINRFull(totalAnnualPremium)} color={THEME.gold} sub={annualIncome > 0 ? `${premiumBurdenPct.toFixed(1)}% of income` : "Combined insurance cost"} />
-        <StatCard icon={<Sparkles />} label="Investment Maturity" value={fmtINRFull(totalInvestMaturity)} color={THEME.sage} sub="Endowment & ULIP receivables" />
-        <StatCard icon={<Zap />} label="Cover Adequacy" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} color={adequacyColor} sub={adequacyLabel} />
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+        {[
+          { label: "LIC Sum Assured", value: fmtINRFull(totalLICAssured), sub: "Life Insurance Corp policies", color: THEME.rust },
+          { label: "Term Cover", value: fmtINRFull(totalTermCover), sub: "Pure protection cover", color: THEME.accent },
+          { label: "Total Life Cover", value: fmtINRFull(totalLifeCover), sub: "LIC + Term combined", color: THEME.accent },
+          { label: "Annual Premium", value: fmtINRFull(totalAnnualPremium), sub: annualIncome > 0 ? `${premiumBurdenPct.toFixed(1)}% of income` : "Combined insurance cost", color: THEME.gold },
+          { label: "Investment Maturity", value: fmtINRFull(totalInvestMaturity), sub: "Endowment & ULIP receivables", color: THEME.sage },
+          { label: "Cover Adequacy", value: annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—", sub: adequacyLabel, color: adequacyColor },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} style={{ flex: "1 1 160px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+          </div>
+        ))}
       </div>
 
       {hasPolicies && (
@@ -968,88 +982,84 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const nextDue = getNextPremiumDue(l.commencementDate, l.maturityDate);
               const surrenderVal = estimateLICSurrenderValue(paid, l.commencementDate);
               const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
+              const monthlyPremium = Number(l.annualPremium || 0) / 12;
+              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
+              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
               return (
-                <Card key={l.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Card key={l.id} style={{ padding: "18px 20px", borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`, display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <InsurerLogo name="LIC" isLic />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                        <span style={{ fontWeight: 900, fontSize: 16, color: THEME.ink, letterSpacing: "-0.02em" }}>{l.planName}</span>
                         <OwnerBadge owner={l.owner} />
                         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.rust }}>{fmtINRFull(l.sumAssured)} assured</span>
-                        <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                        <span>#{l.policyNumber || "No No."}</span>
+                        {l.policyNumber && <><span style={{ margin: "0 5px", opacity: 0.4 }}>·</span><span>#{l.policyNumber}</span></>}
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(l.annualPremium)}</div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>
+                        {fmtINRFull(l.annualPremium)}<span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>/yr</span>
+                      </div>
+                      {monthlyPremium > 0 && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo</div>}
+                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 4 }}>
+                        <button onClick={() => setEditPolicy(l)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.accent }}><Pencil size={13} /></button>
+                        <button onClick={() => removeItem("lic", l.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.rust }}><Trash2 size={13} /></button>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Policy Term</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.policyTerm ? `${l.policyTerm} Yrs` : "—"}</div>
+                  {/* Alert band for urgent premium */}
+                  {isUrgent && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: `${alertColor}10`, border: `1px solid ${alertColor}35`, color: alertColor, fontSize: 11, fontWeight: 700 }}>
+                      <AlertCircle size={12} />
+                      {nextDue.days <= 0 ? `Premium overdue by ${Math.abs(nextDue.days)}d` : `Premium due in ${nextDue.days} days`} — {fmtDate(nextDue.date)}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.commencementDate || "—"}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Maturity Date</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{l.maturityDate || "—"}</div>
-                    </div>
+                  )}
+
+                  {/* Info tiles */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { label: "Policy Term", value: l.policyTerm ? `${l.policyTerm} Yrs` : "—", color: THEME.muted },
+                      { label: "Started", value: fmtDate(l.commencementDate), color: THEME.muted },
+                      { label: "Matures", value: fmtDate(l.maturityDate), color: THEME.gold },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ flex: "1 1 80px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 8, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>{value}</div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Premium progress bar */}
                   {expectedTotal > 0 && (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
-                        <span>Premium Progress</span>
-                        <span>{progressPct.toFixed(0)}% paid</span>
+                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
+                        <span>{isPaid ? "Fully Paid" : `${fmtINRFull(balance)} left`}</span>
                       </div>
-                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.gold, borderRadius: 3, transition: "width 0.3s" }} />
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.gold }} />
                       </div>
                     </div>
                   )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>
-                          {expectedTotal > 0 ? (isPaid ? "Fully Paid" : fmtINRFull(balance)) : "—"}
-                        </span>
-                      </div>
+                  {/* Bottom row */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                      Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                      {surrenderVal > 0 && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>Surrender est: <span style={{ color: THEME.accent, fontWeight: 800 }}>{fmtINRFull(surrenderVal)}</span></>}
                     </div>
-                    {surrenderVal > 0 && (
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        Est. Surrender Value: <span style={{ color: THEME.accent, fontWeight: 800 }}>{fmtINRFull(surrenderVal)}</span>
-                        <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.6 }}>(approx)</span>
+                    {nextDue && !isUrgent && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, background: `${THEME.muted}10`, border: `1px solid ${THEME.muted}22`, borderRadius: 20, padding: "3px 9px", color: THEME.muted, fontWeight: 700 }}>
+                        <Clock size={11} />
+                        Next: {fmtDate(nextDue.date)}
                       </div>
                     )}
-                    {nextDue && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
-                        <Calendar size={11} />
-                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
-                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                      <Button variant="ghost" size="sm" onClick={() => setEditPolicy(l)} style={{ padding: 6, color: THEME.accent }}>
-                        <Pencil size={14} />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("lic", l.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
                   </div>
                 </Card>
               );
@@ -1085,86 +1095,85 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const status = getPolicyStatus(t.expiryDate);
               const nextDue = getNextPremiumDue(t.startDate, t.expiryDate);
               const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
+              const monthlyPremium = Number(t.annualPremium || 0) / 12;
+              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
+              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
               return (
-                <Card key={t.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Card key={t.id} style={{ padding: "18px 20px", borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`, display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <InsurerLogo name={t.insurer} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                        <span style={{ fontWeight: 900, fontSize: 16, color: THEME.ink, letterSpacing: "-0.02em" }}>{t.planName || "Term Plan"}</span>
                         <OwnerBadge owner={t.owner} />
                         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                        <span style={{ color: THEME.rust }}>{fmtINRFull(t.coverAmount)} cover</span>
-                        <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                        <span>{t.insurer}</span>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                        <span style={{ color: THEME.accent }}>{fmtINRFull(t.coverAmount)} cover</span>
+                        {t.insurer && <><span style={{ margin: "0 5px", opacity: 0.4 }}>·</span><span>{t.insurer}</span></>}
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(t.annualPremium)}</div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>
+                        {fmtINRFull(t.annualPremium)}<span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>/yr</span>
+                      </div>
+                      {monthlyPremium > 0 && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo</div>}
+                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 4 }}>
+                        <button onClick={() => setEditPolicy(t)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.accent }}><Pencil size={13} /></button>
+                        <button onClick={() => removeItem("termPlans", t.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.rust }}><Trash2 size={13} /></button>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Plan Cover</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.term ? `${t.term} Yrs` : "—"}</div>
+                  {/* Alert band for urgent premium */}
+                  {isUrgent && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: `${alertColor}10`, border: `1px solid ${alertColor}35`, color: alertColor, fontSize: 11, fontWeight: 700 }}>
+                      <AlertCircle size={12} />
+                      {nextDue.days <= 0 ? `Premium overdue by ${Math.abs(nextDue.days)}d` : `Premium due in ${nextDue.days} days`} — {fmtDate(nextDue.date)}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Payable For</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—"}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.startDate || "—"}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Expiry Date</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{t.expiryDate || "—"}</div>
-                    </div>
+                  )}
+
+                  {/* Info tiles */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { label: "Plan Cover", value: t.term ? `${t.term} Yrs` : "—", color: THEME.muted },
+                      { label: "Payable For", value: t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—", color: THEME.muted },
+                      { label: "Started", value: fmtDate(t.startDate), color: THEME.muted },
+                      { label: "Expires", value: fmtDate(t.expiryDate), color: THEME.rust },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ flex: "1 1 70px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 8, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>{value}</div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Premium progress bar */}
                   {expectedTotal > 0 && (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
-                        <span>Premium Progress</span>
-                        <span>{progressPct.toFixed(0)}% paid</span>
+                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
+                        <span>{isPaid ? "Fully Paid" : `${fmtINRFull(balance)} left`}</span>
                       </div>
-                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.accent, borderRadius: 3, transition: "width 0.3s" }} />
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.accent }} />
                       </div>
                     </div>
                   )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>
-                          {expectedTotal > 0 ? (isPaid ? "Fully Paid" : fmtINRFull(balance)) : "—"}
-                        </span>
-                      </div>
+                  {/* Bottom row */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                      Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
+                      {expectedTotal > 0 && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>{isPaid ? "Fully Paid" : fmtINRFull(balance)}</span></>}
                     </div>
-                    {nextDue && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
-                        <Calendar size={11} />
-                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
-                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
+                    {nextDue && !isUrgent && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, background: `${THEME.muted}10`, border: `1px solid ${THEME.muted}22`, borderRadius: 20, padding: "3px 9px", color: THEME.muted, fontWeight: 700 }}>
+                        <Clock size={11} />
+                        Next: {fmtDate(nextDue.date)}
                       </div>
                     )}
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                      <Button variant="ghost" size="sm" onClick={() => setEditPolicy(t)} style={{ padding: 6, color: THEME.accent }}>
-                        <Pencil size={14} />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("termPlans", t.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
                   </div>
                 </Card>
               );
@@ -1201,93 +1210,104 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               const nextDue = getNextPremiumDue(ip.commencementDate, ip.maturityDate);
               const progressPct = expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
               const maturityGain = Number(ip.expectedMaturityAmount || 0) - expectedTotal;
+              const monthlyPremium = Number(ip.annualPremium || 0) / 12;
+              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
+              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
               return (
-                <Card key={ip.id} style={{ padding: "20px", borderLeft: `4px solid ${isPaid ? THEME.sage : THEME.gold}`, display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Card key={ip.id} style={{ padding: "18px 20px", borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`, display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <InsurerLogo name={ip.insurer} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 900, fontSize: 17, color: THEME.ink, letterSpacing: "-0.02em" }}>{ip.planName || "Investment Plan"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                        <span style={{ fontWeight: 900, fontSize: 16, color: THEME.ink, letterSpacing: "-0.02em" }}>{ip.planName || "Investment Plan"}</span>
                         <OwnerBadge owner={ip.owner} />
                         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: `${status.color}18`, color: status.color }}>{status.label}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                         <span style={{ color: THEME.sage }}>{fmtINRFull(ip.expectedMaturityAmount)} maturity</span>
-                        <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-                        <span>{ip.insurer}</span>
+                        {ip.insurer && <><span style={{ margin: "0 5px", opacity: 0.4 }}>·</span><span>{ip.insurer}</span></>}
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{fmtINRFull(ip.annualPremium)}</div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>premium/yr</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>
+                        {fmtINRFull(ip.annualPremium)}<span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>/yr</span>
+                      </div>
+                      {monthlyPremium > 0 && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>₹{Math.round(monthlyPremium).toLocaleString("en-IN")}/mo</div>}
+                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginTop: 4 }}>
+                        <button onClick={() => setEditPolicy(ip)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.accent }}><Pencil size={13} /></button>
+                        <button onClick={() => removeItem("investmentPlans", ip.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: THEME.rust }}><Trash2 size={13} /></button>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 12, padding: "12px 14px", background: "rgba(128,128,128,0.03)", borderRadius: 10, fontSize: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Policy Term</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{ip.policyTerm ? `${ip.policyTerm} Yrs` : "—"}</div>
+                  {/* Alert band for urgent premium */}
+                  {isUrgent && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: `${alertColor}10`, border: `1px solid ${alertColor}35`, color: alertColor, fontSize: 11, fontWeight: 700 }}>
+                      <AlertCircle size={12} />
+                      {nextDue.days <= 0 ? `Premium overdue by ${Math.abs(nextDue.days)}d` : `Premium due in ${nextDue.days} days`} — {fmtDate(nextDue.date)}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Paying Term</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{ip.premiumPayingTerm ? `${ip.premiumPayingTerm} Yrs` : "—"}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Commencement</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{ip.commencementDate || "—"}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Maturity Date</div>
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>{ip.maturityDate || "—"}</div>
-                    </div>
+                  )}
+
+                  {/* Info tiles */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { label: "Policy Term", value: ip.policyTerm ? `${ip.policyTerm} Yrs` : "—", color: THEME.muted },
+                      { label: "Paying Term", value: ip.premiumPayingTerm ? `${ip.premiumPayingTerm} Yrs` : "—", color: THEME.muted },
+                      { label: "Started", value: fmtDate(ip.commencementDate), color: THEME.muted },
+                      { label: "Matures", value: fmtDate(ip.maturityDate), color: THEME.sage },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ flex: "1 1 70px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 8, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>{value}</div>
+                      </div>
+                    ))}
                   </div>
+
+                  {/* 3 corpus tinted tiles: Invested / Balance / At Maturity */}
+                  {(expectedTotal > 0 || ip.expectedMaturityAmount) && (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ flex: "1 1 80px", background: `${THEME.muted}09`, border: `1px solid ${THEME.muted}22`, borderRadius: 8, padding: "8px 10px" }}>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Invested</div>
+                        <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>{fmtINRFull(paid)}</div>
+                      </div>
+                      {expectedTotal > 0 && (
+                        <div style={{ flex: "1 1 80px", background: `${THEME.gold}09`, border: `1px solid ${THEME.gold}22`, borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Balance Due</div>
+                          <div style={{ fontWeight: 800, color: isPaid ? THEME.sage : THEME.gold, fontSize: 13 }}>{isPaid ? "Fully Paid" : fmtINRFull(balance)}</div>
+                        </div>
+                      )}
+                      {ip.expectedMaturityAmount && (
+                        <div style={{ flex: "1 1 80px", background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}22`, borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>At Maturity</div>
+                          <div style={{ fontWeight: 800, color: THEME.sage, fontSize: 13 }}>{fmtINRFull(ip.expectedMaturityAmount)}</div>
+                          {maturityGain > 0 && expectedTotal > 0 && <div style={{ fontSize: 9, color: THEME.sage, fontWeight: 700 }}>+{((maturityGain / expectedTotal) * 100).toFixed(0)}% return</div>}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Premium progress bar */}
                   {expectedTotal > 0 && (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
-                        <span>Premium Progress</span>
-                        <span>{progressPct.toFixed(0)}% paid</span>
+                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
                       </div>
-                      <div style={{ height: 5, borderRadius: 3, background: `${THEME.line}`, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${progressPct}%`, background: isPaid ? THEME.sage : THEME.sage, borderRadius: 3, transition: "width 0.3s" }} />
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${progressPct}%`, background: THEME.sage }} />
                       </div>
                     </div>
                   )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: `1px solid ${THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Total Paid: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(paid)}</span>
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                        Balance: <span style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}>
-                          {isPaid ? "Fully Paid" : fmtINRFull(balance)}
-                        </span>
+                  {/* Bottom row: next due pill (non-urgent only) */}
+                  {nextDue && !isUrgent && (
+                    <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 6, borderTop: `1px solid ${THEME.line}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, background: `${THEME.muted}10`, border: `1px solid ${THEME.muted}22`, borderRadius: 20, padding: "3px 9px", color: THEME.muted, fontWeight: 700 }}>
+                        <Clock size={11} />
+                        Next: {fmtDate(nextDue.date)}
                       </div>
                     </div>
-                    {maturityGain > 0 && expectedTotal > 0 && (
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        Expected Gain: <span style={{ color: THEME.sage, fontWeight: 800 }}>{fmtINRFull(maturityGain)}</span>
-                        <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.6 }}>({((maturityGain / expectedTotal) * 100).toFixed(0)}% return)</span>
-                      </div>
-                    )}
-                    {nextDue && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: nextDue.days <= 30 ? THEME.rust : THEME.muted, fontWeight: 600 }}>
-                        <Calendar size={11} />
-                        Next premium due: <span style={{ fontWeight: 800, marginLeft: 3 }}>{nextDue.date}</span>
-                        <span style={{ opacity: 0.7 }}>({nextDue.days}d)</span>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                      <Button variant="ghost" size="sm" onClick={() => setEditPolicy(ip)} style={{ padding: 6, color: THEME.accent }}>
-                        <Pencil size={14} />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem("investmentPlans", ip.id)} style={{ padding: 6, color: THEME.rust }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </Card>
               );
             })}
