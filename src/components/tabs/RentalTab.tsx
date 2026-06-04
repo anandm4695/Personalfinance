@@ -18,6 +18,12 @@ interface RentalTabProps {
   updateItem: (key: string, id: string, data: any) => void;
 }
 
+const fmtDate = (dateStr: string) => {
+  if (!dateStr) return "—";
+  try { return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+  catch { return dateStr; }
+};
+
 export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem, updateItem }) => {
   const [sub, setSub] = useState("out");
   const [modalOut, setModalOut] = useState<{ open: boolean; editing: any }>({ open: false, editing: null });
@@ -256,35 +262,19 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {sub === "out" ? (
         <div className="animate-fade-in-up">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
-            <StatCard
-              icon={<Building2 />}
-              label="Monthly Rent"
-              value={fmtINRFull(outMonthlyRent)}
-              color={THEME.accent}
-              sub="Active agreements"
-            />
-            <StatCard
-              icon={<TrendingUp />}
-              label="Received (FY)"
-              value={fmtINRFull(outThisFY)}
-              color={THEME.sage}
-              sub={`of ${fmtINRFull(outMonthlyRent * 12)} annual target`}
-            />
-            <StatCard
-              icon={<Landmark />}
-              label="Deposit Held"
-              value={fmtINRFull(outDepositHeld)}
-              color={THEME.gold}
-              sub="Total liability"
-            />
-            <StatCard
-              icon={<Receipt />}
-              label="Taxable IHP"
-              value={fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7)}
-              color={THEME.accent}
-              sub={municipalTaxPaid > 0 ? `After muni tax + 30% deduction` : "Post 30% std deduction"}
-            />
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32 }}>
+            {[
+              { label: "Monthly Rent", value: fmtINRFull(outMonthlyRent), sub: "Active agreements", color: THEME.accent },
+              { label: "Received (FY)", value: fmtINRFull(outThisFY), sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`, color: THEME.sage },
+              { label: "Deposit Held", value: fmtINRFull(outDepositHeld), sub: "Total liability", color: THEME.gold },
+              { label: "Taxable IHP", value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7), sub: municipalTaxPaid > 0 ? "After muni tax + 30% deduction" : "Post 30% std deduction", color: THEME.accent },
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
           </div>
 
           {propertiesOut.length === 0 ? (
@@ -301,14 +291,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
               {propertiesOut.map((p: any) => (
-                <Card key={p.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${THEME.accent}`, position: "relative" }}>
+                <Card key={p.id} style={{ padding: "18px 20px", borderTop: `3px solid ${THEME.accent}`, position: "relative" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                     {/* Icon Box */}
-                    <div style={{ 
+                    <div style={{
                       width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                      background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
-                      display: "flex", alignItems: "center", justifyContent: "center" 
+                      background: `${THEME.accent}15`,
+                      border: `1px solid ${THEME.accent}33`,
+                      display: "flex", alignItems: "center", justifyContent: "center"
                     }}>
                       <Building2 size={22} color={THEME.accent} />
                     </div>
@@ -410,13 +400,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       </div>
 
                       <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}22` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Received</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull((p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
-                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: `${THEME.gold}09`, border: `1px solid ${THEME.gold}22` }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                             <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Held</span>
                             <button
@@ -427,7 +417,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               style={{
                                 border: "none", cursor: "pointer", color: THEME.gold,
                                 display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
-                                background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`, fontSize: 9, fontWeight: 800
+                                background: `${THEME.gold}15`, fontSize: 9, fontWeight: 800
                               }}
                               title="Log Partial Deposit Receipt"
                             >
@@ -443,7 +433,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           ) : p.depositReceivedDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
-                              Recd: <span style={{ color: THEME.gold }}>{p.depositReceivedDate}</span>
+                              Recd: <span style={{ color: THEME.gold }}>{fmtDate(p.depositReceivedDate)}</span>
                             </div>
                           ) : null}
                         </div>
@@ -455,14 +445,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         const received = (p.receipts || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
                         const pct = expected > 0 ? Math.min(100, (received / expected) * 100) : 0;
                         if (expected === 0) return null;
+                        const barColor = pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust;
                         return (
                           <div style={{ marginTop: 12 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
                               <span>FY Collection</span>
-                              <span style={{ color: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
+                              <span style={{ color: barColor }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
                             </div>
-                            <div style={{ height: 5, borderRadius: 99, background: "rgba(128,128,128,0.12)", overflow: "hidden" }}>
-                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust, transition: "width 0.4s ease" }} />
+                            <div className="progress-track">
+                              <div className="progress-fill" style={{ width: `${pct}%`, background: barColor }} />
                             </div>
                           </div>
                         );
@@ -488,7 +479,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           return (
                             <button
                               onClick={() => setShowLogModal({ type: "receipt", property: p })}
-                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.accent}44`, background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`, color: THEME.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.accent}44`, background: `${THEME.accent}10`, color: THEME.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
                               title={`Quick log rent for ${currMonth}`}
                             >
                               <Plus size={11} /> {currMonth}
@@ -519,7 +510,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.accent, border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)` }}
+                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.accent, border: `1px solid ${THEME.accent}44` }}
                                 onClick={() => {
                                   if (showCsvImport === p.id) {
                                     setShowCsvImport(null);
@@ -706,7 +697,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                                       {r.month} {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
                                     </div>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Received: {r.date}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Received: {fmtDate(r.date)}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>+{fmtINRFull(r.amount)}</span>
@@ -785,7 +776,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                                       Deposit Received {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
                                     </div>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {fmtDate(r.date)}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}>+{fmtINRFull(r.amount)}</span>
@@ -830,7 +821,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 }}>
                                   <div>
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{r.reason}</div>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {fmtDate(r.date)}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
@@ -862,35 +853,19 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       ) : (
         <div className="animate-fade-in-up">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 32 }}>
-            <StatCard
-              icon={<Building2 />}
-              label="Monthly Rent"
-              value={fmtINRFull(inMonthlyRent)}
-              color={THEME.rust}
-              sub="Active agreements"
-            />
-            <StatCard
-              icon={<TrendingDown />}
-              label="Paid (FY)"
-              value={fmtINRFull(inThisFY)}
-              color={THEME.rust}
-              sub={`of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`}
-            />
-            <StatCard
-              icon={<Shield />}
-              label="Deposit Paid"
-              value={fmtINRFull(inDepositPaid)}
-              color={THEME.sage}
-              sub="Recoverable asset"
-            />
-            <StatCard
-              icon={<Percent />}
-              label="HRA Eligible"
-              value={fmtINRFull(inThisFY)}
-              color={THEME.accent}
-              sub="Annual rent paid"
-            />
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32 }}>
+            {[
+              { label: "Monthly Rent", value: fmtINRFull(inMonthlyRent), sub: "Active agreements", color: THEME.rust },
+              { label: "Paid (FY)", value: fmtINRFull(inThisFY), sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`, color: THEME.rust },
+              { label: "Deposit Paid", value: fmtINRFull(inDepositPaid), sub: "Recoverable asset", color: THEME.sage },
+              { label: "HRA Eligible", value: fmtINRFull(inThisFY), sub: "Annual rent paid", color: THEME.accent },
+            ].map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
           </div>
 
           {propertiesIn.length === 0 ? (
@@ -907,14 +882,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
               {propertiesIn.map((p: any) => (
-                <Card key={p.id} style={{ padding: "18px 20px", borderLeft: `3px solid ${THEME.rust}`, position: "relative" }}>
+                <Card key={p.id} style={{ padding: "18px 20px", borderTop: `3px solid ${THEME.rust}`, position: "relative" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                     {/* Icon Box */}
-                    <div style={{ 
+                    <div style={{
                       width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                      background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
-                      display: "flex", alignItems: "center", justifyContent: "center" 
+                      background: `${THEME.rust}15`,
+                      border: `1px solid ${THEME.rust}33`,
+                      display: "flex", alignItems: "center", justifyContent: "center"
                     }}>
                       <Building2 size={22} color={THEME.rust} />
                     </div>
@@ -1019,13 +994,13 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       </div>
 
                       <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: `${THEME.rust}09`, border: `1px solid ${THEME.rust}22` }}>
                           <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>FY Paid</div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.rust }}>
                             {fmtINRFull((p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0))}
                           </div>
                         </div>
-                        <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                        <div style={{ padding: "10px 12px", borderRadius: 10, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}22` }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                             <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deposit Paid</span>
                             <button
@@ -1036,7 +1011,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               style={{
                                 border: "none", cursor: "pointer", color: THEME.sage,
                                 display: "flex", alignItems: "center", justifyContent: "center", padding: "2px 6px", borderRadius: 4,
-                                background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`, fontSize: 9, fontWeight: 800
+                                background: `${THEME.sage}15`, fontSize: 9, fontWeight: 800
                               }}
                               title="Log Partial Deposit Payment"
                             >
@@ -1052,7 +1027,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             </div>
                           ) : p.depositPaidDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2, display: "flex", gap: 3 }}>
-                              Paid: <span style={{ color: THEME.sage }}>{p.depositPaidDate}</span>
+                              Paid: <span style={{ color: THEME.sage }}>{fmtDate(p.depositPaidDate)}</span>
                             </div>
                           ) : null}
                         </div>
@@ -1064,14 +1039,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         const paid = (p.payments || []).filter((r: any) => r.date >= fyStart && r.date <= fyEnd).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
                         const pct = expected > 0 ? Math.min(100, (paid / expected) * 100) : 0;
                         if (expected === 0) return null;
+                        const barColor = pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust;
                         return (
                           <div style={{ marginTop: 12 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
                               <span>FY Payments</span>
-                              <span style={{ color: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
+                              <span style={{ color: barColor }}>{pct.toFixed(0)}% of {fmtINRFull(expected)} expected</span>
                             </div>
-                            <div style={{ height: 5, borderRadius: 99, background: "rgba(128,128,128,0.12)", overflow: "hidden" }}>
-                              <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: pct >= 100 ? THEME.sage : pct >= 50 ? THEME.accent : THEME.rust, transition: "width 0.4s ease" }} />
+                            <div className="progress-track">
+                              <div className="progress-fill" style={{ width: `${pct}%`, background: barColor }} />
                             </div>
                           </div>
                         );
@@ -1097,7 +1073,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           return (
                             <button
                               onClick={() => setShowLogModal({ type: "payment", property: p })}
-                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}44`, background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`, color: THEME.rust, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}44`, background: `${THEME.rust}10`, color: THEME.rust, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
                               title={`Quick log rent for ${currMonth}`}
                             >
                               <Plus size={11} /> {currMonth}
@@ -1315,7 +1291,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                                       {r.month} {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
                                     </div>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Paid: {r.date}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Paid: {fmtDate(r.date)}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>-{fmtINRFull(r.amount)}</span>
@@ -1394,7 +1370,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>
                                       Deposit Paid {r.note && <span style={{ color: THEME.muted, fontWeight: 600 }}>({r.note})</span>}
                                     </div>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {r.date}</div>
+                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Date: {fmtDate(r.date)}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>-{fmtINRFull(r.amount)}</span>
@@ -1438,7 +1414,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
               { label: "Rent Paid Out", value: inThisFY, color: THEME.rust, sign: "-" },
               { label: "Net Cashflow", value: outThisFY - inThisFY, color: outThisFY >= inThisFY ? THEME.sage : THEME.rust, sign: outThisFY >= inThisFY ? "+" : "-" },
             ].map(({ label, value, color, sign }) => (
-              <div key={label} style={{ padding: "14px 16px", borderRadius: 12, background: `color-mix(in srgb, ${color} 5%, transparent)`, border: `1px solid ${color}22` }}>
+              <div key={label} style={{ padding: "14px 16px", borderRadius: 12, background: `${color}09`, border: `1px solid ${color}22` }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color }}>{label === "Net Cashflow" ? (outThisFY >= inThisFY ? "+" : "-") : sign}{fmtINRFull(Math.abs(value))}</div>
               </div>
