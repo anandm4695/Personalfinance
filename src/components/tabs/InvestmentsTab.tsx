@@ -568,26 +568,25 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
       <div>
         {/* Inline sub-tab navigation */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+        <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
           {subs.map((s) => {
             const Icon = s.icon;
             const active = sub === s.id;
             return (
-              <button key={s.id} onClick={() => { setSub(s.id); onSubTabChange?.(s.id); }} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "6px 14px", height: 34, borderRadius: 10,
-                border: active ? "none" : `1px solid ${THEME.line}`,
-                background: active ? THEME.accent : "var(--surface-0)",
-                color: active ? "#fff" : THEME.ink,
-                cursor: "pointer", fontSize: 12, fontWeight: 700,
-                transition: "all 0.2s ease",
-              }}>
+              <button key={s.id} onClick={() => { setSub(s.id); onSubTabChange?.(s.id); }}
+                className={`demat-portfolio-pill ${active ? "active" : ""}`}
+                style={active ? {
+                  background: `${THEME.accent}15`,
+                  color: THEME.accent,
+                  border: `1.5px solid ${THEME.accent}33`,
+                  fontWeight: 700,
+                } : {}}
+              >
                 <Icon size={13} />
                 {s.label}
                 {s.count !== undefined && s.count > 0 && (
                   <span style={{ padding: "1px 6px", borderRadius: 20, fontSize: 10, fontWeight: 800,
-                    background: active ? "rgba(255,255,255,0.25)" : `${THEME.accent}18`,
-                    color: active ? "#fff" : THEME.accent }}>
+                    background: `${THEME.accent}22`, color: THEME.accent }}>
                     {s.count}
                   </span>
                 )}

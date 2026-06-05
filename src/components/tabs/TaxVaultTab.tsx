@@ -496,7 +496,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
       })()}
 
       {/* Sub-tab nav */}
-      <div style={{ display: "flex", gap: 6, border: `1px solid ${THEME.line}`, padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 28 }}>
+      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 28 }}>
         {[
           { id: "income", label: "Income & Advance Tax", icon: Shield },
           { id: "capitalGains", label: "Capital Gains & Harvesting", icon: TrendingUp }
@@ -506,24 +506,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
           return (
             <button
               key={tabInfo.id}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
               onClick={() => setSubTab(tabInfo.id as any)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 16px",
-                borderRadius: 10,
-                border: active ? `1.5px solid ${THEME.accent}33` : "1.5px solid transparent",
-                background: active ? `${THEME.accent}15` : "transparent",
-                color: active ? THEME.accent : THEME.muted,
-                fontWeight: active ? 700 : 500,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                fontFamily: "inherit",
-              }}
+              style={active ? {
+                background: `${THEME.accent}15`,
+                color: THEME.accent,
+                border: `1.5px solid ${THEME.accent}33`,
+              } : {}}
             >
               <Icon size={16} />
-              <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>{tabInfo.label}</span>
+              <span style={{ fontSize: 13 }}>{tabInfo.label}</span>
             </button>
           );
         })}

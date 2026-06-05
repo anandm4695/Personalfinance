@@ -64,11 +64,7 @@ const MD_ICONS: Record<string, string> = {
 
 // ─── Primitive components ─────────────────────────────────────────────────────
 const PillNav = ({ tabs, active, onChange }: any) => (
-  <div style={{
-    display: "flex", gap: 4, padding: 4,
-    background: "var(--surface-0)", borderRadius: 14,
-    border: `1px solid ${THEME.line}`, width: "fit-content", flexWrap: "wrap",
-  }}>
+  <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 0 }}>
     {tabs.map((t: any) => {
       const Icon = t.icon;
       const isActive = active === t.id;
@@ -76,16 +72,12 @@ const PillNav = ({ tabs, active, onChange }: any) => (
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
-            padding: "8px 16px", borderRadius: 10,
-            border: isActive ? `1.5px solid ${THEME.accent}33` : "1.5px solid transparent",
-            background: isActive ? `${THEME.accent}15` : "transparent",
-            color: isActive ? THEME.accent : THEME.muted,
-            fontWeight: isActive ? 700 : 500, fontSize: 13,
-            cursor: "pointer", transition: "all 0.18s", fontFamily: "inherit",
-            whiteSpace: "nowrap",
-          }}
+          className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
+          style={isActive ? {
+            background: `${THEME.accent}15`,
+            color: THEME.accent,
+            border: `1.5px solid ${THEME.accent}33`,
+          } : {}}
         >
           {Icon && <Icon size={14} />} {t.label}
           {t.count != null && (
