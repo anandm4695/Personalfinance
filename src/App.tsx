@@ -2467,7 +2467,7 @@ function FinanceDashboard() {
                           style={{
                             width: "100%",
                             textAlign: "left",
-                            background: active ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                            background: active ? `${THEME.accent}1a` : "transparent",
                             border: "none",
                             cursor: "pointer",
                             padding: isSidebarCompact ? "10px 0" : "10px 16px",
@@ -2499,7 +2499,7 @@ function FinanceDashboard() {
                           <div style={{
                             marginLeft: 18,
                             paddingLeft: 14,
-                            borderLeft: `2px solid color-mix(in srgb, var(--t-accent) 22%, transparent)`,
+                            borderLeft: `2px solid ${THEME.accent}38`,
                             marginBottom: 6,
                             display: "flex",
                             flexDirection: "column",
@@ -2519,7 +2519,7 @@ function FinanceDashboard() {
                                     padding: "7px 10px",
                                     borderRadius: 8,
                                     border: "none",
-                                    background: childActive ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "transparent",
+                                    background: childActive ? `${THEME.accent}15` : "transparent",
                                     color: childActive ? THEME.accent : THEME.muted,
                                     fontWeight: childActive ? 700 : 500,
                                     cursor: "pointer",
@@ -2591,7 +2591,7 @@ function FinanceDashboard() {
 
             {/* GLOBAL SEARCH */}
             <div className="header-search" style={{ position: "relative", flex: 1, maxWidth: 280, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "color-mix(in srgb, var(--t-line) 40%, transparent)", border: `1px solid ${THEME.line}`, borderRadius: 10, padding: "8px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: `${THEME.line}66`, border: `1px solid ${THEME.line}`, borderRadius: 10, padding: "8px 12px" }}>
                 <Search size={13} style={{ color: THEME.muted, flexShrink: 0 }} />
                 <input
                   type="text"
@@ -2814,7 +2814,7 @@ function FinanceDashboard() {
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
                     ) : (
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`, border: `2px solid ${showProfileMenu ? THEME.accent : THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: THEME.accent, transition: "border-color 0.15s", letterSpacing: "-0.02em" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${THEME.accent}26`, border: `2px solid ${showProfileMenu ? THEME.accent : THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: THEME.accent, transition: "border-color 0.15s", letterSpacing: "-0.02em" }}>
                         {initials}
                       </div>
                     );
@@ -2837,7 +2837,7 @@ function FinanceDashboard() {
                             {avatarUrl ? (
                               <img src={avatarUrl} alt={displayName} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: `2px solid ${THEME.line}`, flexShrink: 0 }} />
                             ) : (
-                              <div style={{ width: 44, height: 44, borderRadius: "50%", background: `color-mix(in srgb, var(--t-accent) 15%, transparent)`, border: `2px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: THEME.accent, flexShrink: 0 }}>
+                              <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${THEME.accent}26`, border: `2px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: THEME.accent, flexShrink: 0 }}>
                                 {initials}
                               </div>
                             )}
@@ -2854,7 +2854,7 @@ function FinanceDashboard() {
                       {[
                         { icon: <Settings size={14} />, label: "Settings", action: () => { setTab("settings"); setShowProfileMenu(false); }, active: tab === "settings" },
                       ].map(item => (
-                        <button key={item.label} onClick={item.action} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", background: item.active ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "none", border: "none", cursor: "pointer", color: item.active ? THEME.accent : THEME.ink, fontSize: 13, fontWeight: 600, textAlign: "left" as const, transition: "background 0.12s" }}
+                        <button key={item.label} onClick={item.action} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", background: item.active ? `${THEME.accent}15` : "none", border: "none", cursor: "pointer", color: item.active ? THEME.accent : THEME.ink, fontSize: 13, fontWeight: 600, textAlign: "left" as const, transition: "background 0.12s" }}
                           onMouseEnter={e => { if (!item.active) e.currentTarget.style.background = `color-mix(in srgb, var(--t-muted) 8%, transparent)`; }}
                           onMouseLeave={e => { if (!item.active) e.currentTarget.style.background = "none"; }}
                         >
@@ -3028,7 +3028,7 @@ function FinanceDashboard() {
                     alignItems: "center",
                     justifyContent: "center",
                     borderRadius: 10,
-                    background: active ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent",
+                    background: active ? `${THEME.accent}1f` : "transparent",
                     transition: "background 0.2s ease",
                   }}>
                     <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />

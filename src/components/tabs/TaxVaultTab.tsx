@@ -468,8 +468,30 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
         Tax Vault
       </SectionTitle>
 
-      {/* Modern Sliding Segmented Control for Subtabs */}
-      <div style={{ display: "flex", gap: 6, background: THEME.line, padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 28 }}>
+      {/* Context tile strip */}
+      {(() => {
+        const tiles = [
+          { label: "Financial Year", value: `FY ${state.profile?.fy || "2025-26"}`, sub: "Active fiscal year", color: THEME.accent },
+          { label: "Tax Regime", value: (state.profile?.regime || "new") === "new" ? "New Regime" : "Old Regime", sub: (state.profile?.regime || "new") === "new" ? "₹75K std deduction" : "Deductions allowed", color: THEME.gold },
+          { label: "Gross Tax Liability", value: fmtINRFull(currentTotalTax), sub: `${activeRegime === "new" ? "New" : "Old"} regime FY ${state.profile?.fy || ""}`, color: THEME.rust },
+          { label: "Paid So Far", value: fmtINRFull(totalPaidSoFar), sub: "TDS + Advance + Self-Assess", color: THEME.sage },
+          { label: "Balance Due", value: fmtINRFull(remainingAdvance), sub: remainingAdvance <= 0 ? "Fully settled" : "Still to pay", color: remainingAdvance > 0 ? THEME.gold : THEME.sage },
+        ];
+        return (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+            {tiles.map(({ label, value, sub, color }) => (
+              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Sub-tab nav */}
+      <div style={{ display: "flex", gap: 6, border: `1px solid ${THEME.line}`, padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 28 }}>
         {[
           { id: "income", label: "Income & Advance Tax", icon: Shield },
           { id: "capitalGains", label: "Capital Gains & Harvesting", icon: TrendingUp }
@@ -486,13 +508,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 gap: 8,
                 padding: "8px 16px",
                 borderRadius: 10,
-                border: "none",
-                background: active ? THEME.darkInk : "transparent",
+                border: active ? `1.5px solid ${THEME.accent}33` : "1.5px solid transparent",
+                background: active ? `${THEME.accent}15` : "transparent",
                 color: active ? THEME.accent : THEME.muted,
                 fontWeight: active ? 700 : 500,
                 cursor: "pointer",
-                transition: "all 0.25s var(--ease-premium)",
-                boxShadow: active ? "var(--shadow-md)" : "none",
+                transition: "all 0.2s ease",
+                fontFamily: "inherit",
               }}
             >
               <Icon size={16} />
@@ -556,7 +578,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
 
                   return (
                     <div key={inst.q} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: isPaid ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-gold) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: isPaid ? `${THEME.sage}1f` : `${THEME.gold}1f`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {isPaid ? <CheckCircle2 size={18} color={THEME.sage} /> : <Calendar size={18} color={THEME.gold} />}
                       </div>
                       <div style={{ flex: 1 }}>
@@ -570,7 +592,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 })}
               </div>
               {!isAdvanceTaxApplicable && (
-                <div style={{ marginTop: 16, padding: "10px 12px", borderRadius: 10, background: "color-mix(in srgb, var(--t-sage) 8%, transparent)", border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)`, display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 600, color: THEME.sage }}>
+                <div style={{ marginTop: 16, padding: "10px 12px", borderRadius: 10, background: `${THEME.sage}15`, border: `1px solid ${THEME.sage}33`, display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 600, color: THEME.sage }}>
                   <Shield size={14} /> Advance Tax not applicable (Liability &lt; ₹10k)
                 </div>
               )}
@@ -599,7 +621,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
 
             if (allPaid) {
               return (
-                <Card style={{ padding: 20, marginBottom: 28, background: "rgba(52,211,153,0.04)", border: "1px solid rgba(52,211,153,0.2)", display: "flex", alignItems: "center", gap: 16 }}>
+                <Card style={{ padding: 20, marginBottom: 28, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}33`, display: "flex", alignItems: "center", gap: 16 }}>
                   <CheckCircle2 size={32} color={THEME.sage} />
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: THEME.sage }}>All advance tax payments on track!</div>
@@ -667,7 +689,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 </div>
 
                 {isOverdue && (
-                  <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
+                  <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px solid ${THEME.rust}26`, fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
                     ⚠️ Overdue by {Math.abs(daysLeft)} days. Interest u/s 234B/234C may apply. Pay immediately.
                   </div>
                 )}
@@ -685,7 +707,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
             const isOverdue = daysToITR < 0;
             const isUrgent = daysToITR >= 0 && daysToITR <= 30;
             const bannerColor = isOverdue ? THEME.rust : isUrgent ? "#f59e0b" : THEME.sage;
-            const bannerBg = isOverdue ? "rgba(239,68,68,0.05)" : isUrgent ? "rgba(245,158,11,0.05)" : "rgba(52,211,153,0.05)";
+            const bannerBg = isOverdue ? `${THEME.rust}09` : isUrgent ? `${THEME.gold}09` : `${THEME.sage}09`;
             return (
               <div style={{ padding: "14px 20px", borderRadius: 12, background: bannerBg, border: `1.5px solid ${bannerColor}30`, display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: `${bannerColor}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -722,7 +744,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14, marginBottom: 40 }}>
               {taxPayments.map((p: any) => (
-                <Card key={p.id} style={{ padding: "16px 20px", borderLeft: `3px solid ${p.type === "TDS" ? THEME.gold : THEME.sage}` }}>
+                <Card key={p.id} style={{ padding: "16px 20px", borderTop: `4px solid ${p.type === "TDS" ? THEME.gold : THEME.sage}` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(128,128,128,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <History size={18} color={THEME.muted} />
@@ -924,7 +946,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted }}>Simulation Status</div>
                   {simulatedHarvestIds.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={handleResetHarvest} icon={<RefreshCw size={12} />} style={{ fontSize: 11, padding: "2px 8px", color: THEME.rust, background: "color-mix(in srgb, var(--t-rust) 8%, transparent)" }}>
+                    <Button variant="ghost" size="sm" onClick={handleResetHarvest} icon={<RefreshCw size={12} />} style={{ fontSize: 11, padding: "2px 8px", color: THEME.rust, background: `${THEME.rust}15` }}>
                       Reset Simulation
                     </Button>
                   )}
@@ -962,7 +984,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
               </div>
 
               {taxCalculations.actual.totalTax === 0 && (
-                <div style={{ marginTop: 16, padding: "10px 12px", borderRadius: 10, background: "rgba(59,130,246,0.06)", border: `1px solid rgba(59,130,246,0.15)`, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 11, fontWeight: 600, color: "rgb(59,130,246)", lineHeight: 1.4 }}>
+                <div style={{ marginTop: 16, padding: "10px 12px", borderRadius: 10, background: `${THEME.accent}0f`, border: `1px solid ${THEME.accent}26`, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 11, fontWeight: 600, color: THEME.accent, lineHeight: 1.4 }}>
                   <Info size={16} style={{ flexShrink: 0, marginTop: 1 }} /> 
                   <div>
                     No realized tax liability recorded this FY yet. Simulated losses can be carried forward for up to 8 assessment years to offset future profits.
@@ -1002,7 +1024,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                       gap: 16, 
                       padding: "16px 20px", 
                       borderRadius: 14, 
-                      background: isSelected ? "color-mix(in srgb, var(--t-sage) 4%, var(--surface-0))" : "var(--surface-0)", 
+                      background: isSelected ? `${THEME.sage}09` : "var(--surface-0)",
                       border: `1.5px solid ${isSelected ? THEME.sage : THEME.line}`,
                       boxShadow: isSelected ? "var(--shadow-md)" : "var(--shadow-sm)",
                       cursor: "pointer",
@@ -1058,9 +1080,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
             </h3>
           </div>
           
-          <Card style={{ padding: 24, background: "rgba(79,70,229,0.03)", border: "1.5px solid rgba(79,70,229,0.12)", marginBottom: 32 }}>
+          <Card style={{ padding: 24, background: `${THEME.accent}09`, border: `1.5px solid ${THEME.accent}22`, marginBottom: 32 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(79,70,229,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.accent}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Sparkles size={18} color={THEME.accent} />
               </div>
               <div style={{ flex: 1 }}>

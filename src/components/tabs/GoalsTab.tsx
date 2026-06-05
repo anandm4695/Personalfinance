@@ -144,7 +144,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               <div style={{
                 height: "100%",
                 width: `${Math.min(overallPct, 100)}%`,
-                background: `linear-gradient(90deg, ${ringColor(overallPct)}, color-mix(in srgb, ${ringColor(overallPct)} 70%, white))`,
+                background: `linear-gradient(90deg, ${ringColor(overallPct)}, ${ringColor(overallPct)}cc)`,
                 borderRadius: 6,
                 transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
               }} />
@@ -365,7 +365,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                         </div>
 
                         {sipExpanded.has(g.id) && (
-                          <div style={{ marginTop: 12, padding: 16, background: "rgba(99,102,241,0.04)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.12)" }}>
+                          <div style={{ marginTop: 12, padding: 16, background: `${THEME.accent}09`, borderRadius: 12, border: `1px solid ${THEME.accent}1f` }}>
                             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>Required SIP at different returns</div>
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
                               {[10, 12, 15].map(rate => {
@@ -373,7 +373,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                 const n = monthsLeft;
                                 const sip = n > 0 && r > 0 ? remaining * r / (Math.pow(1 + r, n) - 1) : monthlyNeeded;
                                 return (
-                                  <div key={rate} style={{ textAlign: "center", padding: "10px 8px", background: "rgba(255,255,255,0.6)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
+                                  <div key={rate} style={{ textAlign: "center", padding: "10px 8px", background: "var(--surface-0)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>{rate}% p.a.</div>
                                     <div style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>{fmtINR(sip)}/mo</div>
                                   </div>
@@ -389,7 +389,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                 placeholder="amount"
                                 value={sipInputs[g.id] || ""}
                                 onChange={e => setSipInputs(prev => ({ ...prev, [g.id]: e.target.value }))}
-                                style={{ width: 90, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                                style={{ width: 90, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
                               />
                               <span style={{ fontSize: 12, color: THEME.muted }}>/mo at 12% p.a.</span>
                             </div>
@@ -401,7 +401,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               const goalDate = g.targetDate ? new Date(g.targetDate) : null;
                               const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
                               return (
-                                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: onTime === true ? "rgba(52,211,153,0.06)" : onTime === false ? "rgba(239,68,68,0.06)" : "rgba(128,128,128,0.04)", border: `1px solid ${onTime === true ? "rgba(52,211,153,0.15)" : onTime === false ? "rgba(239,68,68,0.12)" : THEME.line}` }}>
+                                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: onTime === true ? `${THEME.sage}0f` : onTime === false ? `${THEME.rust}0f` : `${THEME.muted}09`, border: `1px solid ${onTime === true ? `${THEME.sage}26` : onTime === false ? `${THEME.rust}1f` : THEME.line}` }}>
                                   <div style={{ fontSize: 13, fontWeight: 700, color: onTime === true ? THEME.sage : onTime === false ? THEME.rust : THEME.ink }}>
                                     Reach goal in {monthsNeeded > 0 ? Math.ceil(monthsNeeded) : "—"} months{reachDate ? ` · ${reachDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}` : ""}
                                   </div>
