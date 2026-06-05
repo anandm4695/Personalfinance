@@ -852,18 +852,23 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         const totalEMIs = (state?.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
         const monthlySavings = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
         const tiles = [
-          { label: "Current Net Worth", value: fmtINRFull(metrics?.netWorth || 0), sub: "Total assets minus liabilities", color: THEME.accent },
-          { label: "Monthly Expenses", value: fmtINRFull(metrics?.monthExpense || 0), sub: "Baseline for FIRE & runway calcs", color: THEME.gold },
-          { label: "Est. Monthly Savings", value: fmtINRFull(monthlySavings), sub: metrics?.monthIncome > 0 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate` : "Use in SIP & projection", color: monthlySavings > 0 ? THEME.sage : THEME.muted },
-          { label: "Total Loan EMIs", value: fmtINRFull(totalEMIs), sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans", color: totalEMIs > 0 ? THEME.rust : THEME.muted },
+          { label: "Current Net Worth",  value: fmtINRFull(metrics?.netWorth || 0),   sub: "Total assets minus liabilities",                                                                   color: THEME.accent,                            Icon: TrendingUp },
+          { label: "Monthly Expenses",   value: fmtINRFull(metrics?.monthExpense || 0), sub: "Baseline for FIRE & runway calcs",                                                               color: THEME.gold,                              Icon: Wallet    },
+          { label: "Est. Monthly Savings", value: fmtINRFull(monthlySavings),           sub: metrics?.monthIncome > 0 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate` : "Use in SIP & projection", color: monthlySavings > 0 ? THEME.sage : THEME.muted, Icon: BarChart2 },
+          { label: "Total Loan EMIs",    value: fmtINRFull(totalEMIs),                  sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",                                color: totalEMIs > 0 ? THEME.rust : THEME.muted, Icon: Coins    },
         ];
         return (
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
-            {tiles.map(({ label, value, sub, color }) => (
-              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
-                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+            {tiles.map(({ label, value, sub, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={18} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
           </div>

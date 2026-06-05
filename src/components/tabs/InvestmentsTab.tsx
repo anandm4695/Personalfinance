@@ -3031,31 +3031,24 @@ const YieldTracker = ({ state }: any) => {
   return (
     <div className="animate-fade-in-up">
       {/* Top stat tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-        <Card variant="tile">
-          <div className="tile-icon"><IndianRupee size={18} /></div>
-          <div className="tile-label">Annual Yield</div>
-          <div className="tile-value">{fmtINRFull(totalAnnual)}</div>
-          <div className="tile-sub">All income streams combined</div>
-        </Card>
-        <Card variant="tile">
-          <div className="tile-icon"><Receipt size={18} /></div>
-          <div className="tile-label">Monthly Income</div>
-          <div className="tile-value">{fmtINRFull(totalMonthly)}</div>
-          <div className="tile-sub">Average cash flow / month</div>
-        </Card>
-        <Card variant="tile">
-          <div className="tile-icon"><Zap size={18} /></div>
-          <div className="tile-label">Daily Passive</div>
-          <div className="tile-value">{fmtINRFull(totalAnnual / 365)}</div>
-          <div className="tile-sub">₹ earned every day</div>
-        </Card>
-        <Card variant="tile">
-          <div className="tile-icon"><Target size={18} /></div>
-          <div className="tile-label">Income Streams</div>
-          <div className="tile-value">{streams.length}</div>
-          <div className="tile-sub">Active yielding instruments</div>
-        </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
+        {[
+          { label: "Annual Yield",    value: fmtINRFull(totalAnnual),       sub: "All income streams combined", color: THEME.accent, Icon: IndianRupee },
+          { label: "Monthly Income",  value: fmtINRFull(totalMonthly),      sub: "Average cash flow / month",   color: THEME.sage,   Icon: Receipt     },
+          { label: "Daily Passive",   value: fmtINRFull(totalAnnual / 365), sub: "₹ earned every day",          color: THEME.gold,   Icon: Zap         },
+          { label: "Income Streams",  value: String(streams.length),        sub: "Active yielding instruments", color: THEME.accent, Icon: Target      },
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+          </div>
+        ))}
       </div>
 
       {streams.length === 0 ? (

@@ -262,17 +262,22 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {sub === "out" ? (
         <div className="animate-fade-in-up">
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
             {[
-              { label: "Monthly Rent", value: fmtINRFull(outMonthlyRent), sub: "Active agreements", color: THEME.accent },
-              { label: "Received (FY)", value: fmtINRFull(outThisFY), sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`, color: THEME.sage },
-              { label: "Deposit Held", value: fmtINRFull(outDepositHeld), sub: "Total liability", color: THEME.gold },
-              { label: "Taxable IHP", value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7), sub: municipalTaxPaid > 0 ? "After muni tax + 30% deduction" : "Post 30% std deduction", color: THEME.accent },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
-                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              { label: "Monthly Rent",  value: fmtINRFull(outMonthlyRent),                              sub: "Active agreements",                                                              color: THEME.accent, Icon: Landmark    },
+              { label: "Received (FY)", value: fmtINRFull(outThisFY),                                   sub: `of ${fmtINRFull(outMonthlyRent * 12)} annual target`,                          color: THEME.sage,   Icon: TrendingUp  },
+              { label: "Deposit Held",  value: fmtINRFull(outDepositHeld),                              sub: "Total liability",                                                               color: THEME.gold,   Icon: Shield      },
+              { label: "Taxable IHP",   value: fmtINRFull(Math.max(0, outThisFY - municipalTaxPaid) * 0.7), sub: municipalTaxPaid > 0 ? "After muni tax + 30% deduction" : "Post 30% std deduction", color: THEME.accent, Icon: Percent },
+            ].map(({ label, value, sub, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={18} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
           </div>
@@ -853,17 +858,22 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       ) : (
         <div className="animate-fade-in-up">
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
             {[
-              { label: "Monthly Rent", value: fmtINRFull(inMonthlyRent), sub: "Active agreements", color: THEME.rust },
-              { label: "Paid (FY)", value: fmtINRFull(inThisFY), sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`, color: THEME.rust },
-              { label: "Deposit Paid", value: fmtINRFull(inDepositPaid), sub: "Recoverable asset", color: THEME.sage },
-              { label: "HRA Eligible", value: fmtINRFull(inThisFY), sub: "Annual rent paid", color: THEME.accent },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
-                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              { label: "Monthly Rent",  value: fmtINRFull(inMonthlyRent), sub: "Active agreements",                                     color: THEME.rust,   Icon: Landmark    },
+              { label: "Paid (FY)",     value: fmtINRFull(inThisFY),      sub: `of ${fmtINRFull(inMonthlyRent * 12)} annual commitment`, color: THEME.rust,   Icon: Receipt     },
+              { label: "Deposit Paid",  value: fmtINRFull(inDepositPaid), sub: "Recoverable asset",                                     color: THEME.sage,   Icon: Shield      },
+              { label: "HRA Eligible",  value: fmtINRFull(inThisFY),      sub: "Annual rent paid",                                      color: THEME.accent, Icon: Building2   },
+            ].map(({ label, value, sub, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={18} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
           </div>

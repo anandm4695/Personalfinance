@@ -492,18 +492,23 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
             const savingsRate = selectedMonthIncome > 0 ? (savingsAmt / selectedMonthIncome) * 100 : null;
             const savingsColor = savingsRate === null ? THEME.muted : savingsRate >= 20 ? THEME.sage : savingsRate >= 10 ? THEME.gold : THEME.rust;
             return (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
                 {[
-                  { label: "Total Budgeted", value: fmtINRFull(totalBudget), sub: `Target for ${selectedMonthLabel}`, color: THEME.accent },
-                  { label: "Spent in Month", value: fmtINRFull(totalSpent), sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used`, color: totalSpent > totalBudget ? THEME.rust : THEME.accent },
-                  { label: "Remaining Balance", value: fmtINRFull(Math.max(0, totalBudget - totalSpent)), sub: totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded", color: totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust },
-                  { label: "Active Buckets", value: String(budgetsToUse.length), sub: totalUnbudgetedSpent > 0 ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted` : "Budgeted categories", color: THEME.muted },
-                  { label: "Savings Rate", value: savingsRate !== null ? `${Math.max(0, savingsRate).toFixed(1)}%` : "—", sub: selectedMonthIncome > 0 ? `Income: ${fmtINRFull(selectedMonthIncome)}` : "Add income data", color: savingsColor },
-                ].map(({ label, value, sub, color }) => (
-                  <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
-                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
-                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+                  { label: "Total Budgeted",    value: fmtINRFull(totalBudget),                         sub: `Target for ${selectedMonthLabel}`,                                                      color: THEME.accent,                          Icon: Target      },
+                  { label: "Spent in Month",    value: fmtINRFull(totalSpent),                          sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used`, color: totalSpent > totalBudget ? THEME.rust : THEME.accent, Icon: Receipt },
+                  { label: "Remaining Balance", value: fmtINRFull(Math.max(0, totalBudget - totalSpent)), sub: totalBudget - totalSpent > 0 ? "Left to spend" : "Budget exceeded",                    color: totalBudget - totalSpent > 0 ? THEME.sage : THEME.rust, Icon: Wallet },
+                  { label: "Active Buckets",    value: String(budgetsToUse.length),                     sub: totalUnbudgetedSpent > 0 ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted` : "Budgeted categories", color: THEME.muted,                  Icon: BarChart2   },
+                  { label: "Savings Rate",      value: savingsRate !== null ? `${Math.max(0, savingsRate).toFixed(1)}%` : "—", sub: selectedMonthIncome > 0 ? `Income: ${fmtINRFull(selectedMonthIncome)}` : "Add income data", color: savingsColor, Icon: TrendingUp },
+                ].map(({ label, value, sub, color, Icon }) => (
+                  <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                        <Icon size={18} />
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                    </div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                    {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
                   </div>
                 ))}
               </div>
@@ -728,17 +733,22 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
           </SectionTitle>
 
           {/* Stats Tiles */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
             {[
-              { label: "Monthly Commitment", value: fmtINRFull(recurringStats.monthlyCommitment), sub: "Sum of active recurring costs", color: THEME.accent },
-              { label: "Annual Equivalent", value: fmtINRFull(recurringStats.annualCost), sub: "Projected yearly outgo", color: THEME.gold },
-              { label: "Paid This Month", value: `${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`, sub: `Recorded: ${fmtINRFull(recurringStats.paidTotal)}`, color: THEME.sage },
-              { label: "Overdue / Unpaid", value: String(recurringStats.overdueCount), sub: `Pending: ${fmtINRFull(recurringStats.overdueTotal)}`, color: recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} style={{ flex: "1 1 150px", background: `${color}09`, border: `1px solid ${color}22`, borderRadius: 12, padding: "14px 18px" }}>
-                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 5, fontWeight: 600 }}>{sub}</div>
+              { label: "Monthly Commitment", value: fmtINRFull(recurringStats.monthlyCommitment), sub: "Sum of active recurring costs",  color: THEME.accent,                                Icon: Repeat       },
+              { label: "Annual Equivalent",  value: fmtINRFull(recurringStats.annualCost),        sub: "Projected yearly outgo",          color: THEME.gold,                                  Icon: Calendar     },
+              { label: "Paid This Month",    value: `${recurringStats.paidCount} / ${activeRecurringExpenses.filter((x: any) => x.isActive).length}`, sub: `Recorded: ${fmtINRFull(recurringStats.paidTotal)}`, color: THEME.sage, Icon: CheckCircle2 },
+              { label: "Overdue / Unpaid",   value: String(recurringStats.overdueCount),          sub: `Pending: ${fmtINRFull(recurringStats.overdueTotal)}`, color: recurringStats.overdueCount > 0 ? THEME.rust : THEME.sage, Icon: AlertCircle },
+            ].map(({ label, value, sub, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={18} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
           </div>
