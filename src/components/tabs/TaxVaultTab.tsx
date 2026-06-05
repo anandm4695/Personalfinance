@@ -508,11 +508,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
               key={tabInfo.id}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
               onClick={() => setSubTab(tabInfo.id as any)}
-              style={active ? {
-                background: `${THEME.accent}15`,
-                color: THEME.accent,
-                border: `1.5px solid ${THEME.accent}33`,
-              } : {}}
             >
               <Icon size={16} />
               <span style={{ fontSize: 13 }}>{tabInfo.label}</span>
@@ -525,7 +520,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
          SUB-TAB 1: INCOME & ADVANCE TAX (PREVIOUS VIEW)
          ══════════════════════════════════════════════════════════════════════ */}
       {subTab === "income" && (
-        <>
+        <div className="tab-content-enter">
           {/* ── SUMMARY DASHBOARD ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 32 }}>
             <Card variant="hero" style={{ padding: 32, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
@@ -874,7 +869,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
               <Button variant="accent" size="lg" icon={<Calculator size={20} />} style={{ padding: "12px 40px" }} onClick={printTaxSummary}>Generate Tax Report</Button>
             </div>
           </Card>
-        </>
+        </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════

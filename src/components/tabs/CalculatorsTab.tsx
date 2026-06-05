@@ -897,12 +897,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               key={t.id}
               onClick={() => setCalcTab(t.id as any)}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
-              style={active ? {
-                background: `${THEME.accent}15`,
-                color: THEME.accent,
-                fontWeight: 700,
-                border: `1.5px solid ${THEME.accent}33`
-              } : {}}
             >
               <Icon size={14} />
               <span>{t.label}</span>

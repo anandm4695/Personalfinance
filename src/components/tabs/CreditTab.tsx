@@ -323,12 +323,6 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           return (
             <button key={s.id} onClick={() => { setSub(s.id); onSubTabChange?.(s.id); }}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
-              style={active ? {
-                background: `${THEME.accent}15`,
-                color: THEME.accent,
-                border: `1.5px solid ${THEME.accent}33`,
-                fontWeight: 700,
-              } : {}}
             >
               <Icon size={13} />
               {s.label}

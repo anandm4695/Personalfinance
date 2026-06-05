@@ -336,12 +336,6 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               key={s.id}
               onClick={() => setActiveSection(s.id)}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
-              style={active ? {
-                background: `${THEME.accent}15`,
-                color: THEME.accent,
-                border: `1.5px solid ${THEME.accent}33`,
-                fontWeight: 700,
-              } : {}}
             >
               <Icon size={13} />
               {s.label}

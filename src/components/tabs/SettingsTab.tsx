@@ -64,7 +64,7 @@ const MD_ICONS: Record<string, string> = {
 
 // ─── Primitive components ─────────────────────────────────────────────────────
 const PillNav = ({ tabs, active, onChange }: any) => (
-  <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 0 }}>
+  <div className="demat-portfolio-bar no-scrollbar">
     {tabs.map((t: any) => {
       const Icon = t.icon;
       const isActive = active === t.id;
@@ -73,19 +73,14 @@ const PillNav = ({ tabs, active, onChange }: any) => (
           key={t.id}
           onClick={() => onChange(t.id)}
           className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
-          style={isActive ? {
-            background: `${THEME.accent}15`,
-            color: THEME.accent,
-            border: `1.5px solid ${THEME.accent}33`,
-          } : {}}
         >
           {Icon && <Icon size={14} />} {t.label}
           {t.count != null && (
             <span style={{
               fontSize: 10, fontWeight: 800, padding: "1px 6px",
               borderRadius: 20,
-              background: `${THEME.accent}22`,
-              color: THEME.accent,
+              background: `color-mix(in srgb, var(--t-accent) 16%, transparent)`,
+              color: "var(--t-accent)",
             }}>{t.count}</span>
           )}
         </button>
@@ -1233,48 +1228,58 @@ export function SettingsTab({
         );
       })()}
 
-      <div style={{ marginBottom: 24, overflowX: "auto" }}>
-        <PillNav tabs={TOP_TABS} active={tab} onChange={setTab} />
-      </div>
+      <PillNav tabs={TOP_TABS} active={tab} onChange={setTab} />
 
       {tab === "appearance" && (
-        <AppearanceSection
-          accentKey={accentKey} setAccentKey={setAccentKey}
-          density={density} setDensity={setDensity}
-          fontKey={fontKey} setFontKey={setFontKey}
-          bgStyle={bgStyle} setBgStyle={setBgStyle}
-          darkMode={darkMode} toggleDarkMode={toggleDarkMode}
-        />
+        <div key="appearance" className="tab-content-enter">
+          <AppearanceSection
+            accentKey={accentKey} setAccentKey={setAccentKey}
+            density={density} setDensity={setDensity}
+            fontKey={fontKey} setFontKey={setFontKey}
+            bgStyle={bgStyle} setBgStyle={setBgStyle}
+            darkMode={darkMode} toggleDarkMode={toggleDarkMode}
+          />
+        </div>
       )}
 
       {tab === "profile" && (
-        <ProfileSection state={state} updateProfile={updateProfile} />
+        <div key="profile" className="tab-content-enter">
+          <ProfileSection state={state} updateProfile={updateProfile} />
+        </div>
       )}
 
       {tab === "masterdata" && (
-        <MasterDataSection masterData={masterData} updateMasterData={updateMasterData} />
+        <div key="masterdata" className="tab-content-enter">
+          <MasterDataSection masterData={masterData} updateMasterData={updateMasterData} />
+        </div>
       )}
 
       {tab === "ai" && (
-        <AIAssistantSection geminiApiKey={state?.settings?.geminiApiKey} updateSettings={updateSettings} />
+        <div key="ai" className="tab-content-enter">
+          <AIAssistantSection geminiApiKey={state?.settings?.geminiApiKey} updateSettings={updateSettings} />
+        </div>
       )}
 
       {tab === "email" && (
-        <EmailSummarySection
-          state={state}
-          emailSettings={emailSettings}
-          updateEmailSettings={updateEmailSettings}
-        />
+        <div key="email" className="tab-content-enter">
+          <EmailSummarySection
+            state={state}
+            emailSettings={emailSettings}
+            updateEmailSettings={updateEmailSettings}
+          />
+        </div>
       )}
 
       {tab === "data" && (
-        <DataSection
-          exportJSON={exportJSON}
-          onRestoreBackup={onRestoreBackup}
-          resetAll={resetAll}
-          onSignOut={onSignOut}
-          cleanupOrphaned={cleanupOrphaned}
-        />
+        <div key="data" className="tab-content-enter">
+          <DataSection
+            exportJSON={exportJSON}
+            onRestoreBackup={onRestoreBackup}
+            resetAll={resetAll}
+            onSignOut={onSignOut}
+            cleanupOrphaned={cleanupOrphaned}
+          />
+        </div>
       )}
     </div>
   );
