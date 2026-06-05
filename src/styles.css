@@ -1046,7 +1046,7 @@ input[type="date"].form-input {
 }
 
 .demat-portfolio-pill:hover {
-  background: rgba(128, 128, 128, 0.04);
+  background: var(--t-accent)09;
   color: var(--t-ink);
 }
 
@@ -1084,7 +1084,7 @@ input[type="date"].form-input {
 }
 
 .demat-holdings-row:hover {
-  background-color: rgba(128, 128, 128, 0.04) !important;
+  background-color: var(--t-accent)09 !important;
 }
 
 .demat-drawer-row {

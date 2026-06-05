@@ -196,7 +196,7 @@ const EmptyHint = ({ text }: { text: string }) => (
 
 const DematEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "48px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ width: 56, height: 56, borderRadius: 18, background: `linear-gradient(135deg, ${THEME.sage} 0%, ${THEME.sage}b3 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Briefcase size={24} color="#fff" />
     </div>
     <div>
@@ -208,15 +208,15 @@ const DematEmptyState = ({ onAdd }: any) => (
         <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: `${THEME.sage}15`, color: THEME.sage, fontWeight: 600, border: `1px solid ${THEME.sage}26` }}>● {f}</span>
       ))}
     </div>
-    <button style={{ padding: "9px 22px", background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={15} /> Add Demat Account
-    </button>
+    <Button variant="accent" icon={<Plus size={15} />} onClick={onAdd}>
+      Add Demat Account
+    </Button>
   </div>
 );
 
 const StockEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg, ${THEME.accent} 0%, ${THEME.accent}b3 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <TrendingUp size={28} color="#fff" />
     </div>
     <div>
@@ -225,12 +225,12 @@ const StockEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Live NSE / BSE Prices", "Unrealised P&L", "CAGR Calculator", "Buy / Sell Ledger"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "#7c3aed15", color: "#7c3aed", fontWeight: 600, border: "1px solid #7c3aed26" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}15`, color: THEME.accent, fontWeight: 600, border: `1px solid ${THEME.accent}26` }}>● {f}</span>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Add Stock Scrip
-    </button>
+    <Button variant="accent" icon={<Plus size={16} />} style={{ marginTop: 8 }} onClick={onAdd}>
+      Add Stock Scrip
+    </Button>
   </div>
 );
 
@@ -252,7 +252,7 @@ const btnGhost = {
 const input = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--t-paper)",
+  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
   borderRadius: 10,
   color: THEME.ink,
@@ -286,15 +286,15 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
 const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
   <Card style={{ position: "relative", overflow: "hidden", ...extraStyle }}>
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-      <button onClick={onEdit} style={iconBtn}><Edit3 size={14} /></button>
-      <button onClick={onRemove} style={iconBtn}><Trash2 size={14} /></button>
+      <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account"><Edit3 size={14} /></button>
+      <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account"><Trash2 size={14} /></button>
     </div>
     {children}
   </Card>
 );
 
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
-const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
+const td = { padding: "12px 10px", verticalAlign: "middle" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
 type FifoAlloc = {
   lot: any;
@@ -534,7 +534,7 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
                 The <b>corporate_actions</b> table is missing in your Supabase database. Your split/bonus actions are saved <b>locally on this device only</b> until you run this SQL once in Supabase.
               </div>
               <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 700 }}>Steps: Go to supabase.com → your project → SQL Editor → paste and run:</div>
-              <pre style={{ fontSize: 11, background: "rgba(0,0,0,0.07)", padding: "10px 14px", borderRadius: 8, color: THEME.ink, margin: 0, overflowX: "auto" as const, whiteSpace: "pre" as const, lineHeight: 1.6 }}>{`CREATE TABLE IF NOT EXISTS public.corporate_actions (
+              <pre style={{ fontSize: 11, background: `${THEME.line}40`, padding: "10px 14px", borderRadius: 8, color: THEME.ink, margin: 0, overflowX: "auto" as const, whiteSpace: "pre" as const, lineHeight: 1.6 }}>{`CREATE TABLE IF NOT EXISTS public.corporate_actions (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   owner text not null default 'self',
@@ -629,7 +629,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div style={{ position: "absolute", left: 14, top: 13, color: THEME.muted }}><Search size={18} /></div>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(128,128,128,0.04)", padding: "0 12px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 40 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-0)", padding: "0 12px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 40 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Sort by:</span>
                 <select 
                   value={sortBy} 
@@ -658,7 +658,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   key={d.id}
                   onRemove={() => removeItem("demat", d.id)}
                   onEdit={() => setEditDematId(d.id)}
-                  style={{ borderLeft: `4px solid ${theme.color}` }}
+                  style={{ borderTop: `4px solid ${theme.color}` }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <BrokerLogo broker={d.broker || "?"} theme={theme} size={46} borderRadius={13} />
@@ -693,7 +693,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         <div style={{ background: "var(--t-card-bg)", borderRadius: 16, border: `1px solid ${THEME.line}`, overflowX: "auto", boxShadow: "var(--t-card-shadow)", marginBottom: 20 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+              <tr style={{ background: "var(--surface-0)" }}>
                 <th style={{ ...th, paddingLeft: 20, borderBottom: `1.5px solid ${THEME.line}` }}>Asset / Scrip</th>
                 <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Quantity</th>
                 <th style={{ ...th, textAlign: "right", borderBottom: `1.5px solid ${THEME.line}` }}>Avg Price</th>
@@ -752,7 +752,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                               {isLive && <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{md.sector || "Sector N/A"}</span>}
-                              <span style={{ fontSize: 9, background: "rgba(128,128,128,0.08)", color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>{lots.length} {lots.length === 1 ? "lot" : "lots"}</span>
+                              <span style={{ fontSize: 9, background: `${THEME.line}40`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>{lots.length} {lots.length === 1 ? "lot" : "lots"}</span>
                             </div>
                           </div>
                         </div>
@@ -814,7 +814,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     
                     {/* Collapsible detail drawer row */}
                     {isExpanded && (
-                      <tr className="demat-drawer-row" style={{ background: "rgba(128,128,128,0.015)" }}>
+                      <tr className="demat-drawer-row" style={{ background: `${THEME.accent}08` }}>
                         <td colSpan={8} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
                           <div className="demat-drawer-content" style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
                             {/* Left Panel: Session sparkline chart */}
@@ -823,7 +823,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                   {chartDate ? `Session Sparkline — ${chartDate}` : "Live Intraday Chart"}
                                 </div>
-                                <div style={{ background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
+                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
                                   <ResponsiveContainer width="100%" height={150}>
                                     <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                                       <defs>
@@ -834,7 +834,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       </defs>
                                       <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
                                       <YAxis hide domain={["auto", "auto"]} />
-                                      <Tooltip contentStyle={{ fontSize: 12, background: "var(--t-paper)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]} />
+                                      <Tooltip contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]} />
                                       <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#ig-${base})`} dot={false} />
                                     </AreaChart>
                                   </ResponsiveContainer>
@@ -881,7 +881,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     const theme = getBrokerTheme(demat?.broker || "");
                                     
                                     return (
-                                      <tr key={lot.id} style={{ background: "rgba(128,128,128,0.03)" }}>
+                                      <tr key={lot.id} style={{ background: `${THEME.accent}08` }}>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }}>
                                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                             <BrokerLogo broker={demat?.broker || "?"} theme={theme} size={20} borderRadius={5} />
@@ -919,9 +919,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", borderTopRightRadius: 8, borderBottomRightRadius: 8 }}>
                                           <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }}>
-                                            <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, padding: 4, color: THEME.rust, background: `${THEME.rust}0f` }} title="Sell Shares"><ArrowLeftRight size={12} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Edit3 size={12} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Trash2 size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} className="icon-btn danger" style={{ ...iconBtn, padding: 4 }} title="Sell Shares"><ArrowLeftRight size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} className="icon-btn" style={{ ...iconBtn, padding: 4 }} title="Edit lot"><Edit3 size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} className="icon-btn danger" style={{ ...iconBtn, padding: 4 }} title="Delete lot"><Trash2 size={12} /></button>
                                           </div>
                                         </td>
                                       </tr>
@@ -1079,7 +1079,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
         <Field label="Sell Price (₹)"><input style={input} type="number" step="0.01" value={f.sellPrice} onChange={(e) => setF({ ...f, sellPrice: e.target.value })} /></Field>
       </div>
       <Field label="Sell Date"><input style={input} type="date" value={f.sellDate} onChange={(e) => setF({ ...f, sellDate: e.target.value })} /></Field>
-      <Field label="Broker">{lot.broker ? <input style={{ ...input, background: "rgba(128,128,128,0.08)", cursor: "default" }} value={f.broker} readOnly /> : <input style={input} value={f.broker} placeholder="e.g. Zerodha" onChange={(e) => setF({ ...f, broker: e.target.value })} />}</Field>
+      <Field label="Broker">{lot.broker ? <input style={{ ...input, background: `${THEME.line}40`, cursor: "default" }} value={f.broker} readOnly /> : <input style={input} value={f.broker} placeholder="e.g. Zerodha" onChange={(e) => setF({ ...f, broker: e.target.value })} />}</Field>
       {sellQtyNum > 0 && sellPriceNum > 0 && <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? `${THEME.sage}1a` : `${THEME.rust}1a`, marginTop: 4 }}><span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span><b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>{profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>{remainingQty > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingQty} shares remain</span>}</div>}
       <ModalActions onSave={handleSave} onClose={onClose} />
     </Modal>
@@ -1126,7 +1126,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
   return (
     <Modal title={`Sell ${group.base} — FIFO`} onClose={onClose} maxWidth={720}>
       {/* Info bar */}
-      <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(128,128,128,0.06)", marginBottom: 16, fontSize: 13, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ padding: "10px 14px", borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, marginBottom: 16, fontSize: 13, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span><span style={{ color: THEME.muted }}>Available: </span><b>{totalQty} shares</b></span>
         <span><span style={{ color: THEME.muted }}>Lots: </span><b>{group.lots.length}</b></span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.muted }}>Oldest lot consumed first (FIFO)</span>
@@ -1171,7 +1171,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
           <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "hidden", marginBottom: 14 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
-                <tr style={{ background: "rgba(128,128,128,0.05)" }}>
+                <tr style={{ background: "var(--surface-0)" }}>
                   <th style={{ ...th, padding: "8px 12px", fontSize: 9 }}>Buy Date</th>
                   <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Buy Price</th>
                   <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>Available</th>
@@ -1183,7 +1183,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
               </thead>
               <tbody>
                 {allocs.map((a, i) => (
-                  <tr key={a.lot.id} style={{ borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined, background: i % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)" }}>
+                  <tr key={a.lot.id} style={{ borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined, background: i % 2 === 0 ? "transparent" : `${THEME.accent}08` }}>
                     <td style={{ ...td, padding: "9px 12px", borderBottom: "none" }}>
                       {a.lot.buyDate
                         ? new Date(a.lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
@@ -1312,7 +1312,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
         {!actionDate && <div style={{ fontSize: 12, color: THEME.rust, marginTop: 6, fontWeight: 600 }}>Enter the actual date (e.g. 15 Jan 2025) — this is saved in the history log</div>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}><Field label={type === "split" ? "New Shares" : "Bonus Shares"}><input style={input} type="number" min="1" value={ratioN} onChange={(e) => setRatioN(e.target.value)} /></Field><div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div><Field label="Existing Shares"><input style={input} type="number" min="1" value={ratioM} onChange={(e) => setRatioM(e.target.value)} /></Field></div>
-      {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(128,128,128,0.08)", marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{newTotalQty}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
+      {isValid && newTotalQty > 0 && <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, marginTop: 4, fontSize: 13 }}><span><span style={{ color: THEME.muted }}>Total Qty: </span><b style={{ color: THEME.muted }}>{totalQty}</b> → <b style={{ color: THEME.gold }}>{newTotalQty}</b></span><span style={{ marginLeft: 20 }}><span style={{ color: THEME.muted }}>Avg Price: </span><b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b></span></div>}
       <ModalActions onSave={handleApply} onClose={onClose} saveLabel="Apply Action" disabled={!isValid} />
     </Modal>
   );
