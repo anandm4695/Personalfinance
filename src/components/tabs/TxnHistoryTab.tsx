@@ -306,16 +306,21 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
       </div>
 
       {/* FY Summary strip */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Stocks Invested", value: `₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: THEME.accent },
-          { label: "MF Invested", value: `₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: "#7C3AED" },
-          { label: "Realized P&L", value: `${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: totalRealizedPnl >= 0 ? THEME.sage : THEME.rust },
-          { label: "Cash Net Flow", value: `${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: cashNetFlow >= 0 ? THEME.sage : THEME.rust },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 140px" }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+          { label: "Stocks Invested", value: `₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: THEME.accent,                                              Icon: BarChart3 },
+          { label: "MF Invested",     value: `₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,     color: "#7C3AED",                                                  Icon: Layers    },
+          { label: "Realized P&L",   value: `${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: totalRealizedPnl >= 0 ? THEME.sage : THEME.rust, Icon: totalRealizedPnl >= 0 ? TrendingUp : TrendingDown },
+          { label: "Cash Net Flow",  value: `${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,            color: cashNetFlow >= 0 ? THEME.sage : THEME.rust,       Icon: Coins     },
+        ].map(({ label, value, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
           </div>
         ))}
       </div>

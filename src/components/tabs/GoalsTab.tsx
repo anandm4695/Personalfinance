@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Plus, Pencil, Trash2, Flag } from "lucide-react";
+import { Plus, Pencil, Trash2, Flag, Target, PiggyBank, TrendingDown, Activity, Calendar } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
@@ -122,18 +122,23 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
 
       {state.goals.length > 0 && (
         <>
-          {/* Tinted summary strip */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+          {/* Stat cards — matches Banks tab StatCard style */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
             {[
-              { label: "Total Target",     value: fmtINRFull(totalTarget),                                                         color: THEME.accent },
-              { label: "Total Saved",      value: fmtINRFull(totalSaved),                                                          color: THEME.sage   },
-              { label: "Remaining",        value: fmtINRFull(totalRemaining),                                                      color: THEME.rust   },
-              { label: "Overall Progress", value: `${overallPct.toFixed(1)}%`,                                                     color: ringColor(overallPct) },
-              { label: "Monthly Required", value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",        color: totalMonthlyRequired > 0 && monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+              { label: "Total Target",     value: fmtINRFull(totalTarget),                                                         color: THEME.accent,   Icon: Target      },
+              { label: "Total Saved",      value: fmtINRFull(totalSaved),                                                          color: THEME.sage,     Icon: PiggyBank   },
+              { label: "Remaining",        value: fmtINRFull(totalRemaining),                                                      color: THEME.rust,     Icon: TrendingDown },
+              { label: "Overall Progress", value: `${overallPct.toFixed(1)}%`,                                                     color: ringColor(overallPct), Icon: Activity },
+              { label: "Monthly Required", value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",        color: totalMonthlyRequired > 0 && monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold, Icon: Calendar },
+            ].map(({ label, value, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={18} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
               </div>
             ))}
           </div>

@@ -410,12 +410,17 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
 
                 return (
                   <>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                      {statCards.map(({ label, value, color, sub: subText }) => (
-                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                          <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                          <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-                          {subText && <span style={{ fontSize: 10, color: THEME.muted }}>{subText}</span>}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
+                      {statCards.map(({ label, value, color, sub: subText, icon, iconBg }) => (
+                        <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: iconBg || `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                              {icon}
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                          </div>
+                          <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                          {subText && <div style={{ fontSize: 10, color: THEME.muted }}>{subText}</div>}
                         </div>
                       ))}
                     </div>
@@ -1599,16 +1604,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Total Borrowed", value: fmtINRFull(totalPrincipal), sub: `${items.length} loan${items.length !== 1 ? "s" : ""}`, color: THEME.muted },
-          { label: "Outstanding",    value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Balance remaining" : "All paid off", color: THEME.rust },
-          { label: "Monthly EMI",    value: fmtINRFull(totalEMI), sub: "Combined monthly payment", color: THEME.accent },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          { label: "Total Borrowed", value: fmtINRFull(totalPrincipal), sub: `${items.length} loan${items.length !== 1 ? "s" : ""}`, color: THEME.muted,  Icon: TrendingDown },
+          { label: "Outstanding",    value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Balance remaining" : "All paid off", color: THEME.rust,   Icon: Wallet       },
+          { label: "Monthly EMI",    value: fmtINRFull(totalEMI), sub: "Combined monthly payment", color: THEME.accent, Icon: Calendar },
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -1763,16 +1773,21 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
   const fmtLoanDate = (d: string) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Total Lent",   value: fmtINRFull(totalLent),        sub: `${items.length} loan${items.length !== 1 ? "s" : ""} given`, color: THEME.sage },
-          { label: "Outstanding",  value: fmtINRFull(totalOutstanding),  sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered", color: totalOutstanding > 0 ? THEME.gold : THEME.sage },
-          { label: "Overdue",      value: String(overdueItems.length),   sub: overdueItems.length > 0 ? "Require follow-up" : "All on schedule", color: overdueItems.length > 0 ? THEME.rust : THEME.sage },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          { label: "Total Lent",   value: fmtINRFull(totalLent),        sub: `${items.length} loan${items.length !== 1 ? "s" : ""} given`, color: THEME.sage,                              Icon: TrendingUp    },
+          { label: "Outstanding",  value: fmtINRFull(totalOutstanding),  sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered", color: totalOutstanding > 0 ? THEME.gold : THEME.sage, Icon: IndianRupee  },
+          { label: "Overdue",      value: String(overdueItems.length),   sub: overdueItems.length > 0 ? "Require follow-up" : "All on schedule", color: overdueItems.length > 0 ? THEME.rust : THEME.sage, Icon: AlertCircle  },
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -1978,16 +1993,21 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
   const fmtD = (d: string) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
-          { label: isBorrowed ? "Total Borrowed" : "Total Lent", value: fmtINRFull(totalBorrowed), sub: "Principal amount",    color: isBorrowed ? THEME.rust : THEME.sage },
-          { label: isBorrowed ? "Total Repaid" : "Received Back", value: fmtINRFull(totalPaid),    sub: "Payment history",    color: THEME.sage },
-          { label: "Outstanding", value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled", color: totalOutstanding > 0 ? accentColor : THEME.sage },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 16, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+          { label: isBorrowed ? "Total Borrowed" : "Total Lent", value: fmtINRFull(totalBorrowed), sub: "Principal amount", color: isBorrowed ? THEME.rust : THEME.sage, Icon: isBorrowed ? TrendingDown : TrendingUp },
+          { label: isBorrowed ? "Total Repaid" : "Received Back", value: fmtINRFull(totalPaid),    sub: "Payment history",  color: THEME.sage,                            Icon: CheckCircle2 },
+          { label: "Outstanding", value: fmtINRFull(totalOutstanding), sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled", color: totalOutstanding > 0 ? accentColor : THEME.sage, Icon: Wallet },
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
           </div>
         ))}
       </div>

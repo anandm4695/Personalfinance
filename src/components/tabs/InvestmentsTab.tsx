@@ -546,17 +546,22 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       </SectionTitle>
 
       {/* Portfolio summary strip */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
         {[
-          { label: "Total Invested", value: fmtINRFull(totalPrincipal), color: THEME.accent },
-          { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage },
-          { label: "Net Returns",    value: `${netGain >= 0 ? "+" : ""}${fmtINRFull(Math.abs(netGain))}`, color: netGain >= 0 ? THEME.sage : THEME.rust },
-          { label: "Return %",       value: `${netGain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`, color: netGain >= 0 ? THEME.sage : THEME.rust },
-          { label: "Instruments",    value: String(subs.filter(s => s.id !== "income" && (s.count ?? 0) > 0).length), color: THEME.muted },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 140px" }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+          { label: "Total Invested", value: fmtINRFull(totalPrincipal), color: THEME.accent,                                        Icon: IndianRupee },
+          { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage,                                          Icon: TrendingUp  },
+          { label: "Net Returns",    value: `${netGain >= 0 ? "+" : ""}${fmtINRFull(Math.abs(netGain))}`, color: netGain >= 0 ? THEME.sage : THEME.rust,     Icon: netGain >= 0 ? TrendingUp : TrendingDown },
+          { label: "Return %",       value: `${netGain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`,           color: netGain >= 0 ? THEME.sage : THEME.rust,     Icon: Activity   },
+          { label: "Instruments",    value: String(subs.filter(s => s.id !== "income" && (s.count ?? 0) > 0).length), color: THEME.muted, Icon: BarChart3  },
+        ].map(({ label, value, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
           </div>
         ))}
       </div>
@@ -1004,16 +1009,21 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
               {[
-                { label: "Total Invested", value: fmtINRFull(totalInvested), color: FD_AMBER },
-                { label: "Total Maturity", value: fmtINRFull(totalMaturity), color: THEME.sage },
-                { label: "Avg. Rate",      value: `${avgRate.toFixed(2)}%`,  color: THEME.accent },
-                { label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active", value: String(items.length - maturedCount), color: maturedCount > 0 ? THEME.rust : THEME.sage },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                { label: "Total Invested", value: fmtINRFull(totalInvested), color: FD_AMBER,                                     Icon: IndianRupee },
+                { label: "Total Maturity", value: fmtINRFull(totalMaturity), color: THEME.sage,                                    Icon: TrendingUp  },
+                { label: "Avg. Rate",      value: `${avgRate.toFixed(2)}%`,  color: THEME.accent,                                  Icon: Activity    },
+                { label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active", value: String(items.length - maturedCount), color: maturedCount > 0 ? THEME.rust : THEME.sage, Icon: BarChart3 },
+              ].map(({ label, value, color, Icon }) => (
+                <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                      <Icon size={16} />
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
                 </div>
               ))}
             </div>
@@ -1142,16 +1152,21 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
               const totalMaturity  = items.reduce((s: number, r: any) => s + rdMaturity(Number(r.monthly), Number(r.rate), Number(r.tenureMonths) || 0), 0);
               const activeCount    = items.filter((r: any) => rdElapsedFn(r) < (Number(r.tenureMonths) || 0)).length;
               return (
-                <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
                   {[
-                    { label: "Monthly SIP Total",  value: fmtINRFull(totalMonthly),   color: RD_BLUE },
-                    { label: "Total Deposited",     value: fmtINRFull(totalDeposited), color: THEME.accent },
-                    { label: "Projected Maturity",  value: fmtINRFull(totalMaturity),  color: THEME.sage },
-                    { label: "RDs Active",          value: String(activeCount),        color: activeCount > 0 ? THEME.sage : THEME.muted },
-                  ].map(({ label, value, color }) => (
-                    <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                      <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                      <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                    { label: "Monthly SIP Total",  value: fmtINRFull(totalMonthly),   color: RD_BLUE,                              Icon: Repeat      },
+                    { label: "Total Deposited",     value: fmtINRFull(totalDeposited), color: THEME.accent,                         Icon: IndianRupee },
+                    { label: "Projected Maturity",  value: fmtINRFull(totalMaturity),  color: THEME.sage,                           Icon: TrendingUp  },
+                    { label: "RDs Active",          value: String(activeCount),        color: activeCount > 0 ? THEME.sage : THEME.muted, Icon: BarChart3 },
+                  ].map(({ label, value, color, Icon }) => (
+                    <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                          <Icon size={16} />
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
                     </div>
                   ))}
                 </div>
@@ -1279,15 +1294,20 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
               {[
-                { label: "Total Invested", value: fmtINRFull(totalInvested), color: BOND_AMBER },
-                { label: "Annual Coupon",  value: fmtINRFull(annualIncome),  color: THEME.sage },
-                { label: "Bonds Held",     value: String(items.length),      color: THEME.accent },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                { label: "Total Invested", value: fmtINRFull(totalInvested), color: BOND_AMBER,  Icon: IndianRupee },
+                { label: "Annual Coupon",  value: fmtINRFull(annualIncome),  color: THEME.sage,  Icon: Coins       },
+                { label: "Bonds Held",     value: String(items.length),      color: THEME.accent, Icon: BarChart3  },
+              ].map(({ label, value, color, Icon }) => (
+                <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                      <Icon size={16} />
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
                 </div>
               ))}
             </div>
@@ -1768,14 +1788,19 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {items.length > 1 && (
-              <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
                 {[
-                  { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE },
-                  { label: "Accounts",          value: String(items.length),    color: THEME.accent },
-                ].map(({ label, value, color }) => (
-                  <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                    <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                    <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                  { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank  },
+                  { label: "Accounts",          value: String(items.length),    color: THEME.accent, Icon: BarChart3 },
+                ].map(({ label, value, color, Icon }) => (
+                  <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                        <Icon size={16} />
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
                   </div>
                 ))}
               </div>
@@ -2847,16 +2872,21 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
         : (
           <>
             {/* Summary strip */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
               {[
-                { label: "Total Invested", value: fmtINRFull(totalInvested),  color: THEME.accent },
-                { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage },
-                { label: "Overall P&L",    value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
-                { label: "Return %",       value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`, color: totalPnl >= 0 ? THEME.sage : THEME.rust },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "10px 16px", borderRadius: 10, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 130px" }}>
-                  <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                  <span style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: "-0.01em" }}>{value}</span>
+                { label: "Total Invested", value: fmtINRFull(totalInvested),  color: THEME.accent,                                    Icon: IndianRupee },
+                { label: "Current Value",  value: fmtINRFull(totalCurrent),   color: THEME.sage,                                      Icon: TrendingUp  },
+                { label: "Overall P&L",    value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`, color: totalPnl >= 0 ? THEME.sage : THEME.rust, Icon: totalPnl >= 0 ? TrendingUp : TrendingDown },
+                { label: "Return %",       value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`,        color: totalPnl >= 0 ? THEME.sage : THEME.rust, Icon: Activity  },
+              ].map(({ label, value, color, Icon }) => (
+                <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                      <Icon size={16} />
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
                 </div>
               ))}
             </div>

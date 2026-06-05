@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import { Activity, Repeat, Plus, Trash2, Pencil, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Activity, Repeat, Plus, Trash2, Pencil, CheckCircle, Clock, AlertCircle, IndianRupee, TrendingUp } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween, getLocalDateString } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
@@ -176,7 +176,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
       </SectionTitle>
 
       {/* ── Summary Tiles ── */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
         {[
           {
             label: "Monthly SIP",
@@ -185,35 +185,39 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
               ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
               : "Monthly equivalent",
             color: THEME.accent,
+            Icon: Repeat,
           },
           {
             label: "Total Invested",
             value: fmtINRFull(totalInvested),
             sub: "Cumulative capital deployed",
             color: THEME.sage,
+            Icon: IndianRupee,
           },
           {
             label: "Est. Returns",
             value: totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—",
             sub: totalGains > 0 ? `+${fmtINRFull(totalGains)} total return` : "Returns after first installment",
             color: totalGains > 0 ? THEME.gold : THEME.muted,
+            Icon: TrendingUp,
           },
           {
             label: "Projected Corpus",
             value: fmtINRFull(totalProjected),
             sub: `@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`,
             color: THEME.accent,
+            Icon: Activity,
           },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} style={{
-            display: "flex", flexDirection: "column", gap: 3,
-            padding: "12px 18px", borderRadius: 12,
-            background: `${color}09`, border: `1px solid ${color}22`,
-            flex: "1 1 160px",
-          }}>
-            <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-            <span style={{ fontSize: 18, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{value}</span>
-            <span style={{ fontSize: 10, color: THEME.muted }}>{sub}</span>
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                <Icon size={18} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
           </div>
         ))}
       </div>
