@@ -18,7 +18,7 @@ const BROKERS = [
 ];
 
 const FUND_COLORS: Record<string, string> = {
-  "Equity": "#6366f1",
+  "Equity": THEME.accent,
   "Debt": "#64748b",
   "Hybrid": "#d97706",
   "ELSS": "#dc2626",

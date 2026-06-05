@@ -462,7 +462,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
 function CCEmptyState({ onAdd }: any) {
   return (
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
-      <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg,${THEME.accent} 0%,#818cf8 100%)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
         <CreditCard size={30} color="#fff" />
       </div>
       <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
@@ -474,7 +474,7 @@ function CCEmptyState({ onAdd }: any) {
       <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" as const }}>
         {["Credit Limit Tracking", "Utilisation Monitor", "Bill & Due Dates", "Transaction Ledger"].map(t => (
           <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} /> {t}
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.accent, display: "inline-block" }} /> {t}
           </span>
         ))}
       </div>
@@ -963,7 +963,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             &nbsp;&nbsp;Payment: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-01-15, Bill Payment, -5000, Payment</code>
           </div>
           <label
-            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08` }}
             onDragOver={e => e.preventDefault()} onDrop={handleDrop}
           >
             <Upload size={22} color={THEME.accent} />
@@ -1407,7 +1407,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
           </div>
 
           <label
-            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)", transition: "background 0.15s" }}
+            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08`, transition: "background 0.15s" }}
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}
           >

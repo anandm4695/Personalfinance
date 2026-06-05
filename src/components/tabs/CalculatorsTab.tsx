@@ -1762,7 +1762,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   {[
                     { label: "Stress-Adjusted Cash (Liquid Banks)", base: stressResult.baseCash, stressed: stressResult.stressCash, color: "#22c55e", hint: "No haircut" },
                     { label: "Stress-Adjusted Fixed Income (FD/Bonds)", base: stressResult.baseFI, stressed: stressResult.stressFI, color: THEME.gold, hint: `-${fiHaircut}% early-withdraw penalty` },
-                    { label: "Stress-Adjusted Equities (Stocks/MFs)", base: stressResult.baseEquity, stressed: stressResult.stressEquity, color: "#6366f1", hint: `-${eqHaircut}% market haircut` }
+                    { label: "Stress-Adjusted Equities (Stocks/MFs)", base: stressResult.baseEquity, stressed: stressResult.stressEquity, color: THEME.accent, hint: `-${eqHaircut}% market haircut` }
                   ].map(({ label, base, stressed, color, hint }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingBottom: 8, borderBottom: `1px dashed ${THEME.line}` }}>
                       <div>

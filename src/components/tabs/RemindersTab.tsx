@@ -781,8 +781,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       {allReminders.length === 0 ? (
         <EmptyState
           icon={Bell}
-          gradient="linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)"
-          dotColor="#4f46e5"
+          gradient={`linear-gradient(135deg,${THEME.accent} 0%,#818cf8 100%)`}
+          dotColor={THEME.accent}
           title="No Reminders Yet"
           description="Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, loans, and rented properties — just add those with due dates and they appear here automatically."
           pills={["CC Bill Due Dates", "FD & Bond Maturities", "Subscription Renewals", "Rent Due Dates", "Custom Alerts"]}
@@ -811,8 +811,8 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {upcoming.length === 0 && past.length === 0 && completed.length === 0 && (
             <EmptyState
               icon={Bell}
-              gradient="linear-gradient(135deg,#4f46e5 0%,#818cf8 100%)"
-              dotColor="#4f46e5"
+              gradient={`linear-gradient(135deg,${THEME.accent} 0%,#818cf8 100%)`}
+              dotColor={THEME.accent}
               title="No Active Reminders"
               description="You have no active or completed reminders."
               buttonLabel="Add Manual Reminder"

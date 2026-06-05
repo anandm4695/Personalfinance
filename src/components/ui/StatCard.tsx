@@ -16,23 +16,23 @@ interface StatCardProps {
 
 export const StatCard = ({ label, value, sub, subColor, icon, color, borderColor, iconBg }: StatCardProps) => (
   <div
+    className="card-lift"
     style={{
-      background: "var(--t-paper)",
+      background: "var(--surface-0)",
       border: `1px solid ${THEME.line}`,
-      borderTop: `3px solid ${borderColor || color}`,
+      borderTop: `4px solid ${borderColor || color}`,
       borderRadius: 14,
       padding: "18px 20px",
       display: "flex",
       flexDirection: "column",
       gap: 12,
-      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+      boxShadow: "var(--shadow-card)",
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{
         width: 36, height: 36, borderRadius: 10,
-        background: iconBg || `color-mix(in srgb, ${color} 12%, transparent)`,
+        background: iconBg || `${color}1f`,
         display: "flex", alignItems: "center", justifyContent: "center",
         color: color, flexShrink: 0,
       }}>
@@ -45,7 +45,7 @@ export const StatCard = ({ label, value, sub, subColor, icon, color, borderColor
         {sub && <div style={{ fontSize: 10, color: subColor || THEME.muted, fontWeight: subColor ? 700 : 400, marginTop: 2, opacity: subColor ? 1 : 0.8 }}>{sub}</div>}
       </div>
     </div>
-    <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1 }}>
+    <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
       <Prv>{value}</Prv>
     </div>
   </div>

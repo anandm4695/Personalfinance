@@ -2594,7 +2594,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 { label: "FD Yield / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "#d9770615" },
                 { label: "RD Yield / Mo", value: passiveIncomeData.rdMonthly, icon: Activity, color: "#0891b2", bg: "#0891b215" },
                 { label: "Savings Int. / Mo", value: passiveIncomeData.savingsMonthly, icon: Receipt, color: "#10b981", bg: "#10b98115" },
-                { label: "Stock Divs / Mo", value: passiveIncomeData.stockDividendsMonthly, icon: TrendingUp, color: "#818cf8", bg: "#818cf815" },
+                { label: "Stock Divs / Mo", value: passiveIncomeData.stockDividendsMonthly, icon: TrendingUp, color: THEME.accent, bg: `${THEME.accent}15` },
                 { label: "MF Yield / Mo", value: passiveIncomeData.mfYieldMonthly, icon: Zap, color: "#a78bfa", bg: "#a78bfa15" },
               ].map(({ label, value, icon: Icon, color, bg }) => (
                 <div key={label} style={{ padding: 14, background: bg, borderRadius: 12, border: `1px solid ${color}1c` }}>
@@ -2645,7 +2645,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               };
 
               const classes = [
-                { key: "equity", label: "Equity", actualPct: actual.equity, actualVal: equity, color: "#6366f1", icon: TrendingUp },
+                { key: "equity", label: "Equity", actualPct: actual.equity, actualVal: equity, color: THEME.accent, icon: TrendingUp },
                 { key: "debt", label: "Debt", actualPct: actual.debt, actualVal: debt, color: "#f59e0b", icon: Landmark },
                 { key: "cash", label: "Cash", actualPct: actual.cash, actualVal: cash, color: "#22c55e", icon: Activity },
                 { key: "other", label: "Other", actualPct: actual.other, actualVal: other, color: "#94a3b8", icon: Receipt },
@@ -3158,7 +3158,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
             <div style={{ display: "grid", gap: 12 }}>
               {[
-                { label: "ELSS Invested", value: taxData80C.elss, color: "#6366f1" },
+                { label: "ELSS Invested", value: taxData80C.elss, color: THEME.accent },
                 { label: "PPF Contribution", value: taxData80C.ppfAnnual, color: THEME.sage },
                 { label: "LIC Premium", value: taxData80C.licPremium, color: THEME.gold },
                 ...(taxData80C.epfEmployee > 0 ? [{ label: "EPF (Employee)", value: taxData80C.epfEmployee, color: "#38bdf8" }] : []),

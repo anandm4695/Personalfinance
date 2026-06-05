@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { X } from "lucide-react";
+import { THEME } from "../../utils/constants";
 
 interface ModalProps {
   title: string;
@@ -74,7 +75,7 @@ export const ModalActions: React.FC<{
         fontWeight: 700,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.45 : 1,
-        boxShadow: disabled ? "none" : "0 4px 14px color-mix(in srgb, var(--t-accent) 40%, transparent)",
+        boxShadow: disabled ? "none" : `0 4px 14px ${THEME.accent}66`,
         transition: "opacity 0.2s, background 0.2s",
       }}
     >

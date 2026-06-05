@@ -863,7 +863,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg,${THEME.accent},#8b5cf6)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <span style={{ fontSize: 18 }}>✉️</span>
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>Email Summary Reports</div>

@@ -145,7 +145,7 @@ const BankEmptyState = ({ onAdd }: any) => (
 
 const TxnEmptyState = ({ onAdd }: any) => (
   <div style={{ padding: "60px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg,${THEME.accent} 0%,#a78bfa 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <ReceiptText size={28} color="#fff" />
     </div>
     <div>
@@ -157,7 +157,7 @@ const TxnEmptyState = ({ onAdd }: any) => (
         <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}15`, color: THEME.accent, fontWeight: 600, border: `1px solid ${THEME.accent}26` }}>● {f}</span>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
+    <button style={{ marginTop: 8, padding: "10px 24px", background: `linear-gradient(135deg,${THEME.accent} 0%,#a78bfa 100%)`, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
       <Plus size={16} /> Add Transaction
     </button>
   </div>
@@ -243,7 +243,7 @@ const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
   medical:      { color: "#dc2626", bg: "#dc26261a" },
   insurance:    { color: "#ea580c", bg: "#ea580c1a" },
   investment:   { color: "#7c3aed", bg: "#7c3aed1a" },
-  subscription: { color: "#6366f1", bg: "#6366f11a" },
+  subscription: { color: THEME.accent as string, bg: `${THEME.accent}1a` },
 };
 function getCategoryStyle(cat: string) {
   const key = (cat || "").toLowerCase().trim();

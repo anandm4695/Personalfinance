@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { X } from "lucide-react";
+import { THEME } from "../../utils/constants";
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void; btnGhost?: any }) {
   React.useEffect(() => {
@@ -53,10 +54,10 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: { message: strin
 export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type: string }[] }) {
   if (!toasts.length) return null;
   const configs: Record<string, { accent: string; icon: string; label: string }> = {
-    success: { accent: "var(--t-sage)", icon: "✓", label: "success" },
-    error: { accent: "var(--t-rust)", icon: "✕", label: "error" },
-    warn: { accent: "var(--t-gold)", icon: "!", label: "warning" },
-    info: { accent: "var(--t-accent)", icon: "i", label: "info" },
+    success: { accent: THEME.sage,   icon: "✓", label: "success" },
+    error:   { accent: THEME.rust,   icon: "✕", label: "error"   },
+    warn:    { accent: THEME.gold,   icon: "!",  label: "warning" },
+    info:    { accent: THEME.accent, icon: "i",  label: "info"    },
   };
 
   return ReactDOM.createPortal(
@@ -66,7 +67,7 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
         return (
           <div key={t.id} style={{
             background: "var(--surface-0)",
-            border: `1px solid color-mix(in srgb, ${cfg.accent} 30%, var(--t-line))`,
+            border: `1px solid ${cfg.accent}4d`,
             color: "var(--t-ink)",
             padding: "12px 16px",
             borderRadius: 12,
@@ -82,8 +83,8 @@ export function ToastStack({ toasts }: { toasts: { id: string; msg: string; type
           }}>
             <span style={{
               width: 20, height: 20, borderRadius: "50%",
-              background: `color-mix(in srgb, ${cfg.accent} 15%, transparent)`,
-              border: `1.5px solid color-mix(in srgb, ${cfg.accent} 40%, transparent)`,
+              background: `${cfg.accent}26`,
+              border: `1.5px solid ${cfg.accent}66`,
               color: cfg.accent,
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               fontSize: 10, fontWeight: 800, flexShrink: 0,

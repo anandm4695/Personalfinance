@@ -988,6 +988,13 @@ input[type="date"].form-input {
   .app-sidebar { display: none !important; }
 }
 
+/* ── Button variant hover states ──────────────────────────────── */
+.btn-primary:not(:disabled):hover  { filter: brightness(1.08); box-shadow: 0 6px 20px var(--t-accent)59; }
+.btn-accent:not(:disabled):hover   { filter: brightness(1.07); box-shadow: 0 8px 24px var(--t-accent)66; }
+.btn-secondary:not(:disabled):hover { background: var(--t-accent)0f !important; border-color: var(--t-accent) !important; color: var(--t-accent) !important; }
+.btn-ghost:not(:disabled):hover    { background: var(--t-accent)0f !important; color: var(--t-accent) !important; }
+.btn-danger:not(:disabled):hover   { background: var(--t-rust) !important; color: #fff !important; }
+
 /* ── Reduced motion ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
