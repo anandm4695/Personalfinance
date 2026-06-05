@@ -626,7 +626,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           </td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(t.date)}</td>
                           <td style={{ ...td, textAlign: "right" }}>
-                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", background: isCredit ? "rgba(5,150,105,0.1)" : "rgba(220,38,38,0.1)", color: isCredit ? THEME.sage : THEME.rust, whiteSpace: "nowrap" }}>
+                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", background: isCredit ? `${THEME.sage}1a` : `${THEME.rust}1a`, color: isCredit ? THEME.sage : THEME.rust, whiteSpace: "nowrap" }}>
                               {isCredit ? "▲ Credit" : "▼ Debit"}
                             </span>
                           </td>

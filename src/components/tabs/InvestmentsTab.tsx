@@ -197,9 +197,9 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
             <input style={inp} type="date" value={fd.maturityDate} onChange={e => setFdField("maturityDate", e.target.value)} />
           </Field>
           {fd.principal && fd.rate && fd.years && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: `${THEME.gold}12`, border: `1px solid ${THEME.gold}40`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-              <span style={{ fontWeight: 900, color: "#d97706", fontSize: 15 }}>
+              <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
                 {fmtINRFull(fdMaturity(Number(fd.principal), Number(fd.rate), Number(fd.years)))}
               </span>
             </div>
@@ -811,9 +811,9 @@ function EditFDModal({ fd: initial, onClose, onSave }: any) {
         <input style={inp} type="date" value={form.maturityDate} onChange={e => setField("maturityDate", e.target.value)} />
       </Field>
       {form.principal && form.rate && form.years && (
-        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.25)", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: `${THEME.gold}12`, border: `1px solid ${THEME.gold}40`, display: "flex", justifyContent: "space-between" }}>
           <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-          <span style={{ fontWeight: 900, color: "#d97706", fontSize: 15 }}>{fmtINRFull(maturity)}</span>
+          <span style={{ fontWeight: 900, color: THEME.gold, fontSize: 15 }}>{fmtINRFull(maturity)}</span>
         </div>
       )}
       <ModalActions onSave={() => form.bank && form.principal && form.rate && onSave(form)} onClose={onClose} saveLabel="Save Changes" />
@@ -851,7 +851,7 @@ function EditRDModal({ rd: initial, onClose, onSave }: any) {
         </Field>
       </div>
       {form.monthly && form.rate && form.tenureMonths && (
-        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.2)", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "#0ea5e90f", border: "1px solid #0ea5e933", display: "flex", justifyContent: "space-between" }}>
           <span style={{ fontSize: 11, color: THEME.muted }}>Projected Maturity</span>
           <span style={{ fontWeight: 900, color: "#0284c7", fontSize: 15 }}>{fmtINRFull(maturity)}</span>
         </div>
@@ -897,7 +897,7 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
         </Field>
       </div>
       {current > 0 && (
-        <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
             <div style={{ fontWeight: 900, color: THEME.accent, fontSize: 15 }}>{fmtINRFull(current)}</div>
@@ -1063,7 +1063,7 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                         ["Start",   f.startDate    ? new Date(f.startDate    + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "—"],
                         ["Matures", f.maturityDate ? new Date(f.maturityDate + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "—"],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ padding: "7px 6px", background: "rgba(217,119,6,0.06)", borderRadius: 8, border: "1px solid rgba(217,119,6,0.14)", textAlign: "center" as const }}>
+                        <div key={l} style={{ padding: "7px 6px", background: `${THEME.gold}0f`, borderRadius: 8, border: `1px solid ${THEME.gold}24`, textAlign: "center" as const }}>
                           <div style={{ ...lbl, marginBottom: 2 }}>{l}</div>
                           <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{v}</div>
                         </div>
@@ -1342,7 +1342,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                         ["Units", b.numberOfUnits || "—"],
                         ["FV/Unit", b.faceValuePerUnit ? fmtINR(b.faceValuePerUnit) : "—"],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ padding: "8px 6px", background: "rgba(217,119,6,0.06)", borderRadius: 8, border: "1px solid rgba(217,119,6,0.14)", textAlign: "center" as const }}>
+                        <div key={l} style={{ padding: "8px 6px", background: `${THEME.gold}0f`, borderRadius: 8, border: `1px solid ${THEME.gold}24`, textAlign: "center" as const }}>
                           <div style={{ ...lbl, marginBottom: 3 }}>{l}</div>
                           <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{v}</div>
                         </div>
@@ -1508,10 +1508,10 @@ function PPFCsvPanel({ onImport }: any) {
   const btnStyle = { padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" };
 
   return (
-    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
-        <button onClick={downloadTemplate} style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8" }}>Download Template</button>
+        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+        <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent }}>Download Template</button>
       </div>
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
         <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
@@ -1519,11 +1519,11 @@ function PPFCsvPanel({ onImport }: any) {
         &nbsp;&nbsp;Withdrawal: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2026-01-15, withdrawal, 25000, Partial</code>
       </div>
       <label
-        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08` }}
         onDragOver={e => e.preventDefault()} onDrop={handleDrop}
       >
-        <Upload size={22} color="#818cf8" />
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <Upload size={22} color={THEME.accent} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
         <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
         <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
       </label>
@@ -1535,22 +1535,22 @@ function PPFCsvPanel({ onImport }: any) {
         placeholder={"2025-04-05, deposit, 150000, Annual contribution FY 2025-26\n2025-10-10, deposit, 50000, Mid-year top up"}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
-        <button style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+        <button style={{ ...btnStyle, border: `1px solid ${THEME.accent}66`, background: "transparent", color: THEME.accent }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
         {csvPreview.length > 0 && !importDone && (
-          <button style={{ ...btnStyle, border: "none", background: "#818cf8", color: "#fff" }} onClick={doImport}>
+          <button style={{ ...btnStyle, border: "none", background: THEME.accent, color: "#fff" }} onClick={doImport}>
             Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
           </button>
         )}
         {importDone && <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}><CheckCircle2 size={15} /> Imported!</div>}
       </div>
       {csvError && (
-        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
         </div>
       )}
       {csvPreview.length > 0 && (
         <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready — preview:</div>
+          <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
           <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
@@ -1651,7 +1651,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
         <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setShowCsvImport(false); }}>
           <Plus size={13} /> Add Transaction
         </button>
-        <button style={{ ...btnGhost, color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
+        <button style={{ ...btnGhost, color: THEME.accent, borderColor: `${THEME.accent}66` }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
           <Upload size={13} /> Import CSV
         </button>
         {txs.length > 0 && (
@@ -1817,7 +1817,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
 /* ── EPF Account Card ────────────────────────────────────────────────── */
 const EPF_TX_TYPES = [
   { value: "monthly_contribution",  label: "Monthly Contribution (Passbook)", color: "#8b5cf6" },
-  { value: "employee_contribution", label: "Employee Contribution",           color: "#6366f1" },
+  { value: "employee_contribution", label: "Employee Contribution",           color: THEME.accent },
   { value: "employer_contribution", label: "Employer Contribution",           color: "#0ea5e9" },
   { value: "interest_credit",       label: "Interest Credit (EPFO)",          color: "#22c55e" },
   { value: "transfer_in",           label: "Transfer In (from Previous Employer)", color: "#10b981" },
@@ -1889,7 +1889,7 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
 
       {isMonthly ? (
         <>
-          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 11, color: "#818cf8", marginBottom: 4 }}>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}26`, fontSize: 11, color: THEME.accent, marginBottom: 4 }}>
             Enter one row from your EPFO passbook — each wage month is one entry.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1918,7 +1918,7 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
         </>
       ) : isInterest ? (
         <>
-          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.2)", fontSize: 11, color: "#16a34a", marginBottom: 4 }}>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}33`, fontSize: 11, color: THEME.sage, marginBottom: 4 }}>
             EPFO credits interest separately to Employee PF and Employer PF — enter both splits exactly as shown in your passbook.
           </div>
           <Field label="Period / Label (optional)">
@@ -1941,7 +1941,7 @@ function EPFTransactionModal({ onClose, onSave, initial, establishments = [] }: 
         </>
       ) : isTransfer ? (
         <>
-          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.25)", fontSize: 11, color: "#059669", marginBottom: 4 }}>
+          <div style={{ marginTop: 4, padding: "9px 12px", borderRadius: 8, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}40`, fontSize: 11, color: THEME.sage, marginBottom: 4 }}>
             Record EPF balance transferred from your previous employer (Form 13). The amount will be credited to your current PF account.
           </div>
           <Field label="From Employer (Previous Company Name)">
@@ -2060,10 +2060,10 @@ function EPFCsvPanel({ onImport }: any) {
   const typeInfo = (t: string) => EPF_TX_TYPES.find(x => x.value === t) || { label: t, color: THEME.muted };
 
   return (
-    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
-        <button onClick={downloadTemplate} style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8" }}>Download Template</button>
+        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+        <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent }}>Download Template</button>
       </div>
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
         <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
@@ -2073,11 +2073,11 @@ function EPFCsvPanel({ onImport }: any) {
         <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>withdrawal</code>
       </div>
       <label
-        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08` }}
         onDragOver={e => e.preventDefault()} onDrop={handleDrop}
       >
-        <Upload size={22} color="#818cf8" />
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <Upload size={22} color={THEME.accent} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
         <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
         <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
       </label>
@@ -2089,20 +2089,20 @@ function EPFCsvPanel({ onImport }: any) {
         placeholder={"2025-04-30, employee, 5000, April 2025\n2025-04-30, employer, 5000, April 2025\n2026-03-31, interest, 41250, EPFO FY 2025-26"}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
-        <button style={{ ...btnStyle, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+        <button style={{ ...btnStyle, border: `1px solid ${THEME.accent}66`, background: "transparent", color: THEME.accent }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
         {csvPreview.length > 0 && !importDone && (
-          <button style={{ ...btnStyle, border: "none", background: "#818cf8", color: "#fff" }} onClick={doImport}>Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}</button>
+          <button style={{ ...btnStyle, border: "none", background: THEME.accent, color: "#fff" }} onClick={doImport}>Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}</button>
         )}
         {importDone && <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}><CheckCircle2 size={15} /> Imported!</div>}
       </div>
       {csvError && (
-        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
           <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
         </div>
       )}
       {csvPreview.length > 0 && (
         <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready — preview:</div>
+          <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
           <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
@@ -2286,7 +2286,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
   const stats = [
     ...(totalInterest   > 0 ? [{ label: "Interest (EPFO)",          value: totalInterest,   color: THEME.sage }] : []),
-    ...(totalTransferIn > 0 ? [{ label: "Transfer In",              value: totalTransferIn, color: "#10b981"  }] : []),
+    ...(totalTransferIn > 0 ? [{ label: "Transfer In",              value: totalTransferIn, color: THEME.sage  }] : []),
     ...(totalWithdrawal > 0 ? [{ label: "Withdrawn",                value: totalWithdrawal, color: THEME.rust }] : []),
   ].filter(s => s.value > 0);
 
@@ -2381,7 +2381,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const sortedEsts    = [...ests].sort((a, b) => (b.joiningDate || "").localeCompare(a.joiningDate || ""));
 
   return (
-    <Card style={{ padding: 20, borderTop: "3px solid #6366f1" }}>
+    <Card style={{ padding: 20, borderTop: `4px solid ${THEME.accent}` }}>
 
       {/* ── Account Header ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -2400,22 +2400,22 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
         Total Corpus{hasPassbook && <span style={{ fontSize: 10, color: THEME.sage, marginLeft: 6, fontWeight: 600 }}>auto-calculated from passbook</span>}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#6366f1", letterSpacing: "-0.02em", marginBottom: hasPassbook ? 10 : 20 }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.02em", marginBottom: hasPassbook ? 10 : 20 }}>
         <Prv>{fmtINRFull(displayCorpus)}</Prv>
       </div>
       {hasPassbook && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
-          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(99,102,241,0.2)", background: "rgba(99,102,241,0.04)" }}>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.accent}33`, background: `${THEME.accent}09` }}>
             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employee PF</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#6366f1" }}><Prv>{fmtINR(closingEmployee)}</Prv></div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(closingEmployee)}</Prv></div>
           </div>
-          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(14,165,233,0.2)", background: "rgba(14,165,233,0.04)" }}>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid #0ea5e933", background: "#0ea5e909" }}>
             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employer PF</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(closingEmployer)}</Prv></div>
           </div>
-          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.gold}33`, background: `${THEME.gold}09` }}>
             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>EPS (Pension)</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}><Prv>{fmtINR(closingPension)}</Prv></div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}><Prv>{fmtINR(closingPension)}</Prv></div>
           </div>
         </div>
       )}
@@ -2424,19 +2424,19 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em" }}>Service History</div>
-          <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: "#6366f1", borderColor: "rgba(99,102,241,0.3)" }}
+          <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.accent, borderColor: `${THEME.accent}4d` }}
             onClick={() => { setEditEst(null); setShowEstModal(true); }}>
             <Plus size={11} /> Add Employer
           </button>
         </div>
 
         {ests.length === 0 ? (
-          <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(99,102,241,0.04)", border: "1px dashed rgba(99,102,241,0.2)", fontSize: 11, color: THEME.muted, textAlign: "center" as const }}>
+          <div style={{ padding: "12px 14px", borderRadius: 10, background: `${THEME.accent}09`, border: `1px dashed ${THEME.accent}33`, fontSize: 11, color: THEME.muted, textAlign: "center" as const }}>
             Add your EPFO service history — Est ID, Member ID, Joining &amp; Exit dates
           </div>
         ) : (
           <div style={{ position: "relative", paddingLeft: 32 }}>
-            <div style={{ position: "absolute", left: 11, top: 12, bottom: 12, width: 2, background: "rgba(99,102,241,0.2)", borderRadius: 2 }} />
+            <div style={{ position: "absolute", left: 11, top: 12, bottom: 12, width: 2, background: `${THEME.accent}33`, borderRadius: 2 }} />
             {sortedEsts.map((est, idx) => {
               const isCurrent = !est.exitDate;
               const dateLabel = isCurrent
@@ -2465,7 +2465,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
               return (
                 <div key={est.id} style={{ position: "relative", marginBottom: idx < sortedEsts.length - 1 ? 14 : 0 }}>
-                  <div style={{ position: "absolute", left: -32, top: 10, width: 22, height: 22, borderRadius: "50%", background: isCurrent ? "#6366f1" : "rgba(99,102,241,0.15)", border: `2px solid ${isCurrent ? "#6366f1" : "rgba(99,102,241,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: isCurrent ? "#fff" : "#6366f1" }}>
+                  <div style={{ position: "absolute", left: -32, top: 10, width: 22, height: 22, borderRadius: "50%", background: isCurrent ? THEME.accent : `${THEME.accent}26`, border: `2px solid ${isCurrent ? THEME.accent : `${THEME.accent}59`}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: isCurrent ? "#fff" : THEME.accent }}>
                     {idx + 1}
                   </div>
                   <div style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
@@ -2497,24 +2497,24 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                     {/* per-establishment closing balance (only if transactions tagged to this est) */}
                     {estHasTxs && (
                       <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", textAlign: "center" as const }}>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}26`, textAlign: "center" as const }}>
                           <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Emp PF</div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: "#6366f1" }}><Prv>{fmtINR(estEmpC + estIntEmp)}</Prv></div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(estEmpC + estIntEmp)}</Prv></div>
                         </div>
-                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(14,165,233,0.05)", border: "1px solid rgba(14,165,233,0.15)", textAlign: "center" as const }}>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "#0ea5e909", border: "1px solid #0ea5e926", textAlign: "center" as const }}>
                           <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Er PF</div>
                           <div style={{ fontSize: 11, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(estErC + estIntEr)}</Prv></div>
                         </div>
-                        <div style={{ padding: "7px 10px", borderRadius: 8, background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.15)", textAlign: "center" as const }}>
+                        <div style={{ padding: "7px 10px", borderRadius: 8, background: `${THEME.gold}09`, border: `1px solid ${THEME.gold}26`, textAlign: "center" as const }}>
                           <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>Pension</div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b" }}><Prv>{fmtINR(estPenC)}</Prv></div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.gold }}><Prv>{fmtINR(estPenC)}</Prv></div>
                         </div>
                       </div>
                     )}
                     {estHasTxs && (
                       <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ fontSize: 10, color: THEME.muted }}>
-                          Closing Balance: <span style={{ fontWeight: 800, color: isCurrent ? "#6366f1" : THEME.ink }}><Prv>{fmtINR(estClosing)}</Prv></span>
+                          Closing Balance: <span style={{ fontWeight: 800, color: isCurrent ? THEME.accent : THEME.ink }}><Prv>{fmtINR(estClosing)}</Prv></span>
                         </div>
                       </div>
                     )}
@@ -2523,7 +2523,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                     {!isCurrent && (
                       <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${THEME.line}` }}>
                         {alreadyTransferred ? (
-                          <div style={{ fontSize: 10, color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
                             <CheckCircle2 size={12} /> Transfer In recorded
                           </div>
                         ) : (
@@ -2542,7 +2542,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                               });
                               setShowTxModal(true);
                             }}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.06)", color: "#059669", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: `1px solid ${THEME.sage}66`, background: `${THEME.sage}0f`, color: THEME.sage, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                           >
                             <Repeat size={11} /> Record Transfer to New Employer
                           </button>
@@ -2574,7 +2574,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
         <button style={btnGhost} onClick={() => { setShowTxModal(true); setEditTx(null); setTransferPrefill(null); setShowCsvImport(false); }}>
           <Plus size={13} /> Add Transaction
         </button>
-        <button style={{ ...btnGhost, color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
+        <button style={{ ...btnGhost, color: THEME.accent, borderColor: `${THEME.accent}66` }} onClick={() => { setShowCsvImport(v => !v); setShowLedger(true); }}>
           <Upload size={13} /> Import CSV
         </button>
         {txs.length > 0 && (
@@ -2602,32 +2602,32 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
             const estMap: Record<string, any> = {};
             ests.forEach((e: any) => { estMap[e.id] = e; });
             /* assign a distinct color per establishment (cycle through palette) */
-            const EST_COLORS = ["#6366f1","#0ea5e9","#f59e0b","#ec4899","#8b5cf6","#10b981"];
+            const EST_COLORS = [THEME.accent,"#0ea5e9","#f59e0b","#ec4899","#8b5cf6","#10b981"];
             const estColorMap: Record<string, string> = {};
             sortedEsts.forEach((e: any, i: number) => { estColorMap[e.id] = EST_COLORS[i % EST_COLORS.length]; });
 
             const totalSpan = showEstCol ? 4 : 3;
             return (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>
                 EPFO Passbook ({passbookRows.length} entries)
               </div>
               <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ overflowX: "auto" as const }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 11, minWidth: showEstCol ? 760 : 640 }}>
                     <thead>
-                      <tr style={{ background: "rgba(99,102,241,0.06)" }}>
-                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Wage Month / Description</th>
+                      <tr style={{ background: `${THEME.accent}0f` }}>
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Wage Month / Description</th>
                         {showEstCol && (
-                          <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Establishment</th>
+                          <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Establishment</th>
                         )}
-                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Trans. Date</th>
-                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Particulars / Note</th>
-                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPF Wages</th>
-                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPS Wages</th>
-                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Emp. Share\n12%"}</th>
-                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Empr. Share\n3.67%"}</th>
-                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: "#6366f1", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Pension\n8.33%"}</th>
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Trans. Date</th>
+                        <th style={{ padding: "7px 10px", textAlign: "left" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Particulars / Note</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPF Wages</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>EPS Wages</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Emp. Share\n12%"}</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Empr. Share\n3.67%"}</th>
+                        <th style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 700, fontSize: 9, color: THEME.accent, textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "pre-line" as const }}>{"Pension\n8.33%"}</th>
                         <th style={{ padding: "7px 10px" }} />
                       </tr>
                     </thead>
@@ -2636,7 +2636,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         const isIntRow      = t.type === "interest_credit";
                         const isTransferRow = t.type === "transfer_in";
                         const linkedEst     = t.estId ? estMap[t.estId] : null;
-                        const estColor      = t.estId ? (estColorMap[t.estId] || "#6366f1") : THEME.muted;
+                        const estColor      = t.estId ? (estColorMap[t.estId] || THEME.accent) : THEME.muted;
                         const descLabel = isTransferRow
                           ? `⇒ Transfer In — ${t.fromEmployer || "Previous Employer"}`
                           : isIntRow
@@ -2649,11 +2649,11 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                           : (t.employeeShare || 0);
                         const erVal  = t.employerShare || 0;
                         const penVal = t.pensionShare  || 0;
-                        const rowBg  = isTransferRow ? "rgba(16,185,129,0.06)" : isIntRow ? "rgba(34,197,94,0.04)" : undefined;
-                        const txColor = isTransferRow ? "#059669" : isIntRow ? "#16a34a" : THEME.ink;
-                        const numColor = (base: string) => isTransferRow ? "#059669" : isIntRow ? "#16a34a" : base;
+                        const rowBg  = isTransferRow ? `${THEME.sage}0f` : isIntRow ? `${THEME.sage}09` : undefined;
+                        const txColor = isTransferRow ? THEME.sage : isIntRow ? THEME.sage : THEME.ink;
+                        const numColor = (base: string) => isTransferRow ? THEME.sage : isIntRow ? THEME.sage : base;
                         return (
-                          <tr key={t.id} style={{ borderTop: isTransferRow ? `2px dashed rgba(16,185,129,0.4)` : `1px solid ${THEME.line}`, background: rowBg }}>
+                          <tr key={t.id} style={{ borderTop: isTransferRow ? `2px dashed ${THEME.sage}66` : `1px solid ${THEME.line}`, background: rowBg }}>
                             <td style={{ padding: "6px 10px", fontWeight: 700, color: txColor }}>{descLabel}</td>
                             {showEstCol && (
                               <td style={{ padding: "6px 10px" }}>
@@ -2674,7 +2674,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                             <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 10 }}>{isTransferRow ? (t.note || "Form 13 Transfer") : isIntRow ? (t.note || "—") : (t.particulars || "—")}</td>
                             <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && !isTransferRow && t.epfWages) ? fmtINR(t.epfWages) : "—"}</td>
                             <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 600 }}>{(!isIntRow && !isTransferRow && t.epsWages) ? fmtINR(t.epsWages) : "—"}</td>
-                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: numColor("#6366f1") }}>{fmtINR(empVal)}</td>
+                            <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: numColor(THEME.accent) }}>{fmtINR(empVal)}</td>
                             <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: numColor("#0ea5e9") }}>{fmtINR(erVal)}</td>
                             <td style={{ padding: "6px 10px", textAlign: "right" as const, fontWeight: 800, color: (isIntRow || isTransferRow) ? THEME.muted : "#f59e0b" }}>{fmtINR(penVal)}</td>
                             <td style={{ padding: "6px 10px" }}>
@@ -2688,17 +2688,17 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: `2px solid ${THEME.line}`, background: "rgba(99,102,241,0.04)" }}>
+                      <tr style={{ borderTop: `2px solid ${THEME.line}`, background: `${THEME.accent}09` }}>
                         <td colSpan={totalSpan} style={{ padding: "7px 10px", fontWeight: 700, fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const }}>Total</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epfWages || 0), 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 800 }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.epsWages || 0), 0))}</td>
-                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#6366f1" }}>{fmtINR(passbookRows.reduce((s, t) => {
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: THEME.accent }}>{fmtINR(passbookRows.reduce((s, t) => {
                           if (t.type === "interest_credit") return s + Number(t.employeeShare !== undefined ? t.employeeShare : t.amount || 0);
                           if (t.type === "transfer_in") { const erT = Number(t.employerShare || 0); const penT = Number(t.pensionShare || 0); return s + (Number(t.amount || 0) - erT - penT); }
                           return s + Number(t.employeeShare || 0);
                         }, 0))}</td>
                         <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#0ea5e9" }}>{fmtINR(passbookRows.reduce((s, t) => s + Number(t.employerShare || 0), 0))}</td>
-                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: "#f59e0b" }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.pensionShare || 0), 0))}</td>
+                        <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 900, color: THEME.gold }}>{fmtINR(passbookRows.filter(t => t.type === "monthly_contribution").reduce((s, t) => s + Number(t.pensionShare || 0), 0))}</td>
                         <td />
                       </tr>
                     </tfoot>
@@ -2784,7 +2784,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 function EPFEmptyState({ onAdd }: any) {
   return (
     <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
-      <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#6366f1 0%,#818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg,${THEME.accent} 0%,${THEME.accent}cc 100%)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
         <Shield size={30} color="#fff" />
       </div>
       <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8, letterSpacing: "-0.02em" }}>
@@ -2796,7 +2796,7 @@ function EPFEmptyState({ onAdd }: any) {
       <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 24, display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" as const }}>
         {["Employee Contribution", "Employer Contribution", "EPFO Interest", "Withdrawals"].map(t => (
           <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#6366f1", display: "inline-block" }} /> {t}
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.accent, display: "inline-block" }} /> {t}
           </span>
         ))}
       </div>
@@ -2989,7 +2989,7 @@ const YieldTracker = ({ state }: any) => {
     { label: "Bonds",            value: bondInterest, color: "#92400e", icon: FileText,   note: "annual coupon on face value" },
     { label: "Recurring Deposits", value: rdInterest, color: "#0284c7", icon: Repeat,     note: RD_NOTE },
     { label: "PPF",              value: ppfInterest,  color: "#15803d", icon: Shield,     note: `@ ${PPF_RATE}% current rate` },
-    { label: "EPF / EPFO",       value: epfInterest,  color: "#6366f1", icon: Shield,     note: `@ ${EPF_RATE}% announced rate` },
+    { label: "EPF / EPFO",       value: epfInterest,  color: THEME.accent, icon: Shield,     note: `@ ${EPF_RATE}% announced rate` },
     { label: "NPS (est.)",       value: npsGrowth,    color: "#c2410c", icon: Briefcase,  note: "@ ~10% blended CAGR estimate" },
   ].filter(s => s.value > 0);
 
@@ -3082,7 +3082,7 @@ const YieldTracker = ({ state }: any) => {
             </div>
           </div>
 
-          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)", fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
+          <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}26`, fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
             <b style={{ color: THEME.ink }}>Note:</b> FD uses simple interest × principal. Bond uses coupon on face value. RD uses annualised interest over full tenure. PPF @ {PPF_RATE}%, EPF @ {EPF_RATE}%. NPS is a rough estimate at 10% blended return — actual performance varies. All figures are pre-tax.
           </div>
         </Card>
