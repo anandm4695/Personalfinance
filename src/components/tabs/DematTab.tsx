@@ -205,7 +205,7 @@ const DematEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Zerodha / Groww / Upstox", "DP ID & Client ID", "Multi-broker Support", "Portfolio View"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(5,150,105,0.08)", color: "#059669", fontWeight: 600, border: "1px solid rgba(5,150,105,0.15)" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: `${THEME.sage}15`, color: THEME.sage, fontWeight: 600, border: `1px solid ${THEME.sage}26` }}>● {f}</span>
       ))}
     </div>
     <button style={{ padding: "9px 22px", background: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
@@ -225,7 +225,7 @@ const StockEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Live NSE / BSE Prices", "Unrealised P&L", "CAGR Calculator", "Buy / Sell Ledger"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(124,58,237,0.08)", color: "#7c3aed", fontWeight: 600, border: "1px solid rgba(124,58,237,0.15)" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "#7c3aed15", color: "#7c3aed", fontWeight: 600, border: "1px solid #7c3aed26" }}>● {f}</span>
       ))}
     </div>
     <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#7c3aed 0%,#c084fc 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
@@ -523,7 +523,7 @@ export function DematTab({ state, addItem, removeItem, updateItem, missingTables
 
       {/* ── MIGRATION BANNER: shown when corporate_actions table is missing in Supabase ── */}
       {missingTables.includes("corporate_actions") && (
-        <div style={{ background: "rgba(220,38,38,0.06)", border: `1.5px solid ${THEME.rust}`, borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
+        <div style={{ background: `${THEME.rust}0f`, border: `1.5px solid ${THEME.rust}`, borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>!</span>
@@ -729,7 +729,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       onClick={() => toggleExpand(yfSym)}
                       style={{ 
                         cursor: "pointer", 
-                        background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 4%, var(--t-card-bg))` : "transparent",
+                        background: isExpanded ? `${THEME.accent}09` : "transparent",
                         transition: "background 0.15s ease",
                         borderBottom: `1px solid ${THEME.line}`
                       }}
@@ -898,7 +898,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             const isLTCG = days > 365;
                                             const nearLTCG = !isLTCG && days > 300;
                                             return (
-                                              <span style={{ marginTop: 3, display: "inline-block", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 4, background: isLTCG ? "rgba(5,150,105,0.12)" : "rgba(217,119,6,0.1)", color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold }}>
+                                              <span style={{ marginTop: 3, display: "inline-block", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 4, background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1a`, color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold }}>
                                                 {isLTCG ? `LTCG · ${(days/365).toFixed(1)}y` : `STCG · ${days}d`}
                                               </span>
                                             );
@@ -919,7 +919,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>{fmtINR(lCurr)}</td>
                                         <td style={{ ...td, borderBottom: "none", padding: "8px", borderTopRightRadius: 8, borderBottomRightRadius: 8 }}>
                                           <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }}>
-                                            <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, padding: 4, color: THEME.rust, background: "rgba(220,38,38,0.06)" }} title="Sell Shares"><ArrowLeftRight size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setSellLot({ ...lot, base, exchange, currentPrice, broker: demat?.broker || "" }); }} style={{ ...iconBtn, padding: 4, color: THEME.rust, background: `${THEME.rust}0f` }} title="Sell Shares"><ArrowLeftRight size={12} /></button>
                                             <button onClick={(e) => { e.stopPropagation(); setEditStockId(lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Edit3 size={12} /></button>
                                             <button onClick={(e) => { e.stopPropagation(); removeItem("stocks", lot.id); }} style={{ ...iconBtn, padding: 4, background: "rgba(128,128,128,0.06)" }}><Trash2 size={12} /></button>
                                           </div>
@@ -953,7 +953,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                       {caHistory.map((a: any) => (
                                         <div key={a.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: 11 }}>
-                                          <span style={{ padding: "1px 6px", borderRadius: 4, fontWeight: 800, fontSize: 9, background: a.actionType === "split" ? "rgba(217,119,6,0.1)" : "rgba(5,150,105,0.1)", color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
+                                          <span style={{ padding: "1px 6px", borderRadius: 4, fontWeight: 800, fontSize: 9, background: a.actionType === "split" ? `${THEME.gold}1a` : `${THEME.sage}1a`, color: a.actionType === "split" ? THEME.gold : THEME.sage }}>
                                             {a.actionType === "split" ? "SPLIT" : "BONUS"} {a.ratioN}:{a.ratioM}
                                           </span>
                                           <span style={{ color: THEME.muted }}>{a.actionDate ? new Date(a.actionDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}</span>
@@ -1080,7 +1080,7 @@ function SellStockModal({ lot, onClose, onSave }: any) {
       </div>
       <Field label="Sell Date"><input style={input} type="date" value={f.sellDate} onChange={(e) => setF({ ...f, sellDate: e.target.value })} /></Field>
       <Field label="Broker">{lot.broker ? <input style={{ ...input, background: "rgba(128,128,128,0.08)", cursor: "default" }} value={f.broker} readOnly /> : <input style={input} value={f.broker} placeholder="e.g. Zerodha" onChange={(e) => setF({ ...f, broker: e.target.value })} />}</Field>
-      {sellQtyNum > 0 && sellPriceNum > 0 && <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? "rgba(72,199,142,0.1)" : "rgba(255,99,99,0.1)", marginTop: 4 }}><span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span><b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>{profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>{remainingQty > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingQty} shares remain</span>}</div>}
+      {sellQtyNum > 0 && sellPriceNum > 0 && <div style={{ padding: "10px 14px", borderRadius: 8, background: profit >= 0 ? `${THEME.sage}1a` : `${THEME.rust}1a`, marginTop: 4 }}><span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span><b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>{profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>{remainingQty > 0 && <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>{remainingQty} shares remain</span>}</div>}
       <ModalActions onSave={handleSave} onClose={onClose} />
     </Modal>
   );
@@ -1208,7 +1208,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                       {a.pnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(a.pnl))}
                     </td>
                     <td style={{ ...td, padding: "9px 12px", borderBottom: "none", textAlign: "center" }}>
-                      <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: a.isLTCG ? "rgba(5,150,105,0.12)" : "rgba(217,119,6,0.12)", color: a.isLTCG ? THEME.sage : THEME.gold }}>
+                      <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`, color: a.isLTCG ? THEME.sage : THEME.gold }}>
                         {a.isLTCG ? "LTCG" : "STCG"}
                       </span>
                     </td>
@@ -1219,7 +1219,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
           </div>
 
           {/* Summary card */}
-          <div style={{ padding: "14px 16px", borderRadius: 10, background: totalPnl >= 0 ? "rgba(72,199,142,0.07)" : "rgba(220,38,38,0.07)", border: `1px solid ${totalPnl >= 0 ? THEME.sage : THEME.rust}35`, marginBottom: 4 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 10, background: totalPnl >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`, border: `1px solid ${totalPnl >= 0 ? `${THEME.sage}55` : `${THEME.rust}55`}`, marginBottom: 4 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Total Proceeds</div>
@@ -1239,13 +1239,13 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
             <div style={{ display: "flex", gap: 16, paddingTop: 10, borderTop: `1px solid ${THEME.line}40`, flexWrap: "wrap" }}>
               {stcgPnl !== 0 && (
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: "rgba(217,119,6,0.12)", color: THEME.gold, marginRight: 6 }}>STCG</span>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.gold}1f`, color: THEME.gold, marginRight: 6 }}>STCG</span>
                   <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>{stcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(stcgPnl))}</b>
                 </span>
               )}
               {ltcgPnl !== 0 && (
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: "rgba(5,150,105,0.12)", color: THEME.sage, marginRight: 6 }}>LTCG</span>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.sage}1f`, color: THEME.sage, marginRight: 6 }}>LTCG</span>
                   <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>{ltcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(ltcgPnl))}</b>
                 </span>
               )}
@@ -1304,7 +1304,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   return (
     <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
       <Field label="Action Type"><div style={{ display: "flex", gap: 10 }}>{(["split", "bonus"] as const).map((t) => <button key={t} style={{ ...btnGhost, flex: 1, justifyContent: "center", background: type === t ? THEME.accent : undefined, color: type === t ? "#fff" : undefined, border: type === t ? `1px solid ${THEME.accent}` : undefined }} onClick={() => setType(t)}>{t === "split" ? "Stock Split" : "Bonus Shares"}</button>)}</div></Field>
-      <div style={{ padding: "14px 16px", borderRadius: 10, border: `2px solid ${actionDate ? THEME.sage : THEME.rust}`, background: actionDate ? "rgba(5,150,105,0.04)" : "rgba(220,38,38,0.04)", marginBottom: 16 }}>
+      <div style={{ padding: "14px 16px", borderRadius: 10, border: `2px solid ${actionDate ? THEME.sage : THEME.rust}`, background: actionDate ? `${THEME.sage}09` : `${THEME.rust}09`, marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: actionDate ? THEME.sage : THEME.rust, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
           Action Date — when did this corporate action happen? {!actionDate && "★ Required"}
         </label>

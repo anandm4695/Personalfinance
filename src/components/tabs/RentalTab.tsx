@@ -539,8 +539,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           {showCsvImport === p.id && (
                             <div style={{
                               padding: 18, borderRadius: 12, marginBottom: 16,
-                              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${THEME.accent} 22%, transparent)`,
+                              background: `${THEME.accent}09`,
+                              border: `1px solid ${THEME.accent}38`,
                             }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}>
@@ -554,7 +554,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     const a = document.createElement("a"); a.href = url; a.download = "rent_receipts_template.csv"; a.click();
                                     URL.revokeObjectURL(url);
                                   }}
-                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`, background: "transparent", color: THEME.accent, cursor: "pointer", fontWeight: 600 }}
+                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent, cursor: "pointer", fontWeight: 600 }}
                                 >
                                   Download Template
                                 </button>
@@ -568,8 +568,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <label
                                 style={{
                                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-                                  padding: "20px 0", border: `1.5px dashed color-mix(in srgb, ${THEME.accent} 40%, transparent)`, borderRadius: 10, cursor: "pointer",
-                                  marginBottom: 12, background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`
+                                  padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer",
+                                  marginBottom: 12, background: `${THEME.accent}08`
                                 }}
                                 onDragOver={e => e.preventDefault()}
                                 onDrop={e => {
@@ -624,7 +624,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                                 <button 
-                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid color-mix(in srgb, ${THEME.accent} 40%, transparent)`, background: "transparent", color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
+                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${THEME.accent}66`, background: "transparent", color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
                                   onClick={() => parseCsvText(csvText, "receipt")}
                                 >
                                   Preview Data
@@ -647,14 +647,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               </div>
 
                               {csvError && (
-                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
                                   <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
                                 </div>
                               )}
 
                               {csvPreview.length > 0 && (
                                 <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-                                  <div style={{ padding: "8px 12px", background: `color-mix(in srgb, ${THEME.accent} 7%, transparent)`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
+                                  <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
                                   <div style={{ maxHeight: 160, overflowY: "auto" }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                                       <thead>
@@ -732,7 +732,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= today().slice(0, 7));
                             if (missingMonths.length === 0) return null;
                             return (
-                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`, border: `1px dashed ${THEME.gold}44` }}>
+                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `${THEME.gold}0f`, border: `1px dashed ${THEME.gold}44` }}>
                                 <div style={{ fontSize: 11, fontWeight: 800, color: THEME.gold, marginBottom: 6 }}>
                                   {missingMonths.length} month{missingMonths.length !== 1 ? "s" : ""} without receipt:
                                 </div>
@@ -1104,7 +1104,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.rust, border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)` }}
+                                style={{ padding: "4px 10px", fontSize: 11, color: THEME.rust, border: `1px solid ${THEME.rust}4d` }}
                                 onClick={() => {
                                   if (showCsvImport === p.id) {
                                     setShowCsvImport(null);
@@ -1133,8 +1133,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           {showCsvImport === p.id && (
                             <div style={{
                               padding: 18, borderRadius: 12, marginBottom: 16,
-                              background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${THEME.rust} 22%, transparent)`,
+                              background: `${THEME.rust}09`,
+                              border: `1px solid ${THEME.rust}38`,
                             }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, display: "flex", alignItems: "center", gap: 8 }}>
@@ -1148,7 +1148,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     const a = document.createElement("a"); a.href = url; a.download = "rent_payments_template.csv"; a.click();
                                     URL.revokeObjectURL(url);
                                   }}
-                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`, background: "transparent", color: THEME.rust, cursor: "pointer", fontWeight: 600 }}
+                                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${THEME.rust}4d`, background: "transparent", color: THEME.rust, cursor: "pointer", fontWeight: 600 }}
                                 >
                                   Download Template
                                 </button>
@@ -1162,8 +1162,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <label
                                 style={{
                                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-                                  padding: "20px 0", border: `1.5px dashed color-mix(in srgb, ${THEME.rust} 40%, transparent)`, borderRadius: 10, cursor: "pointer",
-                                  marginBottom: 12, background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`
+                                  padding: "20px 0", border: `1.5px dashed ${THEME.rust}66`, borderRadius: 10, cursor: "pointer",
+                                  marginBottom: 12, background: `${THEME.rust}08`
                                 }}
                                 onDragOver={e => e.preventDefault()}
                                 onDrop={e => {
@@ -1218,7 +1218,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
                               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                                 <button 
-                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid color-mix(in srgb, ${THEME.rust} 40%, transparent)`, background: "transparent", color: THEME.rust, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
+                                  style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${THEME.rust}66`, background: "transparent", color: THEME.rust, fontWeight: 700, fontSize: 12, cursor: "pointer" }} 
                                   onClick={() => parseCsvText(csvText, "payment")}
                                 >
                                   Preview Data
@@ -1241,14 +1241,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               </div>
 
                               {csvError && (
-                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+                                <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
                                   <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
                                 </div>
                               )}
 
                               {csvPreview.length > 0 && (
                                 <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-                                  <div style={{ padding: "8px 12px", background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`, fontSize: 11, fontWeight: 700, color: THEME.rust }}>{csvPreview.length} rows ready — preview:</div>
+                                  <div style={{ padding: "8px 12px", background: `${THEME.rust}12`, fontSize: 11, fontWeight: 700, color: THEME.rust }}>{csvPreview.length} rows ready — preview:</div>
                                   <div style={{ maxHeight: 160, overflowY: "auto" }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                                       <thead>
@@ -1326,7 +1326,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             const missingMonths = fyMonths.filter(m => !loggedMonths.has(m) && m <= today().slice(0, 7));
                             if (missingMonths.length === 0) return null;
                             return (
-                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`, border: `1px dashed ${THEME.rust}44` }}>
+                              <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px dashed ${THEME.rust}44` }}>
                                 <div style={{ fontSize: 11, fontWeight: 800, color: THEME.rust, marginBottom: 6 }}>
                                   {missingMonths.length} month{missingMonths.length !== 1 ? "s" : ""} without payment:
                                 </div>

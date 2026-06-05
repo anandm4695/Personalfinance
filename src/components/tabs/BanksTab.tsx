@@ -50,11 +50,11 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
 
 // Account type visual themes
 const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: string }> = {
-  savings: { color: "#0284c7", bg: "rgba(2,132,199,0.08)", icon: "💰" },
-  current: { color: "#059669", bg: "rgba(5,150,105,0.08)", icon: "💼" },
-  salary:  { color: "#7c3aed", bg: "rgba(124,58,237,0.08)", icon: "💎" },
-  joint:   { color: "#d97706", bg: "rgba(217,119,6,0.08)", icon: "🤝" },
-  fd:      { color: "#ea580c", bg: "rgba(234,88,12,0.08)", icon: "🔒" },
+  savings: { color: "#0284c7", bg: "#0284c715", icon: "💰" },
+  current: { color: "#059669", bg: "#05966915", icon: "💼" },
+  salary:  { color: "#7c3aed", bg: "#7c3aed15", icon: "💎" },
+  joint:   { color: "#d97706", bg: "#d9770615", icon: "🤝" },
+  fd:      { color: "#ea580c", bg: "#ea580c15", icon: "🔒" },
   other:   { color: THEME.muted, bg: "rgba(128,128,128,0.08)", icon: "🏦" },
 };
 
@@ -134,7 +134,7 @@ const BankEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Savings & Current", "Balance Tracking", "CSV Import", "Auto Categories"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(2,132,199,0.08)", color: "#0284c7", fontWeight: 600, border: "1px solid rgba(2,132,199,0.15)" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "#0284c715", color: "#0284c7", fontWeight: 600, border: "1px solid #0284c726" }}>● {f}</span>
       ))}
     </div>
     <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
@@ -154,7 +154,7 @@ const TxnEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Debit & Credit", "Category Tags", "Bulk CSV Import", "Recurring Detection"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "rgba(99,102,241,0.08)", color: "#6366f1", fontWeight: 600, border: "1px solid rgba(99,102,241,0.15)" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}15`, color: THEME.accent, fontWeight: 600, border: `1px solid ${THEME.accent}26` }}>● {f}</span>
       ))}
     </div>
     <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#6366f1 0%,#a78bfa 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
@@ -223,27 +223,27 @@ const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, let
 const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
 
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
-  salary:       { color: "#059669", bg: "rgba(5,150,105,0.1)" },
-  income:       { color: "#059669", bg: "rgba(5,150,105,0.1)" },
-  interest:     { color: "#059669", bg: "rgba(5,150,105,0.1)" },
-  dividend:     { color: "#059669", bg: "rgba(5,150,105,0.1)" },
-  savings:      { color: "#059669", bg: "rgba(5,150,105,0.1)" },
-  transfer:     { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
-  food:         { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-  dining:       { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-  groceries:    { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-  emi:          { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  loan:         { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  rent:         { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  utilities:    { color: "#0891b2", bg: "rgba(8,145,178,0.1)" },
-  bills:        { color: "#0891b2", bg: "rgba(8,145,178,0.1)" },
-  shopping:     { color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
-  travel:       { color: "#0284c7", bg: "rgba(2,132,199,0.1)" },
-  health:       { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  medical:      { color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-  insurance:    { color: "#ea580c", bg: "rgba(234,88,12,0.1)" },
-  investment:   { color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
-  subscription: { color: "#6366f1", bg: "rgba(99,102,241,0.1)" },
+  salary:       { color: "#059669", bg: "#0596691a" },
+  income:       { color: "#059669", bg: "#0596691a" },
+  interest:     { color: "#059669", bg: "#0596691a" },
+  dividend:     { color: "#059669", bg: "#0596691a" },
+  savings:      { color: "#059669", bg: "#0596691a" },
+  transfer:     { color: "#8b5cf6", bg: "#8b5cf61a" },
+  food:         { color: "#f59e0b", bg: "#f59e0b1a" },
+  dining:       { color: "#f59e0b", bg: "#f59e0b1a" },
+  groceries:    { color: "#f59e0b", bg: "#f59e0b1a" },
+  emi:          { color: "#dc2626", bg: "#dc26261a" },
+  loan:         { color: "#dc2626", bg: "#dc26261a" },
+  rent:         { color: "#dc2626", bg: "#dc26261a" },
+  utilities:    { color: "#0891b2", bg: "#0891b21a" },
+  bills:        { color: "#0891b2", bg: "#0891b21a" },
+  shopping:     { color: "#7c3aed", bg: "#7c3aed1a" },
+  travel:       { color: "#0284c7", bg: "#0284c71a" },
+  health:       { color: "#dc2626", bg: "#dc26261a" },
+  medical:      { color: "#dc2626", bg: "#dc26261a" },
+  insurance:    { color: "#ea580c", bg: "#ea580c1a" },
+  investment:   { color: "#7c3aed", bg: "#7c3aed1a" },
+  subscription: { color: "#6366f1", bg: "#6366f11a" },
 };
 function getCategoryStyle(cat: string) {
   const key = (cat || "").toLowerCase().trim();
@@ -636,7 +636,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                 <div>
                   <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
                     <span>Account Balance</span>
-                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "rgba(5,150,105,0.12)", color: THEME.sage, fontWeight: 700 }}>
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: `${THEME.sage}1f`, color: THEME.sage, fontWeight: 700 }}>
                       ● Live
                     </span>
                   </div>
@@ -749,7 +749,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
 
                   if (isEditing && inlineEdit) {
                     return (
-                      <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `color-mix(in srgb, var(--t-accent) 4%, transparent)` }}>
+                      <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.accent}`, background: `${THEME.accent}09` }}>
                         <td style={td}><input type="date" value={inlineEdit.date} onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })} style={{ ...input, padding: "4px 6px", fontSize: 12, width: 130 }} /></td>
                         <td style={td}>
                           <input
@@ -777,7 +777,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                               value={inlineEdit.type || "debit"} 
                               onChange={(e) => setInlineEdit({ ...inlineEdit, type: e.target.value })} 
                               style={{ 
-                                background: inlineEdit.type === "credit" ? "rgba(5,150,105,0.08)" : "rgba(239,68,68,0.08)", 
+                                background: inlineEdit.type === "credit" ? `${THEME.sage}15` : `${THEME.rust}15`,
                                 color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust, 
                                 border: `1.5px solid ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust}44`, 
                                 borderRadius: 6, 
@@ -1045,7 +1045,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
               {cfg.options.map((o: any) => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
             {f.linkedKey
-              ? <div style={{ fontSize: 11, color: THEME.sage, marginTop: 6, fontWeight: 600, padding: "5px 10px", background: "rgba(5,150,105,0.07)", borderRadius: 8 }}>✓ Will auto-update {cfg.label} record when saved</div>
+              ? <div style={{ fontSize: 11, color: THEME.sage, marginTop: 6, fontWeight: 600, padding: "5px 10px", background: `${THEME.sage}12`, borderRadius: 8 }}>✓ Will auto-update {cfg.label} record when saved</div>
               : cfg.options.length === 0
                 ? <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>No {cfg.label.toLowerCase()} records found — add them in the relevant tab first.</div>
                 : null

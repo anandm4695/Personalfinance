@@ -376,7 +376,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                     value: fmtINRFull(totalLimit),
                     color: THEME.accent,
                     borderColor: "var(--t-accent)",
-                    iconBg: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                    iconBg: `${THEME.accent}1f`,
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
                   },
                   {
@@ -385,7 +385,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                     value: fmtINRFull(totalOutstandingCC),
                     color: THEME.rust,
                     borderColor: "var(--t-rust)",
-                    iconBg: "color-mix(in srgb, var(--t-rust) 12%, transparent)",
+                    iconBg: `${THEME.rust}1f`,
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
                   },
                   {
@@ -394,7 +394,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                     value: fmtINRFull(totalAvailable),
                     color: THEME.sage,
                     borderColor: "var(--t-sage)",
-                    iconBg: "color-mix(in srgb, var(--t-sage) 12%, transparent)",
+                    iconBg: `${THEME.sage}1f`,
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
                   },
                   ...(totalAnnualFees > 0 ? [{
@@ -403,7 +403,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                     value: fmtINRFull(totalAnnualFees),
                     color: THEME.gold,
                     borderColor: "var(--t-gold)",
-                    iconBg: "color-mix(in srgb, var(--t-gold) 12%, transparent)",
+                    iconBg: `${THEME.gold}1f`,
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
                   }] : []),
                 ];
@@ -420,7 +420,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                       ))}
                     </div>
                     {activeCards.length > 0 && (
-                      <div style={{ marginBottom: 24, padding: "9px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: utilPct > 30 ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)", border: `1px solid ${utilPct > 30 ? "rgba(239,68,68,0.18)" : "rgba(34,197,94,0.18)"}`, color: utilPct > 30 ? THEME.rust : THEME.sage }}>
+                      <div style={{ marginBottom: 24, padding: "9px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, background: utilPct > 30 ? `${THEME.rust}0f` : `${THEME.sage}0f`, border: `1px solid ${utilPct > 30 ? `${THEME.rust}2e` : `${THEME.sage}2e`}`, color: utilPct > 30 ? THEME.rust : THEME.sage }}>
                         {utilPct > 70
                           ? `⚠ Critical: ${utilPct}% overall utilization — very high. Pay down balances urgently to protect your credit score.`
                           : utilPct > 30
@@ -919,8 +919,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       {/* Summary tiles */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Total Charges", value: fmtINR(totalCharges), color: THEME.rust, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)" },
-          { label: "Net Outstanding", value: fmtINR(totalOutstanding), color: totalOutstanding > 0 ? THEME.rust : THEME.sage, bg: `rgba(${totalOutstanding > 0 ? "239,68,68" : "34,197,94"},0.08)`, border: `rgba(${totalOutstanding > 0 ? "239,68,68" : "34,197,94"},0.2)` },
+          { label: "Total Charges", value: fmtINR(totalCharges), color: THEME.rust, bg: `${THEME.rust}15`, border: `${THEME.rust}33` },
+          { label: "Net Outstanding", value: fmtINR(totalOutstanding), color: totalOutstanding > 0 ? THEME.rust : THEME.sage, bg: totalOutstanding > 0 ? `${THEME.rust}15` : `${THEME.sage}15`, border: totalOutstanding > 0 ? `${THEME.rust}33` : `${THEME.sage}33` },
         ].map(s => (
           <div key={s.label} style={{ padding: 14, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, textAlign: "center" as const }}>
             <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{s.label}</div>
@@ -933,7 +933,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>Transaction Ledger <span style={{ fontSize: 11, fontWeight: 400, color: THEME.muted, marginLeft: 6 }}>{txs.length} entries</span></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, justifyContent: "flex-end" }}>
-          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }}
+          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.accent, borderColor: `${THEME.accent}66` }}
             onClick={() => { setShowCsvImport(v => !v); setShowAdd(false); }}>
             <Upload size={13} /> Import CSV
           </button>
@@ -952,10 +952,10 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 
       {/* CSV Import Panel */}
       {showCsvImport && (
-        <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+        <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}38` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
-            <button onClick={downloadTemplate} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8", cursor: "pointer", fontWeight: 600 }}>Download Template</button>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+            <button onClick={downloadTemplate} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent, cursor: "pointer", fontWeight: 600 }}>Download Template</button>
           </div>
           <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
             <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, merchant, amount, category</code><br />
@@ -963,11 +963,11 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             &nbsp;&nbsp;Payment: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-01-15, Bill Payment, -5000, Payment</code>
           </div>
           <label
-            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
+            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)" }}
             onDragOver={e => e.preventDefault()} onDrop={handleDrop}
           >
-            <Upload size={22} color="#818cf8" />
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+            <Upload size={22} color={THEME.accent} />
+            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
             <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
             <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFileUpload} />
           </label>
@@ -979,22 +979,22 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
             placeholder={"2025-01-05, Amazon, 2499, Shopping\n2025-01-08, Swiggy, 450, Food\n2025-01-15, Bill Payment, -5000, Payment"}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+            <button style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${THEME.accent}66`, background: "transparent", color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
             {csvPreview.length > 0 && !importDone && (
-              <button style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#818cf8", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={importCsv}>
+              <button style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: THEME.accent, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={importCsv}>
                 Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
               </button>
             )}
             {importDone && <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}><CheckCircle2 size={15} /> Imported successfully!</div>}
           </div>
           {csvError && (
-            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
               <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
             </div>
           )}
           {csvPreview.length > 0 && (
             <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready to import — preview:</div>
+              <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready to import — preview:</div>
               <div style={{ maxHeight: 180, overflowY: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
@@ -1367,9 +1367,9 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
     <Modal title={`${cardName} — Transactions`} onClose={onClose} maxWidth={920}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Total Loaded", value: fmtINR(totalLoaded), color: THEME.sage, bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)" },
-          { label: "Total Spent", value: fmtINR(totalSpent), color: THEME.rust, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)" },
-          { label: "Balance", value: fmtINR(balance), color: balance >= 0 ? THEME.sage : THEME.rust, bg: `rgba(${balance >= 0 ? "34,197,94" : "239,68,68"},0.08)`, border: `rgba(${balance >= 0 ? "34,197,94" : "239,68,68"},0.2)` },
+          { label: "Total Loaded", value: fmtINR(totalLoaded), color: THEME.sage, bg: `${THEME.sage}15`, border: `${THEME.sage}33` },
+          { label: "Total Spent", value: fmtINR(totalSpent), color: THEME.rust, bg: `${THEME.rust}15`, border: `${THEME.rust}33` },
+          { label: "Balance", value: fmtINR(balance), color: balance >= 0 ? THEME.sage : THEME.rust, bg: balance >= 0 ? `${THEME.sage}15` : `${THEME.rust}15`, border: balance >= 0 ? `${THEME.sage}33` : `${THEME.rust}33` },
         ].map(s => (
           <div key={s.label} style={{ padding: 14, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, textAlign: "center" as const }}>
             <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{s.label}</div>
@@ -1381,7 +1381,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>Transaction History <span style={{ fontSize: 11, fontWeight: 400, color: THEME.muted, marginLeft: 6 }}>{txs.length} entries</span></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, justifyContent: "flex-end" }}>
-          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: "#818cf8", borderColor: "rgba(129,140,248,0.4)" }} onClick={() => { setShowCsvImport(v => !v); setShowAdd(false); }}>
+          <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.accent, borderColor: `${THEME.accent}66` }} onClick={() => { setShowCsvImport(v => !v); setShowAdd(false); }}>
             <Upload size={13} /> Import CSV
           </button>
           <button style={{ ...btnGhost, fontSize: 12, padding: "6px 14px", color: THEME.sage, borderColor: `${THEME.sage}55` }} onClick={() => openAdd("load")}>
@@ -1394,10 +1394,10 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
       </div>
 
       {showCsvImport && (
-        <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.22)" }}>
+        <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${THEME.accent}09`, border: `1px solid ${THEME.accent}38` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
-            <button onClick={downloadTemplate} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(99,102,241,0.3)", background: "transparent", color: "#818cf8", cursor: "pointer", fontWeight: 600 }}>Download Template</button>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
+            <button onClick={downloadTemplate} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent, cursor: "pointer", fontWeight: 600 }}>Download Template</button>
           </div>
 
           <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
@@ -1407,12 +1407,12 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
           </div>
 
           <label
-            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: "1.5px dashed rgba(99,102,241,0.4)", borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)", transition: "background 0.15s" }}
+            style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: "rgba(99,102,241,0.03)", transition: "background 0.15s" }}
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <Upload size={22} color="#818cf8" />
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8" }}>{csvFileName ? csvFileName : "Drop CSV file here or click to browse"}</div>
+            <Upload size={22} color={THEME.accent} />
+            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.accent }}>{csvFileName ? csvFileName : "Drop CSV file here or click to browse"}</div>
             <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
             <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFileUpload} />
           </label>
@@ -1426,9 +1426,9 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
           />
 
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid rgba(99,102,241,0.4)", background: "transparent", color: "#818cf8", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
+            <button style={{ padding: "8px 18px", borderRadius: 8, border: `1px solid ${THEME.accent}66`, background: "transparent", color: THEME.accent, fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={() => parseCsvText(csvText)}>Preview Data</button>
             {csvPreview.length > 0 && !importDone && (
-              <button style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#818cf8", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={importCsv}>
+              <button style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: THEME.accent, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }} onClick={importCsv}>
                 Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
               </button>
             )}
@@ -1436,14 +1436,14 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
           </div>
 
           {csvError && (
-            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8 }}>
+            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
               <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
             </div>
           )}
 
           {csvPreview.length > 0 && (
             <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "8px 12px", background: "rgba(99,102,241,0.07)", fontSize: 11, fontWeight: 700, color: "#818cf8" }}>{csvPreview.length} rows ready to import — preview:</div>
+              <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready to import — preview:</div>
               <div style={{ maxHeight: 180, overflowY: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
@@ -1460,7 +1460,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                       <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
                         <td style={{ padding: "7px 10px", color: THEME.muted }}>{r.date}</td>
                         <td style={{ padding: "7px 10px" }}>
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: r.type === "load" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: r.type === "load" ? THEME.sage : THEME.rust }}>{r.type.toUpperCase()}</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: r.type === "load" ? `${THEME.sage}1f` : `${THEME.rust}1f`, color: r.type === "load" ? THEME.sage : THEME.rust }}>{r.type.toUpperCase()}</span>
                         </td>
                         <td style={{ padding: "7px 10px", color: THEME.muted }}>{r.note || "—"}</td>
                         <td style={{ padding: "7px 10px", color: THEME.muted }}>{r.category || "—"}</td>
@@ -1476,7 +1476,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
       )}
 
       {showAdd && (
-        <div style={{ padding: 16, borderRadius: 10, marginBottom: 16, background: txType === "load" ? "rgba(34,197,94,0.04)" : "rgba(239,68,68,0.04)", border: `1px solid ${txType === "load" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+        <div style={{ padding: 16, borderRadius: 10, marginBottom: 16, background: txType === "load" ? `${THEME.sage}09` : `${THEME.rust}09`, border: `1px solid ${txType === "load" ? `${THEME.sage}33` : `${THEME.rust}33`}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, color: txType === "load" ? THEME.sage : THEME.rust, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
             {editId ? "Edit Transaction" : txType === "load" ? "Load Money" : "Record Spend"}
           </div>
@@ -1525,7 +1525,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                 <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                   <td style={{ padding: "11px 10px", color: THEME.muted, fontSize: 12 }}>{t.date}</td>
                   <td style={{ padding: "11px 10px" }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: t.type === "load" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: t.type === "load" ? THEME.sage : THEME.rust }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: t.type === "load" ? `${THEME.sage}1f` : `${THEME.rust}1f`, color: t.type === "load" ? THEME.sage : THEME.rust }}>
                       {t.type === "load" ? "LOAD" : "SPEND"}
                     </span>
                   </td>
@@ -1692,7 +1692,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                     </button>
                   </div>
                   {prepayExpanded.has(l.id) && (
-                    <div style={{ marginTop: 12, padding: 14, background: "rgba(99,102,241,0.04)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.1)" }}>
+                    <div style={{ marginTop: 12, padding: 14, background: `${THEME.accent}09`, borderRadius: 10, border: `1px solid ${THEME.accent}1a` }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const, marginBottom: 12 }}>
                         <span style={{ fontSize: 12, color: THEME.muted }}>If I prepay</span>
                         <input
@@ -1700,7 +1700,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                           placeholder="₹ amount"
                           value={prepayInputs[l.id] || ""}
                           onChange={e => setPrepayInputs(prev => ({ ...prev, [l.id]: e.target.value }))}
-                          style={{ width: 110, padding: "5px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                          style={{ width: 110, padding: "5px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
                         />
                         <span style={{ fontSize: 12, color: THEME.muted }}>today</span>
                       </div>
@@ -1708,7 +1708,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                         const prepay = Number(prepayInputs[l.id]);
                         if (prepay >= outstanding) {
                           return (
-                            <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", fontSize: 13, fontWeight: 700, color: THEME.sage }}>
+                            <div style={{ padding: "10px 12px", borderRadius: 8, background: `${THEME.sage}0f`, border: `1px solid ${THEME.sage}26`, fontSize: 13, fontWeight: 700, color: THEME.sage }}>
                               Full payoff! Save {fmtINR(interestRemaining)} in interest & close loan today.
                             </div>
                           );
@@ -2312,7 +2312,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 {windfall && (
                   <button 
                     onClick={() => setWindfall("")}
-                    style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}30`, background: "rgba(220,38,38,0.05)", fontSize: 11, fontWeight: 700, color: THEME.rust, cursor: "pointer" }}
+                    style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${THEME.rust}4d`, background: `${THEME.rust}09`, fontSize: 11, fontWeight: 700, color: THEME.rust, cursor: "pointer" }}
                   >
                     Clear
                   </button>
@@ -2416,7 +2416,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     width: 32, 
                     height: 32, 
                     borderRadius: "50%", 
-                    background: "color-mix(in srgb, var(--t-sage) 12%, transparent)", 
+                    background: `${THEME.sage}1f`,
                     display: "flex", 
                     alignItems: "center", 
                     justifyContent: "center", 
@@ -2462,7 +2462,7 @@ function DebtPayoffOptimizer({ state }: any) {
               width: 36, 
               height: 36, 
               borderRadius: 10, 
-              background: selectedPlan === "avalanche" ? "color-mix(in srgb, var(--t-accent) 12%, transparent)" : "color-mix(in srgb, var(--t-gold) 12%, transparent)", 
+              background: selectedPlan === "avalanche" ? `${THEME.accent}1f` : `${THEME.gold}1f`,
               display: "flex", 
               alignItems: "center", 
               justifyContent: "center", 

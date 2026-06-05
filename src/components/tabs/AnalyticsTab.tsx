@@ -1046,34 +1046,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const emergencyMonths = metrics.monthExpense > 0 ? metrics.cashInBanks / metrics.monthExpense : 0;
 
     if (metrics.monthIncome > 0 && metrics.savingsRate < 10)
-      insights.push({ icon: AlertTriangle, title: "Low Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% · target 20%+`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      insights.push({ icon: AlertTriangle, title: "Low Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% · target 20%+`, color: THEME.rust, bg: `${THEME.rust}12` });
     else if (metrics.savingsRate >= 30)
-      insights.push({ icon: Flame, title: "Strong Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% this month`, color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+      insights.push({ icon: Flame, title: "Strong Savings Rate", value: `${metrics.savingsRate.toFixed(0)}% this month`, color: THEME.sage, bg: `${THEME.sage}12` });
 
     if (metrics.monthExpense > 0 && emergencyMonths < 3)
-      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo liquid · need 3+`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo liquid · need 3+`, color: THEME.rust, bg: `${THEME.rust}12` });
     else if (emergencyMonths >= 6)
-      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo — solid cover`, color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+      insights.push({ icon: ShieldAlert, title: "Emergency Fund", value: `${emergencyMonths.toFixed(1)} mo — solid cover`, color: THEME.sage, bg: `${THEME.sage}12` });
 
     if (annualIncome > 0 && coverRatio < 10)
-      insights.push({ icon: AlertTriangle, title: "Insurance Gap", value: `${fmtINR(annualIncome * 15 - totalTermCover)} short of 15× cover`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+      insights.push({ icon: AlertTriangle, title: "Insurance Gap", value: `${fmtINR(annualIncome * 15 - totalTermCover)} short of 15× cover`, color: THEME.gold, bg: `${THEME.gold}12` });
 
     if (metrics.debtToAssetRatio > 40)
-      insights.push({ icon: AlertTriangle, title: "High Debt Ratio", value: `${metrics.debtToAssetRatio.toFixed(0)}% of total assets`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      insights.push({ icon: AlertTriangle, title: "High Debt Ratio", value: `${metrics.debtToAssetRatio.toFixed(0)}% of total assets`, color: THEME.rust, bg: `${THEME.rust}12` });
 
     const urgentDues = dashboardData.dues.filter((d: any) => d.daysLeft <= 7);
     if (urgentDues.length > 0)
-      insights.push({ icon: AlertTriangle, title: `${urgentDues.length} Due This Week`, value: urgentDues.slice(0, 2).map((d: any) => d.name).join(", "), color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+      insights.push({ icon: AlertTriangle, title: `${urgentDues.length} Due This Week`, value: urgentDues.slice(0, 2).map((d: any) => d.name).join(", "), color: THEME.gold, bg: `${THEME.gold}12` });
 
     if ((state.sips || []).length === 0 && metrics.monthIncome > 0)
-      insights.push({ icon: Zap, title: "No Active SIPs", value: "Consider starting a monthly mutual fund SIP", color: "#6366f1", bg: "rgba(99,102,241,0.07)" });
+      insights.push({ icon: Zap, title: "No Active SIPs", value: "Consider starting a monthly mutual fund SIP", color: THEME.accent, bg: `${THEME.accent}12` });
 
     // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
     const totalEMISmart = (state.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (metrics.monthIncome > 0 && totalEMISmart > 0) {
       const foirPct = (totalEMISmart / metrics.monthIncome) * 100;
-      if (foirPct > 50) insights.push({ icon: AlertTriangle, title: "EMI Burden Critical", value: `${foirPct.toFixed(0)}% FOIR — reduce debt urgently`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
-      else if (foirPct > 40) insights.push({ icon: AlertTriangle, title: "High EMI Burden", value: `${foirPct.toFixed(0)}% FOIR · keep under 40%`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+      if (foirPct > 50) insights.push({ icon: AlertTriangle, title: "EMI Burden Critical", value: `${foirPct.toFixed(0)}% FOIR — reduce debt urgently`, color: THEME.rust, bg: `${THEME.rust}12` });
+      else if (foirPct > 40) insights.push({ icon: AlertTriangle, title: "High EMI Burden", value: `${foirPct.toFixed(0)}% FOIR · keep under 40%`, color: THEME.gold, bg: `${THEME.gold}12` });
     }
 
     // Credit card utilization — above 30% can hurt credit score
@@ -1082,7 +1082,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       .reduce((s: number, c: any) => s + Number(c.limit || c.cardLimit || 0), 0);
     if (totalCCLimitSmart > 0 && metrics.ccOutstanding > 0) {
       const utilPct = (metrics.ccOutstanding / totalCCLimitSmart) * 100;
-      if (utilPct > 50) insights.push({ icon: AlertTriangle, title: "High Credit Utilization", value: `${utilPct.toFixed(0)}% used · aim for below 30%`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      if (utilPct > 50) insights.push({ icon: AlertTriangle, title: "High Credit Utilization", value: `${utilPct.toFixed(0)}% used · aim for below 30%`, color: THEME.rust, bg: `${THEME.rust}12` });
     }
 
     // Loan payoff timeline — nearest-to-payoff loan (highest EMI-to-outstanding ratio)
@@ -1109,7 +1109,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         const yrs = Math.floor(soonest.months / 12);
         const mo = soonest.months % 12;
         const timeStr = yrs > 0 ? `${yrs}y ${mo}m` : `${mo} mo`;
-        insights.push({ icon: CheckCircle2, title: `${soonest.name} payoff in ${timeStr}`, value: `${fmtINR(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`, color: THEME.accent, bg: "color-mix(in srgb, var(--t-accent) 7%, transparent)" });
+        insights.push({ icon: CheckCircle2, title: `${soonest.name} payoff in ${timeStr}`, value: `${fmtINR(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`, color: THEME.accent, bg: `${THEME.accent}12` });
       }
     }
 
@@ -1148,7 +1148,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       if (anomalies.length > 0) {
         const [topCat, topVal] = anomalies[0];
         const avg3 = prev3Map[topCat].reduce((s, v) => s + v, 0) / prev3Map[topCat].length;
-        insights.push({ icon: AlertTriangle, title: `${topCat} Spike`, value: `${fmtINR(topVal)} this month vs ${fmtINR(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+        insights.push({ icon: AlertTriangle, title: `${topCat} Spike`, value: `${fmtINR(topVal)} this month vs ${fmtINR(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`, color: THEME.gold, bg: `${THEME.gold}12` });
       }
     }
 
@@ -1157,7 +1157,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (totalSIPAmt > 0 && metrics.monthIncome > 0) {
       const monthlySavings = metrics.monthIncome - metrics.monthExpense;
       if (totalSIPAmt > monthlySavings && monthlySavings < totalSIPAmt * 0.9) {
-        insights.push({ icon: AlertTriangle, title: "SIP Exceeds Savings", value: `SIPs ${fmtINR(totalSIPAmt)}/mo · only ${fmtINR(Math.max(0, monthlySavings))} available`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+        insights.push({ icon: AlertTriangle, title: "SIP Exceeds Savings", value: `SIPs ${fmtINR(totalSIPAmt)}/mo · only ${fmtINR(Math.max(0, monthlySavings))} available`, color: THEME.rust, bg: `${THEME.rust}12` });
       }
     }
 
@@ -1169,7 +1169,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         return s + Number(c.outstanding || 0) * annualRate / 12;
       }, 0);
     if (ccInterestMonthly > 500) {
-      insights.push({ icon: CreditCard, title: "CC Interest Risk", value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`, color: THEME.rust, bg: "rgba(239,68,68,0.07)" });
+      insights.push({ icon: CreditCard, title: "CC Interest Risk", value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`, color: THEME.rust, bg: `${THEME.rust}12` });
     }
 
     // Annual fee cost across all active cards
@@ -1180,11 +1180,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (totalAnnualFees > 0) {
       const pctOfIncome = annualIncome > 0 ? ((totalAnnualFees / annualIncome) * 100).toFixed(1) : null;
       const sub = pctOfIncome ? `${fmtINR(Math.round(totalAnnualFees / 12))}/mo · ${pctOfIncome}% of annual income` : `${fmtINR(Math.round(totalAnnualFees / 12))}/mo across ${feeCardCount} card${feeCardCount !== 1 ? "s" : ""}`;
-      insights.push({ icon: CreditCard, title: "CC Annual Fees", value: `${fmtINRFull(totalAnnualFees)}/yr · ${sub}`, color: THEME.gold, bg: "rgba(251,191,36,0.07)" });
+      insights.push({ icon: CreditCard, title: "CC Annual Fees", value: `${fmtINRFull(totalAnnualFees)}/yr · ${sub}`, color: THEME.gold, bg: `${THEME.gold}12` });
     }
 
     if (insights.length === 0 && metrics.netWorth > 0)
-      insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: "rgba(52,211,153,0.07)" });
+      insights.push({ icon: Flame, title: "All Clear", value: "Your finances are on a healthy track", color: THEME.sage, bg: `${THEME.sage}12` });
 
     return insights;
   }, [metrics, state.income, state.transactions, state.termPlans, state.sips, state.loansTaken, dashboardData, state.creditCards]);
@@ -1672,7 +1672,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {dashboardData.dues.slice(0, 5).map((d, i) => {
                     const borderColor = d.isFdMaturity ? THEME.sage : d.daysLeft <= 5 ? THEME.rust : d.daysLeft <= 14 ? THEME.gold : THEME.muted;
                     return (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px 10px 0", borderRadius: 12, background: d.isFdMaturity ? "rgba(52,211,153,0.04)" : d.daysLeft <= 5 ? "rgba(220,38,38,0.03)" : "rgba(128,128,128,0.03)", border: `1px solid ${borderColor}22`, overflow: "hidden", position: "relative" }}>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px 10px 0", borderRadius: 12, background: d.isFdMaturity ? `${THEME.sage}09` : d.daysLeft <= 5 ? `${THEME.rust}08` : "rgba(128,128,128,0.03)", border: `1px solid ${borderColor}22`, overflow: "hidden", position: "relative" }}>
                       <div style={{ width: 3, position: "absolute", left: 0, top: 0, bottom: 0, background: borderColor, borderRadius: "12px 0 0 12px" }} />
                       <div style={{ paddingLeft: 16 }}>
                         <div style={{ fontSize: 13, fontWeight: 700 }}>{d.name}</div>
@@ -1829,7 +1829,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     .map((t: any) => (
                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)", color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: t.type === "credit" ? `${THEME.sage}1f` : `${THEME.rust}1f`, color: t.type === "credit" ? THEME.sage : THEME.rust, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {t.type === "credit" ? <TrendingUp size={18} /> : <Receipt size={18} />}
                           </div>
                           <div>
@@ -1844,7 +1844,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <div style={{ fontSize: 15, fontWeight: 800, color: t.type === "credit" ? THEME.sage : THEME.rust }}>
                             {t.type === "credit" ? "+" : "-"}{fmtINR(t.amount)}
                           </div>
-                          <span style={{ display: "inline-block", marginTop: 4, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.04em", background: t.type === "credit" ? "rgba(5,150,105,0.1)" : "rgba(220,38,38,0.1)", color: t.type === "credit" ? THEME.sage : THEME.rust }}>
+                          <span style={{ display: "inline-block", marginTop: 4, padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.04em", background: t.type === "credit" ? `${THEME.sage}1a` : `${THEME.rust}1a`, color: t.type === "credit" ? THEME.sage : THEME.rust }}>
                             {t.type === "credit" ? "▲ Credit" : "▼ Debit"}
                           </span>
                         </div>
@@ -2021,7 +2021,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "5px 12px",
                       borderRadius: 8,
                       border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
-                      background: ytdMode === mode ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                      background: ytdMode === mode ? `${THEME.accent}1a` : "transparent",
                       color: ytdMode === mode ? THEME.accent : THEME.muted,
                       fontSize: 11,
                       fontWeight: 700,
@@ -2041,7 +2041,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 { label: "YTD Savings", value: fmtINRFull(ytdData.ytdSavings), color: ytdData.ytdSavings >= 0 ? THEME.sage : THEME.rust },
                 { label: "YTD Savings Rate", value: ytdData.ytdSavingsRate.toFixed(1) + "%", color: ytdData.ytdSavingsRate >= 20 ? THEME.sage : ytdData.ytdSavingsRate >= 10 ? THEME.gold : THEME.rust },
               ].map(({ label, value, color }) => (
-                <div key={label} style={{ padding: 16, background: "rgba(128,128,128,0.04)", borderRadius: 12, borderLeft: `3px solid ${color}` }}>
+                <div key={label} style={{ padding: 16, background: `${color}09`, borderRadius: 12, borderTop: `4px solid ${color}` }}>
                   <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}>{value}</div>
                 </div>
@@ -2590,12 +2590,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
               {[
-                { label: "Rental / Mo", value: passiveIncomeData.rentalMonthly, icon: Building2, color: "#059669", bg: "rgba(5,150,105,0.08)" },
-                { label: "FD Yield / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "rgba(217,119,6,0.08)" },
-                { label: "RD Yield / Mo", value: passiveIncomeData.rdMonthly, icon: Activity, color: "#0891b2", bg: "rgba(8,145,178,0.08)" },
-                { label: "Savings Int. / Mo", value: passiveIncomeData.savingsMonthly, icon: Receipt, color: "#10b981", bg: "rgba(16,185,129,0.08)" },
-                { label: "Stock Divs / Mo", value: passiveIncomeData.stockDividendsMonthly, icon: TrendingUp, color: "#818cf8", bg: "rgba(129,140,248,0.08)" },
-                { label: "MF Yield / Mo", value: passiveIncomeData.mfYieldMonthly, icon: Zap, color: "#a78bfa", bg: "rgba(167,139,250,0.08)" },
+                { label: "Rental / Mo", value: passiveIncomeData.rentalMonthly, icon: Building2, color: "#059669", bg: "#05966915" },
+                { label: "FD Yield / Mo", value: passiveIncomeData.fdMonthly, icon: Landmark, color: "#d97706", bg: "#d9770615" },
+                { label: "RD Yield / Mo", value: passiveIncomeData.rdMonthly, icon: Activity, color: "#0891b2", bg: "#0891b215" },
+                { label: "Savings Int. / Mo", value: passiveIncomeData.savingsMonthly, icon: Receipt, color: "#10b981", bg: "#10b98115" },
+                { label: "Stock Divs / Mo", value: passiveIncomeData.stockDividendsMonthly, icon: TrendingUp, color: "#818cf8", bg: "#818cf815" },
+                { label: "MF Yield / Mo", value: passiveIncomeData.mfYieldMonthly, icon: Zap, color: "#a78bfa", bg: "#a78bfa15" },
               ].map(({ label, value, icon: Icon, color, bg }) => (
                 <div key={label} style={{ padding: 14, background: bg, borderRadius: 12, border: `1px solid ${color}1c` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -2709,7 +2709,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           const isBuy = diff > 0;
                           if (absDiff < 1000) return null;
                           return (
-                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: isBuy ? "rgba(52,211,153,0.04)" : "rgba(239,68,68,0.04)", border: `1px solid ${isBuy ? "rgba(52,211,153,0.15)" : "rgba(239,68,68,0.12)"}` }}>
+                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: isBuy ? `${THEME.sage}09` : `${THEME.rust}09`, border: `1px solid ${isBuy ? `${THEME.sage}26` : `${THEME.rust}1f`}` }}>
                               <div style={{ width: 34, height: 34, borderRadius: 9, background: color + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
                               </div>
@@ -2783,7 +2783,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             )}
 
             {fireData.fireCorpus > 0 && (
-              <div style={{ marginTop: 20, padding: "16px 20px", background: "rgba(99,102,241,0.06)", borderRadius: 12, border: "1px solid rgba(99,102,241,0.18)" }}>
+              <div style={{ marginTop: 20, padding: "16px 20px", background: `${THEME.accent}0f`, borderRadius: 12, border: `1px solid ${THEME.accent}2e` }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#818CF8", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 12 }}>
                   What-If: Extra Monthly Investment
                 </div>
@@ -2797,7 +2797,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       placeholder="e.g. 10000"
                       style={{
                         flex: 1, padding: "8px 12px", borderRadius: 8,
-                        border: "1px solid rgba(99,102,241,0.3)",
+                        border: `1px solid ${THEME.accent}4d`,
                         background: "var(--surface-0)", color: THEME.ink, fontSize: 13, outline: "none"
                       }}
                     />
@@ -2816,9 +2816,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           padding: "3px 8px",
                           borderRadius: 6,
-                          border: `1px solid rgba(99,102,241,0.24)`,
-                          background: fireWhatIfExtra === preset.val ? "rgba(99,102,241,0.14)" : "transparent",
-                          color: "#818CF8",
+                          border: `1px solid ${THEME.accent}3d`,
+                          background: fireWhatIfExtra === preset.val ? `${THEME.accent}24` : "transparent",
+                          color: THEME.accent,
                           fontSize: 11,
                           fontWeight: 700,
                           cursor: "pointer",
@@ -2843,9 +2843,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       : null;
                     const saved = baseYrs !== null && isFinite(baseYrs) ? baseYrs - years : null;
                     return isFinite(years) && years > 0 ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "10px 16px", background: "rgba(99,102,241,0.08)", borderRadius: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "10px 16px", background: `${THEME.accent}15`, borderRadius: 10 }}>
                         <div>
-                          <div style={{ fontSize: 26, fontWeight: 900, color: "#818CF8", letterSpacing: "-0.03em", lineHeight: 1 }}>{years.toFixed(1)}</div>
+                          <div style={{ fontSize: 26, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.03em", lineHeight: 1 }}>{years.toFixed(1)}</div>
                           <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" as const }}>years to FIRE</div>
                         </div>
                         {saved !== null && isFinite(saved) && saved > 0.1 && (
@@ -3084,7 +3084,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--t-line) 50%, transparent)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={`${THEME.line}80`} vertical={false} />
                         <XAxis dataKey="year" stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} />
                         <YAxis
                           stroke={THEME.muted}
@@ -3118,7 +3118,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
 
               {/* Bottom Projection Runway Banner */}
-              <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "16px 20px", background: crossoverYear ? "rgba(52,211,153,0.06)" : "rgba(251,191,36,0.06)", border: `1px solid ${crossoverYear ? "rgba(52,211,153,0.18)" : "rgba(251,191,36,0.18)"}`, borderRadius: 12 }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "center", padding: "16px 20px", background: crossoverYear ? `${THEME.sage}0f` : `${THEME.gold}0f`, border: `1px solid ${crossoverYear ? `${THEME.sage}2e` : `${THEME.gold}2e`}`, borderRadius: 12 }}>
                 <span style={{ fontSize: 24 }}>{crossoverYear ? "🚀" : "💡"}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: crossoverYear ? THEME.sage : THEME.gold, marginBottom: 2 }}>
@@ -3207,7 +3207,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                     style={{
                       width: 60,
-                      background: 'rgba(52, 211, 153, 0.1)',
+                      background: `${THEME.sage}1a`,
                       border: `1px solid ${THEME.sage}`,
                       borderRadius: 6,
                       color: THEME.sage,
@@ -3310,8 +3310,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <div style={{
                         padding: '12px',
                         borderRadius: 12,
-                        background: isOverBudget ? 'rgba(248, 113, 113, 0.05)' : 'rgba(52, 211, 153, 0.05)',
-                        border: `1px solid ${isOverBudget ? 'rgba(248, 113, 113, 0.1)' : 'rgba(52, 211, 153, 0.1)'}`,
+                        background: isOverBudget ? `${THEME.rust}09` : `${THEME.sage}09`,
+                        border: `1px solid ${isOverBudget ? `${THEME.rust}1a` : `${THEME.sage}1a`}`,
                         fontSize: 12,
                         lineHeight: 1.5,
                         color: isOverBudget ? THEME.rust : THEME.sage,
@@ -3436,7 +3436,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
 
                 {allLosses.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, background: "rgba(52,211,153,0.03)", borderRadius: 12 }}>
+                  <div style={{ textAlign: "center", padding: "24px 0", color: THEME.muted, fontSize: 13, background: `${THEME.sage}08`, borderRadius: 12 }}>
                     All holdings currently in profit — no harvesting opportunities
                   </div>
                 ) : (
@@ -3459,7 +3459,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                       return (
                         <>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 16, background: "rgba(239,68,68,0.04)", borderRadius: 12, border: "1px solid rgba(239,68,68,0.1)", marginBottom: 20 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 16, background: `${THEME.rust}09`, borderRadius: 12, border: `1px solid ${THEME.rust}1a`, marginBottom: 20 }}>
                             {[
                               { label: "Harvested Loss", value: fmtINR(selectedTotalLoss), color: THEME.rust },
                               { label: "Est. Tax Saving", value: fmtINR(selectedEstSavings), color: THEME.sage },
@@ -3558,7 +3558,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                     {[500000, 1000000, 2500000, 5000000].map((preset) => (
                       <button key={preset} onClick={() => setSipLsTarget(preset)}
-                        style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: sipLsTarget === preset ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent", color: sipLsTarget === preset ? THEME.accent : THEME.muted, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                        style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: sipLsTarget === preset ? `${THEME.accent}1f` : "transparent", color: sipLsTarget === preset ? THEME.accent : THEME.muted, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
                         {fmtINR(preset)}
                       </button>
                     ))}
@@ -3582,7 +3582,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {FV > 0 && sipNeeded > 0 ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div style={{ padding: "20px 24px", borderRadius: 14, background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`, border: `1.5px solid color-mix(in srgb, var(--t-accent) 25%, transparent)` }}>
+                  <div style={{ padding: "20px 24px", borderRadius: 14, background: `${THEME.accent}0f`, border: `1.5px solid ${THEME.accent}40` }}>
                     <div style={{ fontSize: 10, color: THEME.accent, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "0.1em", marginBottom: 8 }}>Monthly SIP Needed</div>
                     <div style={{ fontSize: 32, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.03em", lineHeight: 1 }}>{fmtINRFull(Math.round(sipNeeded))}</div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>Total invested: {fmtINRFull(Math.round(sipTotal))}</div>
@@ -4208,14 +4208,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             borderRadius: 10,
                             fontSize: 11,
                             background: (d && d === today2)
-                              ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)`
+                              ? `${THEME.accent}26`
                               : (d && dueDays[d])
-                              ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
+                              ? `${THEME.gold}0f`
                               : "transparent",
                             border: (d && d === today2)
                               ? `1.5px solid ${THEME.accent}`
                               : (d && dueDays[d])
-                              ? `1px dashed color-mix(in srgb, ${THEME.gold} 30%, transparent)`
+                              ? `1px dashed ${THEME.gold}4d`
                               : `1px solid ${THEME.line}`,
                             cursor: hasEvents ? "pointer" : "default",
                             transition: "all 0.18s ease-in-out",
@@ -4304,7 +4304,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{catName}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: allEarned ? THEME.sage : THEME.muted, background: allEarned ? "rgba(52,211,153,0.1)" : "var(--t-line)", padding: "2px 8px", borderRadius: 99 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: allEarned ? THEME.sage : THEME.muted, background: allEarned ? `${THEME.sage}1a` : "var(--t-line)", padding: "2px 8px", borderRadius: 99 }}>
                       {catData.earnedCount}/{catData.total}
                     </div>
                   </div>
@@ -4326,7 +4326,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "16px 14px",
                           borderRadius: 16,
                           background: isEarned
-                            ? "linear-gradient(135deg, color-mix(in srgb, var(--t-sage) 14%, var(--t-paper)), var(--t-paper))"
+                            ? `linear-gradient(135deg, ${THEME.sage}24, var(--t-paper))`
                             : isActive
                             ? "var(--t-paper)"
                             : "var(--surface-0)",
@@ -4363,7 +4363,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                         {/* Status / Progress */}
                         {isEarned && (
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.sage, background: "rgba(52,211,153,0.1)", padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.sage, background: `${THEME.sage}1a`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4 }}>
                             ✓ Earned
                           </div>
                         )}
@@ -4393,7 +4393,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                 {/* Category complete unlock tip */}
                 {allEarned && unlock && (
-                  <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(52,211,153,0.07)", border: `1px solid ${THEME.sage}33`, borderRadius: 10, fontSize: 11, color: THEME.sage, fontWeight: 600 }}>
+                  <div style={{ marginTop: 10, padding: "10px 14px", background: `${THEME.sage}12`, border: `1px solid ${THEME.sage}33`, borderRadius: 10, fontSize: 11, color: THEME.sage, fontWeight: 600 }}>
                     🎉 {unlock}
                   </div>
                 )}
@@ -4449,7 +4449,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     padding: "14px 16px",
                     borderRadius: 12,
                     background: "rgba(255,255,255,0.02)",
-                    border: `1px solid color-mix(in srgb, ${evt.color} 18%, transparent)`,
+                    border: `1px solid ${evt.color}2e`,
                     borderLeft: `4px solid ${evt.color}`,
                     display: "flex",
                     alignItems: "center",
@@ -4468,7 +4468,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <Badge
                       style={{
-                        background: isPaid ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                        background: isPaid ? `${THEME.sage}1f` : `${THEME.gold}1f`,
                         color: isPaid ? THEME.sage : THEME.gold,
                         border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
                         fontSize: 10,

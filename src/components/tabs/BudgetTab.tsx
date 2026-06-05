@@ -410,33 +410,23 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
         </div>
 
         {/* Sub Navigation Segmented Control */}
-        <div style={{ display: "flex", background: "rgba(128,128,128,0.06)", padding: 4, borderRadius: 10, border: "1px solid var(--t-line)" }}>
-          <button
-            onClick={() => setActiveSubTab("budget")}
-            style={{
-              border: "none", background: activeSubTab === "budget" ? "var(--t-darkInk)" : "transparent",
-              color: activeSubTab === "budget" ? THEME.ink : THEME.muted,
-              padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-              boxShadow: activeSubTab === "budget" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6
-            }}
-          >
-            <BarChart2 size={13} />
-            Budget Tracker
-          </button>
-          <button
-            onClick={() => setActiveSubTab("recurring")}
-            style={{
-              border: "none", background: activeSubTab === "recurring" ? "var(--t-darkInk)" : "transparent",
-              color: activeSubTab === "recurring" ? THEME.ink : THEME.muted,
-              padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-              boxShadow: activeSubTab === "recurring" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6
-            }}
-          >
-            <Repeat size={13} />
-            Fixed & Recurring
-          </button>
+        <div style={{ display: "flex", padding: 4, borderRadius: 10, border: `1px solid ${THEME.line}` }}>
+          {(["budget", "recurring"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveSubTab(tab)}
+              style={{
+                border: activeSubTab === tab ? `1.5px solid ${THEME.accent}33` : "1.5px solid transparent",
+                background: activeSubTab === tab ? `${THEME.accent}15` : "transparent",
+                color: activeSubTab === tab ? THEME.accent : THEME.muted,
+                padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: activeSubTab === tab ? 700 : 500, cursor: "pointer",
+                transition: "all 0.2s", display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              {tab === "budget" ? <BarChart2 size={13} /> : <Repeat size={13} />}
+              {tab === "budget" ? "Budget Tracker" : "Fixed & Recurring"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -446,7 +436,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
       {activeSubTab === "budget" && (
         <>
           {overBudgetCount > 0 && (
-            <Card style={{ background: "rgba(217,48,37,0.04)", border: `1px solid ${THEME.rust}44`, padding: "12px 20px", marginBottom: 24, display: "flex", alignItems: "center", gap: 12, color: THEME.rust }}>
+            <Card style={{ background: `${THEME.rust}09`, border: `1px solid ${THEME.rust}44`, padding: "12px 20px", marginBottom: 24, display: "flex", alignItems: "center", gap: 12, color: THEME.rust }}>
               <AlertCircle size={18} />
               <span style={{ fontWeight: 700, fontSize: 14 }}>{overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget in {selectedMonthLabel}</span>
             </Card>
@@ -455,8 +445,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
           {/* Budget Inheritance Notification Banner */}
           {isInherited && budgetsToUse.length > 0 && (
             <Card style={{ 
-              background: "rgba(99,102,241,0.03)", 
-              border: `1px dashed ${THEME.accent}55`, 
+              background: `${THEME.accent}08`,
+              border: `1px dashed ${THEME.accent}55`,
               padding: "14px 20px", 
               marginBottom: 24, 
               display: "flex", 
@@ -569,7 +559,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop: 20, fontSize: 13, padding: "12px 16px", borderRadius: 10, background: onTrack ? "rgba(30,142,62,0.06)" : "rgba(217,48,37,0.06)", color: onTrack ? THEME.sage : THEME.rust, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ marginTop: 20, fontSize: 13, padding: "12px 16px", borderRadius: 10, background: onTrack ? `${THEME.sage}0f` : `${THEME.rust}0f`, color: onTrack ? THEME.sage : THEME.rust, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
                       {onTrack ? <Check size={16} /> : <AlertCircle size={16} />}
                       {onTrack ? "Spending is perfectly in line with the month progress." : "You are overpacing — spending faster than month progress."}
                     </div>
@@ -688,7 +678,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
 
           {/* Unbudgeted Spending — categories with real spend but no budget line */}
           {totalUnbudgetedSpent > 0 && (
-            <Card style={{ marginTop: 24, padding: "18px 24px", border: `1px dashed ${THEME.gold}55`, background: "rgba(217,119,6,0.03)" }}>
+            <Card style={{ marginTop: 24, padding: "18px 24px", border: `1px dashed ${THEME.gold}55`, background: `${THEME.gold}08` }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <AlertTriangle size={16} color={THEME.gold} />
@@ -776,12 +766,12 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
 
                 let statusText = "Upcoming";
                 let statusColor = THEME.gold;
-                let statusBg = "rgba(217,119,6,0.08)";
+                let statusBg = `${THEME.gold}15`;
 
                 if (hasPaid) {
                   statusText = "Paid";
                   statusColor = THEME.sage;
-                  statusBg = "rgba(5,150,105,0.08)";
+                  statusBg = `${THEME.sage}15`;
                 } else if (!re.isActive) {
                   statusText = "Paused";
                   statusColor = THEME.muted;
@@ -791,23 +781,23 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                   if (selectedMonth < curMonthStr) {
                     statusText = "Unpaid";
                     statusColor = THEME.rust;
-                    statusBg = "rgba(220,38,38,0.08)";
+                    statusBg = `${THEME.rust}15`;
                   } else if (selectedMonth === curMonthStr) {
                     if (todayDay > Number(re.dueDay)) {
                       statusText = "Overdue";
                       statusColor = THEME.rust;
-                      statusBg = "rgba(220,38,38,0.08)";
+                      statusBg = `${THEME.rust}15`;
                     } else {
                       const daysLeft = Number(re.dueDay) - todayDay;
                       statusText = daysLeft === 0 ? "Due Today" : daysLeft === 1 ? "Due Tomorrow" : `Due in ${daysLeft} days`;
                       statusColor = THEME.gold;
-                      statusBg = "rgba(217,119,6,0.08)";
+                      statusBg = `${THEME.gold}15`;
                     }
                   } else {
                     // Future month
                     statusText = "Scheduled";
                     statusColor = THEME.accent;
-                    statusBg = "rgba(99,102,241,0.08)";
+                    statusBg = `${THEME.accent}15`;
                   }
                 }
 
@@ -960,7 +950,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
                   return (
                     <div key={p.id} style={{
                       padding: "14px 16px", borderRadius: 12,
-                      background: `color-mix(in srgb, ${statusColor} 4%, transparent)`,
+                      background: `${statusColor}09`,
                       border: `1px solid ${statusColor}33`,
                       display: "flex", alignItems: "center", gap: 14,
                     }}>
