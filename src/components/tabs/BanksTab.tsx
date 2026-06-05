@@ -9,6 +9,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { Button } from "../ui/Button";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -157,9 +158,9 @@ const TxnEmptyState = ({ onAdd }: any) => (
         <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}15`, color: THEME.accent, fontWeight: 600, border: `1px solid ${THEME.accent}26` }}>● {f}</span>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: `linear-gradient(135deg,${THEME.accent} 0%,#a78bfa 100%)`, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Add Transaction
-    </button>
+    <Button variant="accent" icon={<Plus size={16} />} onClick={onAdd} style={{ marginTop: 8 }}>
+      Add Transaction
+    </Button>
   </div>
 );
 
@@ -194,7 +195,7 @@ const btnGhost = {
 const input = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--t-paper)",
+  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
   borderRadius: 10,
   color: THEME.ink,
@@ -219,8 +220,8 @@ const iconBtn = {
   alignItems: "center",
 };
 
-const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
-const td = { padding: "12px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
+const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1.5px solid ${THEME.line}`, whiteSpace: "nowrap" as const };
+const td = { padding: "11px 10px", verticalAlign: "middle" as const, fontSize: 13, borderBottom: `1px solid ${THEME.line}` };
 
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
   salary:       { color: "#059669", bg: "#0596691a" },
@@ -266,6 +267,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
   const [showImport, setShowImport] = useState(false);
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
+  const [activeRange, setActiveRange] = useState<string | null>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
   const autoPostLinkedTransaction = (linkedKey: string, txn: any) => {
@@ -346,6 +348,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       setDateFrom(`${fyYear}-04-01`);
       setDateTo(nowLocal);
     }
+    setActiveRange(preset);
   };
 
   const recurringKeys = useMemo(() => {
@@ -494,7 +497,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
       {state.bankAccounts.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 32 }}>
           {/* Column 1: Savings Rate indicator */}
-          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+          <div style={{ ...card, background: "var(--surface-0)" }}>
             <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
               <span>📈 Monthly Savings Rate</span>
             </div>
@@ -525,7 +528,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
           </div>
 
           {/* Column 2: Top Expense Categories Breakdown */}
-          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+          <div style={{ ...card, background: "var(--surface-0)" }}>
             <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12 }}>
               <span>📊 Monthly Spend Categories</span>
             </div>
@@ -554,7 +557,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
           </div>
 
           {/* Column 3: Liquidity Distribution Share */}
-          <div style={{ ...card, background: "rgba(128,128,128,0.01)" }}>
+          <div style={{ ...card, background: "var(--surface-0)" }}>
             <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 12 }}>
               <span>💳 Liquidity Asset Weight</span>
             </div>
@@ -598,13 +601,13 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
         {state.bankAccounts.map((a: any) => {
           const theme = getAccountTheme(a.type);
           return (
-            <div key={a.id} style={{ ...card, position: "relative", overflow: "hidden" }}>
+            <div key={a.id} className="card-lift" style={{ ...card, position: "relative", overflow: "hidden" }}>
               {/* Type indicator strip */}
               <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 4, background: theme.color }} />
-              
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-                <button onClick={() => setEditBankId(a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Edit3 size={14} /></button>
-                <button onClick={() => removeItem("bankAccounts", a.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted }}><Trash2 size={14} /></button>
+
+              <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 2 }}>
+                <button onClick={() => setEditBankId(a.id)} className="icon-btn" style={iconBtn} title="Edit account"><Edit3 size={14} /></button>
+                <button onClick={() => removeItem("bankAccounts", a.id)} className="icon-btn danger" style={iconBtn} title="Delete account"><Trash2 size={14} /></button>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -645,7 +648,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                   </div>
                 </div>
                 <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, letterSpacing: "0.05em", paddingBottom: 4 }}>
-                  •••• {(a.accountNumber || "").slice(-4)}
+                  <Prv>•••• {(a.accountNumber || "").slice(-4) || "—"}</Prv>
                 </div>
               </div>
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${THEME.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -674,11 +677,20 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
               {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => (
-                <button key={p} style={{ ...btnGhost, padding: "4px 10px", fontSize: 10, whiteSpace: "nowrap", borderRadius: 8 }} onClick={() => setQuickRange(p)}>
+                <button
+                  key={p}
+                  style={{
+                    ...btnGhost, padding: "4px 10px", fontSize: 10, whiteSpace: "nowrap", borderRadius: 8,
+                    ...(activeRange === p ? { background: `${THEME.accent}12`, borderColor: `${THEME.accent}40`, color: THEME.accent } : {}),
+                  }}
+                  onClick={() => setQuickRange(p)}
+                >
                   {{ thisMonth: "This Month", lastMonth: "Last Month", "3months": "Last 3M", thisFY: "This FY" }[p]}
                 </button>
               ))}
-              {(dateFrom || dateTo) && <button style={{ ...btnGhost, padding: "3px 8px", fontSize: 10, color: THEME.rust, borderColor: `${THEME.rust}50`, borderRadius: 8 }} onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>}
+              {(dateFrom || dateTo) && (
+                <button style={{ ...btnGhost, padding: "3px 8px", fontSize: 10, color: THEME.rust, borderColor: `${THEME.rust}50`, borderRadius: 8 }} onClick={() => { setDateFrom(""); setDateTo(""); setActiveRange(null); }}>✕ Clear</button>
+              )}
             </div>
           </div>
           {/* Row 2: Search + account + type + date range */}
@@ -713,7 +725,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr style={{ borderBottom: `2px solid ${THEME.ink}` }}>
+                <tr>
                   <th style={{ ...th, cursor: "pointer", userSelect: "none" }} onClick={() => requestSort("date")}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>Date {sortField === "date" ? (sortDirection === "asc" ? <ArrowUp size={9}/> : <ArrowDown size={9}/>) : <ArrowUpDown size={9}/>}</span>
                   </th>
@@ -805,15 +817,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                         </td>
                         <td style={td}>
                           <div style={{ display: "flex", gap: 2 }}>
-                            <button onClick={handleSaveInline} style={{ ...iconBtn, color: THEME.sage }} title="Save"><Check size={14} /></button>
-                            <button onClick={() => setInlineEditId(null)} style={{ ...iconBtn, color: THEME.rust }} title="Cancel"><X size={14} /></button>
+                            <button onClick={handleSaveInline} className="icon-btn" style={{ ...iconBtn, color: THEME.sage }} title="Save"><Check size={14} /></button>
+                            <button onClick={() => setInlineEditId(null)} className="icon-btn danger" style={{ ...iconBtn, color: THEME.rust }} title="Cancel"><X size={14} /></button>
                           </div>
                         </td>
                       </tr>
                     );
                   }
                   return (
-                    <tr key={t.id} onDoubleClick={() => { setInlineEditId(t.id); setInlineEdit({ ...t }); }} style={{ borderBottom: `1px dashed ${THEME.line}`, cursor: "default" }} title="Double-click to edit inline">
+                    <tr key={t.id} onDoubleClick={() => { setInlineEditId(t.id); setInlineEdit({ ...t }); }} style={{ cursor: "default" }} title="Double-click to edit inline">
                       <td style={{ ...td, color: THEME.muted, fontSize: 12, whiteSpace: "nowrap" }}>{t.date ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
                       <td style={td}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -826,7 +838,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                               <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: "#0EA5E933", color: "#0EA5E9", fontWeight: 700, whiteSpace: "nowrap" }}>🔗 LINKED</span>
                             )}
                             {t.category !== "Transfer" && recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
-                              <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: THEME.gold + "33", color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
+                              <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 4, background: `${THEME.gold}33`, color: THEME.gold, fontWeight: 700, whiteSpace: "nowrap" }}>RECURRING</span>
                             )}
                           </div>
                           {t.narration && (
@@ -846,8 +858,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                       <td style={{ ...td, textAlign: "right", color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>{t.type === "credit" ? fmtINRFull(t.amount) : ""}</td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 2 }}>
-                          <button onClick={() => setEditTxnId(t.id)} style={iconBtn}><Edit3 size={13} /></button>
-                          <button onClick={() => removeItem("transactions", t.id)} style={iconBtn}><Trash2 size={13} /></button>
+                          <button onClick={() => setEditTxnId(t.id)} className="icon-btn" style={iconBtn} title="Edit"><Edit3 size={13} /></button>
+                          <button onClick={() => removeItem("transactions", t.id)} className="icon-btn danger" style={iconBtn} title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
