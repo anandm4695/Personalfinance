@@ -56,7 +56,7 @@ const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: str
   salary:  { color: "#7c3aed", bg: "#7c3aed15", icon: "💎" },
   joint:   { color: "#d97706", bg: "#d9770615", icon: "🤝" },
   fd:      { color: "#ea580c", bg: "#ea580c15", icon: "🔒" },
-  other:   { color: THEME.muted, bg: "rgba(128,128,128,0.08)", icon: "🏦" },
+  other:   { color: THEME.muted, bg: `${THEME.line}40`, icon: "🏦" },
 };
 
 function getAccountTheme(type: string) {
@@ -92,7 +92,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
   }
 
   return (
-    <div style={{ width: size, height: size, borderRadius: 10, background: "rgba(128,128,128,0.1)", border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: 10, background: `${THEME.line}40`, border: `1px solid ${THEME.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <span style={{ fontSize: size/2.5, fontWeight: 800, color: THEME.muted }}>{bankName.slice(0, 2).toUpperCase()}</span>
     </div>
   );
@@ -135,12 +135,12 @@ const BankEmptyState = ({ onAdd }: any) => (
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {["Savings & Current", "Balance Tracking", "CSV Import", "Auto Categories"].map(f => (
-        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: "#0284c715", color: "#0284c7", fontWeight: 600, border: "1px solid #0284c726" }}>● {f}</span>
+        <span key={f} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}15`, color: THEME.accent, fontWeight: 600, border: `1px solid ${THEME.accent}26` }}>● {f}</span>
       ))}
     </div>
-    <button style={{ marginTop: 8, padding: "10px 24px", background: "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }} onClick={onAdd}>
-      <Plus size={16} /> Add Bank Account
-    </button>
+    <Button variant="accent" icon={<Plus size={16} />} style={{ marginTop: 8 }} onClick={onAdd}>
+      Add Bank Account
+    </Button>
   </div>
 );
 
@@ -457,13 +457,13 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
           Banks & Transactions
         </SectionTitle>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={btnGhost} onClick={() => setShowBank(true)}>
+          <button className="btn-ghost" style={btnGhost} onClick={() => setShowBank(true)}>
             <Plus size={14} /> Account
           </button>
-          <button style={btnGhost} onClick={() => setShowImport(true)} title="Import transactions from CSV">
+          <button className="btn-ghost" style={btnGhost} onClick={() => setShowImport(true)} title="Import transactions from CSV">
             <FileUp size={14} /> Import CSV
           </button>
-          <button style={btnSolid} onClick={() => setShowTxn(true)}>
+          <button className="btn-primary" style={btnSolid} onClick={() => setShowTxn(true)}>
             <Plus size={14} /> Transaction
           </button>
         </div>
@@ -508,7 +508,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               </span>
             </div>
             {/* Savings Rate Bar */}
-            <div style={{ width: "100%", height: 8, background: "rgba(128,128,128,0.08)", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ width: "100%", height: 8, background: `${THEME.line}40`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
               <div style={{ 
                 width: `${monthlySavingsRate}%`, 
                 height: "100%", 
@@ -546,7 +546,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
                         <span style={{ fontWeight: 700 }}>{c.name}</span>
                         <span style={{ color: THEME.muted, fontWeight: 600 }}>₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)</span>
                       </div>
-                      <div style={{ width: "100%", height: 6, background: "rgba(128,128,128,0.06)", borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ width: "100%", height: 6, background: `${THEME.line}40`, borderRadius: 10, overflow: "hidden" }}>
                         <div style={{ width: `${percentage}%`, height: "100%", background: THEME.accent, borderRadius: 10 }} />
                       </div>
                     </div>
@@ -566,7 +566,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               <span>SHARE %</span>
             </div>
             {/* Allocated segmented bar */}
-            <div style={{ display: "flex", width: "100%", height: 14, background: "rgba(128,128,128,0.08)", borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
+            <div style={{ display: "flex", width: "100%", height: 14, background: `${THEME.line}40`, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
               {liquidityWeights.map((w) => (
                 <div 
                   key={w.id} 
@@ -868,7 +868,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData, u
               </tbody>
               {sortedTxns.length > 0 && (
                 <tfoot>
-                  <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                  <tr style={{ background: `${THEME.accent}08` }}>
                     <td colSpan={4} style={{ padding: "10px", fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.04em", borderTop: `1.5px solid ${THEME.line}` }}>
                       {sortedTxns.length} {sortedTxns.length === 1 ? "transaction" : "transactions"}
                     </td>

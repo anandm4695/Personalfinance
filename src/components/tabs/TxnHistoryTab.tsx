@@ -8,7 +8,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 
 const th = { textAlign: "left" as const, padding: "12px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid ${THEME.line}`, whiteSpace: "nowrap" as const };
-const td = { padding: "16px 10px", verticalAlign: "top" as const, fontSize: 13, borderBottom: `1px solid ${THEME.line}` };
+const td = { padding: "16px 10px", verticalAlign: "middle" as const, fontSize: 13, borderBottom: `1px solid ${THEME.line}`, fontVariantNumeric: "tabular-nums" as const };
 
 function livePrice(s: any, marketData: any): number {
   const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
@@ -202,7 +202,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "rgba(128,128,128,0.02)" }}>
+              <tr style={{ background: "transparent" }}>
                 <th style={{ ...th, paddingLeft: 10 }}>{type === "stock" ? "Company" : "Scheme"}</th>
                 <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
                 <th style={{ ...th, textAlign: "right" }}>{type === "stock" ? "Buy Price" : "Buy NAV"}</th>
@@ -249,7 +249,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               })}
             </tbody>
             <tfoot>
-              <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+              <tr style={{ background: `${THEME.accent}08` }}>
                 <td colSpan={6} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>Total Realized P&L</td>
                 <td style={{ ...td, textAlign: "right", fontWeight: 900, color: total >= 0 ? THEME.sage : THEME.rust, fontSize: 15 }}>
                   {total >= 0 ? "+" : ""}₹{Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
@@ -293,7 +293,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             className="focus:border-accent"
           />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(128,128,128,0.04)", padding: "4px 14px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 42 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface-0)", padding: "4px 14px", borderRadius: 12, border: `1px solid ${THEME.line}`, height: 42 }}>
           <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>Period</span>
           <select
             style={{ background: "transparent", border: "none", color: THEME.ink, fontWeight: 800, fontSize: 13, cursor: "pointer", outline: "none" }}
@@ -419,7 +419,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "rgba(128,128,128,0.02)" }}>
+                    <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 10 }}>Company</th>
                       <th style={{ ...th, textAlign: "right" }}>Qty</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
@@ -439,7 +439,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
                           <td style={{ ...td, paddingLeft: 10 }}>
                             <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
-                            <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span>
+                            <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: `${THEME.line}40`, padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{s.exchange || "NSE"}</span>
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{s.qty}</td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(s.buyDate)}</td>
@@ -454,7 +454,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                    <tr style={{ background: `${THEME.accent}08` }}>
                       <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>Total Invested</td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
                         ₹{stocksBoughtTotals.invested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
@@ -511,7 +511,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "rgba(128,128,128,0.02)" }}>
+                    <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 10 }}>Scheme</th>
                       <th style={{ ...th, textAlign: "right" }}>Units</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
@@ -532,7 +532,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         <tr key={m.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
                           <td style={{ ...td, paddingLeft: 10 }}>
                             <b>{m.scheme}</b>
-                            {m.type && <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{m.type}</span>}
+                            {m.type && <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: `${THEME.line}40`, padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{m.type}</span>}
                           </td>
                           <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{Number(m.units).toFixed(3)}</td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted }}>{fmtDate(m.buyDate)}</td>
@@ -547,7 +547,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                    <tr style={{ background: `${THEME.accent}08` }}>
                       <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>Total Invested</td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
                         ₹{mfBoughtTotals.invested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
@@ -605,7 +605,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
-                    <tr style={{ background: "rgba(128,128,128,0.02)" }}>
+                    <tr style={{ background: "transparent" }}>
                       <th style={{ ...th, paddingLeft: 10 }}>Note / Category</th>
                       <th style={{ ...th, textAlign: "right" }}>Date</th>
                       <th style={{ ...th, textAlign: "right" }}>Type</th>
@@ -622,7 +622,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         <tr key={t.id} style={{ borderBottom: `1px solid ${THEME.line}`, transition: "background 0.2s" }} className="table-row-hover">
                           <td style={{ ...td, paddingLeft: 10 }}>
                             <b>{t.note || "General Ledger"}</b>
-                            <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{t.category || "Other"}</span>
+                            <span style={{ fontSize: 10, marginLeft: 6, color: THEME.muted, background: `${THEME.line}40`, padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>{t.category || "Other"}</span>
                           </td>
                           <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>{fmtDate(t.date)}</td>
                           <td style={{ ...td, textAlign: "right" }}>
@@ -646,7 +646,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: "rgba(128,128,128,0.03)" }}>
+                    <tr style={{ background: `${THEME.accent}08` }}>
                       <td colSpan={2} style={{ ...td, paddingLeft: 10 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
                           {cashTransactionsInFY.filter((t: any) => t.type === "credit").length} credits · {cashTransactionsInFY.filter((t: any) => t.type === "debit").length} debits

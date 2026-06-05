@@ -269,7 +269,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
             </div>
             <div style={{
               display: "flex", gap: 4, alignItems: "center",
-              background: "rgba(128,128,128,0.04)", padding: "4px 6px", borderRadius: 10,
+              background: "var(--surface-0)", padding: "4px 6px", borderRadius: 10,
               border: `1px solid ${THEME.line}`,
             }}>
               <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginRight: 4, paddingLeft: 4 }}>Sort:</span>
@@ -369,7 +369,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                   <YAxis stroke={THEME.muted} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => fmtINRFull(v)} width={72} />
                   <Tooltip
                     formatter={(v: any) => fmtINRFull(v)}
-                    contentStyle={{ background: "var(--t-paper)", borderColor: THEME.line, borderRadius: 10, color: THEME.ink }}
+                    contentStyle={{ background: "var(--surface-0)", borderColor: THEME.line, borderRadius: 10, color: THEME.ink }}
                   />
                   <Legend verticalAlign="top" height={36} />
                   <Area type="monotone" dataKey="invested" name="Cumulative Invested" stroke={THEME.muted} strokeWidth={2} fillOpacity={1} fill="url(#sipColorInvested)" />
@@ -469,7 +469,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
               </span>
             )}
             {sip.broker && (
-              <span style={{ fontSize: 9, fontWeight: 600, color: THEME.muted, background: "rgba(0,0,0,0.04)", border: `1px solid ${THEME.line}`, borderRadius: 4, padding: "2px 6px" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: THEME.muted, background: `${THEME.line}40`, border: `1px solid ${THEME.line}`, borderRadius: 4, padding: "2px 6px" }}>
                 {sip.broker}
               </span>
             )}
@@ -660,7 +660,7 @@ function SIPModal({ onClose, onSave, initial }: any) {
       </div>
 
       {instNum > 0 && amt > 0 && (
-        <div style={{ padding: "10px 14px", background: "rgba(128,128,128,0.05)", borderRadius: 8, fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
+        <div style={{ padding: "10px 14px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, fontSize: 12, color: THEME.muted, lineHeight: 1.7 }}>
           <strong style={{ color: THEME.ink }}>Duration: </strong>
           {durationYears > 0 && `${durationYears} yr${durationYears !== 1 ? "s" : ""} `}
           {durationMonths > 0 && `${durationMonths} mo`}

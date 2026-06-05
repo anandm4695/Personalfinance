@@ -52,7 +52,7 @@ interface InvestmentsTabProps {
 const inp = {
   width: "100%",
   padding: "10px 12px",
-  background: "var(--t-paper)",
+  background: "var(--surface-0)",
   border: `1.5px solid ${THEME.line}`,
   borderRadius: 10,
   color: THEME.ink,
@@ -319,7 +319,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
 
             {/* Live computed summary */}
             {(units > 0 || cppu > 0) && (
-              <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
                   ["Total Principal",       fmtINRFull(totalPrincipal)],
                   ["Total Accrued Interest", fmtINRFull(totalAccrued)],
@@ -728,7 +728,7 @@ function EditBondModal({ bond: initial, onClose, onSave }: any) {
       </div>
 
       {(units > 0 || cppu > 0) && (
-        <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
             ["Total Principal",        fmtINRFull(totalPrincipal)],
             ["Total Accrued Interest", fmtINRFull(totalAccrued)],
@@ -1513,10 +1513,10 @@ function PPFCsvPanel({ onImport }: any) {
         <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
         <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent }}>Download Template</button>
       </div>
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
-        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
-        Deposit: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04-05, deposit, 150000, Annual contribution</code>
-        &nbsp;&nbsp;Withdrawal: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2026-01-15, withdrawal, 25000, Partial</code>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
+        Deposit: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>2025-04-05, deposit, 150000, Annual contribution</code>
+        &nbsp;&nbsp;Withdrawal: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>2026-01-15, withdrawal, 25000, Partial</code>
       </div>
       <label
         style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08` }}
@@ -1529,7 +1529,7 @@ function PPFCsvPanel({ onImport }: any) {
       </label>
       <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
       <textarea
-        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
         value={csvText}
         onChange={e => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
         placeholder={"2025-04-05, deposit, 150000, Annual contribution FY 2025-26\n2025-10-10, deposit, 50000, Mid-year top up"}
@@ -1553,7 +1553,7 @@ function PPFCsvPanel({ onImport }: any) {
           <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
           <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
-              <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
+              <thead><tr style={{ background: "var(--surface-0)" }}>
                 {["Date","Type","Amount","Note"].map(h => <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>)}
               </tr></thead>
               <tbody>
@@ -1635,7 +1635,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
             { label: "Total Deposits", value: totalDeposits, color: THEME.sage, Icon: TrendingUp },
             { label: "Total Withdrawals", value: totalWithdrawals, color: THEME.rust, Icon: TrendingDown },
           ].map(({ label, value, color, Icon }) => (
-            <div key={label} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+            <div key={label} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--surface-0)" }}>
               <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
                 <Icon size={10} color={color} /> {label}
               </div>
@@ -1675,7 +1675,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
               <thead>
-                <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                <tr style={{ background: `${THEME.accent}08` }}>
                   {["Date","Type","Amount","Note",""].map((h, i) => (
                     <th key={i} style={{ padding: "8px 10px", textAlign: i >= 3 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
                   ))}
@@ -2065,12 +2065,12 @@ function EPFCsvPanel({ onImport }: any) {
         <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent, display: "flex", alignItems: "center", gap: 8 }}><FileText size={15} /> Bulk Import via CSV</div>
         <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${THEME.accent}4d`, background: "transparent", color: THEME.accent }}>Download Template</button>
       </div>
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
-        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
-        Type values: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>employee</code> &nbsp;
-        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>employer</code> &nbsp;
-        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>interest</code> &nbsp;
-        <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>withdrawal</code>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+        <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>date, type, amount, note</code><br />
+        Type values: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>employee</code> &nbsp;
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>employer</code> &nbsp;
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>interest</code> &nbsp;
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>withdrawal</code>
       </div>
       <label
         style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${THEME.accent}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${THEME.accent}08` }}
@@ -2083,7 +2083,7 @@ function EPFCsvPanel({ onImport }: any) {
       </label>
       <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
       <textarea
-        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
         value={csvText}
         onChange={e => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
         placeholder={"2025-04-30, employee, 5000, April 2025\n2025-04-30, employer, 5000, April 2025\n2026-03-31, interest, 41250, EPFO FY 2025-26"}
@@ -2105,7 +2105,7 @@ function EPFCsvPanel({ onImport }: any) {
           <div style={{ padding: "8px 12px", background: `${THEME.accent}12`, fontSize: 11, fontWeight: 700, color: THEME.accent }}>{csvPreview.length} rows ready — preview:</div>
           <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
-              <thead><tr style={{ background: "rgba(128,128,128,0.04)" }}>
+              <thead><tr style={{ background: "var(--surface-0)" }}>
                 {["Date","Type","Amount","Note"].map(h => <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>)}
               </tr></thead>
               <tbody>
@@ -2468,9 +2468,9 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                   <div style={{ position: "absolute", left: -32, top: 10, width: 22, height: 22, borderRadius: "50%", background: isCurrent ? THEME.accent : `${THEME.accent}26`, border: `2px solid ${isCurrent ? THEME.accent : `${THEME.accent}59`}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: isCurrent ? "#fff" : THEME.accent }}>
                     {idx + 1}
                   </div>
-                  <div style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+                  <div style={{ padding: "12px 14px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--surface-0)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: isCurrent ? "#3730a3" : "rgba(128,128,128,0.1)", color: isCurrent ? "#fff" : THEME.muted }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: isCurrent ? THEME.accent : `${THEME.line}40`, color: isCurrent ? "#fff" : THEME.muted }}>
                         {dateLabel}
                       </div>
                       <div style={{ display: "flex", gap: 2 }}>
@@ -2561,7 +2561,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       {stats.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 16 }}>
           {stats.map(s => (
-            <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--t-paper)" }}>
+            <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.line}`, background: "var(--surface-0)" }}>
               <div style={{ fontSize: 9, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 3 }}>{s.label}</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{fmtINR(s.value)}</div>
             </div>
@@ -2718,7 +2718,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
                   <thead>
-                    <tr style={{ background: "rgba(128,128,128,0.06)" }}>
+                    <tr style={{ background: `${THEME.accent}08` }}>
                       {["Date","Type","Amount","Note",""].map((h, i) => (
                         <th key={i} style={{ padding: "8px 10px", textAlign: i >= 2 ? "right" as const : "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const }}>{h}</th>
                       ))}

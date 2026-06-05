@@ -232,7 +232,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         Rental Details
       </SectionTitle>
 
-      <div style={{ display: "inline-flex", background: "rgba(128,128,128,0.08)", borderRadius: 12, padding: 4, marginBottom: 24, border: `1px solid ${THEME.line}` }}>
+      <div style={{ display: "inline-flex", background: "var(--surface-0)", borderRadius: 12, padding: 4, marginBottom: 24, border: `1px solid ${THEME.line}` }}>
         {[
           { id: "out", label: "Rented Out", count: propertiesOut.length },
           { id: "in",  label: "Rented In",  count: propertiesIn.length },
@@ -325,7 +325,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   </span>
                                 )}
                                 {p.isActive === false && (
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "2px 7px", borderRadius: 99 }}>Ended</span>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: `${THEME.line}40`, padding: "2px 7px", borderRadius: 99 }}>Ended</span>
                                 )}
                               </div>
                             );
@@ -355,7 +355,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 return (
                                   <span key={ti} style={{
                                     fontSize: 9, padding: "2px 7px", borderRadius: 5, fontWeight: 700,
-                                    background: isCurrent ? col + "22" : "rgba(128,128,128,0.07)",
+                                    background: isCurrent ? col + "22" : `${THEME.line}40`,
                                     color: isCurrent ? col : THEME.muted,
                                     border: isCurrent ? `1px solid ${col}44` : "none",
                                   }}>
@@ -560,9 +560,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 </button>
                               </div>
 
-                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
-                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
-                                Example: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
+                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
+                                Example: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
                               </div>
 
                               <label
@@ -609,7 +609,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" }}>— or paste CSV text below —</div>
                               <textarea
                                 style={{
-                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)",
+                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)",
                                   border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink,
                                   fontSize: 12, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box"
                                 }}
@@ -658,7 +658,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   <div style={{ maxHeight: 160, overflowY: "auto" }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                                       <thead>
-                                        <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                                        <tr style={{ background: "var(--surface-0)" }}>
                                           {["Month","Date","Amount","Note"].map(h => (
                                             <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
                                           ))}
@@ -690,7 +690,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               {[...(p.receipts || [])].sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  padding: "8px 12px", borderRadius: 8, background: `${THEME.accent}08`,
                                   border: `1px solid ${THEME.line}`
                                 }}>
                                   <div>
@@ -769,7 +769,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               {(p.depositTransactions || []).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  padding: "8px 12px", borderRadius: 8, background: `${THEME.accent}08`,
                                   border: `1px solid ${THEME.line}`
                                 }}>
                                   <div>
@@ -816,7 +816,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               {(p.depositDeductions || []).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  padding: "8px 12px", borderRadius: 8, background: `${THEME.accent}08`,
                                   border: `1px solid ${THEME.line}`
                                 }}>
                                   <div>
@@ -916,7 +916,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   </span>
                                 )}
                                 {p.isActive === false && (
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: "rgba(128,128,128,0.1)", padding: "2px 7px", borderRadius: 99 }}>Ended</span>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, background: `${THEME.line}40`, padding: "2px 7px", borderRadius: 99 }}>Ended</span>
                                 )}
                               </div>
                             );
@@ -948,7 +948,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 return (
                                   <span key={ti} style={{
                                     fontSize: 9, padding: "2px 7px", borderRadius: 5, fontWeight: 700,
-                                    background: isCurrent ? col + "22" : "rgba(128,128,128,0.07)",
+                                    background: isCurrent ? col + "22" : `${THEME.line}40`,
                                     color: isCurrent ? col : THEME.muted,
                                     border: isCurrent ? `1px solid ${col}44` : "none",
                                   }}>
@@ -1154,9 +1154,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                 </button>
                               </div>
 
-                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "rgba(128,128,128,0.06)", borderRadius: 8, lineHeight: 1.6 }}>
-                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
-                                Example: <code style={{ background: "rgba(128,128,128,0.12)", padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
+                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+                                <b style={{ color: THEME.ink }}>Format:</b> <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>month, amount, date, note</code><br />
+                                Example: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>2025-04, 25000, 2025-04-05, Paid via UPI</code>
                               </div>
 
                               <label
@@ -1203,7 +1203,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" }}>— or paste CSV text below —</div>
                               <textarea
                                 style={{
-                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--t-paper)",
+                                  width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)",
                                   border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink,
                                   fontSize: 12, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box"
                                 }}
@@ -1252,7 +1252,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   <div style={{ maxHeight: 160, overflowY: "auto" }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                                       <thead>
-                                        <tr style={{ background: "rgba(128,128,128,0.04)" }}>
+                                        <tr style={{ background: "var(--surface-0)" }}>
                                           {["Month","Date","Amount","Note"].map(h => (
                                             <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
                                           ))}
@@ -1284,7 +1284,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               {[...(p.payments || [])].sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  padding: "8px 12px", borderRadius: 8, background: `${THEME.accent}08`,
                                   border: `1px solid ${THEME.line}`
                                 }}>
                                   <div>
@@ -1363,7 +1363,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               {(p.depositTransactions || []).map((r: any) => (
                                 <div key={r.id} style={{
                                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                                  padding: "8px 12px", borderRadius: 8, background: "rgba(128,128,128,0.03)",
+                                  padding: "8px 12px", borderRadius: 8, background: `${THEME.accent}08`,
                                   border: `1px solid ${THEME.line}`
                                 }}>
                                   <div>
@@ -1404,7 +1404,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {/* Net Rental P&L */}
       {(propertiesOut.length > 0 || propertiesIn.length > 0) && (
-        <div style={{ marginTop: 36, padding: "20px 24px", borderRadius: 16, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+        <div style={{ marginTop: 36, padding: "20px 24px", borderRadius: 16, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
             <TrendingUp size={15} color={THEME.accent} /> Rental P&L · FY {fyLabel}
           </div>
