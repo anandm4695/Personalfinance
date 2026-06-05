@@ -189,8 +189,11 @@ const BrokerLogo = ({ broker, theme, size, borderRadius }: { broker: string; the
 
 
 const EmptyHint = ({ text }: { text: string }) => (
-  <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
-    <div style={{ fontSize: 13 }}>{text}</div>
+  <div style={{ padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+    <div style={{ width: 40, height: 40, borderRadius: 12, background: `${THEME.accent}12`, border: `1px solid ${THEME.accent}26`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Briefcase size={18} color={THEME.accent} />
+    </div>
+    <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>{text}</div>
   </div>
 );
 
@@ -294,7 +297,7 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 );
 
 const th = { textAlign: "left" as const, padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700, borderBottom: `1px solid var(--t-line)`, whiteSpace: "nowrap" as const };
-const td = { padding: "12px 10px", verticalAlign: "middle" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)` };
+const td = { padding: "12px 10px", verticalAlign: "middle" as const, fontSize: 13, borderBottom: `1px solid var(--t-line)`, fontVariantNumeric: "tabular-nums" as const };
 
 type FifoAlloc = {
   lot: any;
@@ -642,7 +645,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   <option value="name">Symbol (A-Z)</option>
                 </select>
               </div>
-              <button style={{ ...btnGhost, height: 40, padding: "0 16px", borderRadius: 12 }} onClick={() => setShowDemat(true)}><Plus size={14} /> Add Account</button>
+              <Button variant="ghost" icon={<Plus size={14} />} style={{ height: 40, borderRadius: 12 }} onClick={() => setShowDemat(true)}>Add Account</Button>
             </div>
           </div>
           <Grid>
@@ -668,14 +671,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         {d.dpId && (
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: `${theme.color}18`, color: theme.color, fontWeight: 700, letterSpacing: "0.06em", lineHeight: 1.2 }}>DP</span>
-                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>{d.dpId}</span>
+                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{d.dpId}</span>
                           </div>
                         )}
                         {d.clientId && (
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: `${theme.color}18`, color: theme.color, fontWeight: 700, letterSpacing: "0.06em", lineHeight: 1.2 }}>ID</span>
-                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>{d.clientId}</span>
+                            <span style={{ color: THEME.ink, fontFamily: "monospace", fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{d.clientId}</span>
                           </div>
+                        )}
+                        {!d.dpId && !d.clientId && (
+                          <span style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>DP & Client ID not configured</span>
                         )}
                       </div>
                     </div>
@@ -748,7 +754,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{base}</span>
-                              <span style={{ fontSize: 8, background: THEME.line, color: THEME.muted, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>{exchange}</span>
+                              <span style={{ fontSize: 8, background: `${THEME.line}40`, color: THEME.muted, padding: "1px 5px", borderRadius: 4, fontWeight: 800, border: `1px solid ${THEME.line}` }}>{exchange}</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                               {isLive && <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{md.sector || "Sector N/A"}</span>}
@@ -768,7 +774,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       
                       <td style={{ ...td, textAlign: "right" }}>
                         <div style={{ fontWeight: 700, color: THEME.ink }}>
-                           ₹{currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₹{currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         {isLive ? (
                           <div style={{ fontSize: 11, fontWeight: 700, color: changeAmt >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
@@ -948,7 +954,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 const caHistory = (state.corporateActions || []).filter((a: any) => a.symbol === base && a.exchange === exchange).sort((a: any, b: any) => new Date(b.actionDate || b.createdAt).getTime() - new Date(a.actionDate || a.createdAt).getTime());
                                 if (caHistory.length === 0) return null;
                                 return (
-                                  <div style={{ marginTop: 14, borderTop: `1px dashed ${THEME.line}`, paddingTop: 10 }}>
+                                  <div style={{ marginTop: 14, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
                                     <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>Corporate Actions History</div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                       {caHistory.map((a: any) => (
@@ -970,9 +976,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
                               {/* Nested bottom action buttons */}
                               <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap", borderTop: `1px solid ${THEME.line}`, paddingTop: 12 }}>
-                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px" }} onClick={(e) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}><Plus size={11} /> Add Lot</button>
-                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.rust, borderColor: `${THEME.rust}60` }} onClick={(e) => { e.stopPropagation(); setFifoSellGroup({ base, exchange, yfSym, lots }); }}><ArrowLeftRight size={11} /> Sell Shares</button>
-                                <button style={{ ...btnGhost, fontSize: 11, padding: "5px 10px", color: THEME.gold }} onClick={(e) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}><Scissors size={11} /> Split / Bonus</button>
+                                <Button variant="ghost" size="sm" icon={<Plus size={11} />} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setStockDefaults({ symbol: base, exchange, dematId: lots[0]?.dematId }); setShowStock(true); }}>Add Lot</Button>
+                                <Button variant="ghost" size="sm" icon={<ArrowLeftRight size={11} />} style={{ color: THEME.rust, borderColor: `${THEME.rust}60` }} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setFifoSellGroup({ base, exchange, yfSym, lots }); }}>Sell Shares</Button>
+                                <Button variant="ghost" size="sm" icon={<Scissors size={11} />} style={{ color: THEME.gold }} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setSplitBonusGroup({ base, exchange, lots }); }}>Split / Bonus</Button>
                               </div>
                             </div>
                           </div>
