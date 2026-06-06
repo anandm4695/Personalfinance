@@ -266,6 +266,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   // Interactive dashboard states
   const [trendPeriod, setTrendPeriod] = useState<"3M" | "6M" | "12M" | "All">("6M");
   const [showAllTxns, setShowAllTxns] = useState(false);
+  const [txnFilter, setTxnFilter] = useState<"all" | "credit" | "debit">("all");
 
   const lastTradingDayPerformance = useMemo(() => {
     const uniqueStocks = new Map<string, { base: string; exchange: string; yfSym: string; lastPrice: number }>();
@@ -1322,66 +1323,67 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         Executive Dashboard
       </SectionTitle>
 
-      {/* Quick Stats Bar */}
+      {/* Quick Stats Tiles */}
       {(() => {
         const items = [
-          { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust },
-          { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold },
-          { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome), color: THEME.sage },
-          { label: "Monthly Spend", value: fmtINRFull(metrics.monthExpense), color: THEME.ink },
-          { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage },
+          { label: "Net Worth", value: fmtINRFull(metrics.netWorth), color: metrics.netWorth >= 0 ? THEME.sage : THEME.rust, Icon: TrendingUp },
+          { label: "Savings Rate", value: metrics.savingsRate.toFixed(1) + "%", color: metrics.savingsRate >= 20 ? THEME.sage : THEME.gold, Icon: Target },
+          { label: "Monthly Income", value: fmtINRFull(metrics.monthIncome), color: THEME.sage, Icon: ArrowUpRight },
+          { label: "Monthly Spend", value: fmtINRFull(metrics.monthExpense), color: THEME.rust, Icon: Receipt },
+          { label: "Est. Tax", value: fmtINRFull(metrics.taxDue), color: metrics.taxDue > 0 ? THEME.rust : THEME.sage, Icon: Landmark },
           ...(momNetWorthDelta ? [{
             label: "MoM Change",
             value: `${momNetWorthDelta.delta >= 0 ? "+" : ""}${fmtINRFull(momNetWorthDelta.delta)}`,
             color: momNetWorthDelta.delta >= 0 ? THEME.sage : THEME.rust,
+            Icon: momNetWorthDelta.delta >= 0 ? ArrowUpRight : ArrowDownRight,
           }] : []),
           ...(metrics.foir > 0 ? [{
             label: "FOIR",
             value: `${metrics.foir.toFixed(0)}%`,
             color: metrics.foir > 50 ? THEME.rust : metrics.foir > 40 ? THEME.gold : THEME.sage,
+            Icon: BarChart2,
           }] : []),
         ];
         return (
-          <div style={{ background: "transparent", overflowX: "auto", marginBottom: 24 }} className="no-scrollbar">
-            <div style={{ display: "flex", alignItems: "stretch", minWidth: "max-content", background: "var(--surface-0)", borderRadius: 14, padding: "6px 8px", border: `1px solid ${THEME.line}`, boxShadow: "var(--shadow-sm)", gap: 4 }}>
-              {items.map(({ label, value, color }, idx) => (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3, padding: "8px 18px", borderRadius: 10, background: `${color}09`, transition: "background 0.2s ease" }}>
-                  <span style={{ fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{value}</span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: 24 }}>
+            {items.map(({ label, value, color, Icon }) => (
+              <div key={label} className="card-lift" style={{
+                background: "var(--surface-0)",
+                border: `1px solid ${THEME.line}`,
+                borderTop: `3px solid ${color}`,
+                borderRadius: 12,
+                padding: "14px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                boxShadow: "var(--shadow-card)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon size={13} color={color} />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em" }}>{label}</span>
                 </div>
-              ))}
-            </div>
+                <div style={{ fontSize: 17, fontWeight: 900, color, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+              </div>
+            ))}
           </div>
         );
       })()}
 
-      {/* Modern Sliding Segmented Control */}
+      {/* Sub-tab Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: 6, background: THEME.line, padding: 4, borderRadius: 12, overflowX: "auto" }} className="no-scrollbar">
+        <div className="demat-portfolio-bar no-scrollbar" style={{ flex: 1 }}>
           {subs.map((s) => {
             const Icon = s.icon;
-            const active = sub === s.id;
             return (
               <button
                 key={s.id}
                 onClick={() => setSub(s.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: active ? THEME.darkInk : "transparent",
-                  color: active ? THEME.accent : THEME.muted,
-                  fontWeight: active ? 700 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.25s var(--ease-premium)",
-                  boxShadow: active ? "var(--shadow-md)" : "none",
-                }}
+                className={`demat-portfolio-pill ${sub === s.id ? "active" : ""}`}
               >
-                <Icon size={16} />
-                <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>{s.label}</span>
+                <Icon size={14} />
+                {s.label}
               </button>
             );
           })}
@@ -1393,14 +1395,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
       {sub === "dashboard" && (
-        <>
+        <div key="dashboard" className="tab-content-enter">
           {smartInsights.length > 0 && (
             <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Smart Insights</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, padding: "1px 8px", borderRadius: 20,
+                  background: smartInsights.some((ins: any) => ins.color === THEME.rust) ? `${THEME.rust}1f` : `${THEME.gold}1f`,
+                  color: smartInsights.some((ins: any) => ins.color === THEME.rust) ? THEME.rust : THEME.gold,
+                }}>
+                  {smartInsights.length} alert{smartInsights.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
                 {smartInsights.map((ins: any, i: number) => {
                   const Icon = ins.icon;
                   return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 12, background: ins.bg, border: `1px solid ${ins.color}28` }}>
+                    <div key={i} className="card-lift" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 12, background: ins.bg, border: `1px solid ${ins.color}28`, borderLeft: `3px solid ${ins.color}` }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: `${ins.color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Icon size={15} color={ins.color} />
                       </div>
@@ -1464,14 +1476,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "24px 32px", position: "relative", zIndex: 1, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                <HeroStat label="Bank Cash" value={metrics.cashInBanks} />
-                <HeroStat label="Fixed Deposits" value={metrics.fdValue} />
-                <HeroStat label="Mutual Funds" value={metrics.mfValue} />
-                <HeroStat label="Stocks" value={metrics.stockValue} />
-                <HeroStat label="PPF / NPS / EPF" value={metrics.ppfValue + metrics.npsValue + metrics.epfValue} />
-                <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative />
-                <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative />
-                <HeroStat label="Subs / Mo" value={metrics.subTotal} negative />
+                <HeroStat label="Bank Cash" value={metrics.cashInBanks} tabId="banks" setTab={setTab} />
+                <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="banks" setTab={setTab} />
+                <HeroStat label="Mutual Funds" value={metrics.mfValue} tabId="investments" setTab={setTab} />
+                <HeroStat label="Stocks" value={metrics.stockValue} tabId="demat" setTab={setTab} />
+                <HeroStat label="PPF / NPS / EPF" value={metrics.ppfValue + metrics.npsValue + metrics.epfValue} tabId="investments" setTab={setTab} />
+                <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative tabId="credit" setTab={setTab} />
+                <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative tabId="banks" setTab={setTab} />
+                <HeroStat label="Subs / Mo" value={metrics.subTotal} negative tabId="subs" setTab={setTab} />
               </div>
             </Card>
 
@@ -1565,7 +1577,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
 
             {/* Row of Health, Dues, Streak */}
-            {/* Row of Health, Dues, Streak */}
             {(() => {
               const healthScoreData = !healthSimActive ? {
                 totalScore: dashboardData.totalScore,
@@ -1606,14 +1617,27 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {healthSimActive ? "Exit Sandbox" : "Sandbox"}
                     </button>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                      <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: healthScoreData.scoreColor }}>
-                        {dashboardData.hasData || healthSimActive ? healthScoreData.totalScore : "—"}
+                  <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+                    <div style={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
+                      <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke={THEME.line} strokeWidth="2.5" />
+                        <circle
+                          cx="18" cy="18" r="15.9" fill="none"
+                          stroke={healthScoreData.scoreColor}
+                          strokeWidth="3"
+                          strokeDasharray={`${dashboardData.hasData || healthSimActive ? healthScoreData.totalScore : 0} 100`}
+                          strokeLinecap="round"
+                          style={{ transition: "stroke-dasharray 0.6s ease" }}
+                        />
+                      </svg>
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, color: healthScoreData.scoreColor }}>
+                          {dashboardData.hasData || healthSimActive ? healthScoreData.totalScore : "—"}
+                        </div>
+                        {(dashboardData.hasData || healthSimActive) && (
+                          <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted }}>/100</div>
+                        )}
                       </div>
-                      {(dashboardData.hasData || healthSimActive) && (
-                        <div style={{ fontSize: 18, fontWeight: 700, color: THEME.muted, lineHeight: 1 }}>/100</div>
-                      )}
                     </div>
                     <div>
                       <div style={{ fontSize: 20, fontWeight: 800, color: healthScoreData.scoreColor }}>
@@ -1804,9 +1828,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             {/* Recent Transactions */}
             <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
                 <div className="section-label" style={{ marginBottom: 0 }}>Recent Ledger Activity</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 3, background: THEME.line, padding: 3, borderRadius: 8 }}>
+                    {(["all", "credit", "debit"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setTxnFilter(f)}
+                        style={{ padding: "3px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: txnFilter === f ? THEME.accent : "transparent", color: txnFilter === f ? "#fff" : THEME.muted, transition: "all 0.2s ease", textTransform: "capitalize" as const }}
+                      >{f === "all" ? "All" : f === "credit" ? "Income" : "Expense"}</button>
+                    ))}
+                  </div>
                   <Badge variant="muted">{state.transactions.length} total</Badge>
                   {state.transactions.length > 5 && (
                     <button
@@ -1825,6 +1858,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   {state.transactions
                     .slice()
                     .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .filter((t: any) => txnFilter === "all" || t.type === txnFilter)
                     .slice(0, showAllTxns ? undefined : 5)
                     .map((t: any) => (
                       <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
@@ -1854,12 +1888,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               )}
             </Card>
           </div>
-        </>
+        </div>
       )}
 
       {/* ────────────────── SUB-TAB: TRENDS ────────────────── */}
       {sub === "trends" && (
-        <div className="animate-fade-in-up">
+        <div key="trends" className="tab-content-enter">
           {/* Net Worth Growth */}
           <Card style={{ marginBottom: 28, padding: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -2053,7 +2087,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: ALLOCATION ────────────────── */}
       {sub === "allocation" && (
-        <div className="animate-fade-in-up">
+        <div key="allocation" className="tab-content-enter">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginBottom: 28 }}>
             {/* Asset Allocation */}
             <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
@@ -2743,7 +2777,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: PLANNING (NEW!) ────────────────── */}
       {sub === "planning" && (
-        <div className="animate-fade-in-up">
+        <div key="planning" className="tab-content-enter">
           {/* FIRE Progress */}
           <Card style={{ padding: 24, marginBottom: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
@@ -3626,7 +3660,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           setActiveExpenseIndex(null);
         };
         return (
-        <div className="animate-fade-in-up">
+        <div key="spending" className="tab-content-enter">
           {/* Month navigation bar */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(128,128,128,0.04)", border: `1px solid ${THEME.line}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -3900,7 +3934,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: CALENDAR ────────────────── */}
       {sub === "calendar" && (
-        <div className="animate-fade-in-up">
+        <div key="calendar" className="tab-content-enter">
           <Card style={{ padding: 24, marginBottom: 32 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div className="section-label" style={{ marginBottom: 0 }}>
@@ -4270,7 +4304,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: HABITS & REWARDS ────────────────── */}
       {sub === "habits" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
           {/* ── Master progress bar ── */}
           <Card style={{ padding: 20 }}>
@@ -4518,12 +4552,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   );
 };
 
-const HeroStat = ({ label, value, negative, sage }: any) => {
+const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
   const color = negative ? "#F87171" : sage ? "#34D399" : "rgba(255,255,255,0.9)";
+  const isClickable = !!(tabId && setTab);
   return (
-    <div style={{ borderLeft: `2px solid ${color}22`, paddingLeft: 12 }}>
+    <div
+      onClick={isClickable ? () => setTab(tabId) : undefined}
+      title={isClickable ? `View in ${tabId}` : undefined}
+      style={{
+        borderLeft: `2px solid ${color}22`,
+        paddingLeft: 12,
+        cursor: isClickable ? "pointer" : "default",
+        borderRadius: 6,
+        padding: "4px 4px 4px 12px",
+        transition: "background 0.18s ease",
+      }}
+      onMouseEnter={isClickable ? (e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.06)"; } : undefined}
+      onMouseLeave={isClickable ? (e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; } : undefined}
+    >
       <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 5, fontWeight: 600 }}>
-        {label}
+        {label}{isClickable && <span style={{ marginLeft: 4, opacity: 0.45, fontSize: 8 }}>↗</span>}
       </div>
       <div style={{ fontSize: 20, fontWeight: 800, color, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
         {fmtINRFull(value)}
