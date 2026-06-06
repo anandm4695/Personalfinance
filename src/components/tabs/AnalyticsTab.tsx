@@ -1615,9 +1615,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           <div className="animate-fade-in-up bento-grid">
             {/* Hero Card */}
-            <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "var(--t-darkInk)", color: "#fff", position: "relative", overflow: "hidden" }}>
+            {/* #0F172A = same hardcoded dark as Habits hero card — consistent across all themes */}
+            <Card variant="hero" className="bento-col-12" style={{ padding: "32px 40px", background: "#0F172A", color: "#fff", position: "relative", overflow: "hidden" }}>
+              {/* ── Decorative large ₹ watermark — gold, visible on dark & light ── */}
+              <div style={{
+                position: "absolute", left: "50%", top: "50%",
+                transform: "translate(-50%, -50%)",
+                fontSize: 320, fontWeight: 900, lineHeight: 1,
+                color: "#D97706", opacity: 0.04,
+                pointerEvents: "none", userSelect: "none",
+                zIndex: 0, letterSpacing: "-0.06em",
+              }}>₹</div>
+
               {netWorthTrend.filter((t: any) => t.value > 0).length > 2 && (
-                <div style={{ position: "absolute", top: 0, right: 0, width: 240, height: 110, opacity: 0.10, pointerEvents: "none", zIndex: 0 }}>
+                <div style={{ position: "absolute", top: 0, right: 0, width: 240, height: 110, opacity: 0.10, pointerEvents: "none", zIndex: 1 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={netWorthTrend.slice(-6)} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                       <defs>
@@ -1631,15 +1642,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </ResponsiveContainer>
                 </div>
               )}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 10px ${isPositive ? "rgba(52,211,153,0.5)" : "rgba(251,113,133,0.5)"}` }} />
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 20, position: "relative", zIndex: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {/* Golden ₹ coin badge — visible on any background */}
+                  <div style={{
+                    width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                    background: "linear-gradient(135deg, #D97706 0%, #FBBF24 55%, #D97706 100%)",
+                    boxShadow: "0 0 12px rgba(217,119,6,0.55), 0 2px 6px rgba(0,0,0,0.3)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 900, color: "#fff",
+                    border: "1.5px solid rgba(251,191,36,0.6)",
+                  }}>₹</div>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: isPositive ? "#34D399" : "#FB7185", boxShadow: `0 0 8px ${isPositive ? "rgba(52,211,153,0.6)" : "rgba(251,113,133,0.6)"}` }} />
                   <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 700 }}>Wealth Overview</span>
                 </div>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em" }}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
               </div>
 
-              <div style={{ position: "relative", zIndex: 1, marginBottom: 32 }}>
+              <div style={{ position: "relative", zIndex: 2, marginBottom: 32 }}>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Total Net Worth</div>
                 <div style={{ fontSize: "clamp(42px, 5.5vw, 72px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", color: "#fff" }}>
                   {fmtINRFull(metrics.netWorth)}
@@ -1661,7 +1682,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "24px 32px", position: "relative", zIndex: 1, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "24px 32px", position: "relative", zIndex: 2, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                 <HeroStat label="Bank Cash" value={metrics.cashInBanks} tabId="banks" setTab={setTab} />
                 <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="banks" setTab={setTab} />
                 <HeroStat label="Mutual Funds" value={metrics.mfValue} tabId="investments" setTab={setTab} />
