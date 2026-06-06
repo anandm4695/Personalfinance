@@ -102,6 +102,16 @@ const BADGE_CATALOG = [
   { id: "fn3",  cat: "Finance Nerd",    tier: 2, icon: "📈", label: "Consistent",       desc: "3+ months of financial data" },
   { id: "fn6",  cat: "Finance Nerd",    tier: 3, icon: "🔬", label: "Data Driven",      desc: "6+ months of financial history" },
   { id: "fn12", cat: "Finance Nerd",    tier: 4, icon: "🎓", label: "Finance Nerd",     desc: "12+ months of full tracking" },
+  // Tax Saver
+  { id: "tax1", cat: "Tax Saver",       tier: 1, icon: "🧾", label: "80C Investor",     desc: "Invested in at least one 80C instrument (PPF, ELSS, NPS, LIC, EPF)" },
+  { id: "tax2", cat: "Tax Saver",       tier: 2, icon: "🏆", label: "80C Maxed",        desc: "Utilized the full ₹1.5L 80C tax deduction limit for the year" },
+  // Passive Income
+  { id: "pi5k",  cat: "Passive Income", tier: 1, icon: "💸", label: "Passive Earner",   desc: "Monthly passive income ≥ ₹5,000 (rent, dividends, interest)" },
+  { id: "pi25k", cat: "Passive Income", tier: 2, icon: "🌊", label: "Income Builder",   desc: "Monthly passive income ≥ ₹25,000" },
+  { id: "pi1L",  cat: "Passive Income", tier: 3, icon: "🕊️", label: "Freedom Income",   desc: "Monthly passive income ≥ ₹1 Lakh — a true financial independence milestone" },
+  // Budget Pro
+  { id: "b1",   cat: "Budget Pro",      tier: 1, icon: "📋", label: "Budget Starter",   desc: "Set up at least one spending budget category" },
+  { id: "b3",   cat: "Budget Pro",      tier: 2, icon: "🎯", label: "Budget Pro",       desc: "Actively managing 3+ spending categories with budgets" },
 ];
 
 // Tip shown when a milestone category is fully earned
@@ -117,6 +127,69 @@ const CATEGORY_UNLOCK_TIP: Record<string, string> = {
   "Protected":       "Unlock: Review Insurance tab to fine-tune cover vs premium tradeoff",
   "Goal Setter":     "Unlock: Planning tab shows projections toward your goals",
   "Finance Nerd":    "Unlock: Trends tab has 12-month expense pattern analysis enabled",
+  "Tax Saver":       "Unlock: Max 80C saves ₹46,800 in taxes at 30% slab — pure guaranteed return",
+  "Passive Income":  "Unlock: Your passive income now covers a real portion of monthly expenses",
+  "Budget Pro":      "Unlock: Budgeting with 3+ categories dramatically reduces lifestyle inflation",
+};
+
+// XP awarded per badge tier
+const TIER_XP: Record<number, number> = { 1: 10, 2: 25, 3: 50, 4: 100, 5: 200, 6: 500 };
+
+const XP_LEVELS = [
+  { level: 1, label: "Beginner",      minXP: 0    },
+  { level: 2, label: "Apprentice",    minXP: 100  },
+  { level: 3, label: "Practitioner",  minXP: 300  },
+  { level: 4, label: "Strategist",    minXP: 700  },
+  { level: 5, label: "Expert",        minXP: 1300 },
+  { level: 6, label: "Wealth Master", minXP: 2100 },
+];
+
+// Personalized actionable tip for each badge that is "next up" (active)
+const BADGE_TIPS: Record<string, string> = {
+  s1:    "Log your income & expenses this month — even one saved month earns your first streak badge.",
+  s3:    "You've started saving! Automate a small transfer to savings on payday to keep the streak alive.",
+  s6:    "6 months of saving shows discipline. Set a recurring SIP to lock in the habit mechanically.",
+  s12:   "Almost a year of streaks! Review your expense categories to protect the streak through high-spend months.",
+  s24:   "2-year streak is legendary. Stay consistent — review subscriptions and discretionary spending quarterly.",
+  w1:    "₹1L net worth is your first real milestone. Channel every surplus into investments, not spending.",
+  w5:    "Build toward ₹5L by maximizing PPF (₹1.5L/year) + any equity SIP, even ₹2,000/month compounds fast.",
+  w10:   "₹10L club needs equity exposure. If not invested in MF or stocks yet, start a ₹5,000/month SIP today.",
+  w25:   "Focus on income growth and controlling lifestyle inflation to accelerate toward ₹25L.",
+  w50:   "At this stage, asset allocation matters more than savings rate. Review equity vs debt mix annually.",
+  w1c:   "₹1 Crore is within reach. Stay diversified — don't let one asset class dominate above 60%.",
+  sr10:  "Saving 10% of income is the minimum. Review your top 3 expense categories for quick wins.",
+  sr20:  "Push from 10% to 20% by automating savings before you spend — pay yourself first.",
+  sr30:  "30%+ savings rate separates serious wealth builders. Audit subscriptions and dining-out spending.",
+  sr50:  "Saving 50% takes intentional lifestyle design. Consider barista-FIRE if the rate feels sustainable.",
+  ef1:   "Keep 1 month of expenses in a liquid savings account — this is your starting emergency cushion.",
+  ef3:   "Build 3-month buffer by parking surplus in a liquid mutual fund or high-yield savings account.",
+  ef6:   "A 6-month emergency fund is the gold standard. Park this in liquid funds, not FDs (for instant access).",
+  iv1:   "Start with one investment — even ₹500/month in an index fund counts as your first investment badge.",
+  iv3:   "Diversify across 3+ asset types: try adding PPF (safe) + equity MF + FD for a balanced mix.",
+  iv5:   "Cover 5 asset types: Equity MF, Stocks, FD, PPF, and NPS covers all categories for this badge.",
+  sip1:  "Start any SIP — ₹500/month in a Nifty 50 index fund is a great first step.",
+  sip5:  "Scale your SIP to ₹5,000/month. Use the SIP calculator to see how it compounds over 10 years.",
+  d40:   "Reduce total EMIs to below 40% of your income to qualify. Prepay the highest-rate loan first.",
+  d20:   "Cut EMI burden below 20% by closing small loans first and avoiding new debt for 6 months.",
+  df:    "Debt-free status: close all outstanding loans systematically, starting with the highest interest rate.",
+  cc0:   "Pay off your full credit card balance every month — never pay the minimum-due trap.",
+  cc30:  "Keep your credit utilization below 30% of your total limit to unlock this badge.",
+  p1:    "A term insurance plan covering 10× income costs ~₹800-1,500/month and provides critical cover.",
+  p2:    "Ensure total cover is at least 10× your annual income. Pure term plans are the most cost-efficient.",
+  g1:    "Add your first financial goal in the Goals tab — house, education, or retirement — to unlock this.",
+  g2:    "Allocate a dedicated SIP or savings toward each goal to reach the 50% funding milestone.",
+  g3:    "When a goal is within reach, park funds in liquid instruments so they're ready when you need them.",
+  fn1:   "Log this month's transactions to start your Finance Nerd journey and unlock the Tracker badge.",
+  fn3:   "3 months of consistent tracking gives you trend data — keep the habit going through all months.",
+  fn6:   "6 months of data reveals seasonal spending patterns. Use it to plan your next year's budget.",
+  fn12:  "12 months = a full FY of data. This unlocks annual tax planning, trend analysis, and FIRE projections.",
+  tax1:  "Invest in any 80C instrument — PPF, ELSS MF, NPS, or just ensure your EPF is active.",
+  tax2:  "You're close to maxing 80C! Add the remaining amount to PPF or an ELSS SIP before March 31.",
+  pi5k:  "Build ₹5K/month passive income with FDs, a rental room, or dividend-paying stocks.",
+  pi25k: "Scale passive income with a rental property or by building a larger FD/bond ladder.",
+  pi1L:  "₹1L/month passive income means your investments work harder than most salaries — keep compounding.",
+  b1:    "Create your first budget category in the Budgeting tab to start tracking spending against limits.",
+  b3:    "Budget 3+ spending categories (food, transport, entertainment) to unlock the Budget Pro badge.",
 };
 
 interface AnalyticsTabProps {
@@ -931,6 +1004,51 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const nextFN = fnMiles.find(([id]) => !earned.has(id));
     if (nextFN) prog[nextFN[0]] = { current: trackedMonths, target: nextFN[1], label: `${trackedMonths} of ${nextFN[1]} months logged` };
 
+    // Tax Saver
+    const has80CAsset = (state.ppf?.length || 0) + (state.nps?.length || 0) + (state.epf?.length || 0) + (state.lic?.length || 0) > 0
+      || (state.mutualFunds || []).some((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"));
+    if (has80CAsset) earned.add("tax1");
+    // Compute 80C total for current FY using same logic as taxData80C
+    const fyParts80C = (state.profile?.fy || "").split("-");
+    const fyStart80C = Number(fyParts80C[0]) || new Date().getFullYear() - 1;
+    const fyStartStr80C = `${fyStart80C}-04-01`;
+    const fyEndStr80C = `${fyStart80C + 1}-03-31`;
+    const elss80C = (state.mutualFunds || []).filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS")).reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+    const ppf80C = (state.ppfLedger || []).filter((t: any) => t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C && t.type !== "withdrawal").reduce((s: number, t: any) => s + Number(t.amount || 0), 0)
+      || (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    const lic80C = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const epf80C = (state.epf || []).reduce((s: number, e: any) => {
+      const lTotal = (e.transactions || []).filter((t: any) => t.type === "employee" && t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + (lTotal > 0 ? lTotal : Number(e.yearlyContribution || 0));
+    }, 0);
+    const total80C = Math.min(elss80C + ppf80C + lic80C + epf80C, 150000);
+    if (total80C >= 150000) earned.add("tax2");
+    if (!earned.has("tax1")) prog["tax1"] = { current: 0, target: 1, label: "Add a PPF/ELSS/NPS/LIC investment" };
+    else if (!earned.has("tax2")) prog["tax2"] = { current: total80C, target: 150000, label: `${fmtINR(total80C)} of ${fmtINR(150000)} invested` };
+
+    // Passive Income (rent + estimated FD/bond interest)
+    const rentalPassive = (state.rentalProperties || []).filter((r: any) => Number(r.rent || 0) > 0).reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+    const fdPassive = (state.fixedDeposits || []).reduce((s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12, 0);
+    const bondPassive = ((metrics.bondValue || 0) * 0.07) / 12;
+    const savPassive = (metrics.cashInBanks * 0.03) / 12;
+    const divPassive = ((metrics.stockValue || 0) * 0.012) / 12 + ((metrics.mfValue || 0) * 0.01) / 12;
+    const totalPassiveMonthly = rentalPassive + fdPassive + bondPassive + savPassive + divPassive;
+    const piMiles = [["pi5k",5000],["pi25k",25000],["pi1L",100000]] as [string,number][];
+    piMiles.forEach(([id, thr]) => { if (totalPassiveMonthly >= thr) earned.add(id); });
+    const nextPI = piMiles.find(([id]) => !earned.has(id));
+    if (nextPI) {
+      const piIdx = piMiles.findIndex(([id]) => id === nextPI[0]);
+      const prevThr = piIdx > 0 ? piMiles[piIdx - 1][1] : 0;
+      prog[nextPI[0]] = { current: Math.max(0, totalPassiveMonthly - prevThr), target: nextPI[1] - prevThr, label: `${fmtINR(Math.round(totalPassiveMonthly))}/mo of ${fmtINR(nextPI[1])}/mo` };
+    }
+
+    // Budget Pro
+    const budgetCount = (state.budgets || []).length;
+    if (budgetCount >= 1) earned.add("b1");
+    if (budgetCount >= 3) earned.add("b3");
+    if (!earned.has("b1")) prog["b1"] = { current: 0, target: 1, label: "Create your first budget category" };
+    else if (!earned.has("b3")) prog["b3"] = { current: budgetCount, target: 3, label: `${budgetCount} of 3 budget categories` };
+
     // Build category map for rendering
     const cats: Record<string, { badges: any[]; earnedCount: number; total: number }> = {};
     for (const b of BADGE_CATALOG) {
@@ -945,8 +1063,43 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       if (isEarned) cats[b.cat].earnedCount++;
     }
 
-    return { earned, cats, totalEarned: earned.size, totalBadges: BADGE_CATALOG.length };
-  }, [metrics, dashboardData.streak, state]);
+    // XP computation
+    let totalXP = 0;
+    for (const b of BADGE_CATALOG) {
+      if (earned.has(b.id)) totalXP += (TIER_XP[b.tier] || 10);
+    }
+    const curLevelIdx = XP_LEVELS.slice().reverse().findIndex(l => totalXP >= l.minXP);
+    const curLevel = XP_LEVELS[XP_LEVELS.length - 1 - curLevelIdx];
+    const nextLevel = XP_LEVELS[Math.min(XP_LEVELS.indexOf(curLevel) + 1, XP_LEVELS.length - 1)];
+    const levelPct = nextLevel.minXP > curLevel.minXP
+      ? Math.min(100, Math.round(((totalXP - curLevel.minXP) / (nextLevel.minXP - curLevel.minXP)) * 100))
+      : 100;
+    const xpToNext = nextLevel.minXP > curLevel.minXP ? Math.max(0, nextLevel.minXP - totalXP) : 0;
+
+    // Smart action tips: top 3 active badges with tips
+    const tips = BADGE_CATALOG
+      .filter(b => cats[b.cat]?.badges.find((x: any) => x.id === b.id)?.status === "active" && BADGE_TIPS[b.id])
+      .slice(0, 3)
+      .map(b => {
+        const badgeState = cats[b.cat].badges.find((x: any) => x.id === b.id);
+        const pct = badgeState?.progress ? Math.min(100, Math.round((badgeState.progress.current / badgeState.progress.target) * 100)) : 0;
+        return { icon: b.icon, badge: b.label, tip: BADGE_TIPS[b.id], progress: badgeState?.progress, pct };
+      });
+
+    // FOIR for peer benchmarking
+    const activeLoansHB = (state.loansTaken || []).filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.emi || 0) > 0);
+    const totalEMIHB = activeLoansHB.reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    const foirPctHB = metrics.monthIncome > 0 ? Math.round((totalEMIHB / metrics.monthIncome) * 100) : 0;
+    const investRateHB = metrics.monthIncome > 0 ? Math.min(100, Math.round(((metrics.totalAssets - metrics.cashInBanks) / (metrics.monthIncome * 12)) * 100)) : 0;
+    const efMonthsHB = metrics.monthExpense > 0 ? Math.min(12, metrics.cashInBanks / metrics.monthExpense) : 0;
+
+    return {
+      earned, cats, totalEarned: earned.size, totalBadges: BADGE_CATALOG.length,
+      totalXP, level: curLevel.level, levelLabel: curLevel.label,
+      nextLevelLabel: nextLevel.label, levelPct, xpToNext,
+      tips, foirPctHB, investRateHB, efMonthsHB, totalPassiveMonthly,
+    };
+  }, [metrics, dashboardData.streak, state, passiveIncomeData, taxData80C]);
 
   // ── Financial Runway & 10-Year Projection Engine Calculations ──
   const projectionData = useMemo(() => {
@@ -4306,98 +4459,226 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "habits" && (
         <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-          {/* ── Master progress bar ── */}
-          <Card style={{ padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Financial Journey</div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{habitsBadges.totalEarned} of {habitsBadges.totalBadges} badges earned across {Object.keys(habitsBadges.cats).length} categories</div>
+          {/* ── HERO: Level + Health Score + Streak ── */}
+          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20 }}>
+            <div style={{
+              background: `linear-gradient(135deg, ${THEME.accent}e8 0%, #6366f1 45%, ${THEME.sage}cc 100%)`,
+              padding: "24px 20px 20px",
+              color: "#fff",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+                {/* Level ring */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{
+                    width: 62, height: 62, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.18)",
+                    border: "2.5px solid rgba(255,255,255,0.55)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.75, letterSpacing: "0.06em" }}>LEVEL</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1 }}>{habitsBadges.level}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.01em" }}>{habitsBadges.levelLabel}</div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>{habitsBadges.totalXP.toLocaleString()} XP earned</div>
+                    <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
+                      {habitsBadges.xpToNext > 0 ? `${habitsBadges.xpToNext} XP to ${habitsBadges.nextLevelLabel}` : "🎉 Maximum level reached!"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Health Score */}
+                <div style={{ textAlign: "center", flex: "0 0 auto" }}>
+                  <div style={{ fontSize: 11, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Health Score</div>
+                  <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em" }}>{dashboardData.totalScore}</div>
+                  <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>out of 100</div>
+                </div>
+
+                {/* Savings Streak */}
+                <div style={{ textAlign: "right", flex: "0 0 auto" }}>
+                  <div style={{ fontSize: 11, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Savings Streak</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4, justifyContent: "flex-end" }}>
+                    <div style={{ fontSize: 36 }}>{dashboardData.streakEmoji}</div>
+                    <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1 }}>{dashboardData.streak}</div>
+                    <div style={{ fontSize: 14, opacity: 0.8 }}>mo</div>
+                  </div>
+                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{dashboardData.streakMsg}</div>
+                </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: THEME.accent }}>{Math.round((habitsBadges.totalEarned / habitsBadges.totalBadges) * 100)}%</div>
+
+              {/* XP progress bar to next level */}
+              <div style={{ marginTop: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 700 }}>{habitsBadges.levelLabel} → {habitsBadges.nextLevelLabel}</span>
+                  <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 700 }}>{habitsBadges.levelPct}%</span>
+                </div>
+                <div style={{ height: 7, background: "rgba(255,255,255,0.2)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${habitsBadges.levelPct}%`, background: "rgba(255,255,255,0.85)", borderRadius: 99, transition: "width 0.7s ease" }} />
+                </div>
+              </div>
             </div>
-            <div style={{ height: 8, background: "var(--t-line)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${(habitsBadges.totalEarned / habitsBadges.totalBadges) * 100}%`, background: `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`, borderRadius: 99, transition: "width 0.6s ease" }} />
-            </div>
-            <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
-              {Object.entries(habitsBadges.cats).map(([cat, data]: [string, any]) => (
-                <div key={cat} style={{ fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: data.earnedCount === data.total ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.line, display: "inline-block", flexShrink: 0 }} />
-                  {cat} {data.earnedCount}/{data.total}
+
+            {/* Stats strip */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "var(--t-paper)" }}>
+              {[
+                { label: "Badges", value: `${habitsBadges.totalEarned}/${habitsBadges.totalBadges}`, icon: "🏅" },
+                { label: "Categories", value: `${Object.values(habitsBadges.cats).filter((c: any) => c.earnedCount === c.total).length}/${Object.keys(habitsBadges.cats).length}`, icon: "✅" },
+                { label: "Month Streak", value: `${dashboardData.streak}mo`, icon: "🔥" },
+                { label: "XP Points", value: habitsBadges.totalXP.toLocaleString(), icon: "⚡" },
+              ].map((s, i) => (
+                <div key={i} style={{ padding: "14px 10px", textAlign: "center", borderRight: i < 3 ? `1px solid ${THEME.line}` : "none", borderTop: `1px solid ${THEME.line}` }}>
+                  <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
           </Card>
 
-          {/* ── Badge categories ── */}
+          {/* ── Category progress overview strip ── */}
+          <Card style={{ padding: 18 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 14 }}>All Categories</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
+              {Object.entries(habitsBadges.cats).map(([cat, data]: [string, any]) => {
+                const pct = Math.round((data.earnedCount / data.total) * 100);
+                const complete = data.earnedCount === data.total;
+                return (
+                  <div key={cat} style={{ padding: "10px 12px", borderRadius: 12, background: complete ? `${THEME.sage}10` : "var(--surface-0)", border: `1px solid ${complete ? THEME.sage + "40" : THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: complete ? THEME.sage : THEME.ink, lineHeight: 1.2 }}>{cat}</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: complete ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.muted }}>{data.earnedCount}/{data.total}</div>
+                    </div>
+                    <div style={{ height: 3, background: "var(--t-line)", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: complete ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* ── Smart Action Tips ── */}
+          {habitsBadges.tips.length > 0 && (
+            <Card style={{ padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                <Zap size={15} color={THEME.gold} style={{ flexShrink: 0 }} />
+                Smart Action Tips
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>— personalized to your next badges</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {habitsBadges.tips.map((tip: any, i: number) => (
+                  <div key={i} style={{
+                    padding: "13px 15px",
+                    borderRadius: 14,
+                    background: i === 0 ? `${THEME.accent}10` : "var(--surface-0)",
+                    border: `1px solid ${i === 0 ? THEME.accent + "40" : THEME.line}`,
+                    borderLeft: `3px solid ${i === 0 ? THEME.accent : i === 1 ? THEME.gold : THEME.line}`,
+                    display: "flex", gap: 12, alignItems: "flex-start",
+                  }}>
+                    <div style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{tip.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginBottom: 3 }}>{tip.badge}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>{tip.tip}</div>
+                      {tip.progress && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{tip.progress.label}</span>
+                            <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 800 }}>{tip.pct}%</span>
+                          </div>
+                          <div style={{ height: 3, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${tip.pct}%`, background: THEME.accent, borderRadius: 99, transition: "width 0.4s ease" }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {i === 0 && <div style={{ fontSize: 9, fontWeight: 800, color: THEME.accent, background: `${THEME.accent}15`, padding: "3px 8px", borderRadius: 99, flexShrink: 0, alignSelf: "flex-start" }}>TOP PRIORITY</div>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* ── Badge categories with grid layout ── */}
           {Object.entries(habitsBadges.cats).map(([catName, catData]: [string, any]) => {
             const allEarned = catData.earnedCount === catData.total;
             const unlock = CATEGORY_UNLOCK_TIP[catName];
+            const catPct = Math.round((catData.earnedCount / catData.total) * 100);
             return (
               <div key={catName}>
-                {/* Category header */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                {/* Category header with mini progress */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{catName}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: allEarned ? THEME.sage : THEME.muted, background: allEarned ? `${THEME.sage}1a` : "var(--t-line)", padding: "2px 8px", borderRadius: 99 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: allEarned ? THEME.sage : catData.earnedCount > 0 ? THEME.gold : THEME.muted, background: allEarned ? `${THEME.sage}1a` : catData.earnedCount > 0 ? `${THEME.gold}1a` : "var(--surface-0)", padding: "2px 8px", borderRadius: 99, border: `1px solid ${allEarned ? THEME.sage + "44" : catData.earnedCount > 0 ? THEME.gold + "33" : THEME.line}` }}>
                       {catData.earnedCount}/{catData.total}
                     </div>
                   </div>
-                  {allEarned && <span style={{ fontSize: 11, color: THEME.sage, fontWeight: 700 }}>✓ Complete</span>}
+                  {allEarned
+                    ? <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 800, background: `${THEME.sage}1a`, padding: "2px 10px", borderRadius: 99, border: `1px solid ${THEME.sage}33` }}>✓ Complete</span>
+                    : <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>{catPct}%</span>
+                  }
+                </div>
+                <div style={{ height: 3, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
+                  <div style={{ height: "100%", width: `${catPct}%`, background: allEarned ? THEME.sage : catData.earnedCount > 0 ? THEME.gold : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
                 </div>
 
-                {/* Badge cards row */}
-                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                {/* Badge grid — auto-fill, wraps responsively */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(138px, 1fr))", gap: 12 }}>
                   {catData.badges.map((b: any) => {
                     const isEarned = b.status === "earned";
                     const isActive = b.status === "active";
                     const pct = b.progress ? Math.min(100, Math.round((b.progress.current / b.progress.target) * 100)) : 0;
+                    const xp = TIER_XP[b.tier] || 10;
                     return (
                       <div
                         key={b.id}
                         style={{
-                          minWidth: 148,
-                          maxWidth: 148,
-                          padding: "16px 14px",
+                          padding: "15px 13px",
                           borderRadius: 16,
                           background: isEarned
-                            ? `linear-gradient(135deg, ${THEME.sage}24, var(--t-paper))`
+                            ? `linear-gradient(145deg, ${THEME.sage}22, var(--t-paper))`
                             : isActive
-                            ? "var(--t-paper)"
+                            ? `linear-gradient(145deg, ${THEME.accent}0e, var(--t-paper))`
                             : "var(--surface-0)",
                           border: isEarned
-                            ? `1.5px solid ${THEME.sage}`
+                            ? `1.5px solid ${THEME.sage}66`
                             : isActive
-                            ? `1.5px solid ${THEME.accent}66`
+                            ? `1.5px solid ${THEME.accent}44`
                             : `1px solid ${THEME.line}`,
-                          opacity: b.status === "locked" ? 0.5 : 1,
-                          flexShrink: 0,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 8,
+                          opacity: b.status === "locked" ? 0.42 : 1,
+                          display: "flex", flexDirection: "column", gap: 7,
                           position: "relative",
+                          boxShadow: isEarned
+                            ? `0 0 0 1px ${THEME.sage}22, 0 4px 18px ${THEME.sage}16`
+                            : isActive ? `0 2px 10px ${THEME.accent}12` : "none",
                           transition: "box-shadow 0.2s ease",
-                          boxShadow: isEarned ? `0 0 0 1px ${THEME.sage}22, 0 4px 16px ${THEME.sage}18` : "none",
                         }}
                       >
-                        {/* Tier dots */}
-                        <div style={{ display: "flex", gap: 3, position: "absolute", top: 10, right: 10 }}>
-                          {catData.badges.map((_: any, ti: number) => (
-                            <div key={ti} style={{ width: 4, height: 4, borderRadius: "50%", background: ti < catData.earnedCount ? THEME.sage : THEME.line }} />
-                          ))}
+                        {/* XP chip */}
+                        <div style={{
+                          position: "absolute", top: 9, right: 9,
+                          fontSize: 8, fontWeight: 900,
+                          color: isEarned ? THEME.sage : THEME.muted,
+                          background: isEarned ? `${THEME.sage}18` : "var(--surface-0)",
+                          border: `1px solid ${isEarned ? THEME.sage + "44" : THEME.line}`,
+                          padding: "1px 5px", borderRadius: 6,
+                        }}>
+                          +{xp} XP
                         </div>
 
                         {/* Icon */}
-                        <div style={{ fontSize: 28, lineHeight: 1, filter: b.status === "locked" ? "grayscale(1)" : "none" }}>{b.icon}</div>
+                        <div style={{ fontSize: 26, lineHeight: 1, filter: b.status === "locked" ? "grayscale(1) opacity(0.5)" : "none" }}>{b.icon}</div>
 
                         {/* Label */}
-                        <div style={{ fontSize: 12, fontWeight: 800, color: isEarned ? THEME.sage : isActive ? THEME.ink : THEME.muted, lineHeight: 1.2 }}>{b.label}</div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: isEarned ? THEME.sage : isActive ? THEME.ink : THEME.muted, lineHeight: 1.2, paddingRight: 30 }}>{b.label}</div>
 
                         {/* Desc */}
                         <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.4, flex: 1 }}>{b.desc}</div>
 
-                        {/* Status / Progress */}
+                        {/* Status chip / progress */}
                         {isEarned && (
-                          <div style={{ fontSize: 10, fontWeight: 800, color: THEME.sage, background: `${THEME.sage}1a`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{ fontSize: 9, fontWeight: 900, color: THEME.sage, background: `${THEME.sage}1a`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 3, border: `1px solid ${THEME.sage}33` }}>
                             ✓ Earned
                           </div>
                         )}
@@ -4405,20 +4686,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{b.progress.label}</span>
-                              <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 800 }}>{pct}%</span>
+                              <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 900 }}>{pct}%</span>
                             </div>
                             <div style={{ height: 4, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${pct}%`, background: THEME.accent, borderRadius: 99, transition: "width 0.4s ease" }} />
+                              <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${THEME.accent}, #818cf8)`, borderRadius: 99, transition: "width 0.4s ease" }} />
                             </div>
                           </div>
                         )}
                         {isActive && !b.progress && (
-                          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.accent, background: `${THEME.accent}14`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start" }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.accent, background: `${THEME.accent}14`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", border: `1px solid ${THEME.accent}30` }}>
                             Next up →
                           </div>
                         )}
                         {b.status === "locked" && (
-                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>🔒 Locked</div>
+                          <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>🔒 Locked</div>
                         )}
                       </div>
                     );
@@ -4427,7 +4708,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                 {/* Category complete unlock tip */}
                 {allEarned && unlock && (
-                  <div style={{ marginTop: 10, padding: "10px 14px", background: `${THEME.sage}12`, border: `1px solid ${THEME.sage}33`, borderRadius: 10, fontSize: 11, color: THEME.sage, fontWeight: 600 }}>
+                  <div style={{ marginTop: 12, padding: "11px 15px", background: `${THEME.sage}12`, border: `1px solid ${THEME.sage}30`, borderLeft: `3px solid ${THEME.sage}`, borderRadius: 12, fontSize: 11, color: THEME.sage, fontWeight: 600, lineHeight: 1.5 }}>
                     🎉 {unlock}
                   </div>
                 )}
@@ -4435,28 +4716,52 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
 
-          {/* ── Peer Benchmarking ── */}
+          {/* ── Peer Benchmarking (expanded to 5 metrics) ── */}
           <Card style={{ padding: 24 }}>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>Peer Benchmarking</div>
-              <div style={{ fontSize: 13, color: THEME.muted }}>How your key metrics compare with Indian personal finance averages.</div>
+              <div style={{ fontSize: 12, color: THEME.muted }}>Your key metrics vs Indian personal finance averages and top-10% performers.</div>
             </div>
-            <div style={{ height: 280 }}>
+            <div style={{ height: 310 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: "Savings Rate", You: Math.max(0, metrics.savingsRate), Average: 15, Top10: 40 },
-                  { name: "Debt-to-Asset", You: metrics.debtToAssetRatio, Average: 35, Top10: 10 },
-                ]} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                <BarChart
+                  data={[
+                    { name: "Savings Rate %",      You: Math.max(0, Math.round(metrics.savingsRate)),                          Average: 15, Top10: 40 },
+                    { name: "Emergency Fund (mo)", You: Math.min(12, Math.round(habitsBadges.efMonthsHB * 10) / 10),           Average: 2,  Top10: 6  },
+                    { name: "Debt-to-Asset %",     You: Math.round(metrics.debtToAssetRatio),                                  Average: 35, Top10: 10 },
+                    { name: "FOIR %",              You: Math.round(habitsBadges.foirPctHB),                                    Average: 42, Top10: 15 },
+                    { name: "Invest Rate %",       You: Math.min(100, Math.round(habitsBadges.investRateHB)),                  Average: 10, Top10: 35 },
+                  ]}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.line} />
-                  <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => v + "%"} />
-                  <Tooltip cursor={{ fill: "rgba(255,255,255,0.02)" }} contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)" }} />
+                  <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + (v > 10 ? "" : "")} />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)", fontSize: 12 }}
+                    formatter={(v: any, name: string) => [typeof v === "number" ? v.toFixed(1) : v, name]}
+                  />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20 }} iconType="circle" />
-                  <Bar dataKey="You" fill={THEME.accent} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                  <Bar dataKey="Average" fill={THEME.muted} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                  <Bar dataKey="Top10" fill={THEME.sage} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="You"     fill={THEME.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Average" fill={THEME.muted}  radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Top10"   fill={THEME.sage}   radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+            {/* Benchmark legend explanation */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 8 }}>
+              {[
+                { label: "Savings Rate", note: "% of income saved monthly" },
+                { label: "Emergency Fund", note: "months of expenses covered" },
+                { label: "Debt-to-Asset", note: "lower is better" },
+                { label: "FOIR", note: "EMI ÷ income — lower is better" },
+                { label: "Invest Rate", note: "invested assets ÷ annual income" },
+              ].map((m, i) => (
+                <div key={i} style={{ fontSize: 10, color: THEME.muted }}>
+                  <span style={{ fontWeight: 700, color: THEME.ink }}>{m.label}</span> — {m.note}
+                </div>
+              ))}
             </div>
           </Card>
 
