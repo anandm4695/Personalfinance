@@ -911,6 +911,68 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     return { fireCorpus, progress, annualExpense };
   }, [metrics.monthExpense, metrics.netWorth]);
 
+  const passiveIncomeData = useMemo(() => {
+    const rentalMonthly = (state.rentalProperties || [])
+      .filter((r: any) => Number(r.rent || 0) > 0)
+      .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+
+    const fdMonthly = (state.fixedDeposits || [])
+      .reduce((s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12, 0);
+
+    const rdMonthly = (state.recurringDeposits || []).reduce((sum: number, r: any) => {
+      const start = r.startDate ? new Date(r.startDate) : new Date();
+      const now = new Date();
+      const m = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
+      const currentVal = months > 0 ? rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), months) : 0;
+      return sum + (currentVal * Number(r.rate || 6)) / 100 / 12;
+    }, 0);
+
+    const savingsMonthly = (metrics.cashInBanks * 0.03) / 12;
+    const stockDividendsMonthly = (metrics.stockValue * 0.012) / 12;
+    const mfYieldMonthly = (metrics.mfValue * 0.01) / 12;
+
+    const totalPassive = rentalMonthly + fdMonthly + rdMonthly + savingsMonthly + stockDividendsMonthly + mfYieldMonthly;
+    const passiveRatio = metrics.monthIncome > 0 ? (totalPassive / metrics.monthIncome) * 100 : 0;
+
+    return {
+      rentalMonthly,
+      fdMonthly,
+      rdMonthly,
+      savingsMonthly,
+      stockDividendsMonthly,
+      mfYieldMonthly,
+      totalPassive,
+      passiveRatio
+    };
+  }, [state.rentalProperties, state.fixedDeposits, state.recurringDeposits, metrics.cashInBanks, metrics.stockValue, metrics.mfValue, metrics.monthIncome]);
+
+  const taxData80C = useMemo(() => {
+    const limit = 150000;
+    const fyParts = (state.profile?.fy || "").split("-");
+    const fyStartYear = Number(fyParts[0]) || new Date().getFullYear() - 1;
+    const fyStartStr = `${fyStartYear}-04-01`;
+    const fyEndStr = `${fyStartYear + 1}-03-31`;
+    const elss = (state.mutualFunds || [])
+      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
+      .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+    const ppfThisYear = (state.ppfLedger || [])
+      .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ppfAnnual = ppfThisYear > 0 ? ppfThisYear :
+      (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const epfEmployee = (state.epf || []).reduce((s: number, e: any) => {
+      const ledgerTotal = (e.transactions || [])
+        .filter((t: any) => t.type === "employee" && t.date && t.date >= fyStartStr && t.date <= fyEndStr)
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
+    }, 0);
+    const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee, limit);
+    const remaining = Math.max(0, limit - total);
+    return { elss, ppfAnnual, licPremium, epfEmployee, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, state.profile?.fy]);
+
   // ── Habits & Rewards: badge evaluation ───────────────────────────────────
   const habitsBadges = useMemo(() => {
     const earned = new Set<string>();
@@ -1381,71 +1443,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const monthName = now.toLocaleString("en-IN", { month: "short" });
     return { ytdIncome, ytdExpense, ytdSavings, ytdSavingsRate, monthsElapsed, monthName, labelStart };
   }, [state.transactions, state.income, state.rentedProperties, state.profile?.fy, ytdMode]);
-
-  const passiveIncomeData = useMemo(() => {
-    const rentalMonthly = (state.rentalProperties || [])
-      .filter((r: any) => Number(r.rent || 0) > 0)
-      .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
-      
-    const fdMonthly = (state.fixedDeposits || [])
-      .reduce((s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12, 0);
-
-    const rdMonthly = (state.recurringDeposits || []).reduce((sum: number, r: any) => {
-      const start = r.startDate ? new Date(r.startDate) : new Date();
-      const now = new Date();
-      const m = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-      const months = Math.max(0, Math.min(m, Number(r.tenureMonths || 0)));
-      const currentVal = months > 0 ? rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), months) : 0;
-      return sum + (currentVal * Number(r.rate || 6)) / 100 / 12;
-    }, 0);
-
-    const savingsMonthly = (metrics.cashInBanks * 0.03) / 12;
-    const stockDividendsMonthly = (metrics.stockValue * 0.012) / 12;
-    const mfYieldMonthly = (metrics.mfValue * 0.01) / 12;
-
-    const totalPassive = rentalMonthly + fdMonthly + rdMonthly + savingsMonthly + stockDividendsMonthly + mfYieldMonthly;
-    const passiveRatio = metrics.monthIncome > 0 ? (totalPassive / metrics.monthIncome) * 100 : 0;
-    
-    return { 
-      rentalMonthly, 
-      fdMonthly, 
-      rdMonthly, 
-      savingsMonthly, 
-      stockDividendsMonthly, 
-      mfYieldMonthly, 
-      totalPassive, 
-      passiveRatio 
-    };
-  }, [state.rentalProperties, state.fixedDeposits, state.recurringDeposits, metrics.cashInBanks, metrics.stockValue, metrics.mfValue, metrics.monthIncome]);
-
-  const taxData80C = useMemo(() => {
-    const limit = 150000;
-    // Bug fix: filter by FY start date (Apr 1 of FY start year), not calendar year
-    // e.g. FY 2025-26 → contributions from 2025-04-01 onwards count
-    const fyParts = (state.profile?.fy || "").split("-");
-    const fyStartYear = Number(fyParts[0]) || new Date().getFullYear() - 1;
-    const fyStartStr = `${fyStartYear}-04-01`;
-    const fyEndStr = `${fyStartYear + 1}-03-31`;
-    const elss = (state.mutualFunds || [])
-      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
-      .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
-    const ppfThisYear = (state.ppfLedger || [])
-      .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
-      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const ppfAnnual = ppfThisYear > 0 ? ppfThisYear :
-      (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
-    const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
-    // EPF employee contributions (12% of basic = employee_amount in ledger) count toward 80C
-    const epfEmployee = (state.epf || []).reduce((s: number, e: any) => {
-      const ledgerTotal = (e.transactions || [])
-        .filter((t: any) => t.type === "employee" && t.date && t.date >= fyStartStr && t.date <= fyEndStr)
-        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
-    }, 0);
-    const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee, limit);
-    const remaining = Math.max(0, limit - total);
-    return { elss, ppfAnnual, licPremium, epfEmployee, total, remaining, limit, progress: total > 0 ? (total / limit) * 100 : 0 };
-  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, state.profile?.fy]);
 
   const goalHealth = useMemo(() => {
     const now = new Date();
