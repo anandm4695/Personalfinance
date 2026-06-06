@@ -1163,6 +1163,39 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     };
   }, [metrics, dashboardData.streak, state, passiveIncomeData, taxData80C]);
 
+  // ── Streak calendar: last 12 months of savings status ──
+  const streakCalendar = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const txns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(ym));
+      const inc = txns.filter((t: any) => t.type === "credit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const exp = txns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const hasData = txns.length > 0;
+      return {
+        label: d.toLocaleString("en-IN", { month: "short" }),
+        year: d.getFullYear(),
+        saved: hasData && inc > exp && inc > 0,
+        hasData,
+        rate: inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0,
+      };
+    });
+  }, [state.transactions]);
+
+  // ── XP breakdown by badge category ──
+  const xpByCategory = useMemo(() => {
+    const bycat: Record<string, { earned: number; possible: number }> = {};
+    for (const b of BADGE_CATALOG) {
+      if (!bycat[b.cat]) bycat[b.cat] = { earned: 0, possible: 0 };
+      bycat[b.cat].possible += TIER_XP[b.tier] || 10;
+      if (habitsBadges.earned.has(b.id)) bycat[b.cat].earned += TIER_XP[b.tier] || 10;
+    }
+    return Object.entries(bycat)
+      .map(([cat, d]) => ({ cat, ...d, pct: d.possible > 0 ? Math.round((d.earned / d.possible) * 100) : 0 }))
+      .sort((a, b) => b.earned - a.earned);
+  }, [habitsBadges.earned]);
+
   // ── Financial Runway & 10-Year Projection Engine Calculations ──
   const projectionData = useMemo(() => {
     const data = [];
@@ -4454,64 +4487,78 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* ────────────────── SUB-TAB: HABITS & REWARDS ────────────────── */}
       {sub === "habits" && (
-        <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── HERO: Level + Health Score + Streak ── */}
+          {/* ── HERO CARD: Level + Score + Streak ─────────────────────────── */}
+          {/* Gradient uses hardcoded colors — CSS var+hex-alpha is invalid CSS */}
           <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20 }}>
             <div style={{
-              background: `linear-gradient(135deg, ${THEME.accent}e8 0%, #6366f1 45%, ${THEME.sage}cc 100%)`,
-              padding: "24px 20px 20px",
+              background: "linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #0d9488 100%)",
+              padding: "28px 24px 22px",
               color: "#fff",
             }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-                {/* Level ring */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
-                    width: 62, height: 62, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.18)",
-                    border: "2.5px solid rgba(255,255,255,0.55)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.75, letterSpacing: "0.06em" }}>LEVEL</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1 }}>{habitsBadges.level}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 18 }}>
+
+                {/* SVG-ring level indicator */}
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ position: "relative", width: 72, height: 72, flexShrink: 0 }}>
+                    <svg width="72" height="72" viewBox="0 0 72 72" style={{ display: "block" }}>
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="5" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.88)" strokeWidth="5"
+                        strokeDasharray={`${(habitsBadges.levelPct / 100) * 188.5} 188.5`}
+                        strokeLinecap="round" transform="rotate(-90 36 36)"
+                        style={{ transition: "stroke-dasharray 0.8s ease" }}
+                      />
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, opacity: 0.7, letterSpacing: "0.08em", marginBottom: 1 }}>LVL</div>
+                      <div style={{ fontSize: 26, fontWeight: 900 }}>{habitsBadges.level}</div>
+                    </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.01em" }}>{habitsBadges.levelLabel}</div>
-                    <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>{habitsBadges.totalXP.toLocaleString()} XP earned</div>
-                    <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
-                      {habitsBadges.xpToNext > 0 ? `${habitsBadges.xpToNext} XP to ${habitsBadges.nextLevelLabel}` : "🎉 Maximum level reached!"}
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>{habitsBadges.levelLabel}</div>
+                    <div style={{ fontSize: 12, opacity: 0.82, marginTop: 3 }}>{habitsBadges.totalXP.toLocaleString()} XP earned</div>
+                    <div style={{ fontSize: 11, opacity: 0.62, marginTop: 2 }}>
+                      {habitsBadges.xpToNext > 0 ? `${habitsBadges.xpToNext} XP → ${habitsBadges.nextLevelLabel}` : "🎉 Max level reached!"}
                     </div>
                   </div>
                 </div>
 
-                {/* Health Score */}
+                {/* Health Score — center */}
                 <div style={{ textAlign: "center", flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 11, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Health Score</div>
-                  <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em" }}>{dashboardData.totalScore}</div>
-                  <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>out of 100</div>
+                  <div style={{ fontSize: 10, opacity: 0.68, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Financial Health</div>
+                  <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.04em" }}>{dashboardData.totalScore}</div>
+                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+                    {dashboardData.totalScore >= 75 ? "Excellent ✓" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}
+                  </div>
                 </div>
 
-                {/* Savings Streak */}
+                {/* Savings Streak — right */}
                 <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 11, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Savings Streak</div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 4, justifyContent: "flex-end" }}>
-                    <div style={{ fontSize: 36 }}>{dashboardData.streakEmoji}</div>
-                    <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1 }}>{dashboardData.streak}</div>
-                    <div style={{ fontSize: 14, opacity: 0.8 }}>mo</div>
+                  <div style={{ fontSize: 10, opacity: 0.68, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Savings Streak</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 5, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 30 }}>{dashboardData.streakEmoji}</span>
+                    <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1 }}>{dashboardData.streak}</span>
+                    <span style={{ fontSize: 15, opacity: 0.8 }}>mo</span>
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{dashboardData.streakMsg}</div>
+                  <div style={{ fontSize: 11, opacity: 0.68, marginTop: 4 }}>{dashboardData.streakMsg}</div>
                 </div>
               </div>
 
-              {/* XP progress bar to next level */}
-              <div style={{ marginTop: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 700 }}>{habitsBadges.levelLabel} → {habitsBadges.nextLevelLabel}</span>
-                  <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 700 }}>{habitsBadges.levelPct}%</span>
+              {/* XP progress bar */}
+              <div style={{ marginTop: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+                  <span style={{ fontSize: 10, opacity: 0.78, fontWeight: 700, letterSpacing: "0.03em" }}>
+                    {habitsBadges.levelLabel} → {habitsBadges.nextLevelLabel}
+                  </span>
+                  <span style={{ fontSize: 10, opacity: 0.78, fontWeight: 700 }}>{habitsBadges.levelPct}%</span>
                 </div>
-                <div style={{ height: 7, background: "rgba(255,255,255,0.2)", borderRadius: 99, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${habitsBadges.levelPct}%`, background: "rgba(255,255,255,0.85)", borderRadius: 99, transition: "width 0.7s ease" }} />
+                <div style={{ height: 8, background: "rgba(255,255,255,0.18)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", width: `${habitsBadges.levelPct}%`,
+                    background: "rgba(255,255,255,0.85)", borderRadius: 99,
+                    transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
+                  }} />
                 </div>
               </div>
             </div>
@@ -4524,30 +4571,74 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 { label: "Month Streak", value: `${dashboardData.streak}mo`, icon: "🔥" },
                 { label: "XP Points", value: habitsBadges.totalXP.toLocaleString(), icon: "⚡" },
               ].map((s, i) => (
-                <div key={i} style={{ padding: "14px 10px", textAlign: "center", borderRight: i < 3 ? `1px solid ${THEME.line}` : "none", borderTop: `1px solid ${THEME.line}` }}>
-                  <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>{s.label}</div>
+                <div key={i} style={{
+                  padding: "16px 10px", textAlign: "center",
+                  borderRight: i < 3 ? `1px solid ${THEME.line}` : "none",
+                  borderTop: `1px solid ${THEME.line}`,
+                }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2, fontWeight: 600 }}>{s.label}</div>
                 </div>
               ))}
             </div>
           </Card>
 
-          {/* ── Category progress overview strip ── */}
-          <Card style={{ padding: 18 }}>
+          {/* ── MONTHLY STREAK CALENDAR (new) ──────────────────────────────── */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Savings Streak Calendar</div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {[["#10b981", "Saved"], ["#ef4444", "Deficit"], [THEME.line, "No data"]].map(([color, label]) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: color as string }} />
+                    <span style={{ fontSize: 10, color: THEME.muted }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+              {streakCalendar.map((m, i) => (
+                <div key={i} title={m.hasData ? `${m.label} ${m.year}: ${m.saved ? `+${m.rate}% savings rate` : "Deficit month"}` : `${m.label} ${m.year}: No data`} style={{
+                  borderRadius: 10, overflow: "hidden",
+                  border: `1.5px solid ${m.hasData ? (m.saved ? "#10b98133" : "#ef444433") : THEME.line}`,
+                  background: m.hasData ? (m.saved ? "#10b98108" : "#ef444408") : "var(--surface-0)",
+                }}>
+                  <div style={{
+                    height: 5,
+                    background: m.hasData ? (m.saved ? "#10b981" : "#ef4444") : THEME.line,
+                  }} />
+                  <div style={{ padding: "9px 8px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: m.hasData ? (m.saved ? "#059669" : "#dc2626") : THEME.muted }}>{m.label}</div>
+                    <div style={{ fontSize: 9, color: THEME.muted, marginTop: 1 }}>
+                      {m.hasData ? (m.saved ? `${m.rate}%` : "deficit") : "—"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* ── CATEGORY OVERVIEW ──────────────────────────────────────────── */}
+          <Card style={{ padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 14 }}>All Categories</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
               {Object.entries(habitsBadges.cats).map(([cat, data]: [string, any]) => {
                 const pct = Math.round((data.earnedCount / data.total) * 100);
                 const complete = data.earnedCount === data.total;
+                const inProg = data.earnedCount > 0 && !complete;
                 return (
-                  <div key={cat} style={{ padding: "10px 12px", borderRadius: 12, background: complete ? `${THEME.sage}10` : "var(--surface-0)", border: `1px solid ${complete ? THEME.sage + "40" : THEME.line}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: complete ? THEME.sage : THEME.ink, lineHeight: 1.2 }}>{cat}</div>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: complete ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.muted }}>{data.earnedCount}/{data.total}</div>
+                  <div key={cat} style={{
+                    padding: "11px 13px", borderRadius: 12,
+                    background: complete ? "#10b98110" : inProg ? "#6366f108" : "var(--surface-0)",
+                    border: `1px solid ${complete ? "#10b98140" : inProg ? "#6366f125" : THEME.line}`,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: complete ? "#059669" : THEME.ink, lineHeight: 1.2 }}>{cat}</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: complete ? "#059669" : inProg ? "#d97706" : THEME.muted }}>{data.earnedCount}/{data.total}</div>
                     </div>
-                    <div style={{ height: 3, background: "var(--t-line)", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: complete ? THEME.sage : data.earnedCount > 0 ? THEME.gold : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
+                    <div style={{ height: 3, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: complete ? "#10b981" : inProg ? "#f59e0b" : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
                     </div>
                   </div>
                 );
@@ -4555,72 +4646,78 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
           </Card>
 
-          {/* ── Smart Action Tips ── */}
+          {/* ── SMART ACTION TIPS ─────────────────────────────────────────── */}
           {habitsBadges.tips.length > 0 && (
             <Card style={{ padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                <Zap size={15} color={THEME.gold} style={{ flexShrink: 0 }} />
+                <Zap size={15} color="#d97706" style={{ flexShrink: 0 }} />
                 Smart Action Tips
                 <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>— personalized to your next badges</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {habitsBadges.tips.map((tip: any, i: number) => (
                   <div key={i} style={{
-                    padding: "13px 15px",
-                    borderRadius: 14,
-                    background: i === 0 ? `${THEME.accent}10` : "var(--surface-0)",
-                    border: `1px solid ${i === 0 ? THEME.accent + "40" : THEME.line}`,
-                    borderLeft: `3px solid ${i === 0 ? THEME.accent : i === 1 ? THEME.gold : THEME.line}`,
+                    padding: "14px 16px", borderRadius: 14,
+                    background: i === 0 ? "#6366f10c" : "var(--surface-0)",
+                    border: `1px solid ${i === 0 ? "#6366f128" : THEME.line}`,
+                    borderLeft: `3px solid ${i === 0 ? "#6366f1" : i === 1 ? "#d97706" : THEME.line}`,
                     display: "flex", gap: 12, alignItems: "flex-start",
                   }}>
-                    <div style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{tip.icon}</div>
+                    <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{tip.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginBottom: 3 }}>{tip.badge}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>{tip.tip}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{tip.badge}</div>
+                        {i === 0 && (
+                          <div style={{ fontSize: 9, fontWeight: 800, color: "#6366f1", background: "#6366f114", padding: "2px 7px", borderRadius: 99, border: "1px solid #6366f125" }}>
+                            TOP PRIORITY
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.55 }}>{tip.tip}</div>
                       {tip.progress && (
                         <div style={{ marginTop: 8 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                             <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{tip.progress.label}</span>
-                            <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 800 }}>{tip.pct}%</span>
+                            <span style={{ fontSize: 9, color: "#6366f1", fontWeight: 800 }}>{tip.pct}%</span>
                           </div>
                           <div style={{ height: 3, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${tip.pct}%`, background: THEME.accent, borderRadius: 99, transition: "width 0.4s ease" }} />
+                            <div style={{ height: "100%", width: `${tip.pct}%`, background: "#6366f1", borderRadius: 99, transition: "width 0.4s ease" }} />
                           </div>
                         </div>
                       )}
                     </div>
-                    {i === 0 && <div style={{ fontSize: 9, fontWeight: 800, color: THEME.accent, background: `${THEME.accent}15`, padding: "3px 8px", borderRadius: 99, flexShrink: 0, alignSelf: "flex-start" }}>TOP PRIORITY</div>}
                   </div>
                 ))}
               </div>
             </Card>
           )}
 
-          {/* ── Badge categories with grid layout ── */}
+          {/* ── BADGE CATEGORIES ──────────────────────────────────────────── */}
           {Object.entries(habitsBadges.cats).map(([catName, catData]: [string, any]) => {
             const allEarned = catData.earnedCount === catData.total;
             const unlock = CATEGORY_UNLOCK_TIP[catName];
             const catPct = Math.round((catData.earnedCount / catData.total) * 100);
             return (
               <div key={catName}>
-                {/* Category header with mini progress */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{catName}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: allEarned ? THEME.sage : catData.earnedCount > 0 ? THEME.gold : THEME.muted, background: allEarned ? `${THEME.sage}1a` : catData.earnedCount > 0 ? `${THEME.gold}1a` : "var(--surface-0)", padding: "2px 8px", borderRadius: 99, border: `1px solid ${allEarned ? THEME.sage + "44" : catData.earnedCount > 0 ? THEME.gold + "33" : THEME.line}` }}>
-                      {catData.earnedCount}/{catData.total}
-                    </div>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+                      color: allEarned ? "#059669" : catData.earnedCount > 0 ? "#d97706" : THEME.muted,
+                      background: allEarned ? "#10b98114" : catData.earnedCount > 0 ? "#f59e0b14" : "var(--surface-0)",
+                      border: `1px solid ${allEarned ? "#10b98140" : catData.earnedCount > 0 ? "#f59e0b33" : THEME.line}`,
+                    }}>{catData.earnedCount}/{catData.total}</div>
                   </div>
                   {allEarned
-                    ? <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 800, background: `${THEME.sage}1a`, padding: "2px 10px", borderRadius: 99, border: `1px solid ${THEME.sage}33` }}>✓ Complete</span>
+                    ? <span style={{ fontSize: 10, color: "#059669", fontWeight: 800, background: "#10b98114", padding: "2px 10px", borderRadius: 99, border: "1px solid #10b98133" }}>✓ Complete</span>
                     : <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>{catPct}%</span>
                   }
                 </div>
-                <div style={{ height: 3, background: "var(--t-line)", borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
-                  <div style={{ height: "100%", width: `${catPct}%`, background: allEarned ? THEME.sage : catData.earnedCount > 0 ? THEME.gold : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
+                <div style={{ height: 3, background: THEME.line, borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
+                  <div style={{ height: "100%", width: `${catPct}%`, background: allEarned ? "#10b981" : catData.earnedCount > 0 ? "#f59e0b" : THEME.line, borderRadius: 99, transition: "width 0.5s ease" }} />
                 </div>
 
-                {/* Badge grid — auto-fill, wraps responsively */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(138px, 1fr))", gap: 12 }}>
                   {catData.badges.map((b: any) => {
                     const isEarned = b.status === "earned";
@@ -4628,72 +4725,45 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     const pct = b.progress ? Math.min(100, Math.round((b.progress.current / b.progress.target) * 100)) : 0;
                     const xp = TIER_XP[b.tier] || 10;
                     return (
-                      <div
-                        key={b.id}
-                        style={{
-                          padding: "15px 13px",
-                          borderRadius: 16,
-                          background: isEarned
-                            ? `linear-gradient(145deg, ${THEME.sage}22, var(--t-paper))`
-                            : isActive
-                            ? `linear-gradient(145deg, ${THEME.accent}0e, var(--t-paper))`
-                            : "var(--surface-0)",
-                          border: isEarned
-                            ? `1.5px solid ${THEME.sage}66`
-                            : isActive
-                            ? `1.5px solid ${THEME.accent}44`
-                            : `1px solid ${THEME.line}`,
-                          opacity: b.status === "locked" ? 0.42 : 1,
-                          display: "flex", flexDirection: "column", gap: 7,
-                          position: "relative",
-                          boxShadow: isEarned
-                            ? `0 0 0 1px ${THEME.sage}22, 0 4px 18px ${THEME.sage}16`
-                            : isActive ? `0 2px 10px ${THEME.accent}12` : "none",
-                          transition: "box-shadow 0.2s ease",
-                        }}
-                      >
-                        {/* XP chip */}
+                      <div key={b.id} style={{
+                        padding: "16px 14px", borderRadius: 16,
+                        background: isEarned ? "linear-gradient(145deg, #10b98118, var(--t-paper))" : isActive ? "linear-gradient(145deg, #6366f10d, var(--t-paper))" : "var(--surface-0)",
+                        border: isEarned ? "1.5px solid #10b98155" : isActive ? "1.5px solid #6366f135" : `1px solid ${THEME.line}`,
+                        opacity: b.status === "locked" ? 0.4 : 1,
+                        display: "flex", flexDirection: "column", gap: 7,
+                        position: "relative",
+                        boxShadow: isEarned ? "0 4px 18px #10b98112" : isActive ? "0 2px 10px #6366f110" : "none",
+                        transition: "box-shadow 0.2s ease",
+                      }}>
                         <div style={{
                           position: "absolute", top: 9, right: 9,
                           fontSize: 8, fontWeight: 900,
-                          color: isEarned ? THEME.sage : THEME.muted,
-                          background: isEarned ? `${THEME.sage}18` : "var(--surface-0)",
-                          border: `1px solid ${isEarned ? THEME.sage + "44" : THEME.line}`,
+                          color: isEarned ? "#059669" : THEME.muted,
+                          background: isEarned ? "#10b98118" : "var(--surface-0)",
+                          border: `1px solid ${isEarned ? "#10b98144" : THEME.line}`,
                           padding: "1px 5px", borderRadius: 6,
-                        }}>
-                          +{xp} XP
-                        </div>
+                        }}>+{xp} XP</div>
 
-                        {/* Icon */}
-                        <div style={{ fontSize: 26, lineHeight: 1, filter: b.status === "locked" ? "grayscale(1) opacity(0.5)" : "none" }}>{b.icon}</div>
+                        <div style={{ fontSize: 28, lineHeight: 1, filter: b.status === "locked" ? "grayscale(1) opacity(0.4)" : "none" }}>{b.icon}</div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: isEarned ? "#059669" : isActive ? THEME.ink : THEME.muted, lineHeight: 1.2, paddingRight: 32 }}>{b.label}</div>
+                        <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.45, flex: 1 }}>{b.desc}</div>
 
-                        {/* Label */}
-                        <div style={{ fontSize: 11, fontWeight: 800, color: isEarned ? THEME.sage : isActive ? THEME.ink : THEME.muted, lineHeight: 1.2, paddingRight: 30 }}>{b.label}</div>
-
-                        {/* Desc */}
-                        <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.4, flex: 1 }}>{b.desc}</div>
-
-                        {/* Status chip / progress */}
                         {isEarned && (
-                          <div style={{ fontSize: 9, fontWeight: 900, color: THEME.sage, background: `${THEME.sage}1a`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 3, border: `1px solid ${THEME.sage}33` }}>
-                            ✓ Earned
-                          </div>
+                          <div style={{ fontSize: 9, fontWeight: 900, color: "#059669", background: "#10b98114", padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", border: "1px solid #10b98130" }}>✓ Earned</div>
                         )}
                         {isActive && b.progress && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
                               <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{b.progress.label}</span>
-                              <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 900 }}>{pct}%</span>
+                              <span style={{ fontSize: 9, color: "#6366f1", fontWeight: 900 }}>{pct}%</span>
                             </div>
                             <div style={{ height: 4, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${THEME.accent}, #818cf8)`, borderRadius: 99, transition: "width 0.4s ease" }} />
+                              <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg, #6366f1, #818cf8)", borderRadius: 99, transition: "width 0.4s ease" }} />
                             </div>
                           </div>
                         )}
                         {isActive && !b.progress && (
-                          <div style={{ fontSize: 9, fontWeight: 800, color: THEME.accent, background: `${THEME.accent}14`, padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", border: `1px solid ${THEME.accent}30` }}>
-                            Next up →
-                          </div>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: "#6366f1", background: "#6366f113", padding: "3px 8px", borderRadius: 99, alignSelf: "flex-start", border: "1px solid #6366f128" }}>Next up →</div>
                         )}
                         {b.status === "locked" && (
                           <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 600 }}>🔒 Locked</div>
@@ -4703,9 +4773,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   })}
                 </div>
 
-                {/* Category complete unlock tip */}
                 {allEarned && unlock && (
-                  <div style={{ marginTop: 12, padding: "11px 15px", background: `${THEME.sage}12`, border: `1px solid ${THEME.sage}30`, borderLeft: `3px solid ${THEME.sage}`, borderRadius: 12, fontSize: 11, color: THEME.sage, fontWeight: 600, lineHeight: 1.5 }}>
+                  <div style={{ marginTop: 12, padding: "12px 16px", background: "#10b98110", border: "1px solid #10b98130", borderLeft: "3px solid #10b981", borderRadius: 12, fontSize: 11, color: "#059669", fontWeight: 600, lineHeight: 1.5 }}>
                     🎉 {unlock}
                   </div>
                 )}
@@ -4713,7 +4782,32 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
 
-          {/* ── Peer Benchmarking (expanded to 5 metrics) ── */}
+          {/* ── XP BREAKDOWN BY CATEGORY (new) ────────────────────────────── */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>XP Breakdown</div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>Earned vs possible XP per category — shows where your financial gaps are.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {xpByCategory.map((row) => (
+                <div key={row.cat}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}>{row.cat}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: row.pct === 100 ? "#059669" : row.pct > 0 ? "#6366f1" : THEME.muted }}>
+                      {row.earned} / {row.possible} XP
+                    </div>
+                  </div>
+                  <div style={{ height: 7, background: THEME.line, borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", width: `${row.pct}%`,
+                      background: row.pct === 100 ? "linear-gradient(90deg, #10b981, #34d399)" : row.pct > 50 ? "linear-gradient(90deg, #6366f1, #818cf8)" : row.pct > 0 ? "linear-gradient(90deg, #f59e0b, #fbbf24)" : THEME.line,
+                      borderRadius: 99, transition: "width 0.6s ease",
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* ── PEER BENCHMARKING ─────────────────────────────────────────── */}
           <Card style={{ padding: 24 }}>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>Peer Benchmarking</div>
@@ -4723,30 +4817,29 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={[
-                    { name: "Savings Rate %",      You: Math.max(0, Math.round(metrics.savingsRate)),                          Average: 15, Top10: 40 },
-                    { name: "Emergency Fund (mo)", You: Math.min(12, Math.round(habitsBadges.efMonthsHB * 10) / 10),           Average: 2,  Top10: 6  },
-                    { name: "Debt-to-Asset %",     You: Math.round(metrics.debtToAssetRatio),                                  Average: 35, Top10: 10 },
-                    { name: "FOIR %",              You: Math.round(habitsBadges.foirPctHB),                                    Average: 42, Top10: 15 },
-                    { name: "Invest Rate %",       You: Math.min(100, Math.round(habitsBadges.investRateHB)),                  Average: 10, Top10: 35 },
+                    { name: "Savings Rate %",      You: Math.max(0, Math.round(metrics.savingsRate)),              Average: 15, Top10: 40 },
+                    { name: "Emergency Fund (mo)", You: Math.min(12, Math.round(habitsBadges.efMonthsHB * 10) / 10), Average: 2,  Top10: 6  },
+                    { name: "Debt-to-Asset %",     You: Math.round(metrics.debtToAssetRatio),                       Average: 35, Top10: 10 },
+                    { name: "FOIR %",              You: Math.round(habitsBadges.foirPctHB),                         Average: 42, Top10: 15 },
+                    { name: "Invest Rate %",       You: Math.min(100, Math.round(habitsBadges.investRateHB)),        Average: 10, Top10: 35 },
                   ]}
                   margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.line} />
                   <XAxis dataKey="name" tick={{ fill: THEME.muted, fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => v + (v > 10 ? "" : "")} />
+                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    cursor={{ fill: "rgba(99,102,241,0.04)" }}
                     contentStyle={{ borderRadius: 12, border: `1px solid ${THEME.line}`, background: "var(--t-paper)", boxShadow: "var(--shadow-md)", fontSize: 12 }}
                     formatter={(v: any, name: string) => [typeof v === "number" ? v.toFixed(1) : v, name]}
                   />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20 }} iconType="circle" />
-                  <Bar dataKey="You"     fill={THEME.accent} radius={[5, 5, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Average" fill={THEME.muted}  radius={[5, 5, 0, 0]} maxBarSize={36} />
-                  <Bar dataKey="Top10"   fill={THEME.sage}   radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="You"     fill="#6366f1" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="Top10"   fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            {/* Benchmark legend explanation */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 8 }}>
               {[
                 { label: "Savings Rate", note: "% of income saved monthly" },
