@@ -4492,8 +4492,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "habits" && (
         <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── HERO CARD: same dark base as Dashboard "Wealth Overview" ────── */}
-          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: "var(--t-darkInk)" }}>
+          {/* ── HERO CARD: always-dark navy — matches Dashboard Wealth Overview ── */}
+          {/* #0F172A = --t-darkInk in dark mode; hardcoded so it stays dark in light mode too */}
+          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: "#0F172A" }}>
             {/* Thin accent stripe — identifies current theme color */}
             <div style={{ height: 3, background: "linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 50%, #34d399))" }} />
 
