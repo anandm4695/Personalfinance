@@ -7,8 +7,25 @@ interface PrivacyCtx {
 
 const PrivacyContext = createContext<PrivacyCtx>({ privacyMode: true, setPrivacyMode: () => {} });
 
+const PRIVACY_KEY = "pf_privacy_mode";
+
 export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => {
-  const [privacyMode, setPrivacyMode] = useState(true);
+  const [privacyMode, setPrivacyModeState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PRIVACY_KEY);
+      return saved === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const setPrivacyMode = (v: boolean | ((prev: boolean) => boolean)) => {
+    setPrivacyModeState(prev => {
+      const next = typeof v === "function" ? v(prev) : v;
+      try { localStorage.setItem(PRIVACY_KEY, String(next)); } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     document.body.classList.toggle("privacy-mode", privacyMode);
@@ -16,7 +33,7 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
   }, [privacyMode]);
 
   return (
-    <PrivacyContext.Provider value={{ privacyMode, setPrivacyMode }}>
+    <PrivacyContext.Provider value={{ privacyMode, setPrivacyMode: setPrivacyMode as (v: boolean) => void }}>
       {children}
     </PrivacyContext.Provider>
   );

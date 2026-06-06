@@ -559,7 +559,7 @@ function generateHTML(summary, frequency, recipientName) {
 
 // ── Fetch all state from Supabase (service role) ──────────────────────────────
 async function fetchStateFromSupabase(supabase, userId) {
-  const [banks, txns, mfs, stks, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems, rentals] =
+  const [banks, txns, mfs, stks, fds, rds, bnds, pn, ccs, lns, gls, bdgts, subs, rems, rentals, incomeQ] =
     await Promise.all([
       supabase.from("bank_accounts").select("*").eq("user_id", userId),
       supabase.from("transactions").select("*").eq("user_id", userId),
@@ -576,6 +576,7 @@ async function fetchStateFromSupabase(supabase, userId) {
       supabase.from("subscriptions").select("*").eq("user_id", userId),
       supabase.from("reminders").select("*").eq("user_id", userId),
       supabase.from("rental_properties").select("*").eq("user_id", userId).catch(() => ({ data: [] })),
+      supabase.from("income_entries").select("*").eq("user_id", userId).catch(() => ({ data: [] })),
     ]);
 
   const rentalData = rentals.data || [];
@@ -596,7 +597,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     budgets: (bdgts.data || []).map(b => ({ ...b, monthly: b.monthly_limit ?? b.monthly })),
     subscriptions: subs.data || [],
     reminders: (rems.data || []).map(r => ({ ...r, date: r.reminder_date ?? r.date })),
-    income: [],
+    income: (incomeQ.data || []).map(i => ({ ...i, date: i.date ?? i.income_date })),
     rentalProperties: rentalData.filter(x => x.property_type === "out").map(r => ({
       ...r, rent: r.monthly_rent, propertyValue: Number(r.property_value || 0),
     })),

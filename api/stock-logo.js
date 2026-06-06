@@ -205,7 +205,6 @@ const STOCK_DOMAINS = {
   ROUTE:         "routemobile.com",
   RATEGAIN:      "rategain.com",
   INTELLECT:     "intellectdesign.com",
-  TATAELXSI:     "tataelxsi.com",
   ZENSAR:        "zensar.com",
   BIRLASOFT:     "birlasoft.com",
   NIITTECH:      "niit.com",
@@ -214,7 +213,6 @@ const STOCK_DOMAINS = {
   XCHANGING:     "xchanging.com",
   INFIBEAM:      "infibeam.com",
   LATENTVIEW:    "latentview.com",
-  TATATECH:      "tatatech.com",
   SONACOMS:      "sonacomstar.com",
 
   // ── Pharma / Healthcare ────────────────────────────────────────────────────
@@ -273,7 +271,6 @@ const STOCK_DOMAINS = {
   GABRIEL:       "gabrielindia.com",
   TIMKEN:        "timken.com",
   WABCOINDIA:    "wabco-auto.com",
-  KNRCON:        "knrconstructions.com",
   CRAFTSMAN:     "craftsmanautomation.in",
 
   // ── Capital Goods / Engineering ───────────────────────────────────────────
@@ -302,7 +299,6 @@ const STOCK_DOMAINS = {
   // IRFC intentionally omitted — irfc.nic.in is government-hosted and not indexed by Clearbit; EODHD CDN handles it client-side
   RAILVIKAS:     "rvnl.org",
   NCC:           "ncclimited.com",
-  KNRCON:        "knrconstructions.com",
   PNCINFRA:      "pncinfratech.com",
   HG:            "hginfra.com",
   GMRINFRA:      "gmrinfra.com",
@@ -319,9 +315,7 @@ const STOCK_DOMAINS = {
   JSWENERGY:     "jsw.in",
   TORNTPOWER:    "torntpower.com",
   CESC:          "cesc.co.in",
-  TATAPOWER:     "tatapower.com",
   RPOWER:        "rpower.in",
-  ADANIENSOL:    "adanigreenenergy.com",
   INOXWIND:      "inoxwind.com",
   SUZLON:        "suzlon.com",
   ORIENTGREEN:   "ogfl.in",
@@ -393,7 +387,6 @@ const STOCK_DOMAINS = {
   FACT:          "fact.co.in",
   RCFL:          "rcfltd.com",
   NFL:           "nationalfertilizers.com",
-  GNFC:          "gnfc.in",
   CHAMBAL:       "chambalfertilisers.com",
   DEEPAKFERT:    "deepakfertilisers.com",
   KSCL:          "kaveriseeds.com",
@@ -421,7 +414,6 @@ const STOCK_DOMAINS = {
   NATIONALUM:    "nalcoindia.com",
   NALCO:         "nalcoindia.com",
   MOIL:          "moil.nic.in",
-  GSPL:          "gspcgroup.com",
   HINDCOPPER:    "hindustancopper.com",
   APARINDS:      "aparindustries.com",
   RATNAMANI:     "ratnamanimetals.com",
@@ -435,7 +427,6 @@ const STOCK_DOMAINS = {
   HFCL:          "hfcl.com",
   ITI:           "itiltd.in",
   IDEA:          "myvi.in",
-  TATACOMM:      "tatacommunications.com",
   PVRINOX:       "pvrcinemas.com",
   SUNTV:         "suntv.in",
   ZEEL:          "zee.com",
@@ -446,14 +437,6 @@ const STOCK_DOMAINS = {
   INOX:          "inoxmovies.com",
 
   // ── Defence ──────────────────────────────────────────────────────────────
-  HAL:           "hal-india.co.in",
-  BEL:           "bel-india.in",
-  BDL:           "bdl-india.in",
-  MIDHANI:       "midhani-india.in",
-  MAZDOCK:       "mazagondock.in",
-  GRSE:          "grse.in",
-  COCHINSHIP:    "cochinshipyard.in",
-  BEML:          "bemlindia.in",
   PARAS:         "parasdefence.com",
   IDEAFORGE:     "ideaforgetech.com",
   SOLARIND:      "solarindustries.com",
@@ -470,7 +453,6 @@ const STOCK_DOMAINS = {
 
   // ── Textiles ─────────────────────────────────────────────────────────────
   VARDHMAN:      "vardhman.com",
-  WELSPUNIND:    "welspun.com",
   ALOKIND:       "alokind.com",
   TRIDENT:       "tridentgroup.com",
   KPR:           "kprmill.com",
@@ -542,8 +524,6 @@ const STOCK_DOMAINS = {
   NAZARA:        "nazara.com",
   EASEMYTRIP:    "easemytrip.com",
   CARTRADE:      "cartrade.com",
-  NYKAA:         "nykaa.com",
-  POLICYBZR:     "policybazaar.com",
   DROOM:         "droom.in",
   CMSINFO:       "cmsinfotech.com",
   MAPMYINDIA:    "mappls.com",
@@ -557,8 +537,6 @@ const STOCK_DOMAINS = {
   ROLEX:         "rolexrings.com",
   BIKAJI:        "bikaji.com",
   DRONEACHARYA:  "droneacharya.com",
-  IDEAFORGE:     "ideaforgetech.com",
-  RATEGAIN:      "rategain.com",
   YATHARTH:      "yatharthhospital.com",
 
   // ── MFI / Small Finance ───────────────────────────────────────────────────
@@ -574,10 +552,9 @@ const STOCK_DOMAINS = {
   SBFC:          "sbfc.in",
 
   // ── Infrastructure / Utilities ────────────────────────────────────────────
-  ATGL:          "adanigas.com",
   MGL:           "mahanagargas.com",
   IGL:           "iglonline.net",
-  GSPL:          "gspc.co.in",
+  GSPL:          "gspetronet.com",
   PETRONET:      "petronetlng.com",
   AEGISCHEM:     "aegislogistics.com",
   GUJGASLTD:     "gujaratgas.com",
