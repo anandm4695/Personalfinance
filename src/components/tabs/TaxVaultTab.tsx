@@ -197,34 +197,82 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
   );
 
   /* ── Deductions state (pre-filled from portfolio data) ────────── */
-  const [deductions, setDeductions] = useState(() => {
+  const autoDetected = useMemo(() => {
+    // 80C — ELSS purchases in FY
     const elss = (state.mutualFunds || [])
       .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr)
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+    // 80C — PPF deposits in FY (ledger first, else yearly contribution)
     const ppfThisYear = (state.ppfLedger || [])
       .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ppf = ppfThisYear > 0
       ? ppfThisYear
       : (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    // 80C — LIC annual premiums
     const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    // 80C — EPF employee contributions in FY
     const epf = (state.epf || []).reduce((s: number, e: any) => {
       return s + (e.transactions || [])
         .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
         .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     }, 0);
+    const d80C_raw = elss + ppf + lic + epf;
+    const d80C_sources = [
+      elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
+      ppf > 0  ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
+      lic > 0  ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
+      epf > 0  ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
+    ].filter(Boolean).join(" + ") || null;
+
+    // HRA — rent paid in FY from rented properties (user is a tenant)
+    const hraPayments = (state.rentedProperties || []).reduce((s: number, p: any) => {
+      return s + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
+        .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0);
+    }, 0);
+    // Monthly rent fallback — from rentedProperties monthlyRent × 12
+    const hraMonthly = (state.rentedProperties || []).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+    const hra_raw = hraPayments > 0 ? hraPayments : (hraMonthly > 0 ? hraMonthly * 12 : 0);
+    const hra_source = hra_raw > 0
+      ? (hraPayments > 0 ? `Rent payments logged in FY ${fyStartStr.slice(0,4)}-${fyEndStr.slice(2,4)}` : "Monthly rent × 12")
+      : null;
+
+    // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
+    const homeLoanData = (state.loansTaken || [])
+      .filter((l: any) => (l.type || "").toLowerCase() === "home")
+      .map((l: any) => {
+        const outstanding = Number(l.outstanding) || 0;
+        const rate = Number(l.rate) || 0;
+        const annualInterest = Math.round(outstanding * rate / 100);
+        return { lender: l.lender || "Home Loan", annualInterest };
+      });
+    const homeLoan_raw = homeLoanData.reduce((s: number, l: any) => s + l.annualInterest, 0);
+    const homeLoan_source = homeLoan_raw > 0
+      ? homeLoanData.map(l => l.lender).join(", ") + " (approx. interest)"
+      : null;
+
     return {
-      d80C: Math.min(elss + ppf + lic + epf, 150_000),
-      d80D: 25_000,
-      hra: 0,
-      homeLoan: 0,
-      nps: 0,
-      d80CCD2: 0,
-      d80G: 0,
-      d80E: 0,
-      d80TTA: 0,
+      d80C: Math.min(d80C_raw, 150_000),
+      d80C_sources,
+      hra: Math.round(hra_raw),
+      hra_source,
+      homeLoan: Math.min(homeLoan_raw, 200_000),
+      homeLoan_source,
     };
-  });
+  }, [state.mutualFunds, state.ppfLedger, state.ppf, state.lic, state.epf, state.rentedProperties, state.loansTaken, fyStartStr, fyEndStr]);
+
+  const [deductions, setDeductions] = useState(() => ({
+    d80C: autoDetected.d80C,
+    d80D: 0,        // Health insurance not tracked in app — enter manually
+    hra: autoDetected.hra,
+    homeLoan: autoDetected.homeLoan,
+    nps: 0,
+    d80CCD2: 0,
+    d80G: 0,
+    d80E: 0,
+    d80TTA: 0,
+  }));
 
   const setDed = (key: string, val: string) =>
     setDeductions(prev => ({ ...prev, [key]: Number(val) || 0 }));
@@ -1090,20 +1138,52 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                       <div style={{ height: 5, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 4, transition: "width 0.3s" }} />
                       </div>
+                      {autoDetected.d80C_sources && (
+                        <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
+                          ⚡ Auto-detected: {autoDetected.d80C_sources}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
               </div>
 
-              <Field label="80D — Health Insurance (max ₹25K)">
-                <input className="form-input" type="number" value={deductions.d80D} onChange={e => setDed("d80D", e.target.value)} />
-              </Field>
-              <Field label="HRA Exemption [u/s 10(13A)]">
-                <input className="form-input" type="number" value={deductions.hra} onChange={e => setDed("hra", e.target.value)} />
-              </Field>
-              <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)">
-                <input className="form-input" type="number" value={deductions.homeLoan} onChange={e => setDed("homeLoan", e.target.value)} />
-              </Field>
+              <div>
+                <Field label="80D — Health Insurance (max ₹25K)">
+                  <input className="form-input" type="number" value={deductions.d80D} onChange={e => setDed("d80D", e.target.value)} />
+                </Field>
+                <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+                  ✏️ Enter manually — health insurance not tracked in app
+                </div>
+              </div>
+              <div>
+                <Field label="HRA Exemption [u/s 10(13A)]">
+                  <input className="form-input" type="number" value={deductions.hra} onChange={e => setDed("hra", e.target.value)} />
+                </Field>
+                {autoDetected.hra_source ? (
+                  <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
+                    ⚡ Auto-detected: {autoDetected.hra_source} — verify actual HRA exemption
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+                    ✏️ Enter manually — add rent payments in Rental Details to auto-detect
+                  </div>
+                )}
+              </div>
+              <div>
+                <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)">
+                  <input className="form-input" type="number" value={deductions.homeLoan} onChange={e => setDed("homeLoan", e.target.value)} />
+                </Field>
+                {autoDetected.homeLoan_source ? (
+                  <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
+                    ⚡ Auto-detected from: {autoDetected.homeLoan_source}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+                    ✏️ Enter manually — add Home loan in Credit & Liabilities to auto-detect
+                  </div>
+                )}
+              </div>
               <Field label="NPS Self — 80CCD(1B) (max ₹50K, old only)">
                 <input className="form-input" type="number" value={deductions.nps} onChange={e => setDed("nps", e.target.value)} />
               </Field>
