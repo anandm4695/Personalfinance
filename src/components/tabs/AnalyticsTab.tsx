@@ -4492,36 +4492,47 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {sub === "habits" && (
         <div key="habits" className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── HERO CARD: Level + Score + Streak ─────────────────────────── */}
-          {/* Gradient uses hardcoded colors — CSS var+hex-alpha is invalid CSS */}
-          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20 }}>
-            <div style={{
-              background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 90%, #000) 0%, var(--t-accent) 52%, color-mix(in srgb, var(--t-accent) 45%, #0d9488) 100%)",
-              padding: "28px 24px 22px",
-              color: "#fff",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 18 }}>
+          {/* ── HERO CARD: same dark base as Dashboard "Wealth Overview" ────── */}
+          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: "var(--t-darkInk)" }}>
+            {/* Thin accent stripe — identifies current theme color */}
+            <div style={{ height: 3, background: "linear-gradient(90deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 50%, #34d399))" }} />
+
+            <div style={{ padding: "28px 24px 22px", color: "#fff", position: "relative", overflow: "hidden" }}>
+              {/* Decorative radial glow — matches Dashboard's sparkline overlay */}
+              <div style={{
+                position: "absolute", top: -60, right: -60,
+                width: 260, height: 260,
+                background: "radial-gradient(circle, color-mix(in srgb, var(--t-accent) 18%, transparent) 0%, transparent 65%)",
+                pointerEvents: "none",
+              }} />
+              {/* Label row — mirrors "WEALTH OVERVIEW" label pattern */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, position: "relative", zIndex: 1 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--t-accent)", boxShadow: "0 0 10px color-mix(in srgb, var(--t-accent) 60%, transparent)" }} />
+                <span style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", fontWeight: 700 }}>Habits & Rewards</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 18, position: "relative", zIndex: 1 }}>
 
                 {/* SVG-ring level indicator */}
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <div style={{ position: "relative", width: 72, height: 72, flexShrink: 0 }}>
                     <svg width="72" height="72" viewBox="0 0 72 72" style={{ display: "block" }}>
-                      <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="5" />
-                      <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.88)" strokeWidth="5"
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="5" />
+                      <circle cx="36" cy="36" r="30" fill="none" stroke="var(--t-accent)" strokeWidth="5"
                         strokeDasharray={`${(habitsBadges.levelPct / 100) * 188.5} 188.5`}
                         strokeLinecap="round" transform="rotate(-90 36 36)"
-                        style={{ transition: "stroke-dasharray 0.8s ease" }}
+                        style={{ transition: "stroke-dasharray 0.8s ease", filter: "drop-shadow(0 0 6px color-mix(in srgb, var(--t-accent) 70%, transparent))" }}
                       />
                     </svg>
                     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, opacity: 0.7, letterSpacing: "0.08em", marginBottom: 1 }}>LVL</div>
-                      <div style={{ fontSize: 26, fontWeight: 900 }}>{habitsBadges.level}</div>
+                      <div style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", marginBottom: 1 }}>LVL</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, color: "#fff" }}>{habitsBadges.level}</div>
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>{habitsBadges.levelLabel}</div>
-                    <div style={{ fontSize: 12, opacity: 0.82, marginTop: 3 }}>{habitsBadges.totalXP.toLocaleString()} XP earned</div>
-                    <div style={{ fontSize: 11, opacity: 0.62, marginTop: 2 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em", color: "#fff" }}>{habitsBadges.levelLabel}</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{habitsBadges.totalXP.toLocaleString()} XP earned</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
                       {habitsBadges.xpToNext > 0 ? `${habitsBadges.xpToNext} XP → ${habitsBadges.nextLevelLabel}` : "🎉 Max level reached!"}
                     </div>
                   </div>
@@ -4529,38 +4540,40 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                 {/* Health Score — center */}
                 <div style={{ textAlign: "center", flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 10, opacity: 0.68, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Financial Health</div>
-                  <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.04em" }}>{dashboardData.totalScore}</div>
-                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>Financial Health</div>
+                  <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.045em", color: "#fff" }}>{dashboardData.totalScore}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 5 }}>
                     {dashboardData.totalScore >= 75 ? "Excellent ✓" : dashboardData.totalScore >= 50 ? "Good" : "Needs Work"}
                   </div>
                 </div>
 
                 {/* Savings Streak — right */}
                 <div style={{ textAlign: "right", flex: "0 0 auto" }}>
-                  <div style={{ fontSize: 10, opacity: 0.68, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Savings Streak</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>Savings Streak</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 5, justifyContent: "flex-end" }}>
-                    <span style={{ fontSize: 30 }}>{dashboardData.streakEmoji}</span>
-                    <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1 }}>{dashboardData.streak}</span>
-                    <span style={{ fontSize: 15, opacity: 0.8 }}>mo</span>
+                    <span style={{ fontSize: 28 }}>{dashboardData.streakEmoji}</span>
+                    <span style={{ fontSize: 42, fontWeight: 900, lineHeight: 1, color: "#fff" }}>{dashboardData.streak}</span>
+                    <span style={{ fontSize: 14, color: "rgba(255,255,255,0.55)" }}>mo</span>
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.68, marginTop: 4 }}>{dashboardData.streakMsg}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 5 }}>{dashboardData.streakMsg}</div>
                 </div>
               </div>
 
-              {/* XP progress bar */}
-              <div style={{ marginTop: 22 }}>
+              {/* XP progress bar — accent fill on dark base */}
+              <div style={{ marginTop: 24, position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
-                  <span style={{ fontSize: 10, opacity: 0.78, fontWeight: 700, letterSpacing: "0.03em" }}>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: "0.03em" }}>
                     {habitsBadges.levelLabel} → {habitsBadges.nextLevelLabel}
                   </span>
-                  <span style={{ fontSize: 10, opacity: 0.78, fontWeight: 700 }}>{habitsBadges.levelPct}%</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>{habitsBadges.levelPct}%</span>
                 </div>
-                <div style={{ height: 8, background: "rgba(255,255,255,0.18)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
                   <div style={{
                     height: "100%", width: `${habitsBadges.levelPct}%`,
-                    background: "rgba(255,255,255,0.85)", borderRadius: 99,
+                    background: "var(--t-accent)",
+                    borderRadius: 99,
                     transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
+                    boxShadow: "0 0 10px color-mix(in srgb, var(--t-accent) 50%, transparent)",
                   }} />
                 </div>
               </div>
