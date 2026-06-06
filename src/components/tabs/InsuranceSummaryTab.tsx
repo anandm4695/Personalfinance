@@ -960,22 +960,24 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       )}
 
       {/* LIC SECTION */}
-      <Card style={{ marginBottom: 24, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}>Life Insurance (LIC)</div>
           <Button onClick={() => setModal("lic")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Policy</Button>
         </div>
         {state.lic.length === 0 ? (
-          <EmptyState
-            icon={Shield}
-            gradient="linear-gradient(135deg,#b45309 0%,#f59e0b 100%)"
-            dotColor="#f59e0b"
-            title="No LIC Policies Added Yet"
-            description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
-            pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
-            buttonLabel="Add Policy"
-            onAdd={() => setModal("lic")}
-          />
+          <Card style={{ padding: 24 }}>
+            <EmptyState
+              icon={Shield}
+              gradient="linear-gradient(135deg,#b45309 0%,#f59e0b 100%)"
+              dotColor="#f59e0b"
+              title="No LIC Policies Added Yet"
+              description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
+              pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
+              buttonLabel="Add Policy"
+              onAdd={() => setModal("lic")}
+            />
+          </Card>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.lic.map((l: any) => {
@@ -1071,25 +1073,27 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             })}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* TERM PLANS SECTION */}
-      <Card style={{ marginBottom: 24, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}>Term Insurance Plans</div>
           <Button onClick={() => setModal("term")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
         </div>
         {state.termPlans.length === 0 ? (
-          <EmptyState
-            icon={Heart}
-            gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
-            dotColor="#db2777"
-            title="No Term Plans Tracked"
-            description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
-            pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
-            buttonLabel="Add Term Plan"
-            onAdd={() => setModal("term")}
-          />
+          <Card style={{ padding: 24 }}>
+            <EmptyState
+              icon={Heart}
+              gradient="linear-gradient(135deg,#db2777 0%,#f472b6 100%)"
+              dotColor="#db2777"
+              title="No Term Plans Tracked"
+              description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
+              pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
+              buttonLabel="Add Term Plan"
+              onAdd={() => setModal("term")}
+            />
+          </Card>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.termPlans.map((t: any) => {
@@ -1185,25 +1189,27 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             })}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* INVESTMENT PLANS SECTION */}
-      <Card style={{ marginBottom: 24, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}>Investment Plans (Endowment / ULIP)</div>
           <Button onClick={() => setModal("invest")} size="sm" variant="secondary" icon={<Plus size={14} />}>Add Plan</Button>
         </div>
         {(!state.investmentPlans || state.investmentPlans.length === 0) ? (
-          <EmptyState
-            icon={Sparkles}
-            gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)"
-            dotColor="#059669"
-            title="No Investment Plans Added"
-            description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
-            pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}
-            buttonLabel="Add Plan"
-            onAdd={() => setModal("invest")}
-          />
+          <Card style={{ padding: 24 }}>
+            <EmptyState
+              icon={Sparkles}
+              gradient="linear-gradient(135deg,#059669 0%,#34d399 100%)"
+              dotColor="#059669"
+              title="No Investment Plans Added"
+              description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
+              pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}
+              buttonLabel="Add Plan"
+              onAdd={() => setModal("invest")}
+            />
+          </Card>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
             {state.investmentPlans.map((ip: any) => {
@@ -1318,7 +1324,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             })}
           </div>
         )}
-      </Card>
+      </div>
 
       {(modal || editPolicy) && (
         <AddInsuranceModal 
