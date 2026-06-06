@@ -199,7 +199,6 @@ export const calcTaxNew = (income: number) => {
   // Section 87A rebate: zero tax if taxable income ≤ ₹12L
   if (income <= 1200000) tax = 0;
   // Marginal relief (FY 2025-26): for income 12L–~13.1L, cap tax at (income − 12L)
-  // so taxpayers just above the rebate cliff are never worse off by ₹1 extra income
   else if (income < 1500000) tax = Math.min(tax, income - 1200000);
   const cess = tax * 0.04;
   return { tax, cess, total: tax + cess };
@@ -224,4 +223,233 @@ export const calcTaxOld = (income: number, deductions = 0) => {
   if (taxable <= 500000) tax = 0;
   const cess = tax * 0.04;
   return { tax, cess, total: tax + cess, taxable };
+};
+
+// ── Surcharge u/s 115BAC (new) / normal slab (old) ──────────────────────────
+// Applies only when gross income > ₹50L. New regime capped at 25%.
+const calcSurcharge = (grossIncome: number, baseTax: number, regime: "new" | "old"): number => {
+  if (grossIncome <= 5_000_000) return 0;
+  let rate: number;
+  if (grossIncome <= 10_000_000) rate = 0.10;
+  else if (grossIncome <= 20_000_000) rate = 0.15;
+  else if (grossIncome <= 50_000_000) rate = 0.25;
+  else rate = regime === "new" ? 0.25 : 0.37; // new regime surcharge capped at 25%
+  return Math.round(baseTax * rate);
+};
+
+export interface SlabItem {
+  label: string;
+  range: string;
+  rate: number;
+  incomeInSlab: number;
+  taxInSlab: number;
+}
+
+export interface TaxResult {
+  grossIncome: number;
+  stdDed: number;
+  taxable: number;
+  slabs: SlabItem[];
+  tax: number;          // slab tax before surcharge/cess
+  rebateApplied: boolean;
+  rebateAmount: number;
+  surcharge: number;
+  cess: number;
+  total: number;        // final net tax after all components
+  effectiveRate: number; // % of gross income
+}
+
+// FY-aware new regime: handles FY 2025-26, 2024-25, 2023-24, 2020-23
+export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
+  const fyStart = Number((fy || "2025-26").split("-")[0]) || 2025;
+
+  let stdDed: number;
+  let rawSlabs: Array<[number, number]>;
+  let rebateThreshold: number; // taxable income limit for 87A
+  let fullRebate: boolean;     // true = zero tax entirely; false = partial rebate up to maxRebateAmt
+  let maxRebateAmt: number;
+  let marginalReliefThreshold: number; // income just above rebate limit gets marginal relief
+
+  if (fyStart >= 2025) {
+    // Budget 2025 — applicable FY 2025-26 onwards
+    stdDed = 75_000;
+    rawSlabs = [[400000,0],[800000,0.05],[1200000,0.1],[1600000,0.15],[2000000,0.2],[2400000,0.25],[Infinity,0.3]];
+    rebateThreshold = 1_200_000;
+    fullRebate = true;
+    maxRebateAmt = 0;
+    marginalReliefThreshold = 1_310_000; // ~12L + 1.1L buffer
+  } else if (fyStart >= 2023) {
+    // FY 2023-24 (std ded ₹50K) and FY 2024-25 (std ded ₹75K, Budget 2024)
+    stdDed = fyStart >= 2024 ? 75_000 : 50_000;
+    rawSlabs = [[300000,0],[600000,0.05],[900000,0.1],[1200000,0.15],[1500000,0.2],[Infinity,0.3]];
+    rebateThreshold = 700_000;
+    fullRebate = false;
+    maxRebateAmt = 25_000;
+    marginalReliefThreshold = 770_000;
+  } else {
+    // FY 2020-21, 2021-22, 2022-23 — original new regime
+    stdDed = 0;
+    rawSlabs = [[250000,0],[500000,0.05],[750000,0.1],[1000000,0.15],[1250000,0.2],[1500000,0.25],[Infinity,0.3]];
+    rebateThreshold = 500_000;
+    fullRebate = false;
+    maxRebateAmt = 12_500;
+    marginalReliefThreshold = 0; // no marginal relief in early new regime
+  }
+
+  const taxable = Math.max(0, grossIncome - stdDed);
+  let tax = 0;
+  let prev = 0;
+  const slabItems: SlabItem[] = [];
+
+  const slabLabels: Record<number, string> = {
+    0: "Exempt slab",
+    0.05: "5% slab",
+    0.10: "10% slab",
+    0.15: "15% slab",
+    0.20: "20% slab",
+    0.25: "25% slab",
+    0.30: "30% slab",
+  };
+
+  for (const [limit, rate] of rawSlabs) {
+    if (taxable > prev) {
+      const incomeInSlab = Math.min(taxable, limit) - prev;
+      const taxInSlab = incomeInSlab * rate;
+      tax += taxInSlab;
+      slabItems.push({
+        label: slabLabels[rate] || `${(rate * 100).toFixed(0)}% slab`,
+        range: limit === Infinity
+          ? `Above ₹${(prev / 100000).toFixed(0)}L`
+          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        rate,
+        incomeInSlab,
+        taxInSlab,
+      });
+      prev = limit;
+    } else {
+      // Still add the slab to show it exists, with 0 income
+      slabItems.push({
+        label: slabLabels[rate] || `${(rate * 100).toFixed(0)}% slab`,
+        range: limit === Infinity
+          ? `Above ₹${(prev / 100000).toFixed(0)}L`
+          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        rate,
+        incomeInSlab: 0,
+        taxInSlab: 0,
+      });
+      break;
+    }
+  }
+
+  // Section 87A rebate
+  let rebateApplied = false;
+  let rebateAmount = 0;
+  if (taxable <= rebateThreshold) {
+    if (fullRebate) {
+      rebateAmount = tax;
+      tax = 0;
+    } else {
+      rebateAmount = Math.min(tax, maxRebateAmt);
+      tax = Math.max(0, tax - rebateAmount);
+    }
+    rebateApplied = true;
+  } else if (marginalReliefThreshold > 0 && taxable < marginalReliefThreshold) {
+    // Marginal relief: tax capped at (taxable - rebateThreshold)
+    const capped = taxable - rebateThreshold;
+    if (tax > capped) { tax = capped; rebateApplied = true; rebateAmount = 0; }
+  }
+
+  const surcharge = calcSurcharge(grossIncome, tax, "new");
+  const cess = Math.round((tax + surcharge) * 0.04);
+  const total = tax + surcharge + cess;
+
+  return {
+    grossIncome,
+    stdDed,
+    taxable,
+    slabs: slabItems,
+    tax,
+    rebateApplied,
+    rebateAmount,
+    surcharge,
+    cess,
+    total,
+    effectiveRate: grossIncome > 0 ? (total / grossIncome) * 100 : 0,
+  };
+};
+
+// FY-aware old regime: slabs unchanged since FY 2014-15, deductions vary
+export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy: string): TaxResult => {
+  const fyStart = Number((fy || "2025-26").split("-")[0]) || 2025;
+  // Old regime std deduction: ₹40K (FY 2018-19 to 2019-20), ₹50K (FY 2020-21 onwards)
+  const stdDed = fyStart >= 2020 ? 50_000 : 40_000;
+  // totalDeductions passed in already includes stdDed (callers compute: stdDed + 80C + 80D + …)
+  const taxable = Math.max(0, grossIncome - totalDeductions);
+
+  const rawSlabs: Array<[number, number]> = [
+    [250_000, 0],
+    [500_000, 0.05],
+    [1_000_000, 0.20],
+    [Infinity, 0.30],
+  ];
+
+  let tax = 0;
+  let prev = 0;
+  const slabItems: SlabItem[] = [];
+
+  for (const [limit, rate] of rawSlabs) {
+    if (taxable > prev) {
+      const incomeInSlab = Math.min(taxable, limit) - prev;
+      const taxInSlab = incomeInSlab * rate;
+      tax += taxInSlab;
+      slabItems.push({
+        label: rate === 0 ? "Exempt slab" : `${(rate * 100).toFixed(0)}% slab`,
+        range: limit === Infinity
+          ? `Above ₹${(prev / 100000).toFixed(0)}L`
+          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        rate,
+        incomeInSlab,
+        taxInSlab,
+      });
+      prev = limit;
+    } else {
+      slabItems.push({
+        label: rate === 0 ? "Exempt slab" : `${(rate * 100).toFixed(0)}% slab`,
+        range: limit === Infinity
+          ? `Above ₹${(prev / 100000).toFixed(0)}L`
+          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        rate,
+        incomeInSlab: 0,
+        taxInSlab: 0,
+      });
+      break;
+    }
+  }
+
+  // 87A rebate: max ₹12,500 for old regime; effectively zero tax if taxable ≤ 5L
+  let rebateApplied = false;
+  let rebateAmount = 0;
+  if (taxable <= 500_000) {
+    rebateAmount = Math.min(tax, 12_500);
+    tax = Math.max(0, tax - rebateAmount);
+    rebateApplied = true;
+  }
+
+  const surcharge = calcSurcharge(grossIncome, tax, "old");
+  const cess = Math.round((tax + surcharge) * 0.04);
+  const total = tax + surcharge + cess;
+
+  return {
+    grossIncome,
+    stdDed,
+    taxable,
+    slabs: slabItems,
+    tax,
+    rebateApplied,
+    rebateAmount,
+    surcharge,
+    cess,
+    total,
+    effectiveRate: grossIncome > 0 ? (total / grossIncome) * 100 : 0,
+  };
 };
