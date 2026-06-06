@@ -1555,8 +1555,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       })()}
 
       {/* Sub-tab Navigation */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div className="demat-portfolio-bar no-scrollbar" style={{ flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+        {/* flex: 0 1 auto + min-width: 0 prevents the bar from stretching beyond pill content */}
+        <div className="demat-portfolio-bar no-scrollbar" style={{ flex: "0 1 auto", minWidth: 0, marginBottom: 0 }}>
           {subs.map((s) => {
             const Icon = s.icon;
             return (
@@ -1571,9 +1572,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
         </div>
-        <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => setShowReport(true)}>
-          Monthly Report
-        </Button>
+        <div style={{ flexShrink: 0 }}>
+          <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => setShowReport(true)}>
+            Monthly Report
+          </Button>
+        </div>
       </div>
 
       {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
@@ -4493,7 +4496,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           {/* Gradient uses hardcoded colors — CSS var+hex-alpha is invalid CSS */}
           <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20 }}>
             <div style={{
-              background: "linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #0d9488 100%)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 90%, #000) 0%, var(--t-accent) 52%, color-mix(in srgb, var(--t-accent) 45%, #0d9488) 100%)",
               padding: "28px 24px 22px",
               color: "#fff",
             }}>
