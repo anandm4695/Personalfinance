@@ -57,7 +57,7 @@ import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 // Modular Imports
 import { THEME, ACCENT_PALETTES, DENSITY, LIGHT_VARS, DARK_VARS, PROFILES } from "./utils/constants";
 import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
-import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal, getLocalDateString } from "./utils/finance";
+import { fmtINR, fmtINRFull, uid, today, monthsBetween, getCCDueDate, calcTaxNew, calcTaxOld, loadState, saveStateLocal, getLocalDateString, getTaxDueForDashboard } from "./utils/finance";
 
 
 // Tab Imports
@@ -1210,10 +1210,8 @@ function FinanceDashboard() {
       .reduce((s, c) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
     const creditUtilization = totalCCLimit > 0 ? (ccOutstanding / totalCCLimit) * 100 : 0;
 
-    // Bug fix: new regime FY 2025-26 applies ₹75,000 standard deduction before slab computation
-    const taxDue = sState.profile.regime === "old"
-      ? calcTaxOld(annualIncome).total
-      : calcTaxNew(Math.max(0, annualIncome - 75000)).total;
+    // Compute FY-aware tax liability with auto-detected deductions and manual overrides
+    const taxDue = getTaxDueForDashboard(sState, annualIncome);
 
     const expenseBreakdownMap = monthTxns
       .filter((t) => t.type === "debit")
@@ -2918,7 +2916,7 @@ function FinanceDashboard() {
               />
             )}
             {tab === "investments" && <InvestmentsTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} subTab={subTab} onSubTabChange={setSubTab} />}
-            {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
+            {tab === "tax" && <TaxVaultTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} updateProfile={updateProfile} updateMasterData={updateMasterData} />}
             {tab === "rental" && <RentalTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />}
             {tab === "banks" && (
               <BanksTab 

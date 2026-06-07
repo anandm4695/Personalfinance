@@ -278,10 +278,18 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
     fullRebate = true;
     maxRebateAmt = 0;
     marginalReliefThreshold = 1_310_000; // ~12L + 1.1L buffer
-  } else if (fyStart >= 2023) {
-    // FY 2023-24 (std ded ₹50K) and FY 2024-25 (std ded ₹75K, Budget 2024)
-    stdDed = fyStart >= 2024 ? 75_000 : 50_000;
-    rawSlabs = [[300000,0],[600000,0.05],[900000,0.1],[1200000,0.15],[1500000,0.2],[Infinity,0.3]];
+  } else if (fyStart === 2024) {
+    // FY 2024-25 (std ded ₹75K, Budget 2024 slab revision)
+    stdDed = 75_000;
+    rawSlabs = [[300000, 0], [700000, 0.05], [1000000, 0.1], [1200000, 0.15], [1500000, 0.2], [Infinity, 0.3]];
+    rebateThreshold = 700_000;
+    fullRebate = false;
+    maxRebateAmt = 25_000;
+    marginalReliefThreshold = 770_000;
+  } else if (fyStart === 2023) {
+    // FY 2023-24 (std ded ₹50K)
+    stdDed = 50_000;
+    rawSlabs = [[300000, 0], [600000, 0.05], [900000, 0.1], [1200000, 0.15], [1500000, 0.2], [Infinity, 0.3]];
     rebateThreshold = 700_000;
     fullRebate = false;
     maxRebateAmt = 25_000;
@@ -452,4 +460,129 @@ export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy:
     total,
     effectiveRate: grossIncome > 0 ? (total / grossIncome) * 100 : 0,
   };
+};
+
+export interface AutoDetectedDeductions {
+  d80C: number;
+  d80C_sources: string | null;
+  hra: number;
+  hra_source: string | null;
+  homeLoan: number;
+  homeLoan_source: string | null;
+}
+
+export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedDeductions => {
+  const fyParts = (fy || "2025-26").split("-");
+  const fyStartYear = Number(fyParts[0]) || 2025;
+  const fyStartStr = `${fyStartYear}-04-01`;
+  const fyEndStr = `${fyStartYear + 1}-03-31`;
+
+  // 80C — ELSS purchases in FY
+  const elss = (state.mutualFunds || [])
+    .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr)
+    .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+
+  // 80C — PPF deposits in FY (ledger first, else yearly contribution)
+  const ppfThisYear = (state.ppfLedger || [])
+    .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
+    .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const ppf = ppfThisYear > 0
+    ? ppfThisYear
+    : (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+
+  // 80C — LIC annual premiums
+  const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+
+  // 80C — EPF employee contributions in FY
+  const epf = (state.epf || []).reduce((s: number, e: any) => {
+    return s + (e.transactions || [])
+      .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
+      .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+  }, 0);
+
+  const d80C_raw = elss + ppf + lic + epf;
+  const d80C_sources = [
+    elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
+    ppf > 0  ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
+    lic > 0  ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
+    epf > 0  ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
+  ].filter(Boolean).join(" + ") || null;
+
+  // HRA — rent paid in FY from rented properties (user is a tenant)
+  const hraPayments = (state.rentedProperties || []).reduce((s: number, p: any) => {
+    return s + (p.payments || [])
+      .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
+      .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0);
+  }, 0);
+  const hraMonthly = (state.rentedProperties || []).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+  const hra_raw = hraPayments > 0 ? hraPayments : (hraMonthly > 0 ? hraMonthly * 12 : 0);
+  const hra_source = hra_raw > 0
+    ? (hraPayments > 0 ? `Rent payments logged in FY ${fyStartStr.slice(0,4)}-${fyEndStr.slice(2,4)}` : "Monthly rent × 12")
+    : null;
+
+  // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
+  const homeLoanData = (state.loansTaken || [])
+    .filter((l: any) => (l.type || "").toLowerCase() === "home")
+    .map((l: any) => {
+      const outstanding = Number(l.outstanding) || 0;
+      const rate = Number(l.rate) || 0;
+      const annualInterest = Math.round(outstanding * rate / 100);
+      return { lender: l.lender || "Home Loan", annualInterest };
+    });
+  const homeLoan_raw = homeLoanData.reduce((s: number, l: any) => s + l.annualInterest, 0);
+  const homeLoan_source = homeLoan_raw > 0
+    ? homeLoanData.map((l: any) => l.lender).join(", ") + " (approx. interest)"
+    : null;
+
+  return {
+    d80C: Math.min(d80C_raw, 150_000),
+    d80C_sources,
+    hra: Math.round(hra_raw),
+    hra_source,
+    homeLoan: Math.min(homeLoan_raw, 200_000),
+    homeLoan_source,
+  };
+};
+
+export const getTaxDueForDashboard = (state: any, annualIncome: number): number => {
+  const fy = state.profile?.fy || "2025-26";
+  const regime = state.profile?.regime || "new";
+
+  if (regime === "new") {
+    // Standard deduction for new regime is handled inside calcTaxNewByFY
+    const taxRes = calcTaxNewByFY(annualIncome, fy);
+    return taxRes.total;
+  } else {
+    // Old regime: standard deduction + auto-detected deductions + manual overrides
+    const auto = getAutoDetectedDeductions(state, fy);
+    const overrides = state.masterData?.taxDeductions?.[fy] || {};
+
+    const d80C = overrides.d80C !== undefined ? overrides.d80C : auto.d80C;
+    const d80D = overrides.d80D !== undefined ? overrides.d80D : 0;
+    const hra = overrides.hra !== undefined ? overrides.hra : auto.hra;
+    const homeLoan = overrides.homeLoan !== undefined ? overrides.homeLoan : auto.homeLoan;
+    const nps = overrides.nps !== undefined ? overrides.nps : 0;
+    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0;
+    const d80G = overrides.d80G !== undefined ? overrides.d80G : 0;
+    const d80E = overrides.d80E !== undefined ? overrides.d80E : 0;
+    const d80TTA = overrides.d80TTA !== undefined ? overrides.d80TTA : 0;
+
+    const fyParts = fy.split("-");
+    const fyStartYear = Number(fyParts[0]) || 2025;
+    const stdDedOld = fyStartYear >= 2020 ? 50_000 : 40_000;
+
+    const totalOldDeductions = stdDedOld
+      + Math.min(d80C, 150_000)
+      + Math.min(d80D, 25_000)
+      + hra
+      + Math.min(homeLoan, 200_000)
+      + Math.min(nps, 50_000)
+      + (d80CCD2 || 0)
+      + (d80G || 0)
+      + (d80E || 0)
+      + Math.min(d80TTA || 0, 10_000);
+
+    const taxRes = calcTaxOldByFY(annualIncome, totalOldDeductions, fy);
+    return taxRes.total;
+  }
 };

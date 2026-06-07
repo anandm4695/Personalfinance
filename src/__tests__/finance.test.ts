@@ -10,6 +10,10 @@ import {
   autoCateg,
   uid,
   today,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
+  getAutoDetectedDeductions,
+  getTaxDueForDashboard,
 } from "../utils/finance";
 
 // ---------------------------------------------------------------------------
@@ -295,5 +299,97 @@ describe("today", () => {
     const d = new Date();
     const expected = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     expect(today()).toBe(expected);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FY-aware Tax Calculations
+// ---------------------------------------------------------------------------
+describe("FY-aware Tax Calculations", () => {
+  describe("calcTaxNewByFY", () => {
+    it("calculates correct tax for FY 2023-24 new regime", () => {
+      // Gross: 10L. Std Ded: 50K. Taxable: 9.5L
+      // 0-3L: 0, 3-6L (5%): 15k, 6-9L (10%): 30k, 9-12L (15%): 50k * 0.15 = 7.5k.
+      // Total: 52.5k tax + 2.1k cess = 54.6k
+      const res = calcTaxNewByFY(1000000, "2023-24");
+      expect(res.stdDed).toBe(50000);
+      expect(res.taxable).toBe(950000);
+      expect(res.tax).toBe(52500);
+      expect(res.total).toBe(54600);
+    });
+
+    it("calculates correct tax for FY 2024-25 new regime", () => {
+      // Gross: 10L. Std Ded: 75K. Taxable: 9.25L
+      // 0-3L: 0, 3-7L (5%): 4L * 0.05 = 20k, 7-10L (10%): 2.25L * 0.10 = 22.5k.
+      // Total: 42.5k tax + 1.7k cess = 44.2k
+      const res = calcTaxNewByFY(1000000, "2024-25");
+      expect(res.stdDed).toBe(75000);
+      expect(res.taxable).toBe(925000);
+      expect(res.tax).toBe(42500);
+      expect(res.total).toBe(44200);
+    });
+  });
+
+  describe("getAutoDetectedDeductions", () => {
+    it("extracts auto-detected deductions correctly", () => {
+      const state = {
+        mutualFunds: [
+          { category: "ELSS", invested: 120000, buyDate: "2025-05-10" },
+          { category: "ELSS", invested: 50000, buyDate: "2024-05-10" } // outer FY
+        ],
+        ppfLedger: [
+          { amount: 30000, date: "2025-06-15", type: "deposit" }
+        ],
+        lic: [
+          { annualPremium: 20000 }
+        ],
+        epf: [
+          {
+            transactions: [
+              { type: "employee", amount: 15000, date: "2025-08-01" }
+            ]
+          }
+        ],
+        rentedProperties: [
+          { monthlyRent: 10000 } // fallback rent = 120,000
+        ],
+        loansTaken: [
+          { type: "Home", outstanding: 1000000, rate: 8.5 } // annual interest approx 85,000
+        ]
+      };
+
+      const auto = getAutoDetectedDeductions(state, "2025-26");
+      // 80C should be: ELSS (120k) + PPF (30k) + LIC (20k) + EPF (15k) = 185k -> capped at 150k
+      expect(auto.d80C).toBe(150000);
+      expect(auto.hra).toBe(120000);
+      expect(auto.homeLoan).toBe(85000);
+    });
+  });
+
+  describe("getTaxDueForDashboard", () => {
+    it("respects overrides stored in masterData", () => {
+      const state = {
+        profile: { fy: "2025-26", regime: "old" },
+        masterData: {
+          taxDeductions: {
+            "2025-26": { d80D: 25000, nps: 50000 }
+          }
+        },
+        mutualFunds: [],
+        ppfLedger: [],
+        lic: [],
+        epf: [],
+        rentedProperties: [],
+        loansTaken: []
+      };
+
+      // Income = 10L
+      // Deductions: stdDed (50k) + 80D (25k) + NPS (50k) = 125k
+      // Taxable: 8.75L
+      // Slabs: 0-2.5L: 0, 2.5-5L (5%): 12.5k, 5-8.75L (20%): 3.75L * 0.20 = 75k
+      // Total tax: 87.5k before cess. Cess = 87.5k * 0.04 = 3.5k. Total = 91k.
+      const taxDue = getTaxDueForDashboard(state, 1000000);
+      expect(taxDue).toBe(91000);
+    });
   });
 });

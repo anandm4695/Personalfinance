@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Calculator, Shield, History, Plus, Trash2, Calendar, Target,
   CheckCircle2, TrendingUp, BookOpen, Percent, RefreshCw,
@@ -10,7 +10,7 @@ import { THEME } from "../../utils/constants";
 import {
   fmtINRFull, calcTaxNew, calcTaxOld,
   calcTaxNewByFY, calcTaxOldByFY,
-  today, uid
+  today, uid, getAutoDetectedDeductions
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -170,9 +170,11 @@ interface TaxVaultTabProps {
   addItem: any;
   removeItem: any;
   updateItem: any;
+  updateProfile?: any;
+  updateMasterData?: any;
 }
 
-export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addItem, removeItem }) => {
+export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addItem, removeItem, updateItem, updateProfile, updateMasterData }) => {
   const [subTab, setSubTab] = useState<"income" | "capitalGains">("income");
   const [showModal, setShowModal] = useState(false);
   const [incomeOverride, setIncomeOverride] = useState<string>("");
@@ -195,6 +197,19 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
   const [activeRegime, setActiveRegime] = useState<"new" | "old">(
     hasNewRegime ? (state.profile?.regime || defaultRegime) : "old"
   );
+
+  useEffect(() => {
+    if (hasNewRegime && state.profile?.regime) {
+      setActiveRegime(state.profile.regime);
+    }
+  }, [state.profile?.regime, hasNewRegime]);
+
+  const handleRegimeChange = (regime: "new" | "old") => {
+    setActiveRegime(regime);
+    if (updateProfile) {
+      updateProfile({ regime });
+    }
+  };
 
   /* ── Deductions state (pre-filled from portfolio data) ────────── */
   const autoDetected = useMemo(() => {
@@ -262,20 +277,55 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
     };
   }, [state.mutualFunds, state.ppfLedger, state.ppf, state.lic, state.epf, state.rentedProperties, state.loansTaken, fyStartStr, fyEndStr]);
 
+  // Load initial deductions state from masterData overrides or fall back to auto-detected
+  const overrides = state.masterData?.taxDeductions?.[fy] || {};
+
   const [deductions, setDeductions] = useState(() => ({
-    d80C: autoDetected.d80C,
-    d80D: 0,        // Health insurance not tracked in app — enter manually
-    hra: autoDetected.hra,
-    homeLoan: autoDetected.homeLoan,
-    nps: 0,
-    d80CCD2: 0,
-    d80G: 0,
-    d80E: 0,
-    d80TTA: 0,
+    d80C: overrides.d80C !== undefined ? overrides.d80C : autoDetected.d80C,
+    d80D: overrides.d80D !== undefined ? overrides.d80D : 0,
+    hra: overrides.hra !== undefined ? overrides.hra : autoDetected.hra,
+    homeLoan: overrides.homeLoan !== undefined ? overrides.homeLoan : autoDetected.homeLoan,
+    nps: overrides.nps !== undefined ? overrides.nps : 0,
+    d80CCD2: overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0,
+    d80G: overrides.d80G !== undefined ? overrides.d80G : 0,
+    d80E: overrides.d80E !== undefined ? overrides.d80E : 0,
+    d80TTA: overrides.d80TTA !== undefined ? overrides.d80TTA : 0,
   }));
 
+  // Sync deductions state on external changes or FY change
+  useEffect(() => {
+    const ov = state.masterData?.taxDeductions?.[fy] || {};
+    setDeductions({
+      d80C: ov.d80C !== undefined ? ov.d80C : autoDetected.d80C,
+      d80D: ov.d80D !== undefined ? ov.d80D : 0,
+      hra: ov.hra !== undefined ? ov.hra : autoDetected.hra,
+      homeLoan: ov.homeLoan !== undefined ? ov.homeLoan : autoDetected.homeLoan,
+      nps: ov.nps !== undefined ? ov.nps : 0,
+      d80CCD2: ov.d80CCD2 !== undefined ? ov.d80CCD2 : 0,
+      d80G: ov.d80G !== undefined ? ov.d80G : 0,
+      d80E: ov.d80E !== undefined ? ov.d80E : 0,
+      d80TTA: ov.d80TTA !== undefined ? ov.d80TTA : 0,
+    });
+  }, [fy, state.masterData?.taxDeductions, autoDetected.d80C, autoDetected.hra, autoDetected.homeLoan]);
+
   const setDed = (key: string, val: string) =>
-    setDeductions(prev => ({ ...prev, [key]: Number(val) || 0 }));
+    setDeductions(prev => ({ ...prev, [key]: val === "" ? "" : (Number(val) || 0) }));
+
+  const handleDeductionBlur = (key: string, value: number, isRawEmpty: boolean) => {
+    if (updateMasterData) {
+      const currentOverrides = state.masterData?.taxDeductions?.[fy] || {};
+      const updatedOverrides = { ...currentOverrides };
+      if (isRawEmpty) {
+        delete updatedOverrides[key];
+      } else {
+        updatedOverrides[key] = value;
+      }
+      updateMasterData("taxDeductions", {
+        ...(state.masterData?.taxDeductions || {}),
+        [fy]: updatedOverrides
+      });
+    }
+  };
 
   /* ── Income ─────────────────────────────────────────────────── */
   const detectedIncome = metrics.annualIncome || (metrics.monthIncome || 0) * 12;
@@ -673,8 +723,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
         rightElement={
           subTab === "income" && hasNewRegime ? (
             <div style={{ display: "flex", gap: 8 }}>
-              <Button size="sm" variant={activeRegime === "new" ? "accent" : "ghost"} onClick={() => setActiveRegime("new")}>New Regime</Button>
-              <Button size="sm" variant={activeRegime === "old" ? "accent" : "ghost"} onClick={() => setActiveRegime("old")}>Old Regime</Button>
+              <Button size="sm" variant={activeRegime === "new" ? "accent" : "ghost"} onClick={() => handleRegimeChange("new")}>New Regime</Button>
+              <Button size="sm" variant={activeRegime === "old" ? "accent" : "ghost"} onClick={() => handleRegimeChange("old")}>Old Regime</Button>
             </div>
           ) : undefined
         }
@@ -810,7 +860,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                         )}
                       </div>
                       <button
-                        onClick={() => setActiveRegime(regimeVerdict.better as any)}
+                        onClick={() => handleRegimeChange(regimeVerdict.better as any)}
                         style={{ padding: "6px 12px", borderRadius: 8, background: regimeVerdict.better === "new" ? THEME.accent : THEME.gold, color: "#fff", border: "none", fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}
                       >
                         Switch to {regimeVerdict.better === "new" ? "New" : "Old"}
@@ -1121,8 +1171,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               {/* 80C */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <Field label="80C — ELSS, PPF, LIC, EPF, NSC (max ₹1.5L)">
-                  <input className="form-input" type="number" value={deductions.d80C} onChange={e => setDed("d80C", e.target.value)} />
+                <Field label="80C — ELSS, PPF, LIC, EPF, NSC (max ₹1.5L)" style={{ marginBottom: 0 }}>
+                  <input className="form-input" type="number" value={deductions.d80C} onChange={e => setDed("d80C", e.target.value)} onBlur={e => handleDeductionBlur("d80C", Number(e.target.value) || 0, e.target.value === "")} />
                 </Field>
                 {(() => {
                   const used = Math.min(Number(deductions.d80C) || 0, 150_000);
@@ -1149,16 +1199,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
               </div>
 
               <div>
-                <Field label="80D — Health Insurance (max ₹25K)">
-                  <input className="form-input" type="number" value={deductions.d80D} onChange={e => setDed("d80D", e.target.value)} />
+                <Field label="80D — Health Insurance (max ₹25K)" style={{ marginBottom: 0 }}>
+                  <input className="form-input" type="number" value={deductions.d80D} onChange={e => setDed("d80D", e.target.value)} onBlur={e => handleDeductionBlur("d80D", Number(e.target.value) || 0, e.target.value === "")} />
                 </Field>
                 <div style={{ marginTop: 5, fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
                   ✏️ Enter manually — health insurance not tracked in app
                 </div>
               </div>
               <div>
-                <Field label="HRA Exemption [u/s 10(13A)]">
-                  <input className="form-input" type="number" value={deductions.hra} onChange={e => setDed("hra", e.target.value)} />
+                <Field label="HRA Exemption [u/s 10(13A)]" style={{ marginBottom: 0 }}>
+                  <input className="form-input" type="number" value={deductions.hra} onChange={e => setDed("hra", e.target.value)} onBlur={e => handleDeductionBlur("hra", Number(e.target.value) || 0, e.target.value === "")} />
                 </Field>
                 {autoDetected.hra_source ? (
                   <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
@@ -1171,8 +1221,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                 )}
               </div>
               <div>
-                <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)">
-                  <input className="form-input" type="number" value={deductions.homeLoan} onChange={e => setDed("homeLoan", e.target.value)} />
+                <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)" style={{ marginBottom: 0 }}>
+                  <input className="form-input" type="number" value={deductions.homeLoan} onChange={e => setDed("homeLoan", e.target.value)} onBlur={e => handleDeductionBlur("homeLoan", Number(e.target.value) || 0, e.target.value === "")} />
                 </Field>
                 {autoDetected.homeLoan_source ? (
                   <div style={{ marginTop: 5, fontSize: 10, fontWeight: 700, color: THEME.accent }}>
@@ -1184,22 +1234,22 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({ state, metrics, addIte
                   </div>
                 )}
               </div>
-              <Field label="NPS Self — 80CCD(1B) (max ₹50K, old only)">
-                <input className="form-input" type="number" value={deductions.nps} onChange={e => setDed("nps", e.target.value)} />
+              <Field label="NPS Self — 80CCD(1B) (max ₹50K, old only)" style={{ marginBottom: 0 }}>
+                <input className="form-input" type="number" value={deductions.nps} onChange={e => setDed("nps", e.target.value)} onBlur={e => handleDeductionBlur("nps", Number(e.target.value) || 0, e.target.value === "")} />
               </Field>
-              <Field label={`NPS Employer — 80CCD(2) (${activeRegime === "new" ? "14%" : "10%"} of salary · both regimes)`}>
-                <input className="form-input" type="number" value={deductions.d80CCD2 || 0} onChange={e => setDed("d80CCD2", e.target.value)} />
+              <Field label={`NPS Employer — 80CCD(2) (${activeRegime === "new" ? "14%" : "10%"} of salary · both regimes)`} style={{ marginBottom: 0 }}>
+                <input className="form-input" type="number" value={deductions.d80CCD2 || 0} onChange={e => setDed("d80CCD2", e.target.value)} onBlur={e => handleDeductionBlur("d80CCD2", Number(e.target.value) || 0, e.target.value === "")} />
               </Field>
-              <Field label="80G — Donations to eligible institutions">
-                <input className="form-input" type="number" value={deductions.d80G || 0} onChange={e => setDed("d80G", e.target.value)} />
+              <Field label="80G — Donations to eligible institutions" style={{ marginBottom: 0 }}>
+                <input className="form-input" type="number" value={deductions.d80G || 0} onChange={e => setDed("d80G", e.target.value)} onBlur={e => handleDeductionBlur("d80G", Number(e.target.value) || 0, e.target.value === "")} />
               </Field>
-              <Field label="80E — Education Loan Interest (no cap)">
-                <input className="form-input" type="number" value={deductions.d80E || 0} onChange={e => setDed("d80E", e.target.value)} />
+              <Field label="80E — Education Loan Interest (no cap)" style={{ marginBottom: 0 }}>
+                <input className="form-input" type="number" value={deductions.d80E || 0} onChange={e => setDed("d80E", e.target.value)} onBlur={e => handleDeductionBlur("d80E", Number(e.target.value) || 0, e.target.value === "")} />
               </Field>
-              <Field label="80TTA — Savings Interest (max ₹10K; 80TTB ₹50K for seniors)">
-                <input className="form-input" type="number" value={deductions.d80TTA || 0} onChange={e => setDed("d80TTA", e.target.value)} />
+              <Field label="80TTA — Savings Interest (max ₹10K; 80TTB ₹50K for seniors)" style={{ marginBottom: 0 }}>
+                <input className="form-input" type="number" value={deductions.d80TTA || 0} onChange={e => setDed("d80TTA", e.target.value)} onBlur={e => handleDeductionBlur("d80TTA", Number(e.target.value) || 0, e.target.value === "")} />
               </Field>
-              <Field label={`Standard Deduction (Old Regime — ₹${stdDedOld.toLocaleString("en-IN")})`}>
+              <Field label={`Standard Deduction (Old Regime — ₹${stdDedOld.toLocaleString("en-IN")})`} style={{ marginBottom: 0 }}>
                 <input className="form-input" type="number" value={stdDedOld} disabled />
               </Field>
             </div>
