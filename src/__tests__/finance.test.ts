@@ -11,7 +11,6 @@ import {
   uid,
   today,
   calcTaxNewByFY,
-  calcTaxOldByFY,
   getAutoDetectedDeductions,
   getTaxDueForDashboard,
 } from "../utils/finance";
@@ -115,18 +114,14 @@ describe("calcCAGR", () => {
   });
 
   it("returns ~0 CAGR when invested = current over 1 year", () => {
-    const oneYearAgo = new Date(Date.now() - 365.25 * 24 * 3600 * 1000)
-      .toISOString()
-      .slice(0, 10);
+    const oneYearAgo = new Date(Date.now() - 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const cagr = calcCAGR(100, 100, oneYearAgo);
     expect(cagr).not.toBeNull();
     expect(Math.abs(cagr!)).toBeLessThan(0.1);
   });
 
   it("returns ~10% CAGR for 10% gain over 1 year", () => {
-    const oneYearAgo = new Date(Date.now() - 365.25 * 24 * 3600 * 1000)
-      .toISOString()
-      .slice(0, 10);
+    const oneYearAgo = new Date(Date.now() - 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const cagr = calcCAGR(100, 110, oneYearAgo);
     expect(cagr).not.toBeNull();
     expect(cagr!).toBeCloseTo(10, 0);
@@ -335,27 +330,21 @@ describe("FY-aware Tax Calculations", () => {
       const state = {
         mutualFunds: [
           { category: "ELSS", invested: 120000, buyDate: "2025-05-10" },
-          { category: "ELSS", invested: 50000, buyDate: "2024-05-10" } // outer FY
+          { category: "ELSS", invested: 50000, buyDate: "2024-05-10" }, // outer FY
         ],
-        ppfLedger: [
-          { amount: 30000, date: "2025-06-15", type: "deposit" }
-        ],
-        lic: [
-          { annualPremium: 20000 }
-        ],
+        ppfLedger: [{ amount: 30000, date: "2025-06-15", type: "deposit" }],
+        lic: [{ annualPremium: 20000 }],
         epf: [
           {
-            transactions: [
-              { type: "employee", amount: 15000, date: "2025-08-01" }
-            ]
-          }
+            transactions: [{ type: "employee", amount: 15000, date: "2025-08-01" }],
+          },
         ],
         rentedProperties: [
-          { monthlyRent: 10000 } // fallback rent = 120,000
+          { monthlyRent: 10000 }, // fallback rent = 120,000
         ],
         loansTaken: [
-          { type: "Home", outstanding: 1000000, rate: 8.5 } // annual interest approx 85,000
-        ]
+          { type: "Home", outstanding: 1000000, rate: 8.5 }, // annual interest approx 85,000
+        ],
       };
 
       const auto = getAutoDetectedDeductions(state, "2025-26");
@@ -372,15 +361,15 @@ describe("FY-aware Tax Calculations", () => {
         profile: { fy: "2025-26", regime: "old" },
         masterData: {
           taxDeductions: {
-            "2025-26": { d80D: 25000, nps: 50000 }
-          }
+            "2025-26": { d80D: 25000, nps: 50000 },
+          },
         },
         mutualFunds: [],
         ppfLedger: [],
         lic: [],
         epf: [],
         rentedProperties: [],
-        loansTaken: []
+        loansTaken: [],
       };
 
       // Income = 10L

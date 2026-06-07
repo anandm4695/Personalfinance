@@ -54,9 +54,7 @@ export const today = () => getLocalDateString(new Date());
 export const monthsBetween = (d1: string, d2: string) => {
   const a = new Date(d1),
     b = new Date(d2);
-  return (
-    (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth())
-  );
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 };
 
 // ── Rental Escalation Tier Helpers ────────────────────────────────────────────
@@ -133,16 +131,37 @@ export const autoCateg = (note: string): string | null => {
   if (!note) return null;
   const n = note.toLowerCase();
   const rules: [RegExp, string][] = [
-    [/zomato|swiggy|dunzo|eatsure|domino|pizza|restaurant|cafe|dining|meal|biryani|mcdonalds|kfc|burger|blinkit.*food/i, "Food"],
-    [/grocery|bigbasket|jiomart|zepto|grofers|supermarket|vegetables?|fruits?|departmental/i, "Groceries"],
-    [/\buber\b|ola cab|rapido|auto.*rikshaw|cab ride|taxi|metro|train ticket|bus ticket|flight|airline|petrol|diesel|fuel pump/i, "Transport"],
+    [
+      /zomato|swiggy|dunzo|eatsure|domino|pizza|restaurant|cafe|dining|meal|biryani|mcdonalds|kfc|burger|blinkit.*food/i,
+      "Food",
+    ],
+    [
+      /grocery|bigbasket|jiomart|zepto|grofers|supermarket|vegetables?|fruits?|departmental/i,
+      "Groceries",
+    ],
+    [
+      /\buber\b|ola cab|rapido|auto.*rikshaw|cab ride|taxi|metro|train ticket|bus ticket|flight|airline|petrol|diesel|fuel pump/i,
+      "Transport",
+    ],
     [/rent|landlord|\bpg\b|hostel|accommodation/i, "Rent"],
-    [/electricity|water bill|gas bill|internet|broadband|wifi|\bjio\b|\bairtel\b|\bbsnl\b|\bvi\b|vodafone|recharge|postpaid|prepaid/i, "Bills"],
+    [
+      /electricity|water bill|gas bill|internet|broadband|wifi|\bjio\b|\bairtel\b|\bbsnl\b|\bvi\b|vodafone|recharge|postpaid|prepaid/i,
+      "Bills",
+    ],
     [/salary|payroll|\bctc\b|bonus|incentive|appraisal|stipend/i, "Salary"],
-    [/\bsip\b|mutual fund|stock purchase|zerodha|groww|nifty|sensex|invest|ppf deposit|nps.*contrib|demat/i, "Investment"],
+    [
+      /\bsip\b|mutual fund|stock purchase|zerodha|groww|nifty|sensex|invest|ppf deposit|nps.*contrib|demat/i,
+      "Investment",
+    ],
     [/\bemi\b|loan repay|hdfc.*loan|sbi.*loan|equitas/i, "EMI"],
-    [/insurance|lic.*premium|term.*insur|policy.*premium|health.*insur|star.*health|niva.*bupa|hdfc.*ergo|bajaj.*allianz/i, "Insurance"],
-    [/\bsubscription\b|\brenew\b|netflix|hotstar|prime.*video|disney.*plus|spotify|amazon.*prime|zee5|sonyliv|apple.*tv|crunchyroll/i, "Subscription"],
+    [
+      /insurance|lic.*premium|term.*insur|policy.*premium|health.*insur|star.*health|niva.*bupa|hdfc.*ergo|bajaj.*allianz/i,
+      "Insurance",
+    ],
+    [
+      /\bsubscription\b|\brenew\b|netflix|hotstar|prime.*video|disney.*plus|spotify|amazon.*prime|zee5|sonyliv|apple.*tv|crunchyroll/i,
+      "Subscription",
+    ],
     [/amazon|flipkart|myntra|ajio|meesho|nykaa|snapdeal|shopping|purchase order/i, "Shopping"],
     [/doctor|hospital|pharmacy|medicine|chemist|health|apollo|max.*hosp|fortis|clinic/i, "Medical"],
     [/\bmovie\b|cinema|pvr|multiplex|bookmyshow/i, "Entertainment"],
@@ -230,7 +249,7 @@ export const calcTaxOld = (income: number, deductions = 0) => {
 const calcSurcharge = (grossIncome: number, baseTax: number, regime: "new" | "old"): number => {
   if (grossIncome <= 5_000_000) return 0;
   let rate: number;
-  if (grossIncome <= 10_000_000) rate = 0.10;
+  if (grossIncome <= 10_000_000) rate = 0.1;
   else if (grossIncome <= 20_000_000) rate = 0.15;
   else if (grossIncome <= 50_000_000) rate = 0.25;
   else rate = regime === "new" ? 0.25 : 0.37; // new regime surcharge capped at 25%
@@ -250,12 +269,12 @@ export interface TaxResult {
   stdDed: number;
   taxable: number;
   slabs: SlabItem[];
-  tax: number;          // slab tax before surcharge/cess
+  tax: number; // slab tax before surcharge/cess
   rebateApplied: boolean;
   rebateAmount: number;
   surcharge: number;
   cess: number;
-  total: number;        // final net tax after all components
+  total: number; // final net tax after all components
   effectiveRate: number; // % of gross income
 }
 
@@ -266,14 +285,22 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   let stdDed: number;
   let rawSlabs: Array<[number, number]>;
   let rebateThreshold: number; // taxable income limit for 87A
-  let fullRebate: boolean;     // true = zero tax entirely; false = partial rebate up to maxRebateAmt
+  let fullRebate: boolean; // true = zero tax entirely; false = partial rebate up to maxRebateAmt
   let maxRebateAmt: number;
   let marginalReliefThreshold: number; // income just above rebate limit gets marginal relief
 
   if (fyStart >= 2025) {
     // Budget 2025 — applicable FY 2025-26 onwards
     stdDed = 75_000;
-    rawSlabs = [[400000,0],[800000,0.05],[1200000,0.1],[1600000,0.15],[2000000,0.2],[2400000,0.25],[Infinity,0.3]];
+    rawSlabs = [
+      [400000, 0],
+      [800000, 0.05],
+      [1200000, 0.1],
+      [1600000, 0.15],
+      [2000000, 0.2],
+      [2400000, 0.25],
+      [Infinity, 0.3],
+    ];
     rebateThreshold = 1_200_000;
     fullRebate = true;
     maxRebateAmt = 0;
@@ -281,7 +308,14 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   } else if (fyStart === 2024) {
     // FY 2024-25 (std ded ₹75K, Budget 2024 slab revision)
     stdDed = 75_000;
-    rawSlabs = [[300000, 0], [700000, 0.05], [1000000, 0.1], [1200000, 0.15], [1500000, 0.2], [Infinity, 0.3]];
+    rawSlabs = [
+      [300000, 0],
+      [700000, 0.05],
+      [1000000, 0.1],
+      [1200000, 0.15],
+      [1500000, 0.2],
+      [Infinity, 0.3],
+    ];
     rebateThreshold = 700_000;
     fullRebate = false;
     maxRebateAmt = 25_000;
@@ -289,7 +323,14 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   } else if (fyStart === 2023) {
     // FY 2023-24 (std ded ₹50K)
     stdDed = 50_000;
-    rawSlabs = [[300000, 0], [600000, 0.05], [900000, 0.1], [1200000, 0.15], [1500000, 0.2], [Infinity, 0.3]];
+    rawSlabs = [
+      [300000, 0],
+      [600000, 0.05],
+      [900000, 0.1],
+      [1200000, 0.15],
+      [1500000, 0.2],
+      [Infinity, 0.3],
+    ];
     rebateThreshold = 700_000;
     fullRebate = false;
     maxRebateAmt = 25_000;
@@ -297,7 +338,15 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   } else {
     // FY 2020-21, 2021-22, 2022-23 — original new regime
     stdDed = 0;
-    rawSlabs = [[250000,0],[500000,0.05],[750000,0.1],[1000000,0.15],[1250000,0.2],[1500000,0.25],[Infinity,0.3]];
+    rawSlabs = [
+      [250000, 0],
+      [500000, 0.05],
+      [750000, 0.1],
+      [1000000, 0.15],
+      [1250000, 0.2],
+      [1500000, 0.25],
+      [Infinity, 0.3],
+    ];
     rebateThreshold = 500_000;
     fullRebate = false;
     maxRebateAmt = 12_500;
@@ -312,11 +361,11 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   const slabLabels: Record<number, string> = {
     0: "Exempt slab",
     0.05: "5% slab",
-    0.10: "10% slab",
+    0.1: "10% slab",
     0.15: "15% slab",
-    0.20: "20% slab",
+    0.2: "20% slab",
     0.25: "25% slab",
-    0.30: "30% slab",
+    0.3: "30% slab",
   };
 
   for (const [limit, rate] of rawSlabs) {
@@ -326,9 +375,10 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
       tax += taxInSlab;
       slabItems.push({
         label: slabLabels[rate] || `${(rate * 100).toFixed(0)}% slab`,
-        range: limit === Infinity
-          ? `Above ₹${(prev / 100000).toFixed(0)}L`
-          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        range:
+          limit === Infinity
+            ? `Above ₹${(prev / 100000).toFixed(0)}L`
+            : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
         rate,
         incomeInSlab,
         taxInSlab,
@@ -338,9 +388,10 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
       // Still add the slab to show it exists, with 0 income
       slabItems.push({
         label: slabLabels[rate] || `${(rate * 100).toFixed(0)}% slab`,
-        range: limit === Infinity
-          ? `Above ₹${(prev / 100000).toFixed(0)}L`
-          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        range:
+          limit === Infinity
+            ? `Above ₹${(prev / 100000).toFixed(0)}L`
+            : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
         rate,
         incomeInSlab: 0,
         taxInSlab: 0,
@@ -364,7 +415,11 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
   } else if (marginalReliefThreshold > 0 && taxable < marginalReliefThreshold) {
     // Marginal relief: tax capped at (taxable - rebateThreshold)
     const capped = taxable - rebateThreshold;
-    if (tax > capped) { tax = capped; rebateApplied = true; rebateAmount = 0; }
+    if (tax > capped) {
+      tax = capped;
+      rebateApplied = true;
+      rebateAmount = 0;
+    }
   }
 
   const surcharge = calcSurcharge(grossIncome, tax, "new");
@@ -387,7 +442,11 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
 };
 
 // FY-aware old regime: slabs unchanged since FY 2014-15, deductions vary
-export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy: string): TaxResult => {
+export const calcTaxOldByFY = (
+  grossIncome: number,
+  totalDeductions: number,
+  fy: string
+): TaxResult => {
   const fyStart = Number((fy || "2025-26").split("-")[0]) || 2025;
   // Old regime std deduction: ₹40K (FY 2018-19 to 2019-20), ₹50K (FY 2020-21 onwards)
   const stdDed = fyStart >= 2020 ? 50_000 : 40_000;
@@ -397,8 +456,8 @@ export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy:
   const rawSlabs: Array<[number, number]> = [
     [250_000, 0],
     [500_000, 0.05],
-    [1_000_000, 0.20],
-    [Infinity, 0.30],
+    [1_000_000, 0.2],
+    [Infinity, 0.3],
   ];
 
   let tax = 0;
@@ -412,9 +471,10 @@ export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy:
       tax += taxInSlab;
       slabItems.push({
         label: rate === 0 ? "Exempt slab" : `${(rate * 100).toFixed(0)}% slab`,
-        range: limit === Infinity
-          ? `Above ₹${(prev / 100000).toFixed(0)}L`
-          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        range:
+          limit === Infinity
+            ? `Above ₹${(prev / 100000).toFixed(0)}L`
+            : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
         rate,
         incomeInSlab,
         taxInSlab,
@@ -423,9 +483,10 @@ export const calcTaxOldByFY = (grossIncome: number, totalDeductions: number, fy:
     } else {
       slabItems.push({
         label: rate === 0 ? "Exempt slab" : `${(rate * 100).toFixed(0)}% slab`,
-        range: limit === Infinity
-          ? `Above ₹${(prev / 100000).toFixed(0)}L`
-          : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
+        range:
+          limit === Infinity
+            ? `Above ₹${(prev / 100000).toFixed(0)}L`
+            : `₹${(prev / 100000).toFixed(0)}L – ₹${(limit / 100000).toFixed(0)}L`,
         rate,
         incomeInSlab: 0,
         taxInSlab: 0,
@@ -479,46 +540,73 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
 
   // 80C — ELSS purchases in FY
   const elss = (state.mutualFunds || [])
-    .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr)
+    .filter(
+      (m: any) =>
+        (m.type || m.category || "").toUpperCase().includes("ELSS") &&
+        m.buyDate &&
+        m.buyDate >= fyStartStr &&
+        m.buyDate <= fyEndStr
+    )
     .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
 
   // 80C — PPF deposits in FY (ledger first, else yearly contribution)
   const ppfThisYear = (state.ppfLedger || [])
-    .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
+    .filter(
+      (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+    )
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-  const ppf = ppfThisYear > 0
-    ? ppfThisYear
-    : (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+  const ppf =
+    ppfThisYear > 0
+      ? ppfThisYear
+      : (state.ppf || []).reduce(
+          (s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0),
+          0
+        );
 
   // 80C — LIC annual premiums
   const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
 
   // 80C — EPF employee contributions in FY
   const epf = (state.epf || []).reduce((s: number, e: any) => {
-    return s + (e.transactions || [])
-      .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
-      .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    return (
+      s +
+      (e.transactions || [])
+        .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
+    );
   }, 0);
 
   const d80C_raw = elss + ppf + lic + epf;
-  const d80C_sources = [
-    elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
-    ppf > 0  ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
-    lic > 0  ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
-    epf > 0  ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
-  ].filter(Boolean).join(" + ") || null;
+  const d80C_sources =
+    [
+      elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
+      ppf > 0 ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
+      lic > 0 ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
+      epf > 0 ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
+    ]
+      .filter(Boolean)
+      .join(" + ") || null;
 
   // HRA — rent paid in FY from rented properties (user is a tenant)
   const hraPayments = (state.rentedProperties || []).reduce((s: number, p: any) => {
-    return s + (p.payments || [])
-      .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
-      .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0);
+    return (
+      s +
+      (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
+        .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0)
+    );
   }, 0);
-  const hraMonthly = (state.rentedProperties || []).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
-  const hra_raw = hraPayments > 0 ? hraPayments : (hraMonthly > 0 ? hraMonthly * 12 : 0);
-  const hra_source = hra_raw > 0
-    ? (hraPayments > 0 ? `Rent payments logged in FY ${fyStartStr.slice(0,4)}-${fyEndStr.slice(2,4)}` : "Monthly rent × 12")
-    : null;
+  const hraMonthly = (state.rentedProperties || []).reduce(
+    (s: number, p: any) => s + Number(p.monthlyRent || 0),
+    0
+  );
+  const hra_raw = hraPayments > 0 ? hraPayments : hraMonthly > 0 ? hraMonthly * 12 : 0;
+  const hra_source =
+    hra_raw > 0
+      ? hraPayments > 0
+        ? `Rent payments logged in FY ${fyStartStr.slice(0, 4)}-${fyEndStr.slice(2, 4)}`
+        : "Monthly rent × 12"
+      : null;
 
   // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
   const homeLoanData = (state.loansTaken || [])
@@ -526,13 +614,14 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
     .map((l: any) => {
       const outstanding = Number(l.outstanding) || 0;
       const rate = Number(l.rate) || 0;
-      const annualInterest = Math.round(outstanding * rate / 100);
+      const annualInterest = Math.round((outstanding * rate) / 100);
       return { lender: l.lender || "Home Loan", annualInterest };
     });
   const homeLoan_raw = homeLoanData.reduce((s: number, l: any) => s + l.annualInterest, 0);
-  const homeLoan_source = homeLoan_raw > 0
-    ? homeLoanData.map((l: any) => l.lender).join(", ") + " (approx. interest)"
-    : null;
+  const homeLoan_source =
+    homeLoan_raw > 0
+      ? homeLoanData.map((l: any) => l.lender).join(", ") + " (approx. interest)"
+      : null;
 
   return {
     d80C: Math.min(d80C_raw, 150_000),
@@ -571,16 +660,17 @@ export const getTaxDueForDashboard = (state: any, annualIncome: number): number 
     const fyStartYear = Number(fyParts[0]) || 2025;
     const stdDedOld = fyStartYear >= 2020 ? 50_000 : 40_000;
 
-    const totalOldDeductions = stdDedOld
-      + Math.min(d80C, 150_000)
-      + Math.min(d80D, 25_000)
-      + hra
-      + Math.min(homeLoan, 200_000)
-      + Math.min(nps, 50_000)
-      + (d80CCD2 || 0)
-      + (d80G || 0)
-      + (d80E || 0)
-      + Math.min(d80TTA || 0, 10_000);
+    const totalOldDeductions =
+      stdDedOld +
+      Math.min(d80C, 150_000) +
+      Math.min(d80D, 25_000) +
+      hra +
+      Math.min(homeLoan, 200_000) +
+      Math.min(nps, 50_000) +
+      (d80CCD2 || 0) +
+      (d80G || 0) +
+      (d80E || 0) +
+      Math.min(d80TTA || 0, 10_000);
 
     const taxRes = calcTaxOldByFY(annualIncome, totalOldDeductions, fy);
     return taxRes.total;

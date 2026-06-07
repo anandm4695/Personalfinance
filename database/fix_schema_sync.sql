@@ -289,6 +289,7 @@ CREATE TABLE IF NOT EXISTS public.rental_properties (
   payments            jsonb DEFAULT '[]'::jsonb,
   deposit_deductions  jsonb DEFAULT '[]'::jsonb,
   deposit_returned    numeric DEFAULT 0,
+  property_value      numeric DEFAULT 0,
   created_at          timestamp with time zone DEFAULT now()
 );
 
@@ -491,6 +492,7 @@ ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS rent_ledger       
 ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS deposit_transactions jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS due_day              integer DEFAULT 1;
 ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS escalation_tiers     jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.rental_properties ADD COLUMN IF NOT EXISTS property_value       numeric DEFAULT 0;
 
 -- subscriptions
 ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS remark text;

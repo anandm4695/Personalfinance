@@ -20,20 +20,26 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
   });
 
   const setPrivacyMode = (v: boolean | ((prev: boolean) => boolean)) => {
-    setPrivacyModeState(prev => {
+    setPrivacyModeState((prev) => {
       const next = typeof v === "function" ? v(prev) : v;
-      try { localStorage.setItem(PRIVACY_KEY, String(next)); } catch {}
+      try {
+        localStorage.setItem(PRIVACY_KEY, String(next));
+      } catch {}
       return next;
     });
   };
 
   useEffect(() => {
     document.body.classList.toggle("privacy-mode", privacyMode);
-    return () => { document.body.classList.remove("privacy-mode"); };
+    return () => {
+      document.body.classList.remove("privacy-mode");
+    };
   }, [privacyMode]);
 
   return (
-    <PrivacyContext.Provider value={{ privacyMode, setPrivacyMode: setPrivacyMode as (v: boolean) => void }}>
+    <PrivacyContext.Provider
+      value={{ privacyMode, setPrivacyMode: setPrivacyMode as (v: boolean) => void }}
+    >
       {children}
     </PrivacyContext.Provider>
   );
@@ -46,7 +52,10 @@ export const Prv = ({ children }: { children: React.ReactNode }) => {
   const { privacyMode } = usePrivacy();
   if (!privacyMode) return <>{children}</>;
   return (
-    <span aria-hidden="true" style={{ letterSpacing: "0.1em", userSelect: "none", fontFamily: "inherit" }}>
+    <span
+      aria-hidden="true"
+      style={{ letterSpacing: "0.1em", userSelect: "none", fontFamily: "inherit" }}
+    >
       ••••
     </span>
   );

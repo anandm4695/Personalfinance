@@ -1,6 +1,16 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Plus, Pencil, Trash2, Flag, Target, PiggyBank, TrendingDown, Activity, Calendar } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Flag,
+  Target,
+  PiggyBank,
+  TrendingDown,
+  Activity,
+  Calendar,
+} from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
@@ -11,7 +21,6 @@ import { Badge } from "../ui/Badge";
 
 // Internal helper components
 
-
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "32px 20px", textAlign: "center", color: THEME.muted }}>
     <div style={{ fontSize: 13 }}>{text}</div>
@@ -19,29 +28,74 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const GoalEmptyState = ({ onAdd }: any) => (
-  <Card style={{ padding: "64px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
-    <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 20px rgba(217,119,6,0.2)" }}>
+  <Card
+    style={{
+      padding: "64px 40px",
+      textAlign: "center",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 24,
+    }}
+  >
+    <div
+      style={{
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 10px 20px rgba(217,119,6,0.2)",
+      }}
+    >
       <Flag size={28} color="#fff" />
     </div>
     <div>
-      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>No Goals Added Yet</h3>
-      <p style={{ fontSize: 14, color: THEME.muted, maxWidth: 420, lineHeight: 1.6, margin: "0 auto" }}>
-        Set financial goals — a house down payment, retirement corpus, car, education, or emergency fund — and watch your progress every day.
+      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>
+        No Goals Added Yet
+      </h3>
+      <p
+        style={{
+          fontSize: 14,
+          color: THEME.muted,
+          maxWidth: 420,
+          lineHeight: 1.6,
+          margin: "0 auto",
+        }}
+      >
+        Set financial goals — a house down payment, retirement corpus, car, education, or emergency
+        fund — and watch your progress every day.
       </p>
     </div>
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(f => (
-        <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>● {f}</Badge>
-      ))}
+      {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(
+        (f) => (
+          <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>
+            ● {f}
+          </Badge>
+        )
+      )}
     </div>
-    <Button variant="accent" size="lg" icon={<Plus size={18} />} onClick={onAdd} style={{ marginTop: 8 }}>
+    <Button
+      variant="accent"
+      size="lg"
+      icon={<Plus size={18} />}
+      onClick={onAdd}
+      style={{ marginTop: 8 }}
+    >
       Set Your First Goal
     </Button>
   </Card>
 );
 
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
-const PRIORITY_COLOR: Record<string, string> = { High: "#ef4444", Medium: "#f59e0b", Low: "#22c55e" };
+const PRIORITY_COLOR: Record<string, string> = {
+  High: "#ef4444",
+  Medium: "#f59e0b",
+  Low: "#22c55e",
+};
 
 export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: any) {
   const [show, setShow] = useState(false);
@@ -57,19 +111,26 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
 
   // Total monthly savings needed across all incomplete, time-bound goals
   const totalMonthlyRequired = state.goals.reduce((s: number, g: any) => {
-    const isComplete = Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount);
+    const isComplete =
+      Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount);
     if (isComplete || !g.targetDate) return s;
     const monthsLeft = Math.max(0, monthsBetween(today(), g.targetDate));
     const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
     return s + (monthsLeft > 0 ? remaining / monthsLeft : 0);
   }, 0);
-  const monthlySavings = metrics ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0)) : 0;
+  const monthlySavings = metrics
+    ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0))
+    : 0;
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
-  
-  const completedCount = state.goals.filter((g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)).length;
-  
+
+  const completedCount = state.goals.filter(
+    (g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)
+  ).length;
+
   const onTrackCount = state.goals.filter((g: any) => {
-    const progress = Number(g.targetAmount) ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100 : 0;
+    const progress = Number(g.targetAmount)
+      ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
+      : 0;
     if (progress >= 100) return false;
     if (!g.targetDate) return true;
     const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
@@ -78,10 +139,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     const expectedPct = total > 0 ? (elapsed / total) * 100 : 0;
     return progress >= expectedPct - 10;
   }).length;
-  
+
   const behindCount = state.goals.length - completedCount - onTrackCount;
 
-  const priBreakdown = (["High", "Medium", "Low"] as const).map(p => {
+  const priBreakdown = (["High", "Medium", "Low"] as const).map((p) => {
     const gs = state.goals.filter((g: any) => (g.priority || "Medium") === p);
     return {
       priority: p,
@@ -92,7 +153,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   });
 
   const sortedGoals = [...state.goals]
-    .filter(g => filterPriority === "all" || (g.priority || "Medium") === filterPriority)
+    .filter((g) => filterPriority === "all" || (g.priority || "Medium") === filterPriority)
     .sort((a, b) => {
       const pa = PRIORITY_ORDER[a.priority] ?? 2;
       const pb = PRIORITY_ORDER[b.priority] ?? 2;
@@ -103,11 +164,13 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     pct >= 100 ? THEME.sage : pct >= 75 ? THEME.gold : pct >= 40 ? THEME.accent : THEME.rust;
 
   const fmtGoalDate = (d: string) =>
-    d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : "";
+    d
+      ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
+      : "";
 
   return (
     <div className="tab-content-enter">
-      <SectionTitle 
+      <SectionTitle
         sub="What the money is for — down payments, retirement, freedom"
         rightElement={
           state.goals.length > 0 && (
@@ -123,36 +186,141 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       {state.goals.length > 0 && (
         <>
           {/* Stat cards — matches Banks tab StatCard style */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 28,
+            }}
+          >
             {[
-              { label: "Total Target",     value: fmtINRFull(totalTarget),                                                         color: THEME.accent,   Icon: Target      },
-              { label: "Total Saved",      value: fmtINRFull(totalSaved),                                                          color: THEME.sage,     Icon: PiggyBank   },
-              { label: "Remaining",        value: fmtINRFull(totalRemaining),                                                      color: THEME.rust,     Icon: TrendingDown },
-              { label: "Overall Progress", value: `${overallPct.toFixed(1)}%`,                                                     color: ringColor(overallPct), Icon: Activity },
-              { label: "Monthly Required", value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",        color: totalMonthlyRequired > 0 && monthlySavings > 0 && totalMonthlyRequired > monthlySavings ? THEME.rust : THEME.gold, Icon: Calendar },
+              {
+                label: "Total Target",
+                value: fmtINRFull(totalTarget),
+                color: THEME.accent,
+                Icon: Target,
+              },
+              {
+                label: "Total Saved",
+                value: fmtINRFull(totalSaved),
+                color: THEME.sage,
+                Icon: PiggyBank,
+              },
+              {
+                label: "Remaining",
+                value: fmtINRFull(totalRemaining),
+                color: THEME.rust,
+                Icon: TrendingDown,
+              },
+              {
+                label: "Overall Progress",
+                value: `${overallPct.toFixed(1)}%`,
+                color: ringColor(overallPct),
+                Icon: Activity,
+              },
+              {
+                label: "Monthly Required",
+                value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",
+                color:
+                  totalMonthlyRequired > 0 &&
+                  monthlySavings > 0 &&
+                  totalMonthlyRequired > monthlySavings
+                    ? THEME.rust
+                    : THEME.gold,
+                Icon: Calendar,
+              },
             ].map(({ label, value, color, Icon }) => (
-              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+              <div
+                key={label}
+                className="card-lift"
+                style={{
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `4px solid ${color}`,
+                  borderRadius: 14,
+                  padding: "18px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: `${color}1f`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color,
+                      flexShrink: 0,
+                    }}
+                  >
                     <Icon size={18} />
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase" as const,
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {label}
+                  </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: THEME.ink,
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {value}
+                </div>
               </div>
             ))}
           </div>
 
           <Card style={{ marginBottom: 32, padding: 28 }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16, fontWeight: 700 }}>Portfolio Completion — {overallPct.toFixed(1)}% achieved</div>
-            <div style={{ height: 12, background: THEME.line, borderRadius: 6, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{
-                height: "100%",
-                width: `${Math.min(overallPct, 100)}%`,
-                background: `linear-gradient(90deg, ${ringColor(overallPct)}, ${ringColor(overallPct)}cc)`,
+            <div
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: THEME.muted,
+                marginBottom: 16,
+                fontWeight: 700,
+              }}
+            >
+              Portfolio Completion — {overallPct.toFixed(1)}% achieved
+            </div>
+            <div
+              style={{
+                height: 12,
+                background: THEME.line,
                 borderRadius: 6,
-                transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
-              }} />
+                overflow: "hidden",
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(overallPct, 100)}%`,
+                  background: `linear-gradient(90deg, ${ringColor(overallPct)}, ${ringColor(overallPct)}cc)`,
+                  borderRadius: 6,
+                  transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)",
+                }}
+              />
             </div>
             <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
               <Badge variant="sage">✓ {completedCount} completed</Badge>
@@ -161,26 +329,83 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             </div>
 
             <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 24 }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: THEME.muted, marginBottom: 20, fontWeight: 700 }}>Breakdown by Priority</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-                {priBreakdown.map(p => {
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                  color: THEME.muted,
+                  marginBottom: 20,
+                  fontWeight: 700,
+                }}
+              >
+                Breakdown by Priority
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                {priBreakdown.map((p) => {
                   const pPct = p.target > 0 ? (p.saved / p.target) * 100 : 0;
                   return (
-                    <div key={p.priority} style={{
-                      padding: "16px 20px",
-                      borderRadius: 14,
-                      border: `1px solid ${PRIORITY_COLOR[p.priority]}28`,
-                      background: `${PRIORITY_COLOR[p.priority]}08`,
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: PRIORITY_COLOR[p.priority], textTransform: "uppercase", letterSpacing: "0.1em" }}>{p.priority}</span>
-                        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{p.count} goal{p.count !== 1 ? "s" : ""}</span>
+                    <div
+                      key={p.priority}
+                      style={{
+                        padding: "16px 20px",
+                        borderRadius: 14,
+                        border: `1px solid ${PRIORITY_COLOR[p.priority]}28`,
+                        background: `${PRIORITY_COLOR[p.priority]}08`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 12,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: PRIORITY_COLOR[p.priority],
+                            textTransform: "uppercase",
+                            letterSpacing: "0.1em",
+                          }}
+                        >
+                          {p.priority}
+                        </span>
+                        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          {p.count} goal{p.count !== 1 ? "s" : ""}
+                        </span>
                       </div>
-                      <div style={{ height: 6, background: THEME.line, borderRadius: 3, marginBottom: 12, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${Math.min(pPct, 100)}%`, background: PRIORITY_COLOR[p.priority], borderRadius: 3, transition: "width 0.6s ease" }} />
+                      <div
+                        style={{
+                          height: 6,
+                          background: THEME.line,
+                          borderRadius: 3,
+                          marginBottom: 12,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${Math.min(pPct, 100)}%`,
+                            background: PRIORITY_COLOR[p.priority],
+                            borderRadius: 3,
+                            transition: "width 0.6s ease",
+                          }}
+                        />
                       </div>
                       <div style={{ fontSize: 12, color: THEME.muted }}>
-                        <span style={{ color: THEME.ink, fontWeight: 800 }}>{fmtINRFull(p.saved)}</span>
+                        <span style={{ color: THEME.ink, fontWeight: 800 }}>
+                          {fmtINRFull(p.saved)}
+                        </span>
                         <span style={{ opacity: 0.6 }}> / {fmtINRFull(p.target)}</span>
                       </div>
                     </div>
@@ -193,10 +418,19 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       )}
 
       {state.goals.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 24,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Filter:</span>
-            {(["all", "High", "Medium", "Low"] as const).map(p => (
+            {(["all", "High", "Medium", "Low"] as const).map((p) => (
               <Button
                 key={p}
                 size="sm"
@@ -205,8 +439,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 style={{
                   padding: "4px 14px",
                   height: 32,
-                  ...(filterPriority !== p && p !== "all" ? { color: PRIORITY_COLOR[p], borderColor: `${PRIORITY_COLOR[p]}33` } : {}),
-                  ...(filterPriority === p && p !== "all" ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p] } : {})
+                  ...(filterPriority !== p && p !== "all"
+                    ? { color: PRIORITY_COLOR[p], borderColor: `${PRIORITY_COLOR[p]}33` }
+                    : {}),
+                  ...(filterPriority === p && p !== "all"
+                    ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p] }
+                    : {}),
                 }}
               >
                 {p === "all" ? "All" : p}
@@ -216,7 +454,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+              onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
               style={{ height: 32 }}
             >
               {sortDir === "desc" ? "High → Low" : "Low → High"}
@@ -238,9 +476,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
               : 0;
             const isComplete = progress >= 100;
-            const monthsLeft = g.targetDate
-              ? Math.max(0, monthsBetween(today(), g.targetDate))
-              : 0;
+            const monthsLeft = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate)) : 0;
             const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
             const monthlyNeeded = monthsLeft > 0 ? remaining / monthsLeft : 0;
             const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
@@ -250,70 +486,223 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             const rc = ringColor(progress);
 
             return (
-              <Card key={g.id} style={{ padding: 24, borderTop: `3px solid ${isComplete ? THEME.sage : (PRIORITY_COLOR[g.priority] || THEME.muted)}` }}>
+              <Card
+                key={g.id}
+                style={{
+                  padding: 24,
+                  borderTop: `3px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
+                }}
+              >
                 {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                    flexWrap: "wrap",
+                    gap: 12,
+                  }}
+                >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: THEME.muted }}>{g.category}</div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        letterSpacing: "0.25em",
+                        textTransform: "uppercase",
+                        color: THEME.muted,
+                      }}
+                    >
+                      {g.category}
+                    </div>
                     {g.priority && (
-                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: PRIORITY_COLOR[g.priority] || THEME.muted, border: `1px solid ${PRIORITY_COLOR[g.priority] || THEME.muted}`, borderRadius: 4, padding: "1px 6px" }}>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          color: PRIORITY_COLOR[g.priority] || THEME.muted,
+                          border: `1px solid ${PRIORITY_COLOR[g.priority] || THEME.muted}`,
+                          borderRadius: 4,
+                          padding: "1px 6px",
+                        }}
+                      >
                         {g.priority}
                       </span>
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     {isComplete && (
-                      <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.sage}22`, color: THEME.sage, border: `1px solid ${THEME.sage}55`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: `${THEME.sage}22`,
+                          color: THEME.sage,
+                          border: `1px solid ${THEME.sage}55`,
+                          borderRadius: 6,
+                          padding: "2px 8px",
+                          letterSpacing: "0.1em",
+                        }}
+                      >
                         COMPLETED
                       </span>
                     )}
                     {isBehind && (
-                      <span style={{ fontSize: 10, fontWeight: 700, background: `${THEME.rust}15`, color: THEME.rust, border: `1px solid ${THEME.rust}44`, borderRadius: 6, padding: "2px 8px", letterSpacing: "0.1em" }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: `${THEME.rust}15`,
+                          color: THEME.rust,
+                          border: `1px solid ${THEME.rust}44`,
+                          borderRadius: 6,
+                          padding: "2px 8px",
+                          letterSpacing: "0.1em",
+                        }}
+                      >
                         BEHIND
                       </span>
                     )}
-                    <button onClick={() => setEditGoal(g)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, display: "inline-flex", alignItems: "center", padding: 4, borderRadius: 6 }} title="Edit Goal">
+                    <button
+                      onClick={() => setEditGoal(g)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.muted,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: 4,
+                        borderRadius: 6,
+                      }}
+                      title="Edit Goal"
+                    >
                       <Pencil size={14} />
                     </button>
-                    <button onClick={() => removeItem("goals", g.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, display: "inline-flex", alignItems: "center", padding: 4, borderRadius: 6 }} title="Delete Goal">
+                    <button
+                      onClick={() => removeItem("goals", g.id)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.muted,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: 4,
+                        borderRadius: 6,
+                      }}
+                      title="Delete Goal"
+                    >
                       <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
 
                 {/* Content Row: Goal Name, Start/Target Dates, Current/Target Amounts */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 16,
+                    flexWrap: "wrap",
+                    marginBottom: 16,
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: 240 }}>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800 }}>{g.name}</div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 6, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div
+                      style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 800 }}
+                    >
+                      {g.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: THEME.muted,
+                        marginTop: 6,
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
                       {g.startDate && <span>Started: {fmtGoalDate(g.startDate)}</span>}
-                      {g.targetDate && <span>Target: {fmtGoalDate(g.targetDate)} · {monthsLeft}m left</span>}
+                      {g.targetDate && (
+                        <span>
+                          Target: {fmtGoalDate(g.targetDate)} · {monthsLeft}m left
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800 }}>
+                    <div
+                      style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800 }}
+                    >
                       {fmtINRFull(g.currentAmount)}{" "}
-                      <span style={{ color: THEME.muted, fontSize: 15 }}>/ {fmtINRFull(g.targetAmount)}</span>
+                      <span style={{ color: THEME.muted, fontSize: 15 }}>
+                        / {fmtINRFull(g.targetAmount)}
+                      </span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: rc, marginTop: 4 }}>{progress.toFixed(1)}% reached</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: rc, marginTop: 4 }}>
+                      {progress.toFixed(1)}% reached
+                    </div>
                   </div>
                 </div>
 
                 {/* Progress Details Row */}
                 <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                   {(() => {
-                    const r = 36, sz = 88, cx = sz / 2;
+                    const r = 36,
+                      sz = 88,
+                      cx = sz / 2;
                     const circ = 2 * Math.PI * r;
                     const dashOff = circ * (1 - Math.min(progress, 100) / 100);
                     return (
                       <svg width={sz} height={sz} style={{ flexShrink: 0 }}>
-                        <circle cx={cx} cy={cx} r={r} fill="none" stroke={THEME.line} strokeWidth="7" />
-                        <circle cx={cx} cy={cx} r={r} fill="none" stroke={rc} strokeWidth="7"
-                          strokeDasharray={circ} strokeDashoffset={dashOff} strokeLinecap="round"
-                          style={{ transformOrigin: `${cx}px ${cx}px`, transform: "rotate(-90deg)", transition: "stroke-dashoffset 0.6s ease" }}
+                        <circle
+                          cx={cx}
+                          cy={cx}
+                          r={r}
+                          fill="none"
+                          stroke={THEME.line}
+                          strokeWidth="7"
                         />
-                        <text x={cx} y={cx - 4} textAnchor="middle" fontSize="13" fontWeight="800" fill={rc}>{Math.min(Math.round(progress), 100)}%</text>
-                        <text x={cx} y={cx + 12} textAnchor="middle" fontSize="9" fill={THEME.muted}>{isComplete ? "DONE!" : "done"}</text>
+                        <circle
+                          cx={cx}
+                          cy={cx}
+                          r={r}
+                          fill="none"
+                          stroke={rc}
+                          strokeWidth="7"
+                          strokeDasharray={circ}
+                          strokeDashoffset={dashOff}
+                          strokeLinecap="round"
+                          style={{
+                            transformOrigin: `${cx}px ${cx}px`,
+                            transform: "rotate(-90deg)",
+                            transition: "stroke-dashoffset 0.6s ease",
+                          }}
+                        />
+                        <text
+                          x={cx}
+                          y={cx - 4}
+                          textAnchor="middle"
+                          fontSize="13"
+                          fontWeight="800"
+                          fill={rc}
+                        >
+                          {Math.min(Math.round(progress), 100)}%
+                        </text>
+                        <text
+                          x={cx}
+                          y={cx + 12}
+                          textAnchor="middle"
+                          fontSize="9"
+                          fill={THEME.muted}
+                        >
+                          {isComplete ? "DONE!" : "done"}
+                        </text>
                       </svg>
                     );
                   })()}
@@ -321,110 +710,315 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     {/* Tinted stat tiles */}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                       {[
-                        { label: "Saved",      value: fmtINRFull(g.currentAmount), color: THEME.sage },
-                        { label: "Remaining",  value: fmtINRFull(remaining),       color: THEME.rust },
-                        ...(g.targetDate ? [{ label: "Months Left", value: String(monthsLeft), color: isBehind ? THEME.rust : THEME.accent }] : []),
+                        { label: "Saved", value: fmtINRFull(g.currentAmount), color: THEME.sage },
+                        { label: "Remaining", value: fmtINRFull(remaining), color: THEME.rust },
+                        ...(g.targetDate
+                          ? [
+                              {
+                                label: "Months Left",
+                                value: String(monthsLeft),
+                                color: isBehind ? THEME.rust : THEME.accent,
+                              },
+                            ]
+                          : []),
                       ].map(({ label, value, color }) => (
-                        <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "7px 12px", borderRadius: 8, background: `${color}09`, border: `1px solid ${color}22`, flex: "1 1 80px" }}>
-                          <span style={{ fontSize: 9, letterSpacing: "0.07em", textTransform: "uppercase" as const, color: THEME.muted, fontWeight: 700 }}>{label}</span>
+                        <div
+                          key={label}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                            padding: "7px 12px",
+                            borderRadius: 8,
+                            background: `${color}09`,
+                            border: `1px solid ${color}22`,
+                            flex: "1 1 80px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 9,
+                              letterSpacing: "0.07em",
+                              textTransform: "uppercase" as const,
+                              color: THEME.muted,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {label}
+                          </span>
                           <span style={{ fontSize: 13, fontWeight: 800, color }}>{value}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* Time-elapsed progress bar */}
-                    {g.startDate && g.targetDate && (() => {
-                      const totalM = monthsBetween(g.startDate, g.targetDate);
-                      const elapsedM = Math.max(0, monthsBetween(g.startDate, today()));
-                      const timePct = totalM > 0 ? Math.min(100, (elapsedM / totalM) * 100) : 0;
-                      if (totalM <= 0) return null;
-                      return (
-                        <div style={{ marginBottom: 12 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
-                            <span>TIME ELAPSED</span>
-                            <span style={{ color: isBehind ? THEME.rust : THEME.accent, fontWeight: 700 }}>{timePct.toFixed(0)}%</span>
+                    {g.startDate &&
+                      g.targetDate &&
+                      (() => {
+                        const totalM = monthsBetween(g.startDate, g.targetDate);
+                        const elapsedM = Math.max(0, monthsBetween(g.startDate, today()));
+                        const timePct = totalM > 0 ? Math.min(100, (elapsedM / totalM) * 100) : 0;
+                        if (totalM <= 0) return null;
+                        return (
+                          <div style={{ marginBottom: 12 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                fontSize: 9,
+                                color: THEME.muted,
+                                marginBottom: 4,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <span>TIME ELAPSED</span>
+                              <span
+                                style={{
+                                  color: isBehind ? THEME.rust : THEME.accent,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {timePct.toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="progress-track">
+                              <div
+                                className="progress-fill"
+                                style={{
+                                  width: `${timePct}%`,
+                                  background: isBehind ? THEME.rust : THEME.accent,
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div className="progress-track">
-                            <div className="progress-fill" style={{ width: `${timePct}%`, background: isBehind ? THEME.rust : THEME.accent }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
 
                     {monthlyNeeded > 0 && !isComplete && (
                       <div style={{ marginTop: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
                           <div style={{ fontSize: 12, color: THEME.muted }}>
-                            Monthly needed: <span style={{ fontWeight: 800, color: THEME.ink }}>{fmtINRFull(monthlyNeeded)}</span><span style={{ fontSize: 10 }}> /mo</span>
+                            Monthly needed:{" "}
+                            <span style={{ fontWeight: 800, color: THEME.ink }}>
+                              {fmtINRFull(monthlyNeeded)}
+                            </span>
+                            <span style={{ fontSize: 10 }}> /mo</span>
                           </div>
                           <button
-                            onClick={() => setSipExpanded(prev => {
-                              const next = new Set(prev);
-                              next.has(g.id) ? next.delete(g.id) : next.add(g.id);
-                              return next;
-                            })}
-                            style={{ fontSize: 10, fontWeight: 700, color: sipExpanded.has(g.id) ? "#fff" : THEME.accent, background: sipExpanded.has(g.id) ? THEME.accent : `${THEME.accent}15`, border: `1px solid ${THEME.accent}33`, borderRadius: 20, padding: "3px 10px", cursor: "pointer" }}
+                            onClick={() =>
+                              setSipExpanded((prev) => {
+                                const next = new Set(prev);
+                                next.has(g.id) ? next.delete(g.id) : next.add(g.id);
+                                return next;
+                              })
+                            }
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: sipExpanded.has(g.id) ? "#fff" : THEME.accent,
+                              background: sipExpanded.has(g.id)
+                                ? THEME.accent
+                                : `${THEME.accent}15`,
+                              border: `1px solid ${THEME.accent}33`,
+                              borderRadius: 20,
+                              padding: "3px 10px",
+                              cursor: "pointer",
+                            }}
                           >
                             SIP Calc {sipExpanded.has(g.id) ? "▲" : "▼"}
                           </button>
                         </div>
 
                         {sipExpanded.has(g.id) && (
-                          <div style={{ marginTop: 12, padding: 16, background: `${THEME.accent}09`, borderRadius: 12, border: `1px solid ${THEME.accent}1f` }}>
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>Required SIP at different returns</div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
-                              {[10, 12, 15].map(rate => {
+                          <div
+                            style={{
+                              marginTop: 12,
+                              padding: 16,
+                              background: `${THEME.accent}09`,
+                              borderRadius: 12,
+                              border: `1px solid ${THEME.accent}1f`,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase" as const,
+                                letterSpacing: "0.05em",
+                                marginBottom: 10,
+                              }}
+                            >
+                              Required SIP at different returns
+                            </div>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(3,1fr)",
+                                gap: 8,
+                                marginBottom: 16,
+                              }}
+                            >
+                              {[10, 12, 15].map((rate) => {
                                 const r = rate / 100 / 12;
                                 const n = monthsLeft;
-                                const sip = n > 0 && r > 0 ? remaining * r / (Math.pow(1 + r, n) - 1) : monthlyNeeded;
+                                const sip =
+                                  n > 0 && r > 0
+                                    ? (remaining * r) / (Math.pow(1 + r, n) - 1)
+                                    : monthlyNeeded;
                                 return (
-                                  <div key={rate} style={{ textAlign: "center", padding: "10px 8px", background: "var(--surface-0)", borderRadius: 8, border: `1px solid ${THEME.line}` }}>
-                                    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>{rate}% p.a.</div>
-                                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>{fmtINR(sip)}/mo</div>
+                                  <div
+                                    key={rate}
+                                    style={{
+                                      textAlign: "center",
+                                      padding: "10px 8px",
+                                      background: "var(--surface-0)",
+                                      borderRadius: 8,
+                                      border: `1px solid ${THEME.line}`,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: 10,
+                                        color: THEME.muted,
+                                        fontWeight: 700,
+                                        marginBottom: 4,
+                                      }}
+                                    >
+                                      {rate}% p.a.
+                                    </div>
+                                    <div
+                                      style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}
+                                    >
+                                      {fmtINR(sip)}/mo
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
 
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 8 }}>What-if calculator</div>
-                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const }}>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase" as const,
+                                letterSpacing: "0.05em",
+                                marginBottom: 8,
+                              }}
+                            >
+                              What-if calculator
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "center",
+                                flexWrap: "wrap" as const,
+                              }}
+                            >
                               <span style={{ fontSize: 12, color: THEME.muted }}>I can invest</span>
                               <input
                                 type="number"
                                 placeholder="amount"
                                 value={sipInputs[g.id] || ""}
-                                onChange={e => setSipInputs(prev => ({ ...prev, [g.id]: e.target.value }))}
-                                style={{ width: 90, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none" }}
+                                onChange={(e) =>
+                                  setSipInputs((prev) => ({ ...prev, [g.id]: e.target.value }))
+                                }
+                                style={{
+                                  width: 90,
+                                  padding: "4px 8px",
+                                  borderRadius: 6,
+                                  border: `1px solid ${THEME.line}`,
+                                  background: "var(--surface-0)",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: THEME.ink,
+                                  outline: "none",
+                                }}
                               />
-                              <span style={{ fontSize: 12, color: THEME.muted }}>/mo at 12% p.a.</span>
+                              <span style={{ fontSize: 12, color: THEME.muted }}>
+                                /mo at 12% p.a.
+                              </span>
                             </div>
-                            {sipInputs[g.id] && Number(sipInputs[g.id]) > 0 && (() => {
-                              const monthlySip = Number(sipInputs[g.id]);
-                              const r = 0.12 / 12;
-                              const monthsNeeded = monthlySip > 0 && remaining > 0 ? Math.log(1 + remaining * r / monthlySip) / Math.log(1 + r) : 0;
-                              const reachDate = monthsNeeded > 0 ? new Date(new Date().setMonth(new Date().getMonth() + Math.ceil(monthsNeeded))) : null;
-                              const goalDate = g.targetDate ? new Date(g.targetDate) : null;
-                              const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
-                              return (
-                                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, background: onTime === true ? `${THEME.sage}0f` : onTime === false ? `${THEME.rust}0f` : `${THEME.muted}09`, border: `1px solid ${onTime === true ? `${THEME.sage}26` : onTime === false ? `${THEME.rust}1f` : THEME.line}` }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: onTime === true ? THEME.sage : onTime === false ? THEME.rust : THEME.ink }}>
-                                    Reach goal in {monthsNeeded > 0 ? Math.ceil(monthsNeeded) : "—"} months{reachDate ? ` · ${reachDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}` : ""}
-                                  </div>
-                                  {onTime !== null && (
-                                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                                      {onTime ? "✓ On track to meet your target date" : "✗ You'll miss your target date at this rate"}
+                            {sipInputs[g.id] &&
+                              Number(sipInputs[g.id]) > 0 &&
+                              (() => {
+                                const monthlySip = Number(sipInputs[g.id]);
+                                const r = 0.12 / 12;
+                                const monthsNeeded =
+                                  monthlySip > 0 && remaining > 0
+                                    ? Math.log(1 + (remaining * r) / monthlySip) / Math.log(1 + r)
+                                    : 0;
+                                const reachDate =
+                                  monthsNeeded > 0
+                                    ? new Date(
+                                        new Date().setMonth(
+                                          new Date().getMonth() + Math.ceil(monthsNeeded)
+                                        )
+                                      )
+                                    : null;
+                                const goalDate = g.targetDate ? new Date(g.targetDate) : null;
+                                const onTime = reachDate && goalDate ? reachDate <= goalDate : null;
+                                return (
+                                  <div
+                                    style={{
+                                      marginTop: 10,
+                                      padding: "10px 12px",
+                                      borderRadius: 8,
+                                      background:
+                                        onTime === true
+                                          ? `${THEME.sage}0f`
+                                          : onTime === false
+                                            ? `${THEME.rust}0f`
+                                            : `${THEME.muted}09`,
+                                      border: `1px solid ${onTime === true ? `${THEME.sage}26` : onTime === false ? `${THEME.rust}1f` : THEME.line}`,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                        color:
+                                          onTime === true
+                                            ? THEME.sage
+                                            : onTime === false
+                                              ? THEME.rust
+                                              : THEME.ink,
+                                      }}
+                                    >
+                                      Reach goal in{" "}
+                                      {monthsNeeded > 0 ? Math.ceil(monthsNeeded) : "—"} months
+                                      {reachDate
+                                        ? ` · ${reachDate.toLocaleString("en-IN", { month: "short", year: "numeric" })}`
+                                        : ""}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                                    {onTime !== null && (
+                                      <div
+                                        style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}
+                                      >
+                                        {onTime
+                                          ? "✓ On track to meet your target date"
+                                          : "✗ You'll miss your target date at this rate"}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                           </div>
                         )}
                       </div>
                     )}
                     {isBehind && (
                       <div style={{ marginTop: 6, fontSize: 12, color: THEME.rust }}>
-                        Expected {expectedPct.toFixed(0)}% by now — you are {(expectedPct - progress).toFixed(0)}% behind schedule.
+                        Expected {expectedPct.toFixed(0)}% by now — you are{" "}
+                        {(expectedPct - progress).toFixed(0)}% behind schedule.
                       </div>
                     )}
                   </div>
@@ -438,14 +1032,20 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       {show && (
         <GoalModal
           onClose={() => setShow(false)}
-          onSave={(v: any) => { addItem("goals", v); setShow(false); }}
+          onSave={(v: any) => {
+            addItem("goals", v);
+            setShow(false);
+          }}
         />
       )}
       {editGoal && (
         <GoalModal
           initial={editGoal}
           onClose={() => setEditGoal(null)}
-          onSave={(v: any) => { updateItem("goals", editGoal.id, v); setEditGoal(null); }}
+          onSave={(v: any) => {
+            updateItem("goals", editGoal.id, v);
+            setEditGoal(null);
+          }}
         />
       )}
     </div>

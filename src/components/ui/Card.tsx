@@ -61,14 +61,19 @@ export const Card: React.FC<CardProps> = ({
   if (justifyContent !== undefined) contentStyle.justifyContent = justifyContent;
   if (gridTemplateColumns !== undefined) contentStyle.gridTemplateColumns = gridTemplateColumns;
   if (gridTemplateRows !== undefined) contentStyle.gridTemplateRows = gridTemplateRows;
-  if (gridGap !== undefined) contentStyle.gridGap = typeof gridGap === "number" ? `${gridGap}px` : gridGap;
-  if (rowGap !== undefined) contentStyle.rowGap = typeof rowGap === "number" ? `${rowGap}px` : rowGap;
-  if (columnGap !== undefined) contentStyle.columnGap = typeof columnGap === "number" ? `${columnGap}px` : columnGap;
+  if (gridGap !== undefined)
+    contentStyle.gridGap = typeof gridGap === "number" ? `${gridGap}px` : gridGap;
+  if (rowGap !== undefined)
+    contentStyle.rowGap = typeof rowGap === "number" ? `${rowGap}px` : rowGap;
+  if (columnGap !== undefined)
+    contentStyle.columnGap = typeof columnGap === "number" ? `${columnGap}px` : columnGap;
 
   return (
     <div className={fullClassName} style={outerStyle} onClick={onClick}>
       {variant === "hero" && <div className="hero-card-mesh" />}
-      <div className="spotlight-content" style={contentStyle}>{children}</div>
+      <div className="spotlight-content" style={contentStyle}>
+        {children}
+      </div>
     </div>
   );
 };

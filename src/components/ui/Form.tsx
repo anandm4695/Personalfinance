@@ -10,7 +10,17 @@ interface FieldProps {
 
 export const Field: React.FC<FieldProps> = ({ label, children, style, error }) => (
   <div style={{ marginBottom: 16, ...style }}>
-    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--t-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+    <label
+      style={{
+        display: "block",
+        fontSize: 12,
+        fontWeight: 600,
+        color: "var(--t-muted)",
+        marginBottom: 6,
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+      }}
+    >
       {label}
     </label>
     {children}
@@ -31,7 +41,10 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
   />
 );
 
-export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ children, ...props }) => (
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({
+  children,
+  ...props
+}) => (
   <select
     {...props}
     style={{

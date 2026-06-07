@@ -21,11 +21,7 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const content = (
     <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal-panel"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth }}
-      >
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
         <div className="modal-header">
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{title}</h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close">
@@ -33,7 +29,20 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
         <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer" style={{ padding: "16px 28px", borderTop: "1px solid var(--t-line)", display: "flex", justifyContent: "flex-end", gap: 12 }}>{footer}</div>}
+        {footer && (
+          <div
+            className="modal-footer"
+            style={{
+              padding: "16px 28px",
+              borderTop: "1px solid var(--t-line)",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 12,
+            }}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

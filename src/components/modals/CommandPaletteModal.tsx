@@ -1,7 +1,17 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Search, Plus, Home, PieChart, Landmark, Target, RefreshCw } from "lucide-react";
 
-export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: { isOpen: boolean, onClose: () => void, onNavigate: (tab: string) => void, onAction: (action: string) => void }) => {
+export const CommandPaletteModal = ({
+  isOpen,
+  onClose,
+  onNavigate,
+  onAction,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onNavigate: (tab: string) => void;
+  onAction: (action: string) => void;
+}) => {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -13,12 +23,42 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
   }, [isOpen]);
 
   const actions = [
-    { id: "nav-home", type: "nav", icon: <Home size={16} />, label: "Go to Dashboard", tab: "analytics" },
-    { id: "nav-txn", type: "nav", icon: <RefreshCw size={16} />, label: "Transactions", tab: "transactions" },
-    { id: "nav-inv", type: "nav", icon: <PieChart size={16} />, label: "Investments", tab: "investments" },
+    {
+      id: "nav-home",
+      type: "nav",
+      icon: <Home size={16} />,
+      label: "Go to Dashboard",
+      tab: "analytics",
+    },
+    {
+      id: "nav-txn",
+      type: "nav",
+      icon: <RefreshCw size={16} />,
+      label: "Transactions",
+      tab: "transactions",
+    },
+    {
+      id: "nav-inv",
+      type: "nav",
+      icon: <PieChart size={16} />,
+      label: "Investments",
+      tab: "investments",
+    },
     { id: "nav-tax", type: "nav", icon: <Landmark size={16} />, label: "Tax Vault", tab: "tax" },
-    { id: "nav-goals", type: "nav", icon: <Target size={16} />, label: "Goals & Planning", tab: "goals" },
-    { id: "act-add", type: "action", icon: <Plus size={16} />, label: "Add New Transaction", action: "quick-add" },
+    {
+      id: "nav-goals",
+      type: "nav",
+      icon: <Target size={16} />,
+      label: "Goals & Planning",
+      tab: "goals",
+    },
+    {
+      id: "act-add",
+      type: "action",
+      icon: <Plus size={16} />,
+      label: "Add New Transaction",
+      action: "quick-add",
+    },
   ];
 
   const filtered = actions.filter((a) => a.label.toLowerCase().includes(query.toLowerCase()));
@@ -26,7 +66,7 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       style={{
         position: "fixed",
         inset: 0,
@@ -36,11 +76,11 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
-        paddingTop: "12vh"
+        paddingTop: "12vh",
       }}
       onClick={onClose}
     >
-      <div 
+      <div
         style={{
           width: "100%",
           maxWidth: 600,
@@ -49,11 +89,18 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
           border: "1px solid color-mix(in srgb, var(--t-line) 50%, transparent)",
           boxShadow: "var(--shadow-2xl)",
           overflow: "hidden",
-          animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+          animation: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid var(--t-line)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--t-line)",
+          }}
+        >
           <Search size={20} color="var(--t-muted)" style={{ marginRight: 12 }} />
           <input
             ref={inputRef}
@@ -71,7 +118,18 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
             }}
           />
           <div style={{ display: "flex", gap: 4 }}>
-            <span style={{ fontSize: 10, padding: "2px 6px", background: "var(--surface-1)", borderRadius: 4, color: "var(--t-muted)", fontWeight: 600 }}>esc</span>
+            <span
+              style={{
+                fontSize: 10,
+                padding: "2px 6px",
+                background: "var(--surface-1)",
+                borderRadius: 4,
+                color: "var(--t-muted)",
+                fontWeight: 600,
+              }}
+            >
+              esc
+            </span>
           </div>
         </div>
 
@@ -99,7 +157,8 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
                   transition: "background 0.1s",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 8%, transparent)";
+                  e.currentTarget.style.background =
+                    "color-mix(in srgb, var(--t-accent) 8%, transparent)";
                   e.currentTarget.style.color = "var(--t-accent)";
                 }}
                 onMouseLeave={(e) => {
@@ -109,8 +168,12 @@ export const CommandPaletteModal = ({ isOpen, onClose, onNavigate, onAction }: {
               >
                 <div style={{ color: "var(--t-muted)", display: "flex" }}>{act.icon}</div>
                 <div style={{ flex: 1, fontWeight: 500 }}>{act.label}</div>
-                {act.type === "nav" && <span style={{ fontSize: 11, color: "var(--t-muted)" }}>Navigation</span>}
-                {act.type === "action" && <span style={{ fontSize: 11, color: "var(--t-accent)" }}>Action</span>}
+                {act.type === "nav" && (
+                  <span style={{ fontSize: 11, color: "var(--t-muted)" }}>Navigation</span>
+                )}
+                {act.type === "action" && (
+                  <span style={{ fontSize: 11, color: "var(--t-accent)" }}>Action</span>
+                )}
               </div>
             ))
           )}

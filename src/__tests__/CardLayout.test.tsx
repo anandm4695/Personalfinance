@@ -53,7 +53,7 @@ describe("InsuranceSummaryTab Card Layout Statically", () => {
     console.log("--- RENDERED HTML STRING START ---");
     console.log(html);
     console.log("--- RENDERED HTML STRING END ---");
-    
+
     expect(html).toContain("Kotak Guaranteed Benefits Plan");
   });
 });

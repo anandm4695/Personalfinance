@@ -95,6 +95,7 @@ FROM (VALUES
   ('rental_properties','deposit_transactions'), -- migration 23
   ('rental_properties','due_day'), -- migration 25
   ('rental_properties','escalation_tiers'), -- migration 39
+  ('rental_properties','property_value'), -- migration 45
   -- subscriptions
   ('subscriptions','remark'), -- migration 17
   -- bonds

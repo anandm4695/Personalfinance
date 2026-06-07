@@ -27,13 +27,12 @@ module.exports = async function handler(req, res) {
         // Fetch both quote and quoteSummary to get price, sector, and marketCap
         const [quote, summary] = await Promise.all([
           yf.quote(sym, {}, { validateResult: false }),
-          yf.quoteSummary(sym, { modules: ["assetProfile", "summaryDetail", "price"] }).catch(() => null)
+          yf
+            .quoteSummary(sym, { modules: ["assetProfile", "summaryDetail", "price"] })
+            .catch(() => null),
         ]);
 
-        const price =
-          quote?.regularMarketPrice ??
-          quote?.postMarketPrice ??
-          quote?.preMarketPrice;
+        const price = quote?.regularMarketPrice ?? quote?.postMarketPrice ?? quote?.preMarketPrice;
 
         if (price != null) {
           results[sym] = {
@@ -48,7 +47,11 @@ module.exports = async function handler(req, res) {
             volume: quote?.regularMarketVolume ?? null,
             // New fields for analysis
             sector: summary?.assetProfile?.sector ?? "Unknown",
-            marketCap: summary?.price?.marketCap ?? summary?.summaryDetail?.marketCap ?? quote?.marketCap ?? null,
+            marketCap:
+              summary?.price?.marketCap ??
+              summary?.summaryDetail?.marketCap ??
+              quote?.marketCap ??
+              null,
           };
         }
       } catch (err) {

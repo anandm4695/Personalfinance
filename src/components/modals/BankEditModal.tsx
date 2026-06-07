@@ -27,19 +27,41 @@ export function BankEditModal({ account, onClose, onSave }: any) {
   return (
     <Modal title="Edit Bank Account" onClose={onClose}>
       <Field label="Bank Name">
-        <input style={input} value={f.bankName} onChange={(e) => setF({ ...f, bankName: e.target.value })} />
+        <input
+          style={input}
+          value={f.bankName}
+          onChange={(e) => setF({ ...f, bankName: e.target.value })}
+        />
       </Field>
       <Field label="Account Number (last 4 ok)">
-        <input style={input} value={f.accountNumber} onChange={(e) => setF({ ...f, accountNumber: e.target.value })} />
+        <input
+          style={input}
+          value={f.accountNumber}
+          onChange={(e) => setF({ ...f, accountNumber: e.target.value })}
+        />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Type">
-          <select style={input} value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
-            {bankAccountTypes.map((t: string) => <option key={t} value={t}>{t}</option>)}
+          <select
+            style={input}
+            value={f.type}
+            onChange={(e) => setF({ ...f, type: e.target.value })}
+          >
+            {bankAccountTypes.map((t: string) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Balance (auto-updated by transactions)">
-          <input style={input} type="number" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })} placeholder="Override if needed" />
+          <input
+            style={input}
+            type="number"
+            value={f.balance}
+            onChange={(e) => setF({ ...f, balance: e.target.value })}
+            placeholder="Override if needed"
+          />
         </Field>
       </div>
       <ModalActions onSave={() => f.bankName && onSave(f)} onClose={onClose} />

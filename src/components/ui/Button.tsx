@@ -65,13 +65,16 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const variantClass = ({
-    primary: "btn-primary",
-    accent: "btn-accent",
-    secondary: "btn-secondary",
-    ghost: "btn-ghost",
-    danger: "btn-danger",
-  } as Record<string, string>)[variant] || "";
+  const variantClass =
+    (
+      {
+        primary: "btn-primary",
+        accent: "btn-accent",
+        secondary: "btn-secondary",
+        ghost: "btn-ghost",
+        danger: "btn-danger",
+      } as Record<string, string>
+    )[variant] || "";
 
   const baseStyle: React.CSSProperties = {
     display: "inline-flex",

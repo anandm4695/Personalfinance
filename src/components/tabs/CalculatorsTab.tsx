@@ -8,18 +8,14 @@ import {
   BarChart2,
   Flame,
   Shield,
-  HelpCircle,
   ArrowRightLeft,
   Coins,
-  Repeat,
-  FileText,
   Wallet,
   Sparkles,
-  PieChart as PieIcon,
   CheckCircle2,
   AlertTriangle,
   Info,
-  GitBranch
+  GitBranch,
 } from "lucide-react";
 import {
   AreaChart,
@@ -33,12 +29,11 @@ import {
   Pie,
   Cell,
   Legend,
-  ReferenceLine
+  ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 
 interface CalculatorsTabProps {
@@ -47,7 +42,19 @@ interface CalculatorsTabProps {
 }
 
 export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }) => {
-  const [calcTab, setCalcTab] = useState<"emi" | "sip" | "step-sip" | "cagr" | "fire" | "fdrd" | "loan-invest" | "projection" | "stress" | "monte-carlo" | "scenario-sandbox">("emi");
+  const [calcTab, setCalcTab] = useState<
+    | "emi"
+    | "sip"
+    | "step-sip"
+    | "cagr"
+    | "fire"
+    | "fdrd"
+    | "loan-invest"
+    | "projection"
+    | "stress"
+    | "monte-carlo"
+    | "scenario-sandbox"
+  >("emi");
   const [monteVolatility, setMonteVolatility] = useState("10");
 
   // ── Scenario Sandbox State ──
@@ -85,23 +92,22 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const p = Math.max(0, Number(emiP) || 0);
     const r = Math.max(0, (Number(emiR) || 0) / 12 / 100);
     const n = Math.max(1, Number(emiN) || 1);
-    
+
     if (r === 0) return { emi: p / n, total: p, interest: 0 };
-    const emi = p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-    return { 
-      emi: isNaN(emi) ? 0 : emi, 
-      total: isNaN(emi) ? p : emi * n, 
-      interest: isNaN(emi) ? 0 : emi * n - p 
+    const emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    return {
+      emi: isNaN(emi) ? 0 : emi,
+      total: isNaN(emi) ? p : emi * n,
+      interest: isNaN(emi) ? 0 : emi * n - p,
     };
   }, [emiP, emiR, emiN]);
 
   const emiPieData = useMemo(() => {
     return [
       { name: "Principal Amount", value: Math.max(0, Number(emiP) || 0), color: THEME.accent },
-      { name: "Total Interest", value: Math.max(0, emiResult.interest), color: THEME.gold }
+      { name: "Total Interest", value: Math.max(0, emiResult.interest), color: THEME.gold },
     ];
   }, [emiP, emiResult.interest]);
-
 
   // ── 2. SIP RETURNS STATE & LOGIC ──
   const [sipAmt, setSipAmt] = useState("10000");
@@ -113,26 +119,25 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const y = Math.max(0.1, Number(sipYrs) || 1);
     const r = Math.max(0, (Number(sipRate) || 0) / 12 / 100);
     const n = Math.round(y * 12);
-    
-    const corpus = r === 0 ? m * n : m * (Math.pow(1 + r, n) - 1) / r * (1 + r);
-    return { 
-      corpus: isNaN(corpus) ? m * n : corpus, 
-      invested: m * n, 
-      gains: isNaN(corpus) ? 0 : Math.max(0, corpus - m * n) 
+
+    const corpus = r === 0 ? m * n : ((m * (Math.pow(1 + r, n) - 1)) / r) * (1 + r);
+    return {
+      corpus: isNaN(corpus) ? m * n : corpus,
+      invested: m * n,
+      gains: isNaN(corpus) ? 0 : Math.max(0, corpus - m * n),
     };
   }, [sipAmt, sipYrs, sipRate]);
 
   const sipPieData = useMemo(() => {
     return [
       { name: "Total Invested", value: sipResult.invested, color: THEME.muted },
-      { name: "Compounded Gains", value: sipResult.gains, color: THEME.sage }
+      { name: "Compounded Gains", value: sipResult.gains, color: THEME.sage },
     ];
   }, [sipResult]);
 
-
   // ── 2b. STEP-UP SIP STATE & LOGIC ──
   const [stepSipAmt, setStepSipAmt] = useState("10000");
-  const [stepSipStep, setStepSipStep] = useState("10");   // % annual step-up
+  const [stepSipStep, setStepSipStep] = useState("10"); // % annual step-up
   const [stepSipYrs, setStepSipYrs] = useState("10");
   const [stepSipRate, setStepSipRate] = useState("12");
 
@@ -150,9 +155,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       const monthly = m0 * Math.pow(1 + stepPct, y);
       const monthsRemaining = (years - y) * 12;
       // FV of this year's SIP tranche (annuity due) at the end of full tenure
-      const trancheFV = r === 0
-        ? monthly * 12 * (monthsRemaining / 12)   // simplified: flat growth fallback
-        : monthly * ((Math.pow(1 + r, 12) - 1) / r) * (1 + r) * Math.pow(1 + r, (years - y - 1) * 12);
+      const trancheFV =
+        r === 0
+          ? monthly * 12 * (monthsRemaining / 12) // simplified: flat growth fallback
+          : monthly *
+            ((Math.pow(1 + r, 12) - 1) / r) *
+            (1 + r) *
+            Math.pow(1 + r, (years - y - 1) * 12);
       corpus += trancheFV;
       invested += monthly * 12;
       yearlyData.push({ year: y + 1, corpus: Math.round(corpus), invested: Math.round(invested) });
@@ -170,7 +179,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       flatCorpus: Math.round(flatCorpus),
       flatInvested: Math.round(flatInvested),
       extraGains: Math.round(Math.max(0, corpus - flatCorpus)),
-      yearlyData
+      yearlyData,
     };
   }, [stepSipAmt, stepSipStep, stepSipYrs, stepSipRate]);
 
@@ -185,13 +194,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const yrs = Math.max(0.01, Number(cagrYears) || 0);
     if (inv <= 0 || curr <= 0 || yrs <= 0) return { cagr: null, absoluteReturn: 0, absolutePct: 0 };
     const cagr = (Math.pow(curr / inv, 1 / yrs) - 1) * 100;
-    return { 
-      cagr: isNaN(cagr) ? null : cagr, 
-      absoluteReturn: curr - inv, 
-      absolutePct: ((curr - inv) / inv) * 100 
+    return {
+      cagr: isNaN(cagr) ? null : cagr,
+      absoluteReturn: curr - inv,
+      absolutePct: ((curr - inv) / inv) * 100,
     };
   }, [cagrInvested, cagrCurrent, cagrYears]);
-
 
   // ── 4. FIRE RETIREMENT STATE & LOGIC ──
   const [fireAge, setFireAge] = useState("30");
@@ -222,9 +230,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
     const numSimulations = 500;
     const years = yrsInRet;
-    
+
     const balances: number[][] = Array.from({ length: years + 1 }, () => []);
-    
+
     for (let s = 0; s < numSimulations; s++) {
       balances[0].push(initialCorpus);
     }
@@ -232,9 +240,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     let successCount = 0;
 
     const getGaussianRandom = () => {
-      let u = 0, v = 0;
-      while(u === 0) u = Math.random(); 
-      while(v === 0) v = Math.random();
+      let u = 0,
+        v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     };
 
@@ -269,9 +278,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       const yearBalances = [...balances[y]];
       yearBalances.sort((a, b) => a - b);
 
-      const p10Idx = Math.floor(numSimulations * 0.10);
-      const p50Idx = Math.floor(numSimulations * 0.50);
-      const p90Idx = Math.floor(numSimulations * 0.90);
+      const p10Idx = Math.floor(numSimulations * 0.1);
+      const p50Idx = Math.floor(numSimulations * 0.5);
+      const p90Idx = Math.floor(numSimulations * 0.9);
 
       chartData.push({
         year: startAge + y,
@@ -298,9 +307,19 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       successProbability,
       avgYearsLasted,
       chartData,
-      yrsInRet
+      yrsInRet,
     };
-  }, [calcTab, fireRetireAge, fireLifeExp, firePortfolio, fireExpense, fireInflation, firePostReturn, monteVolatility, metrics?.netWorth]);
+  }, [
+    calcTab,
+    fireRetireAge,
+    fireLifeExp,
+    firePortfolio,
+    fireExpense,
+    fireInflation,
+    firePostReturn,
+    monteVolatility,
+    metrics?.netWorth,
+  ]);
 
   /* ══════════════════════════════════════════════════════════════════════
      EXECUTIVE WEALTH SCENARIO PLANNER & LIFESTYLE SANDBOX (RELEASE 6)
@@ -344,7 +363,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       year: 0,
       age: startAge,
       "Baseline Path": Math.round(baseWealth),
-      "Simulated Path": Math.round(sandWealth)
+      "Simulated Path": Math.round(sandWealth),
     });
 
     for (let t = 1; t <= years; t++) {
@@ -361,7 +380,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
       // Check Sabbatical
       if (sActive && curAge >= sAge && curAge < sAge + sDur) {
-        const monthlySandSavings = (baseSavings * sIncPct) - sExpExtra;
+        const monthlySandSavings = baseSavings * sIncPct - sExpExtra;
         yearlySandSavings = monthlySandSavings * 12;
       }
 
@@ -389,7 +408,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       }
 
       // Compound Sandbox Wealth
-      sandWealth = (sandWealth - oneTimeOutflows) * (1 + expectedReturn) + yearlySandSavings + oneTimeInflows;
+      sandWealth =
+        (sandWealth - oneTimeOutflows) * (1 + expectedReturn) + yearlySandSavings + oneTimeInflows;
       if (sandWealth < 0) {
         sandWealth = 0;
         if (liquidityCrisisYear === -1) {
@@ -401,7 +421,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         year: t,
         age: curAge,
         "Baseline Path": Math.round(baseWealth),
-        "Simulated Path": Math.round(sandWealth)
+        "Simulated Path": Math.round(sandWealth),
       });
     }
 
@@ -410,7 +430,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const oppCostVal = endBase - endSand;
 
     const targetCorpus = Number(firePortfolio) || 15000000;
-    
+
     const getYearsToTarget = (startNW, annualSave, target) => {
       if (startNW >= target) return 0;
       let cw = startNW;
@@ -454,9 +474,32 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       liquidityCrisisAge: liquidityCrisisYear,
       baseFIAge,
       sandFIAge,
-      fiAgeGap: sandFIAge - baseFIAge
+      fiAgeGap: sandFIAge - baseFIAge,
     };
-  }, [calcTab, fireAge, sandboxSavings, sandboxReturn, sandboxYears, firePortfolio, metrics?.netWorth, sabActive, sabAge, sabDur, sabInc, sabExp, startupActive, startupAge, startupCapEx, startupLoss, startupPayoutAge, startupPayout, propActive, propAge, propDown, propCarry]);
+  }, [
+    calcTab,
+    fireAge,
+    sandboxSavings,
+    sandboxReturn,
+    sandboxYears,
+    firePortfolio,
+    metrics?.netWorth,
+    sabActive,
+    sabAge,
+    sabDur,
+    sabInc,
+    sabExp,
+    startupActive,
+    startupAge,
+    startupCapEx,
+    startupLoss,
+    startupPayoutAge,
+    startupPayout,
+    propActive,
+    propAge,
+    propDown,
+    propCarry,
+  ]);
 
   const fireResult = useMemo(() => {
     const curAge = Math.max(1, Number(fireAge) || 30);
@@ -497,12 +540,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     if (monthlyPreRate === 0) {
       fvSavings = mSavings * monthsToRet;
     } else {
-      fvSavings = mSavings * ((Math.pow(1 + monthlyPreRate, monthsToRet) - 1) / monthlyPreRate) * (1 + monthlyPreRate);
+      fvSavings =
+        mSavings *
+        ((Math.pow(1 + monthlyPreRate, monthsToRet) - 1) / monthlyPreRate) *
+        (1 + monthlyPreRate);
     }
 
     const projectedCorpus = fvCurrent + fvSavings;
     const gap = reqCorpus - projectedCorpus;
-    const percentOnTrack = reqCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / reqCorpus) * 100)) : 0;
+    const percentOnTrack =
+      reqCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / reqCorpus) * 100)) : 0;
     const safeWithdrawalRate = reqCorpus > 0 ? (retAnnualExp / reqCorpus) * 100 : 4;
 
     return {
@@ -517,10 +564,19 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       yrsInRet,
       realPostReturn,
       infl,
-      postRet
+      postRet,
     };
-  }, [fireAge, fireRetireAge, fireExpense, firePortfolio, fireSavings, fireInflation, firePreReturn, firePostReturn, fireLifeExp]);
-
+  }, [
+    fireAge,
+    fireRetireAge,
+    fireExpense,
+    firePortfolio,
+    fireSavings,
+    fireInflation,
+    firePreReturn,
+    firePostReturn,
+    fireLifeExp,
+  ]);
 
   // ── 5. FD & RD MATURITY STATE & LOGIC ──
   const [fdrdType, setFdrdType] = useState<"fd" | "rd">("fd");
@@ -543,7 +599,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       return {
         invested: p,
         maturity,
-        interest: Math.max(0, maturity - p)
+        interest: Math.max(0, maturity - p),
       };
     } else {
       const m = Math.max(0, Number(rdAmt) || 0);
@@ -553,7 +609,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       return {
         invested: m * mos,
         maturity,
-        interest: Math.max(0, maturity - m * mos)
+        interest: Math.max(0, maturity - m * mos),
       };
     }
   }, [fdrdType, fdAmt, fdRate, fdYrs, fdComp, rdAmt, rdRate, rdMonths]);
@@ -561,10 +617,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const fdrdPieData = useMemo(() => {
     return [
       { name: "Principal Invested", value: fdrdResult.invested, color: THEME.accent },
-      { name: "Interest Earned", value: fdrdResult.interest, color: THEME.sage }
+      { name: "Interest Earned", value: fdrdResult.interest, color: THEME.sage },
     ];
   }, [fdrdResult]);
-
 
   // ── 6. LOAN VS INVEST ADVISOR STATE & LOGIC ──
   const [lviSurplus, setLviSurplus] = useState("10000");
@@ -585,7 +640,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     const rInv = invReturn / 12 / 100;
 
     // EMI for the outstanding loan balance
-    const emi = rLoan === 0 ? loanBal / N : (loanBal * rLoan * Math.pow(1 + rLoan, N)) / (Math.pow(1 + rLoan, N) - 1);
+    const emi =
+      rLoan === 0
+        ? loanBal / N
+        : (loanBal * rLoan * Math.pow(1 + rLoan, N)) / (Math.pow(1 + rLoan, N) - 1);
     const totalPaymentsNormal = emi * N;
     const totalInterestNormal = Math.max(0, totalPaymentsNormal - loanBal);
 
@@ -613,15 +671,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       let wealthPrepayPath = 0;
       if (monthsFreed > 0) {
         const monthlyInvest = emi + surplus;
-        wealthPrepayPath = rInv === 0 
-          ? monthlyInvest * monthsFreed 
-          : monthlyInvest * ((Math.pow(1 + rInv, monthsFreed) - 1) / rInv) * (1 + rInv);
+        wealthPrepayPath =
+          rInv === 0
+            ? monthlyInvest * monthsFreed
+            : monthlyInvest * ((Math.pow(1 + rInv, monthsFreed) - 1) / rInv) * (1 + rInv);
       }
 
       // PATH B: Keep loan normal, invest surplus monthly for entire N months
-      const wealthInvestPath = rInv === 0
-        ? surplus * N
-        : surplus * ((Math.pow(1 + rInv, N) - 1) / rInv) * (1 + rInv);
+      const wealthInvestPath =
+        rInv === 0 ? surplus * N : surplus * ((Math.pow(1 + rInv, N) - 1) / rInv) * (1 + rInv);
 
       const isInvestBetter = wealthInvestPath > wealthPrepayPath;
       const netBenefit = Math.abs(wealthInvestPath - wealthPrepayPath);
@@ -635,12 +693,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         wealthInvest: wealthInvestPath,
         isInvestBetter,
         netBenefit,
-        recommendation: isInvestBetter 
-          ? `Invest your surplus ₹${fmtINR(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.` 
+        recommendation: isInvestBetter
+          ? `Invest your surplus ₹${fmtINR(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.`
           : `Prepay your loan with the surplus ₹${fmtINR(surplus)}/mo. Paying off the debt saves interest and frees up ₹${fmtINR(Math.round(emi + surplus))}/mo earlier to reinvest.`,
-        tip: isInvestBetter 
+        tip: isInvestBetter
           ? "Ensure your investment vehicle matches your target risk profile, as equity returns are variable compared to guaranteed debt savings."
-          : "Prepaying a loan acts as a risk-free investment offering a guaranteed post-tax yield equal to the loan interest rate."
+          : "Prepaying a loan acts as a risk-free investment offering a guaranteed post-tax yield equal to the loan interest rate.",
       };
     } else {
       // LUMPSUM MODE: prepay lumpsum immediately vs invest lumpsum immediately
@@ -667,9 +725,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       // After loan ends early, invest the freed EMI amount for remaining months
       let wealthPrepayPath = 0;
       if (monthsFreed > 0) {
-        wealthPrepayPath = rInv === 0
-          ? emi * monthsFreed
-          : emi * ((Math.pow(1 + rInv, monthsFreed) - 1) / rInv) * (1 + rInv);
+        wealthPrepayPath =
+          rInv === 0
+            ? emi * monthsFreed
+            : emi * ((Math.pow(1 + rInv, monthsFreed) - 1) / rInv) * (1 + rInv);
       }
 
       // Path B: Keep loan, invest lumpsum immediately for N months
@@ -692,17 +751,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           : `Prepay the loan by ₹${fmtINR(lumpsum)} immediately. Eliminating debt early at ${loanRate}% guaranteed return is safer and yields higher value.`,
         tip: isInvestBetter
           ? "Ideal if surplus is placed in long-term index funds or high-yielding mutual funds."
-          : "Prepaying saves interest immediately and provides secure, risk-free compounding value."
+          : "Prepaying saves interest immediately and provides secure, risk-free compounding value.",
       };
     }
   }, [lviSurplus, lviMode, lviLoanBal, lviLoanRate, lviLoanTenure, lviInvestReturn]);
-
 
   // ── 7. NET WORTH PROJECTION LOGIC ──
   const [nwpSavings, setNwpSavings] = useState("30000");
   const [nwpReturn, setNwpReturn] = useState("10");
   const [nwpYears, setNwpYears] = useState("15");
-  
+
   const nwpData = useMemo(() => {
     const current = Math.max(0, metrics?.netWorth || 0);
     const monthly = Math.max(0, Number(nwpSavings) || 0);
@@ -714,13 +772,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     for (let y = 0; y <= years; y++) {
       points.push({ year: startYear + y, value: Math.round(corpus) });
       const r = annualR / 12;
-      corpus = r === 0
-        ? corpus + monthly * 12
-        : corpus * (1 + annualR) + monthly * (Math.pow(1 + r, 12) - 1) / r * (1 + r);
+      corpus =
+        r === 0
+          ? corpus + monthly * 12
+          : corpus * (1 + annualR) + ((monthly * (Math.pow(1 + r, 12) - 1)) / r) * (1 + r);
     }
     return points;
   }, [metrics?.netWorth, nwpSavings, nwpReturn, nwpYears]);
-
 
   // ── 8. LIQUID RUNWAY & FINANCIAL STABILITY STRESS TESTER LOGIC ──
   const [eqHaircut, setEqHaircut] = useState(30);
@@ -730,34 +788,43 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
   const stressResult = useMemo(() => {
     const baseEquity = Number(metrics?.mfValue || 0) + Number(metrics?.stockValue || 0);
-    
+
     // Fixed Income assets (excluding EPF, as it is locked until retirement and cannot be liquid cash buffer)
-    const baseFI = Number(metrics?.fdValue || 0) + Number(metrics?.rdValue || 0) + Number(metrics?.bondValue || 0) + Number(metrics?.ppfValue || 0) + Number(metrics?.npsValue || 0);
+    const baseFI =
+      Number(metrics?.fdValue || 0) +
+      Number(metrics?.rdValue || 0) +
+      Number(metrics?.bondValue || 0) +
+      Number(metrics?.ppfValue || 0) +
+      Number(metrics?.npsValue || 0);
     const baseCash = Number(metrics?.cashInBanks || 0);
     const baseLiabilities = Number(metrics?.totalLiabilities || 0);
-    
+
     // Loans EMI (drawn directly from loansTaken state)
-    const activeEMIs = (state?.loansTaken || []).reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
+    const activeEMIs = (state?.loansTaken || []).reduce(
+      (sum: number, l: any) => sum + Number(l.emi || 0),
+      0
+    );
     const monthlyExpense = Number(metrics?.monthExpense || 0);
-    
+
     // Stress deductions
     const stressEquity = baseEquity * (1 - eqHaircut / 100);
     const stressFI = baseFI * (1 - fiHaircut / 100);
     const stressCash = baseCash;
-    
+
     const totalLiquidAssets = stressEquity + stressFI + stressCash;
-    const crisisBurnRate = (monthlyExpense * burnMultiplier) + activeEMIs;
-    
+    const crisisBurnRate = monthlyExpense * burnMultiplier + activeEMIs;
+
     const outflowAmount = Number(oneTimeOutflow) || 0;
     const netStressAssets = Math.max(0, totalLiquidAssets - outflowAmount);
-    
-    const runwayMonths = crisisBurnRate > 0 ? (netStressAssets / crisisBurnRate) : (netStressAssets > 0 ? 99 : 0);
-    
+
+    const runwayMonths =
+      crisisBurnRate > 0 ? netStressAssets / crisisBurnRate : netStressAssets > 0 ? 99 : 0;
+
     let safetyLevel: "critical" | "caution" | "safe" | "elite" = "safe";
     if (runwayMonths < 3) safetyLevel = "critical";
     else if (runwayMonths < 6) safetyLevel = "caution";
     else if (runwayMonths >= 12) safetyLevel = "elite";
-    
+
     return {
       baseEquity,
       baseFI,
@@ -771,16 +838,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       crisisBurnRate,
       netStressAssets,
       runwayMonths,
-      safetyLevel
+      safetyLevel,
     };
   }, [metrics, state, eqHaircut, fiHaircut, burnMultiplier, oneTimeOutflow]);
-
-
 
   // ── INPUT ROW HELPERS ──
   const inpRow = (lbl: string, val: string, set: (v: string) => void, placeholder = "") => (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>{lbl}</div>
+      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+        {lbl}
+      </div>
       <input
         style={{
           width: "100%",
@@ -799,11 +866,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     </div>
   );
 
-  const sliderRow = (lbl: string, val: string, set: (v: string) => void, min: number, max: number, step = 1, unit = "") => (
+  const sliderRow = (
+    lbl: string,
+    val: string,
+    set: (v: string) => void,
+    min: number,
+    max: number,
+    step = 1,
+    unit = ""
+  ) => (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 12,
+          color: THEME.muted,
+          marginBottom: 4,
+          fontWeight: 600,
+        }}
+      >
         <span>{lbl}</span>
-        <span style={{ color: THEME.accent, fontWeight: 800 }}>{val}{unit}</span>
+        <span style={{ color: THEME.accent, fontWeight: 800 }}>
+          {val}
+          {unit}
+        </span>
       </div>
       <input
         style={{
@@ -822,13 +909,23 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   );
 
   const resultRow = (lbl: string, val: number, highlight?: boolean, color?: string) => (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 14 }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "10px 0",
+        borderBottom: `1px dashed ${THEME.line}`,
+        fontSize: 14,
+      }}
+    >
       <span style={{ color: THEME.muted, fontWeight: 500 }}>{lbl}</span>
-      <span style={{ 
-        fontWeight: highlight ? 900 : 700, 
-        color: color || (highlight ? THEME.sage : THEME.ink),
-        fontVariantNumeric: "tabular-nums"
-      }}>
+      <span
+        style={{
+          fontWeight: highlight ? 900 : 700,
+          color: color || (highlight ? THEME.sage : THEME.ink),
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {fmtINRFull(val)}
       </span>
     </div>
@@ -838,36 +935,138 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     <div className="tab-content-enter">
       {/* ── HEADER ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: THEME.line, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.accent }}>
+        <div
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 12,
+            background: THEME.line,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: THEME.accent,
+          }}
+        >
           <Calculator size={24} />
         </div>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Financial Calculators</h2>
-          <p style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>Interactive planning suite for growth projection, liabilities, and retirement targeting</p>
+          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+            Financial Calculators
+          </h2>
+          <p style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+            Interactive planning suite for growth projection, liabilities, and retirement targeting
+          </p>
         </div>
       </div>
 
       {/* ── CONTEXT TILE STRIP ── */}
       {(() => {
-        const totalEMIs = (state?.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
-        const monthlySavings = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
+        const totalEMIs = (state?.loansTaken || []).reduce(
+          (s: number, l: any) => s + Number(l.emi || 0),
+          0
+        );
+        const monthlySavings = Math.max(
+          0,
+          (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0)
+        );
         const tiles = [
-          { label: "Current Net Worth",  value: fmtINRFull(metrics?.netWorth || 0),   sub: "Total assets minus liabilities",                                                                   color: THEME.accent,                            Icon: TrendingUp },
-          { label: "Monthly Expenses",   value: fmtINRFull(metrics?.monthExpense || 0), sub: "Baseline for FIRE & runway calcs",                                                               color: THEME.gold,                              Icon: Wallet    },
-          { label: "Est. Monthly Savings", value: fmtINRFull(monthlySavings),           sub: metrics?.monthIncome > 0 ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate` : "Use in SIP & projection", color: monthlySavings > 0 ? THEME.sage : THEME.muted, Icon: BarChart2 },
-          { label: "Total Loan EMIs",    value: fmtINRFull(totalEMIs),                  sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",                                color: totalEMIs > 0 ? THEME.rust : THEME.muted, Icon: Coins    },
+          {
+            label: "Current Net Worth",
+            value: fmtINRFull(metrics?.netWorth || 0),
+            sub: "Total assets minus liabilities",
+            color: THEME.accent,
+            Icon: TrendingUp,
+          },
+          {
+            label: "Monthly Expenses",
+            value: fmtINRFull(metrics?.monthExpense || 0),
+            sub: "Baseline for FIRE & runway calcs",
+            color: THEME.gold,
+            Icon: Wallet,
+          },
+          {
+            label: "Est. Monthly Savings",
+            value: fmtINRFull(monthlySavings),
+            sub:
+              metrics?.monthIncome > 0
+                ? `${((monthlySavings / metrics.monthIncome) * 100).toFixed(0)}% savings rate`
+                : "Use in SIP & projection",
+            color: monthlySavings > 0 ? THEME.sage : THEME.muted,
+            Icon: BarChart2,
+          },
+          {
+            label: "Total Loan EMIs",
+            value: fmtINRFull(totalEMIs),
+            sub: totalEMIs > 0 ? "Active monthly debt burden" : "No active loans",
+            color: totalEMIs > 0 ? THEME.rust : THEME.muted,
+            Icon: Coins,
+          },
         ];
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+              marginBottom: 28,
+            }}
+          >
             {tiles.map(({ label, value, sub, color, Icon }) => (
-              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxShadow: "var(--shadow-card)" }}>
+              <div
+                key={label}
+                className="card-lift"
+                style={{
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderTop: `4px solid ${color}`,
+                  borderRadius: 14,
+                  padding: "18px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: `${color}1f`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color,
+                      flexShrink: 0,
+                    }}
+                  >
                     <Icon size={18} />
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase" as const,
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {label}
+                  </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: THEME.ink,
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {value}
+                </div>
                 {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
@@ -876,7 +1075,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       })()}
 
       {/* ── PILL SELECTION BAR ── */}
-      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24, padding: "4px" }}>
+      <div
+        className="demat-portfolio-bar no-scrollbar"
+        style={{ marginBottom: 24, padding: "4px" }}
+      >
         {[
           { id: "emi", label: "EMI Calculator", icon: Clock },
           { id: "sip", label: "SIP Returns", icon: TrendingUp },
@@ -888,7 +1090,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "projection", label: "Wealth Projection", icon: Briefcase },
           { id: "stress", label: "Runway Stress Tester", icon: Shield },
           { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles },
-          { id: "scenario-sandbox", label: "Scenario Sandbox", icon: GitBranch }
+          { id: "scenario-sandbox", label: "Scenario Sandbox", icon: GitBranch },
         ].map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
@@ -907,7 +1109,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
       {/* ── ACTIVE CALCULATOR CONTAINER ── */}
       <div className="bento-grid">
-        
         {/* ── 1. EMI CALCULATOR ── */}
         {calcTab === "emi" && (
           <>
@@ -924,17 +1125,39 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             </div>
             <div className="bento-col-8">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Principal vs Interest Breakdown</div>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}
+                >
+                  Principal vs Interest Breakdown
+                </div>
                 <div className="bento-grid" style={{ gap: 24 }}>
-                  <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                  <div
+                    className="bento-col-6"
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}
+                  >
+                    <div
+                      style={{
+                        padding: 18,
+                        background: `${THEME.muted}09`,
+                        borderRadius: 12,
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
                       {resultRow("Monthly EMI Due", emiResult.emi, true, THEME.accent)}
                       {resultRow("Principal Amount", Number(emiP) || 0)}
                       {resultRow("Total Interest Paid", emiResult.interest, false, THEME.gold)}
                       {resultRow("Total Payments", emiResult.total)}
                     </div>
                   </div>
-                  <div className="bento-col-6" style={{ height: 220, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <div
+                    className="bento-col-6"
+                    style={{
+                      height: 220,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -977,16 +1200,38 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             </div>
             <div className="bento-col-8">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Compounded Returns Projection</div>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}
+                >
+                  Compounded Returns Projection
+                </div>
                 <div className="bento-grid" style={{ gap: 24 }}>
-                  <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
+                  <div
+                    className="bento-col-6"
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}
+                  >
+                    <div
+                      style={{
+                        padding: 18,
+                        background: `${THEME.muted}09`,
+                        borderRadius: 12,
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
                       {resultRow("Estimated Future Value", sipResult.corpus, true, THEME.sage)}
                       {resultRow("Invested Amount", sipResult.invested)}
                       {resultRow("Wealth Gain", sipResult.gains, false, THEME.sage)}
                     </div>
                   </div>
-                  <div className="bento-col-6" style={{ height: 220, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <div
+                    className="bento-col-6"
+                    style={{
+                      height: 220,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1029,57 +1274,191 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 <div className="divider" style={{ margin: "20px 0 16px" }} />
                 <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
-                  A Step-Up SIP increases your monthly investment by a fixed % each year, matching salary hikes and compounding wealth faster than a flat SIP.
+                  A Step-Up SIP increases your monthly investment by a fixed % each year, matching
+                  salary hikes and compounding wealth faster than a flat SIP.
                 </div>
               </Card>
             </div>
 
-            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* Key results */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.accent}15`, border: `1.5px solid ${THEME.accent}33` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Final Corpus</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>{fmtINRFull(stepSipResult.corpus)}</div>
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: `${THEME.accent}15`,
+                    border: `1.5px solid ${THEME.accent}33`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Final Corpus
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent }}>
+                    {fmtINRFull(stepSipResult.corpus)}
+                  </div>
                 </div>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.muted}09`, border: `1.5px solid ${THEME.line}` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Total Invested</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.invested)}</div>
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: `${THEME.muted}09`,
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Total Invested
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                    {fmtINRFull(stepSipResult.invested)}
+                  </div>
                 </div>
-                <div style={{ padding: "16px 18px", borderRadius: 14, background: `${THEME.sage}15`, border: `1.5px solid ${THEME.sage}33` }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Net Gains</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(stepSipResult.gains)}</div>
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: `${THEME.sage}15`,
+                    border: `1.5px solid ${THEME.sage}33`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Net Gains
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
+                    {fmtINRFull(stepSipResult.gains)}
+                  </div>
                 </div>
               </div>
 
               {/* vs Flat SIP comparison */}
               <Card style={{ padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 14 }}>Step-Up vs Flat SIP Comparison</div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
+                  }}
+                >
+                  Step-Up vs Flat SIP Comparison
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.gold}09`, border: `1.5px solid ${THEME.gold}33` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Step-Up SIP Corpus</div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>{fmtINRFull(stepSipResult.corpus)}</div>
-                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.invested)}</div>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${THEME.gold}09`,
+                      border: `1.5px solid ${THEME.gold}33`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}
+                    >
+                      Step-Up SIP Corpus
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold }}>
+                      {fmtINRFull(stepSipResult.corpus)}
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                      Invested: {fmtINRFull(stepSipResult.invested)}
+                    </div>
                   </div>
-                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.muted}09`, border: `1.5px solid ${THEME.line}` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>Flat SIP Corpus</div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(stepSipResult.flatCorpus)}</div>
-                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>Invested: {fmtINRFull(stepSipResult.flatInvested)}</div>
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `${THEME.muted}09`,
+                      border: `1.5px solid ${THEME.line}`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}
+                    >
+                      Flat SIP Corpus
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                      {fmtINRFull(stepSipResult.flatCorpus)}
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                      Invested: {fmtINRFull(stepSipResult.flatInvested)}
+                    </div>
                   </div>
                 </div>
                 {stepSipResult.extraGains > 0 && (
-                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: `${THEME.sage}09`, border: `1px solid ${THEME.sage}22`, fontSize: 12.5, fontWeight: 700, color: THEME.sage, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      background: `${THEME.sage}09`,
+                      border: `1px solid ${THEME.sage}22`,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: THEME.sage,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <TrendingUp size={14} />
-                    Step-Up earns {fmtINRFull(stepSipResult.extraGains)} more than flat SIP over {stepSipYrs} years
+                    Step-Up earns {fmtINRFull(stepSipResult.extraGains)} more than flat SIP over{" "}
+                    {stepSipYrs} years
                   </div>
                 )}
               </Card>
 
               {/* Growth chart */}
               <Card style={{ padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 14 }}>Year-by-Year Growth</div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
+                  }}
+                >
+                  Year-by-Year Growth
+                </div>
                 <div style={{ height: 200 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stepSipResult.yearlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                    <AreaChart
+                      data={stepSipResult.yearlyData}
+                      margin={{ top: 5, right: 5, left: -10, bottom: 0 }}
+                    >
                       <defs>
                         <linearGradient id="gStepCorpus" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.3} />
@@ -1091,11 +1470,40 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                      <XAxis dataKey="year" tick={{ fontSize: 10, fill: "var(--t-muted)" }} tickFormatter={(v) => `Y${v}`} />
-                      <YAxis tickFormatter={fmtINR} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
-                      <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line, fontSize: 12 }} />
-                      <Area type="monotone" dataKey="corpus" name="Corpus" stroke={THEME.accent} strokeWidth={2.5} fill="url(#gStepCorpus)" />
-                      <Area type="monotone" dataKey="invested" name="Invested" stroke={THEME.muted} strokeWidth={1.5} fill="url(#gStepInvested)" strokeDasharray="4 2" />
+                      <XAxis
+                        dataKey="year"
+                        tick={{ fontSize: 10, fill: "var(--t-muted)" }}
+                        tickFormatter={(v) => `Y${v}`}
+                      />
+                      <YAxis
+                        tickFormatter={fmtINR}
+                        tick={{ fontSize: 10, fill: "var(--t-muted)" }}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        contentStyle={{
+                          background: "var(--t-card-bg)",
+                          borderColor: THEME.line,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="corpus"
+                        name="Corpus"
+                        stroke={THEME.accent}
+                        strokeWidth={2.5}
+                        fill="url(#gStepCorpus)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="invested"
+                        name="Invested"
+                        stroke={THEME.muted}
+                        strokeWidth={1.5}
+                        fill="url(#gStepInvested)"
+                        strokeDasharray="4 2"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -1119,19 +1527,74 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               </Card>
             </div>
             <div className="bento-col-8">
-              <Card style={{ padding: 24, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Annualized Compounded Growth Rate</div>
-                <div style={{ padding: 24, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 15 }}>
-                    <span style={{ color: THEME.muted, fontWeight: 600 }}>CAGR Yield (Annualized)</span>
-                    <span style={{ fontWeight: 900, fontSize: 26, color: cagrResult.cagr !== null && cagrResult.cagr >= 0 ? THEME.sage : THEME.rust }}>
+              <Card
+                style={{
+                  padding: 24,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}
+                >
+                  Annualized Compounded Growth Rate
+                </div>
+                <div
+                  style={{
+                    padding: 24,
+                    background: `${THEME.muted}09`,
+                    borderRadius: 12,
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "12px 0",
+                      borderBottom: `1px dashed ${THEME.line}`,
+                      fontSize: 15,
+                    }}
+                  >
+                    <span style={{ color: THEME.muted, fontWeight: 600 }}>
+                      CAGR Yield (Annualized)
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 900,
+                        fontSize: 26,
+                        color:
+                          cagrResult.cagr !== null && cagrResult.cagr >= 0
+                            ? THEME.sage
+                            : THEME.rust,
+                      }}
+                    >
                       {cagrResult.cagr !== null ? `${cagrResult.cagr.toFixed(2)}%` : "—"}
                     </span>
                   </div>
-                  {resultRow("Absolute Wealth Gain", cagrResult.absoluteReturn, false, cagrResult.absoluteReturn >= 0 ? THEME.sage : THEME.rust)}
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", fontSize: 14 }}>
+                  {resultRow(
+                    "Absolute Wealth Gain",
+                    cagrResult.absoluteReturn,
+                    false,
+                    cagrResult.absoluteReturn >= 0 ? THEME.sage : THEME.rust
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "12px 0",
+                      fontSize: 14,
+                    }}
+                  >
                     <span style={{ color: THEME.muted, fontWeight: 500 }}>Absolute Return %</span>
-                    <span style={{ fontWeight: 700, color: cagrResult.absolutePct >= 0 ? THEME.sage : THEME.rust }}>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        color: cagrResult.absolutePct >= 0 ? THEME.sage : THEME.rust,
+                      }}
+                    >
                       {cagrResult.absolutePct.toFixed(1)}%
                     </span>
                   </div>
@@ -1157,69 +1620,141 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 {inpRow("Current Monthly Expenses (₹)", fireExpense, setFireExpense)}
                 {inpRow("Current Net Worth / Corpus (₹)", firePortfolio, setFirePortfolio)}
                 {inpRow("Expected Monthly Savings (₹)", fireSavings, setFireSavings)}
-                
+
                 <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>Economic & Yield Assumptions</div>
-                
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>
+                  Economic & Yield Assumptions
+                </div>
+
                 {sliderRow("Inflation Rate", fireInflation, setFireInflation, 1, 15, 0.5, "%")}
-                {sliderRow("Pre-Retirement Yield", firePreReturn, setFirePreReturn, 4, 25, 0.5, "%")}
-                {sliderRow("Post-Retirement Yield", firePostReturn, setFirePostReturn, 4, 18, 0.5, "%")}
+                {sliderRow(
+                  "Pre-Retirement Yield",
+                  firePreReturn,
+                  setFirePreReturn,
+                  4,
+                  25,
+                  0.5,
+                  "%"
+                )}
+                {sliderRow(
+                  "Post-Retirement Yield",
+                  firePostReturn,
+                  setFirePostReturn,
+                  4,
+                  18,
+                  0.5,
+                  "%"
+                )}
                 {sliderRow("Life Expectancy", fireLifeExp, setFireLifeExp, 60, 100, 1, " yrs")}
               </Card>
             </div>
-            
-            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* Negative real return warning */}
               {fireResult.realPostReturn < 0 && (
-                <div style={{
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  background: `${THEME.gold}15`,
-                  border: `1.5px solid ${THEME.gold}33`,
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "flex-start",
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: THEME.gold,
-                  lineHeight: 1.5
-                }}>
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: `${THEME.gold}15`,
+                    border: `1.5px solid ${THEME.gold}33`,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "flex-start",
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: THEME.gold,
+                    lineHeight: 1.5,
+                  }}
+                >
                   <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
                   <span>
-                    Inflation ({(fireResult.infl * 100).toFixed(1)}%) exceeds post-retirement yield ({(fireResult.postRet * 100).toFixed(1)}%) — real returns are negative ({(fireResult.realPostReturn * 100).toFixed(1)}%). The required corpus shown may be unrealistically large. Consider raising post-retirement yield assumption above the inflation rate.
+                    Inflation ({(fireResult.infl * 100).toFixed(1)}%) exceeds post-retirement yield
+                    ({(fireResult.postRet * 100).toFixed(1)}%) — real returns are negative (
+                    {(fireResult.realPostReturn * 100).toFixed(1)}%). The required corpus shown may
+                    be unrealistically large. Consider raising post-retirement yield assumption
+                    above the inflation rate.
                   </span>
                 </div>
               )}
 
               {/* Tracker Card */}
-              <Card style={{ padding: 24, borderTop: `4px solid ${fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <Card
+                style={{
+                  padding: 24,
+                  borderTop: `4px solid ${fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 16,
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em" }}>Retirement Savings Status</div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        color: THEME.muted,
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Retirement Savings Status
+                    </div>
                     <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
                       {fireResult.percentOnTrack}% Target Achieved
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 12, color: THEME.muted }}>Safe Withdrawal Rate</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent }}>{fireResult.safeWithdrawalRate.toFixed(2)}%</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent }}>
+                      {fireResult.safeWithdrawalRate.toFixed(2)}%
+                    </div>
                   </div>
                 </div>
 
                 {/* Progress fill bar */}
                 <div className="progress-track" style={{ marginBottom: 16 }}>
-                  <div className="progress-fill" style={{
-                    width: `${fireResult.percentOnTrack}%`,
-                    background: fireResult.percentOnTrack >= 80 ? THEME.sage : fireResult.percentOnTrack >= 45 ? THEME.gold : THEME.rust,
-                    transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)"
-                  }} />
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${fireResult.percentOnTrack}%`,
+                      background:
+                        fireResult.percentOnTrack >= 80
+                          ? THEME.sage
+                          : fireResult.percentOnTrack >= 45
+                            ? THEME.gold
+                            : THEME.rust,
+                      transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                  />
                 </div>
 
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                  <span style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    fontSize: 11,
+                    color: THEME.muted,
+                    fontWeight: 600,
+                  }}
+                >
+                  <span
+                    style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}
+                  >
                     ⏱️ Years to Retire: {fireResult.yrsToRet}
                   </span>
-                  <span style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}>
+                  <span
+                    style={{ background: `${THEME.muted}09`, padding: "4px 8px", borderRadius: 6 }}
+                  >
                     🗓️ Years in Retirement: {fireResult.yrsInRet}
                   </span>
                 </div>
@@ -1227,51 +1762,99 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* Corpus Breakdown */}
               <Card style={{ padding: 24, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 16 }}>Corpus & Safe Withdrawal Projection</div>
-                <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-                  {resultRow("Monthly Expense at Retirement", fireResult.retMonthlyExp, false, THEME.gold)}
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 16,
+                  }}
+                >
+                  Corpus & Safe Withdrawal Projection
+                </div>
+                <div
+                  style={{
+                    padding: 18,
+                    background: `${THEME.muted}09`,
+                    borderRadius: 12,
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  {resultRow(
+                    "Monthly Expense at Retirement",
+                    fireResult.retMonthlyExp,
+                    false,
+                    THEME.gold
+                  )}
                   {resultRow("Target Corpus Required", fireResult.reqCorpus, true, THEME.accent)}
-                  {resultRow("Projected Corpus Available", fireResult.projectedCorpus, false, THEME.sage)}
-                  
+                  {resultRow(
+                    "Projected Corpus Available",
+                    fireResult.projectedCorpus,
+                    false,
+                    THEME.sage
+                  )}
+
                   <div className="divider" style={{ margin: "14px 0" }} />
-                  
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 14,
+                    }}
+                  >
                     <span style={{ color: THEME.muted, fontWeight: 700 }}>
                       {fireResult.gap > 0 ? "Retirement Shortfall" : "Financial Surplus"}
                     </span>
-                    <span style={{ 
-                      fontWeight: 900, 
-                      fontSize: 18, 
-                      color: fireResult.gap > 0 ? THEME.rust : THEME.sage 
-                    }}>
+                    <span
+                      style={{
+                        fontWeight: 900,
+                        fontSize: 18,
+                        color: fireResult.gap > 0 ? THEME.rust : THEME.sage,
+                      }}
+                    >
                       {fmtINRFull(Math.abs(fireResult.gap))}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ 
-                  marginTop: 18, 
-                  padding: "12px 14px", 
-                  borderRadius: 10, 
-                  background: fireResult.gap <= 0 ? `${THEME.sage}09` : `${THEME.rust}09`,
-                  border: `1.5px solid ${fireResult.gap <= 0 ? THEME.sage : THEME.rust}22`,
-                  fontSize: 12.5, 
-                  lineHeight: 1.5,
-                  fontWeight: 600,
-                  color: fireResult.gap <= 0 ? THEME.sage : THEME.rust,
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center"
-                }}>
+                <div
+                  style={{
+                    marginTop: 18,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: fireResult.gap <= 0 ? `${THEME.sage}09` : `${THEME.rust}09`,
+                    border: `1.5px solid ${fireResult.gap <= 0 ? THEME.sage : THEME.rust}22`,
+                    fontSize: 12.5,
+                    lineHeight: 1.5,
+                    fontWeight: 600,
+                    color: fireResult.gap <= 0 ? THEME.sage : THEME.rust,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
                   {fireResult.gap <= 0 ? (
                     <>
                       <CheckCircle2 size={16} />
-                      <span>Congratulations! Your projected retirement corpus fully covers your target expense with a secure safe withdrawal profile. You are fully on track to achieve financial independence early.</span>
+                      <span>
+                        Congratulations! Your projected retirement corpus fully covers your target
+                        expense with a secure safe withdrawal profile. You are fully on track to
+                        achieve financial independence early.
+                      </span>
                     </>
                   ) : (
                     <>
                       <AlertTriangle size={16} />
-                      <span>To close the shortfall gap of {fmtINRFull(fireResult.gap)}, consider increasing your monthly savings by {fmtINRFull(Math.round(fireResult.gap / (fireResult.yrsToRet * 12)))}/mo or pushing retirement age out by 2-3 years.</span>
+                      <span>
+                        To close the shortfall gap of {fmtINRFull(fireResult.gap)}, consider
+                        increasing your monthly savings by{" "}
+                        {fmtINRFull(Math.round(fireResult.gap / (fireResult.yrsToRet * 12)))}/mo or
+                        pushing retirement age out by 2-3 years.
+                      </span>
                     </>
                   )}
                 </div>
@@ -1285,25 +1868,46 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           <>
             <div className="bento-col-4">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ display: "flex", gap: 8, marginBottom: 20, background: `${THEME.muted}09`, padding: 4, borderRadius: 10 }}>
-                  <button 
-                    onClick={() => setFdrdType("fd")} 
-                    style={{ 
-                      flex: 1, padding: "8px 12px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginBottom: 20,
+                    background: `${THEME.muted}09`,
+                    padding: 4,
+                    borderRadius: 10,
+                  }}
+                >
+                  <button
+                    onClick={() => setFdrdType("fd")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
                       background: fdrdType === "fd" ? "var(--surface-0)" : "transparent",
                       color: fdrdType === "fd" ? THEME.accent : THEME.muted,
-                      boxShadow: fdrdType === "fd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+                      boxShadow: fdrdType === "fd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                     }}
                   >
                     Fixed Deposit (FD)
                   </button>
-                  <button 
-                    onClick={() => setFdrdType("rd")} 
-                    style={{ 
-                      flex: 1, padding: "8px 12px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  <button
+                    onClick={() => setFdrdType("rd")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
                       background: fdrdType === "rd" ? "var(--surface-0)" : "transparent",
                       color: fdrdType === "rd" ? THEME.accent : THEME.muted,
-                      boxShadow: fdrdType === "rd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+                      boxShadow: fdrdType === "rd" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                     }}
                   >
                     Recurring Deposit (RD)
@@ -1315,11 +1919,20 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     {inpRow("Lump Sum Deposit (₹)", fdAmt, setFdAmt)}
                     {sliderRow("Annual Interest Rate", fdRate, setFdRate, 2, 12, 0.05, "%")}
                     {sliderRow("Tenure", fdYrs, setFdYrs, 1, 15, 1, " years")}
-                    
+
                     <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Compounding Interval</div>
-                      <select 
-                        value={fdComp} 
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: THEME.muted,
+                          marginBottom: 4,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Compounding Interval
+                      </div>
+                      <select
+                        value={fdComp}
                         onChange={(e) => setFdComp(e.target.value)}
                         style={{
                           width: "100%",
@@ -1347,19 +1960,51 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 )}
               </Card>
             </div>
-            
+
             <div className="bento-col-8">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>Maturity Proceeds Breakdown</div>
+                <div
+                  style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}
+                >
+                  Maturity Proceeds Breakdown
+                </div>
                 <div className="bento-grid" style={{ gap: 24 }}>
-                  <div className="bento-col-6" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <div style={{ padding: 18, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-                      {resultRow("Estimated Maturity proceeds", fdrdResult.maturity, true, THEME.sage)}
+                  <div
+                    className="bento-col-6"
+                    style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}
+                  >
+                    <div
+                      style={{
+                        padding: 18,
+                        background: `${THEME.muted}09`,
+                        borderRadius: 12,
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
+                      {resultRow(
+                        "Estimated Maturity proceeds",
+                        fdrdResult.maturity,
+                        true,
+                        THEME.sage
+                      )}
                       {resultRow("Total Invested Principal", fdrdResult.invested)}
-                      {resultRow("Compounded Interest Earned", fdrdResult.interest, false, THEME.sage)}
+                      {resultRow(
+                        "Compounded Interest Earned",
+                        fdrdResult.interest,
+                        false,
+                        THEME.sage
+                      )}
                     </div>
                   </div>
-                  <div className="bento-col-6" style={{ height: 220, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <div
+                    className="bento-col-6"
+                    style={{
+                      height: 220,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1395,58 +2040,141 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <ArrowRightLeft size={18} color={THEME.accent} />
                   <div style={{ fontSize: 16, fontWeight: 700 }}>Comparison Inputs</div>
                 </div>
-                
-                <div style={{ display: "flex", gap: 8, marginBottom: 16, background: `${THEME.muted}09`, padding: 4, borderRadius: 10 }}>
-                  <button 
-                    onClick={() => setLviMode("sip")} 
-                    style={{ 
-                      flex: 1, padding: "8px 12px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginBottom: 16,
+                    background: `${THEME.muted}09`,
+                    padding: 4,
+                    borderRadius: 10,
+                  }}
+                >
+                  <button
+                    onClick={() => setLviMode("sip")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
                       background: lviMode === "sip" ? "var(--surface-0)" : "transparent",
                       color: lviMode === "sip" ? THEME.accent : THEME.muted,
-                      boxShadow: lviMode === "sip" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+                      boxShadow: lviMode === "sip" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                     }}
                   >
                     Monthly Surplus
                   </button>
-                  <button 
-                    onClick={() => setLviMode("lumpsum")} 
-                    style={{ 
-                      flex: 1, padding: "8px 12px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  <button
+                    onClick={() => setLviMode("lumpsum")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
                       background: lviMode === "lumpsum" ? "var(--surface-0)" : "transparent",
                       color: lviMode === "lumpsum" ? THEME.accent : THEME.muted,
-                      boxShadow: lviMode === "lumpsum" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+                      boxShadow: lviMode === "lumpsum" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                     }}
                   >
                     Lump Sum cash
                   </button>
                 </div>
 
-                {inpRow(lviMode === "sip" ? "Monthly Surplus (₹)" : "Lump Sum Available (₹)", lviSurplus, setLviSurplus)}
+                {inpRow(
+                  lviMode === "sip" ? "Monthly Surplus (₹)" : "Lump Sum Available (₹)",
+                  lviSurplus,
+                  setLviSurplus
+                )}
                 {inpRow("Loan Outstanding balance (₹)", lviLoanBal, setLviLoanBal)}
                 {sliderRow("Loan Interest Rate", lviLoanRate, setLviLoanRate, 3, 20, 0.1, "%")}
-                {sliderRow("Remaining Tenure", lviLoanTenure, setLviLoanTenure, 12, 360, 12, " months")}
-                {sliderRow("Expected Invest Return", lviInvestReturn, setLviInvestReturn, 4, 25, 0.5, "%")}
+                {sliderRow(
+                  "Remaining Tenure",
+                  lviLoanTenure,
+                  setLviLoanTenure,
+                  12,
+                  360,
+                  12,
+                  " months"
+                )}
+                {sliderRow(
+                  "Expected Invest Return",
+                  lviInvestReturn,
+                  setLviInvestReturn,
+                  4,
+                  25,
+                  0.5,
+                  "%"
+                )}
               </Card>
             </div>
-            
-            <div className="bento-col-8" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+            <div
+              className="bento-col-8"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* Recommendation Advisory Card */}
-              <Card style={{ padding: 24, borderTop: `4px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.gold}` }}>
+              <Card
+                style={{
+                  padding: 24,
+                  borderTop: `4px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.gold}`,
+                }}
+              >
                 <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <div style={{ 
-                    width: 44, height: 44, borderRadius: 12, 
-                    background: lviResult.isInvestBetter ? `${THEME.sage}15` : `${THEME.gold}15`,
-                    display: "flex", alignItems: "center", justifyContent: "center", color: lviResult.isInvestBetter ? THEME.sage : THEME.gold,
-                    flexShrink: 0
-                  }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: lviResult.isInvestBetter ? `${THEME.sage}15` : `${THEME.gold}15`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: lviResult.isInvestBetter ? THEME.sage : THEME.gold,
+                      flexShrink: 0,
+                    }}
+                  >
                     <Sparkles size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em" }}>Advisory Verdict</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginTop: 4, lineHeight: 1.5 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        color: THEME.muted,
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Advisory Verdict
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        marginTop: 4,
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {lviResult.recommendation}
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 10, fontStyle: "italic", borderTop: `1px solid ${THEME.line}`, paddingTop: 8 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: THEME.muted,
+                        marginTop: 10,
+                        fontStyle: "italic",
+                        borderTop: `1px solid ${THEME.line}`,
+                        paddingTop: 8,
+                      }}
+                    >
                       💡 <b>CTO/CFO Tip:</b> {lviResult.tip}
                     </div>
                   </div>
@@ -1455,14 +2183,46 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* Wealth Projection Comparison */}
               <Card style={{ padding: 24, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.08em", marginBottom: 16 }}>Financial Breakdown</div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 16,
+                  }}
+                >
+                  Financial Breakdown
+                </div>
                 <div className="bento-grid" style={{ gap: 20 }}>
                   <div className="bento-col-6">
-                    <div style={{ padding: 16, background: `${THEME.muted}05`, borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.line : THEME.gold}44` }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 8 }}>Path A: Prepay Loan</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(lviResult.wealthPrepay)}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Net wealth at month {lviLoanTenure}</div>
-                      
+                    <div
+                      style={{
+                        padding: 16,
+                        background: `${THEME.muted}05`,
+                        borderRadius: 12,
+                        border: `1.5px solid ${lviResult.isInvestBetter ? THEME.line : THEME.gold}44`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          color: THEME.muted,
+                          marginBottom: 8,
+                        }}
+                      >
+                        Path A: Prepay Loan
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                        {fmtINRFull(lviResult.wealthPrepay)}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                        Net wealth at month {lviLoanTenure}
+                      </div>
+
                       <div className="divider" style={{ margin: "10px 0" }} />
                       <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700 }}>
                         ✓ Paid off in {lviResult.monthsTaken} months
@@ -1472,13 +2232,34 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bento-col-6">
-                    <div style={{ padding: 16, background: `${THEME.muted}05`, borderRadius: 12, border: `1.5px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.line}44` }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 8 }}>Path B: Invest Surplus</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(lviResult.wealthInvest)}</div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Net wealth at month {lviLoanTenure}</div>
-                      
+                    <div
+                      style={{
+                        padding: 16,
+                        background: `${THEME.muted}05`,
+                        borderRadius: 12,
+                        border: `1.5px solid ${lviResult.isInvestBetter ? THEME.sage : THEME.line}44`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          color: THEME.muted,
+                          marginBottom: 8,
+                        }}
+                      >
+                        Path B: Invest Surplus
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                        {fmtINRFull(lviResult.wealthInvest)}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                        Net wealth at month {lviLoanTenure}
+                      </div>
+
                       <div className="divider" style={{ margin: "10px 0" }} />
                       <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 700 }}>
                         ✓ Standard EMI remains
@@ -1490,8 +2271,21 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: `${THEME.muted}09`, padding: "14px 18px", borderRadius: 12, border: `1px solid ${THEME.line}`, marginTop: 20 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>Net Benefit Difference</span>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: `${THEME.muted}09`,
+                    padding: "14px 18px",
+                    borderRadius: 12,
+                    border: `1px solid ${THEME.line}`,
+                    marginTop: 20,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>
+                    Net Benefit Difference
+                  </span>
                   <span style={{ fontSize: 18, fontWeight: 900, color: THEME.sage }}>
                     {fmtINRFull(lviResult.netBenefit)}
                   </span>
@@ -1509,7 +2303,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <Briefcase size={18} color={THEME.gold} />
                 <div style={{ fontSize: 16, fontWeight: 700 }}>Compound Net Worth Projection</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 16,
+                  marginBottom: 24,
+                }}
+              >
                 {inpRow("Monthly Future Savings (₹)", nwpSavings, setNwpSavings)}
                 {sliderRow("Expected Annual Return", nwpReturn, setNwpReturn, 2, 25, 0.5, "%")}
                 {sliderRow("Projection Range", nwpYears, setNwpYears, 5, 40, 1, " years")}
@@ -1527,25 +2328,77 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </defs>
                       <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
                       <XAxis dataKey="year" tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
-                      <YAxis tickFormatter={fmtINR} tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
-                      <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line }} />
-                      <Area type="monotone" dataKey="value" stroke={THEME.accent} strokeWidth={3} fill="url(#gNwp)" />
+                      <YAxis
+                        tickFormatter={fmtINR}
+                        tick={{ fontSize: 11, fill: "var(--t-muted)" }}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={THEME.accent}
+                        strokeWidth={3}
+                        fill="url(#gNwp)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="bento-col-4" style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
-                  <div style={{ padding: 16, background: `${THEME.muted}09`, borderRadius: 12, border: `1px solid ${THEME.line}` }}>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Starting Net Worth Today</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>{fmtINRFull(nwpData[0]?.value)}</div>
+                <div
+                  className="bento-col-4"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: 16,
+                      background: `${THEME.muted}09`,
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                    >
+                      Starting Net Worth Today
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                      {fmtINRFull(nwpData[0]?.value)}
+                    </div>
                   </div>
-                  <div style={{ padding: 16, background: `${THEME.sage}09`, borderRadius: 12, border: `1px solid ${THEME.sage}22` }}>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Projected Value in {nwpYears} Years</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>{fmtINRFull(nwpData[nwpData.length - 1]?.value)}</div>
+                  <div
+                    style={{
+                      padding: 16,
+                      background: `${THEME.sage}09`,
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.sage}22`,
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                    >
+                      Projected Value in {nwpYears} Years
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage }}>
+                      {fmtINRFull(nwpData[nwpData.length - 1]?.value)}
+                    </div>
                   </div>
-                  <div style={{ padding: 16, border: `1.5px dashed ${THEME.line}`, borderRadius: 12 }}>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>Total Growth Multiple</div>
+                  <div
+                    style={{ padding: 16, border: `1.5px dashed ${THEME.line}`, borderRadius: 12 }}
+                  >
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}
+                    >
+                      Total Growth Multiple
+                    </div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: THEME.gold }}>
-                      {nwpData[0]?.value > 0 
+                      {nwpData[0]?.value > 0
                         ? `${((nwpData[nwpData.length - 1]?.value || 0) / nwpData[0].value).toFixed(1)}x Capital`
                         : "—"}
                     </div>
@@ -1569,7 +2422,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 {/* Scenario Preset Buttons */}
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: 8,
+                    }}
+                  >
                     Preset Stress Scenarios
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1581,13 +2443,22 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         setOneTimeOutflow("");
                       }}
                       style={{
-                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
-                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-                        transition: "all 0.15s"
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: `1.5px solid ${THEME.line}`,
+                        background: `${THEME.muted}09`,
+                        color: THEME.ink,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "all 0.15s",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
-                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
                       <span>🔒 The Great Lockdown (Normal Crisis)</span>
                       <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · Eq -15%</span>
@@ -1600,16 +2471,27 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         setOneTimeOutflow("");
                       }}
                       style={{
-                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
-                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-                        transition: "all 0.15s"
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: `1.5px solid ${THEME.line}`,
+                        background: `${THEME.muted}09`,
+                        color: THEME.ink,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "all 0.15s",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
-                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
                       <span>📉 Global Financial Crisis (Severe)</span>
-                      <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · Frugal · Eq -40%</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>
+                        Inc=0 · Frugal · Eq -40%
+                      </span>
                     </button>
                     <button
                       onClick={() => {
@@ -1619,16 +2501,27 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         setOneTimeOutflow("500000"); // medical emergency outflow
                       }}
                       style={{
-                        padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${THEME.line}`,
-                        background: `${THEME.muted}09`, color: THEME.ink, fontSize: 12.5, fontWeight: 600,
-                        textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-                        transition: "all 0.15s"
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: `1.5px solid ${THEME.line}`,
+                        background: `${THEME.muted}09`,
+                        color: THEME.ink,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        transition: "all 0.15s",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.borderColor = THEME.accent}
-                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--t-line)"}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.accent)}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--t-line)")}
                     >
                       <span>🌋 Medical Black Swan (Outflow + Job Loss)</span>
-                      <span style={{ fontSize: 11, color: THEME.muted }}>Inc=0 · ₹5L Outflow · Eq -30%</span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>
+                        Inc=0 · ₹5L Outflow · Eq -30%
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1639,7 +2532,14 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {/* Equity Haircut */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
                       <span style={{ color: THEME.muted }}>Equity Haircut (Stocks & MFs)</span>
                       <span style={{ color: THEME.rust, fontWeight: 800 }}>{eqHaircut}%</span>
                     </div>
@@ -1656,8 +2556,17 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                   {/* Fixed Income Penalty */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                      <span style={{ color: THEME.muted }}>Fixed Income Penalty (FD/Bond cashout)</span>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span style={{ color: THEME.muted }}>
+                        Fixed Income Penalty (FD/Bond cashout)
+                      </span>
                       <span style={{ color: THEME.gold, fontWeight: 800 }}>{fiHaircut}%</span>
                     </div>
                     <input
@@ -1673,9 +2582,18 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                   {/* Monthly Burn Rate Multiplier */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
                       <span style={{ color: THEME.muted }}>Crisis Burn Multiplier</span>
-                      <span style={{ color: THEME.accent, fontWeight: 800 }}>{burnMultiplier}x</span>
+                      <span style={{ color: THEME.accent, fontWeight: 800 }}>
+                        {burnMultiplier}x
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -1689,118 +2607,286 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   </div>
 
                   {/* One-Time Crisis Expense */}
-                  {inpRow("One-Time Emergency Cash Outflow (₹)", oneTimeOutflow, setOneTimeOutflow, "e.g. 500000")}
+                  {inpRow(
+                    "One-Time Emergency Cash Outflow (₹)",
+                    oneTimeOutflow,
+                    setOneTimeOutflow,
+                    "e.g. 500000"
+                  )}
                 </div>
               </Card>
             </div>
 
             {/* Right Column: Runway Metric and Stability Breakdown */}
-            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* Stability Gauge Panel */}
-              <Card style={{ padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+              <Card
+                style={{
+                  padding: 24,
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: THEME.muted,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 12,
+                  }}
+                >
                   Estimated Crisis Liquidity Runway
                 </div>
-                
+
                 {/* Big Metric Display */}
-                <div style={{ position: "relative", display: "inline-flex", flexDirection: "column", alignItems: "center", margin: "16px 0" }}>
-                  <div style={{
-                    fontSize: 72, fontWeight: 950, letterSpacing: "-0.04em", lineHeight: 1,
-                    color: stressResult.safetyLevel === "critical" ? THEME.rust
-                         : stressResult.safetyLevel === "caution" ? THEME.gold
-                         : stressResult.safetyLevel === "elite" ? "#D97706" : THEME.sage
-                  }}>
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    margin: "16px 0",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 72,
+                      fontWeight: 950,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1,
+                      color:
+                        stressResult.safetyLevel === "critical"
+                          ? THEME.rust
+                          : stressResult.safetyLevel === "caution"
+                            ? THEME.gold
+                            : stressResult.safetyLevel === "elite"
+                              ? "#D97706"
+                              : THEME.sage,
+                    }}
+                  >
                     {stressResult.runwayMonths >= 99 ? "99+" : stressResult.runwayMonths.toFixed(1)}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", marginTop: 4 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      marginTop: 4,
+                    }}
+                  >
                     Months of Runway
                   </div>
                 </div>
 
                 {/* Level Indicator Pill */}
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
-                  background: stressResult.safetyLevel === "critical" ? `${THEME.rust}15`
-                            : stressResult.safetyLevel === "caution" ? `${THEME.gold}15`
-                            : stressResult.safetyLevel === "elite" ? `${THEME.gold}22` : `${THEME.sage}15`,
-                  color: stressResult.safetyLevel === "critical" ? THEME.rust
-                       : stressResult.safetyLevel === "caution" ? THEME.gold
-                       : stressResult.safetyLevel === "elite" ? "#D97706" : THEME.sage,
-                  border: `1.5px solid ${
-                    stressResult.safetyLevel === "critical" ? `${THEME.rust}33`
-                    : stressResult.safetyLevel === "caution" ? `${THEME.gold}33`
-                    : stressResult.safetyLevel === "elite" ? `${THEME.gold}44` : `${THEME.sage}33`
-                  }`
-                }}>
-                  {stressResult.safetyLevel === "critical" ? "🚨 CRITICAL LIQUIDITY RISK"
-                 : stressResult.safetyLevel === "caution" ? "⚠️ MODERATE RISK BUFFER"
-                 : stressResult.safetyLevel === "elite" ? "👑 ELITE FINANCIAL STABILITY"
-                 : "✅ SECURE RUNWAY COVER"}
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 99,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background:
+                      stressResult.safetyLevel === "critical"
+                        ? `${THEME.rust}15`
+                        : stressResult.safetyLevel === "caution"
+                          ? `${THEME.gold}15`
+                          : stressResult.safetyLevel === "elite"
+                            ? `${THEME.gold}22`
+                            : `${THEME.sage}15`,
+                    color:
+                      stressResult.safetyLevel === "critical"
+                        ? THEME.rust
+                        : stressResult.safetyLevel === "caution"
+                          ? THEME.gold
+                          : stressResult.safetyLevel === "elite"
+                            ? "#D97706"
+                            : THEME.sage,
+                    border: `1.5px solid ${
+                      stressResult.safetyLevel === "critical"
+                        ? `${THEME.rust}33`
+                        : stressResult.safetyLevel === "caution"
+                          ? `${THEME.gold}33`
+                          : stressResult.safetyLevel === "elite"
+                            ? `${THEME.gold}44`
+                            : `${THEME.sage}33`
+                    }`,
+                  }}
+                >
+                  {stressResult.safetyLevel === "critical"
+                    ? "🚨 CRITICAL LIQUIDITY RISK"
+                    : stressResult.safetyLevel === "caution"
+                      ? "⚠️ MODERATE RISK BUFFER"
+                      : stressResult.safetyLevel === "elite"
+                        ? "👑 ELITE FINANCIAL STABILITY"
+                        : "✅ SECURE RUNWAY COVER"}
                 </div>
 
                 {/* Dynamic stress description text */}
-                <p style={{ fontSize: 13, color: THEME.muted, marginTop: 16, lineHeight: 1.6, maxWidth: 460 }}>
-                  {stressResult.safetyLevel === "critical" 
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: THEME.muted,
+                    marginTop: 16,
+                    lineHeight: 1.6,
+                    maxWidth: 460,
+                  }}
+                >
+                  {stressResult.safetyLevel === "critical"
                     ? "Your liquid assets cover less than 3 months of basic outflows in this crisis. Immediate cash buffers must be created or higher-haircut investments consolidated."
-                    : stressResult.safetyLevel === "caution" 
-                    ? "You are moderately safe, but a sudden windfall reduction or larger outflow will push you into the risk zone. Consider allocating surplus income to highly liquid bank savings."
-                    : stressResult.safetyLevel === "elite"
-                    ? "Incredible! Your secure assets (excluding locked pension accounts) cover over a full year of active outflows. You possess superior capital cushions to withstand severe systemic downturns."
-                    : "Your cash and liquid holdings cover 6 to 12 months of survival burn. Your buffer is secure, meeting the financial industry's optimal benchmark cover."}
+                    : stressResult.safetyLevel === "caution"
+                      ? "You are moderately safe, but a sudden windfall reduction or larger outflow will push you into the risk zone. Consider allocating surplus income to highly liquid bank savings."
+                      : stressResult.safetyLevel === "elite"
+                        ? "Incredible! Your secure assets (excluding locked pension accounts) cover over a full year of active outflows. You possess superior capital cushions to withstand severe systemic downturns."
+                        : "Your cash and liquid holdings cover 6 to 12 months of survival burn. Your buffer is secure, meeting the financial industry's optimal benchmark cover."}
                 </p>
               </Card>
 
               {/* Stress Breakdown Details Card */}
               <Card style={{ padding: 22 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.06em", marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.06em",
+                    marginBottom: 14,
+                  }}
+                >
                   Stress-Adjusted Liquidity Breakdown
                 </div>
-                
+
                 <div style={{ display: "grid", gap: 12 }}>
                   {[
-                    { label: "Stress-Adjusted Cash (Liquid Banks)", base: stressResult.baseCash, stressed: stressResult.stressCash, color: "#22c55e", hint: "No haircut" },
-                    { label: "Stress-Adjusted Fixed Income (FD/Bonds)", base: stressResult.baseFI, stressed: stressResult.stressFI, color: THEME.gold, hint: `-${fiHaircut}% early-withdraw penalty` },
-                    { label: "Stress-Adjusted Equities (Stocks/MFs)", base: stressResult.baseEquity, stressed: stressResult.stressEquity, color: THEME.accent, hint: `-${eqHaircut}% market haircut` }
+                    {
+                      label: "Stress-Adjusted Cash (Liquid Banks)",
+                      base: stressResult.baseCash,
+                      stressed: stressResult.stressCash,
+                      color: "#22c55e",
+                      hint: "No haircut",
+                    },
+                    {
+                      label: "Stress-Adjusted Fixed Income (FD/Bonds)",
+                      base: stressResult.baseFI,
+                      stressed: stressResult.stressFI,
+                      color: THEME.gold,
+                      hint: `-${fiHaircut}% early-withdraw penalty`,
+                    },
+                    {
+                      label: "Stress-Adjusted Equities (Stocks/MFs)",
+                      base: stressResult.baseEquity,
+                      stressed: stressResult.stressEquity,
+                      color: THEME.accent,
+                      hint: `-${eqHaircut}% market haircut`,
+                    },
                   ].map(({ label, base, stressed, color, hint }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingBottom: 8, borderBottom: `1px dashed ${THEME.line}` }}>
+                    <div
+                      key={label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 13,
+                        paddingBottom: 8,
+                        borderBottom: `1px dashed ${THEME.line}`,
+                      }}
+                    >
                       <div>
                         <div style={{ fontWeight: 700, color: THEME.ink }}>{label}</div>
-                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Current: {fmtINRFull(base)} · <span style={{ color }}>{hint}</span></div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          Current: {fmtINRFull(base)} · <span style={{ color }}>{hint}</span>
+                        </div>
                       </div>
-                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{fmtINRFull(stressed)}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                        {fmtINRFull(stressed)}
+                      </span>
                     </div>
                   ))}
 
                   {/* Summary of totals */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, paddingTop: 6, fontWeight: 800 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 13,
+                      paddingTop: 6,
+                      fontWeight: 800,
+                    }}
+                  >
                     <span style={{ color: THEME.muted }}>Total Stress-Adjusted Assets</span>
-                    <span style={{ color: THEME.ink }}>{fmtINRFull(stressResult.totalLiquidAssets)}</span>
+                    <span style={{ color: THEME.ink }}>
+                      {fmtINRFull(stressResult.totalLiquidAssets)}
+                    </span>
                   </div>
 
                   {Number(oneTimeOutflow) > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800, color: THEME.rust }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        color: THEME.rust,
+                      }}
+                    >
                       <span style={{ color: THEME.rust }}>Emergency Cash Outflow (-)</span>
                       <span>{fmtINRFull(Number(oneTimeOutflow))}</span>
                     </div>
                   )}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800, borderTop: `1.5px solid ${THEME.line}`, paddingTop: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      borderTop: `1.5px solid ${THEME.line}`,
+                      paddingTop: 10,
+                    }}
+                  >
                     <span style={{ color: THEME.muted }}>Net Stressed Capital Buffer</span>
-                    <span style={{ color: THEME.sage, fontSize: 15 }}>{fmtINRFull(stressResult.netStressAssets)}</span>
+                    <span style={{ color: THEME.sage, fontSize: 15 }}>
+                      {fmtINRFull(stressResult.netStressAssets)}
+                    </span>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 800 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
                     <span style={{ color: THEME.muted }}>Stress-Adjusted Monthly Burn Rate</span>
-                    <span style={{ color: THEME.rust, fontSize: 14 }}>{fmtINRFull(stressResult.crisisBurnRate)}/mo</span>
+                    <span style={{ color: THEME.rust, fontSize: 14 }}>
+                      {fmtINRFull(stressResult.crisisBurnRate)}/mo
+                    </span>
                   </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, textAlign: "right", marginTop: -6 }}>
-                    Expense ({fmtINR(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs ({fmtINR(stressResult.activeEMIs)}/mo)
+                  <div
+                    style={{ fontSize: 11, color: THEME.muted, textAlign: "right", marginTop: -6 }}
+                  >
+                    Expense ({fmtINR(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs (
+                    {fmtINR(stressResult.activeEMIs)}/mo)
                   </div>
-
                 </div>
               </Card>
-
             </div>
           </>
         )}
@@ -1813,53 +2899,123 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <Sparkles size={18} color={THEME.accent} />
                   <div style={{ fontSize: 16, fontWeight: 700 }}>Stochastic Parameters</div>
                 </div>
-                
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {inpRow("Current Age", fireAge, setFireAge)}
                   {inpRow("Retirement Age", fireRetireAge, setFireRetireAge)}
                 </div>
                 {inpRow("Current Expenses (₹/mo)", fireExpense, setFireExpense)}
                 {inpRow("Retirement Corpus (₹)", firePortfolio, setFirePortfolio)}
-                
+
                 <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>Economic & Risk Assumptions</div>
-                
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>
+                  Economic & Risk Assumptions
+                </div>
+
                 {sliderRow("Inflation Rate", fireInflation, setFireInflation, 1, 15, 0.5, "%")}
-                {sliderRow("Post-Retire Return (Mean)", firePostReturn, setFirePostReturn, 4, 18, 0.5, "%")}
-                {sliderRow("Portfolio Volatility (Std Dev)", monteVolatility, setMonteVolatility, 2, 25, 0.5, "%")}
-                {sliderRow("Planned Life Expectancy", fireLifeExp, setFireLifeExp, 60, 100, 1, " yrs")}
+                {sliderRow(
+                  "Post-Retire Return (Mean)",
+                  firePostReturn,
+                  setFirePostReturn,
+                  4,
+                  18,
+                  0.5,
+                  "%"
+                )}
+                {sliderRow(
+                  "Portfolio Volatility (Std Dev)",
+                  monteVolatility,
+                  setMonteVolatility,
+                  2,
+                  25,
+                  0.5,
+                  "%"
+                )}
+                {sliderRow(
+                  "Planned Life Expectancy",
+                  fireLifeExp,
+                  setFireLifeExp,
+                  60,
+                  100,
+                  1,
+                  " yrs"
+                )}
               </Card>
             </div>
 
-            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* SUCCESS SCORE CARD */}
               {(() => {
                 const score = monteCarloResult.successProbability;
-                const statusColor = score >= 80 ? THEME.sage : score >= 50 ? THEME.gold : THEME.rust;
-                const statusText = score >= 80 ? "High Success Rate" : score >= 50 ? "Moderate Sequence Risk" : "High Failure Risk";
-                
+                const statusColor =
+                  score >= 80 ? THEME.sage : score >= 50 ? THEME.gold : THEME.rust;
+                const statusText =
+                  score >= 80
+                    ? "High Success Rate"
+                    : score >= 50
+                      ? "Moderate Sequence Risk"
+                      : "High Failure Risk";
+
                 return (
                   <Card style={{ padding: 24, borderTop: `4px solid ${statusColor}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        marginBottom: 14,
+                      }}
+                    >
                       <div>
-                        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>FIRE Longevity Success Score</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, marginTop: 4, color: statusColor }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.1em",
+                            color: THEME.muted,
+                          }}
+                        >
+                          FIRE Longevity Success Score
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 24,
+                            fontWeight: 800,
+                            marginTop: 4,
+                            color: statusColor,
+                          }}
+                        >
                           {score.toFixed(1)}% Success
                         </div>
                       </div>
-                      <Badge variant={score >= 80 ? "sage" : score >= 50 ? "gold" : "rust"} style={{ fontSize: 11, fontWeight: 800 }}>
+                      <Badge
+                        variant={score >= 80 ? "sage" : score >= 50 ? "gold" : "rust"}
+                        style={{ fontSize: 11, fontWeight: 800 }}
+                      >
                         {statusText}
                       </Badge>
                     </div>
 
                     <div className="progress-track" style={{ marginBottom: 12 }}>
-                      <div className="progress-fill" style={{ width: `${score}%`, background: statusColor, transition: "width 0.4s ease" }} />
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${score}%`,
+                          background: statusColor,
+                          transition: "width 0.4s ease",
+                        }}
+                      />
                     </div>
 
                     <div style={{ fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
-                      ⏱️ Out of <b>500 randomized market sequences</b>, your portfolio survived standard withdrawals in <b>{Math.round(score * 5)}</b> runs. 
-                      On average, your assets will sustain you for <b>{monteCarloResult.avgYearsLasted.toFixed(1)} years</b> out of your <b>{monteCarloResult.yrsInRet} planned years</b> in retirement.
+                      ⏱️ Out of <b>500 randomized market sequences</b>, your portfolio survived
+                      standard withdrawals in <b>{Math.round(score * 5)}</b> runs. On average, your
+                      assets will sustain you for{" "}
+                      <b>{monteCarloResult.avgYearsLasted.toFixed(1)} years</b> out of your{" "}
+                      <b>{monteCarloResult.yrsInRet} planned years</b> in retirement.
                     </div>
                   </Card>
                 );
@@ -1867,43 +3023,93 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* DYNAMIC PROBABILITY BAND CHART */}
               <Card style={{ padding: 24 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em", marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.05em",
+                    marginBottom: 16,
+                  }}
+                >
                   Monte Carlo Wealth Projections (Probability Bands)
                 </div>
 
                 <div style={{ height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={monteCarloResult.chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
+                    <AreaChart
+                      data={monteCarloResult.chartData}
+                      margin={{ top: 10, right: 10, left: 15, bottom: 0 }}
+                    >
                       <defs>
                         <linearGradient id="bestColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.01} />
                         </linearGradient>
                         <linearGradient id="expectedColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={THEME.gold} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={THEME.gold} stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor={THEME.gold} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={THEME.gold} stopOpacity={0.01} />
                         </linearGradient>
                         <linearGradient id="worstColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={THEME.rust} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={THEME.rust} stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor={THEME.rust} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={THEME.rust} stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
                       <XAxis dataKey="year" stroke={THEME.muted} fontSize={11} tickLine={false} />
-                      <YAxis 
-                        stroke={THEME.muted} 
-                        fontSize={11} 
-                        tickLine={false} 
-                        tickFormatter={(v) => v >= 10000000 ? `${(v/10000000).toFixed(1)}Cr` : v >= 100000 ? `${(v/100000).toFixed(0)}L` : v} 
+                      <YAxis
+                        stroke={THEME.muted}
+                        fontSize={11}
+                        tickLine={false}
+                        tickFormatter={(v) =>
+                          v >= 10000000
+                            ? `${(v / 10000000).toFixed(1)}Cr`
+                            : v >= 100000
+                              ? `${(v / 100000).toFixed(0)}L`
+                              : v
+                        }
                       />
-                      <Tooltip 
-                        contentStyle={{ background: THEME.paper, border: `1.5px solid ${THEME.line}`, borderRadius: 10, fontSize: 12, color: THEME.ink }}
+                      <Tooltip
+                        contentStyle={{
+                          background: THEME.paper,
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 10,
+                          fontSize: 12,
+                          color: THEME.ink,
+                        }}
                         formatter={(val) => fmtINRFull(Number(val))}
                       />
-                      <Area type="monotone" dataKey="Best Case (90th %)" stroke={THEME.sage} strokeWidth={2} fillOpacity={1} fill="url(#bestColor)" />
-                      <Area type="monotone" dataKey="Expected Case (50th %)" stroke={THEME.gold} strokeWidth={2} fillOpacity={1} fill="url(#expectedColor)" />
-                      <Area type="monotone" dataKey="Worst Case (10th %)" stroke={THEME.rust} strokeWidth={2} fillOpacity={1} fill="url(#worstColor)" />
-                      <ReferenceLine y={0} stroke={THEME.rust} strokeWidth={1.5} strokeDasharray="4 4" />
+                      <Area
+                        type="monotone"
+                        dataKey="Best Case (90th %)"
+                        stroke={THEME.sage}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#bestColor)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="Expected Case (50th %)"
+                        stroke={THEME.gold}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#expectedColor)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="Worst Case (10th %)"
+                        stroke={THEME.rust}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#worstColor)"
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke={THEME.rust}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -1912,22 +3118,36 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               {/* CFO STOCHASTIC ADVISORY CARD */}
               <Card style={{ padding: 20, borderTop: `4px solid ${THEME.accent}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.accent}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: `${THEME.accent}15`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
                     <Info size={18} color={THEME.accent} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <h4 style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}>
+                    <h4
+                      style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}
+                    >
                       Sequence of Returns Risk (CFO Advisory)
                     </h4>
                     <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
-                      Stochastic models fluctuate annual post-retirement returns based on standard deviations (volatility). 
-                      Even if your average return satisfies standard FIRE requirements, experiencing negative returns in the **first 3-5 years** of retirement can permanently deplete your portfolio. 
-                      Aim for a Success Score **above 85%** to survive worst-case historical sequence risks.
+                      Stochastic models fluctuate annual post-retirement returns based on standard
+                      deviations (volatility). Even if your average return satisfies standard FIRE
+                      requirements, experiencing negative returns in the **first 3-5 years** of
+                      retirement can permanently deplete your portfolio. Aim for a Success Score
+                      **above 85%** to survive worst-case historical sequence risks.
                     </p>
                   </div>
                 </div>
               </Card>
-
             </div>
           </>
         )}
@@ -1936,7 +3156,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         {calcTab === "scenario-sandbox" && sandboxResult && (
           <>
             {/* Left Column: Sandbox Configurator Console */}
-            <div className="bento-col-5" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div
+              className="bento-col-5"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               <Card style={{ padding: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                   <GitBranch size={18} color={THEME.accent} />
@@ -1948,48 +3171,114 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   {inpRow("Target Corpus (₹)", firePortfolio, setFirePortfolio)}
                 </div>
                 {inpRow("Base Monthly Savings (₹)", sandboxSavings, setSandboxSavings)}
-                
+
                 <div className="divider" style={{ margin: "16px 0" }} />
-                
-                {sliderRow("Assumed Portfolio Return", sandboxReturn, setSandboxReturn, 2, 22, 0.5, "%")}
+
+                {sliderRow(
+                  "Assumed Portfolio Return",
+                  sandboxReturn,
+                  setSandboxReturn,
+                  2,
+                  22,
+                  0.5,
+                  "%"
+                )}
                 {sliderRow("Simulation Duration", sandboxYears, setSandboxYears, 5, 25, 1, " yrs")}
 
                 <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em", marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.05em",
+                    marginBottom: 16,
+                  }}
+                >
                   Alternative Life Presets
                 </div>
 
                 {/* Preset 1: Career Gap / Sabbatical Accordion Card */}
-                <div style={{ 
-                  background: `${THEME.muted}05`, border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`, 
-                  borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div
+                  style={{
+                    background: `${THEME.muted}05`,
+                    border: `1.5px solid ${sabActive ? THEME.accent : THEME.line}`,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 14,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 18 }}>✈️</span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Career Sabbatical</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
+                        Career Sabbatical
+                      </span>
                     </div>
-                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
-                      <input 
-                        type="checkbox" 
-                        checked={sabActive} 
-                        onChange={(e) => setSabActive(e.target.checked)} 
+                    <label
+                      className="switch"
+                      style={{
+                        position: "relative",
+                        display: "inline-block",
+                        width: 34,
+                        height: 20,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={sabActive}
+                        onChange={(e) => setSabActive(e.target.checked)}
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
-                      <span className="slider round" style={{ 
-                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
-                        backgroundColor: sabActive ? THEME.accent : "#ccc", borderRadius: 34, transition: "0.3s"
-                      }}>
-                        <span style={{ 
-                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
-                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
-                          transform: sabActive ? "translateX(14px)" : "none"
-                        }} />
+                      <span
+                        className="slider round"
+                        style={{
+                          position: "absolute",
+                          cursor: "pointer",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: sabActive ? THEME.accent : "#ccc",
+                          borderRadius: 34,
+                          transition: "0.3s",
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute",
+                            content: "",
+                            height: 14,
+                            width: 14,
+                            left: 3,
+                            bottom: 3,
+                            backgroundColor: "white",
+                            borderRadius: "50%",
+                            transition: "0.3s",
+                            transform: sabActive ? "translateX(14px)" : "none",
+                          }}
+                        />
                       </span>
                     </label>
                   </div>
                   {sabActive && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        animation: "fadeInUp 0.25s ease",
+                      }}
+                    >
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {inpRow("Start Age", sabAge, setSabAge)}
                         {inpRow("Duration (yrs)", sabDur, setSabDur)}
@@ -2001,36 +3290,85 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 {/* Preset 2: Startup Venture Accordion Card */}
-                <div style={{ 
-                  background: `${THEME.muted}05`, border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`, 
-                  borderRadius: 12, padding: 16, marginBottom: 14, transition: "all 0.2s ease" 
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div
+                  style={{
+                    background: `${THEME.muted}05`,
+                    border: `1.5px solid ${startupActive ? THEME.gold : THEME.line}`,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 14,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 18 }}>🚀</span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Startup Venture</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
+                        Startup Venture
+                      </span>
                     </div>
-                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
-                      <input 
-                        type="checkbox" 
-                        checked={startupActive} 
-                        onChange={(e) => setStartupActive(e.target.checked)} 
+                    <label
+                      className="switch"
+                      style={{
+                        position: "relative",
+                        display: "inline-block",
+                        width: 34,
+                        height: 20,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={startupActive}
+                        onChange={(e) => setStartupActive(e.target.checked)}
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
-                      <span className="slider round" style={{ 
-                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
-                        backgroundColor: startupActive ? THEME.gold : "#ccc", borderRadius: 34, transition: "0.3s"
-                      }}>
-                        <span style={{ 
-                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
-                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
-                          transform: startupActive ? "translateX(14px)" : "none"
-                        }} />
+                      <span
+                        className="slider round"
+                        style={{
+                          position: "absolute",
+                          cursor: "pointer",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: startupActive ? THEME.gold : "#ccc",
+                          borderRadius: 34,
+                          transition: "0.3s",
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute",
+                            content: "",
+                            height: 14,
+                            width: 14,
+                            left: 3,
+                            bottom: 3,
+                            backgroundColor: "white",
+                            borderRadius: "50%",
+                            transition: "0.3s",
+                            transform: startupActive ? "translateX(14px)" : "none",
+                          }}
+                        />
                       </span>
                     </label>
                   </div>
                   {startupActive && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        animation: "fadeInUp 0.25s ease",
+                      }}
+                    >
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {inpRow("Launch Age", startupAge, setStartupAge)}
                         {inpRow("Launch CapEx (₹)", startupCapEx, setStartupCapEx)}
@@ -2045,36 +3383,84 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </div>
 
                 {/* Preset 3: Real Estate Purchase Accordion Card */}
-                <div style={{ 
-                  background: `${THEME.muted}05`, border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`, 
-                  borderRadius: 12, padding: 16, transition: "all 0.2s ease" 
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div
+                  style={{
+                    background: `${THEME.muted}05`,
+                    border: `1.5px solid ${propActive ? THEME.rust : THEME.line}`,
+                    borderRadius: 12,
+                    padding: 16,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 18 }}>🏠</span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>Real Estate Purchase</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
+                        Real Estate Purchase
+                      </span>
                     </div>
-                    <label className="switch" style={{ position: "relative", display: "inline-block", width: 34, height: 20 }}>
-                      <input 
-                        type="checkbox" 
-                        checked={propActive} 
-                        onChange={(e) => setPropActive(e.target.checked)} 
+                    <label
+                      className="switch"
+                      style={{
+                        position: "relative",
+                        display: "inline-block",
+                        width: 34,
+                        height: 20,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={propActive}
+                        onChange={(e) => setPropActive(e.target.checked)}
                         style={{ opacity: 0, width: 0, height: 0 }}
                       />
-                      <span className="slider round" style={{ 
-                        position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, 
-                        backgroundColor: propActive ? THEME.rust : "#ccc", borderRadius: 34, transition: "0.3s"
-                      }}>
-                        <span style={{ 
-                          position: "absolute", content: "", height: 14, width: 14, left: 3, bottom: 3, 
-                          backgroundColor: "white", borderRadius: "50%", transition: "0.3s",
-                          transform: propActive ? "translateX(14px)" : "none"
-                        }} />
+                      <span
+                        className="slider round"
+                        style={{
+                          position: "absolute",
+                          cursor: "pointer",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: propActive ? THEME.rust : "#ccc",
+                          borderRadius: 34,
+                          transition: "0.3s",
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute",
+                            content: "",
+                            height: 14,
+                            width: 14,
+                            left: 3,
+                            bottom: 3,
+                            backgroundColor: "white",
+                            borderRadius: "50%",
+                            transition: "0.3s",
+                            transform: propActive ? "translateX(14px)" : "none",
+                          }}
+                        />
                       </span>
                     </label>
                   </div>
                   {propActive && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeInUp 0.25s ease" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        animation: "fadeInUp 0.25s ease",
+                      }}
+                    >
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {inpRow("Purchase Age", propAge, setPropAge)}
                         {inpRow("Down Payment (₹)", propDown, setPropDown)}
@@ -2087,15 +3473,35 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
             </div>
 
             {/* Right Column: Comparative Dashboard Analytics */}
-            <div className="bento-col-7" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
               {/* COMPARATIVE SCORECARD */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 14,
+                }}
+              >
                 <Card style={{ padding: 18 }}>
-                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>10-Yr Baseline Wealth</div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: THEME.muted,
+                    }}
+                  >
+                    10-Yr Baseline Wealth
+                  </div>
                   <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
-                    {fmtINRFull(sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)]["Baseline Path"])}
+                    {fmtINRFull(
+                      sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
+                        "Baseline Path"
+                      ]
+                    )}
                   </div>
                   <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
                     Est. FI Target Age: <b>{sandboxResult.baseFIAge} yrs</b>
@@ -2103,9 +3509,30 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </Card>
 
                 <Card style={{ padding: 18 }}>
-                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>10-Yr Sandbox Wealth</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: sandboxResult.endSand >= sandboxResult.endBase ? THEME.sage : THEME.ink, marginTop: 4 }}>
-                    {fmtINRFull(sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)]["Simulated Path"])}
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: THEME.muted,
+                    }}
+                  >
+                    10-Yr Sandbox Wealth
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 900,
+                      color:
+                        sandboxResult.endSand >= sandboxResult.endBase ? THEME.sage : THEME.ink,
+                      marginTop: 4,
+                    }}
+                  >
+                    {fmtINRFull(
+                      sandboxResult.chartData[Math.min(10, sandboxResult.chartData.length - 1)][
+                        "Simulated Path"
+                      ]
+                    )}
                   </div>
                   <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 4 }}>
                     Est. FI Target Age: <b>{sandboxResult.sandFIAge} yrs</b>
@@ -2113,18 +3540,38 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                 </Card>
 
                 <Card style={{ padding: 18 }}>
-                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>Net Scenario Drag / Benefit</div>
-                  <div style={{ 
-                    fontSize: 18, fontWeight: 900, 
-                    color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage, marginTop: 4 
-                  }}>
-                    {sandboxResult.oppCost > 0 
-                      ? `-${fmtINRFull(Math.abs(sandboxResult.oppCost))}` 
+                  <div
+                    style={{
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: THEME.muted,
+                    }}
+                  >
+                    Net Scenario Drag / Benefit
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 900,
+                      color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage,
+                      marginTop: 4,
+                    }}
+                  >
+                    {sandboxResult.oppCost > 0
+                      ? `-${fmtINRFull(Math.abs(sandboxResult.oppCost))}`
                       : `+${fmtINRFull(Math.abs(sandboxResult.oppCost))}`}
                   </div>
-                  <div style={{ fontSize: 10.5, color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage, fontWeight: 700, marginTop: 4 }}>
-                    {sandboxResult.oppCost > 0 
-                      ? `⏱️ Delay: +${sandboxResult.fiAgeGap.toFixed(1)} yrs to FI` 
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      color: sandboxResult.oppCost > 0 ? THEME.rust : THEME.sage,
+                      fontWeight: 700,
+                      marginTop: 4,
+                    }}
+                  >
+                    {sandboxResult.oppCost > 0
+                      ? `⏱️ Delay: +${sandboxResult.fiAgeGap.toFixed(1)} yrs to FI`
                       : `🚀 Accelerated by ${Math.abs(sandboxResult.fiAgeGap).toFixed(1)} yrs`}
                   </div>
                 </Card>
@@ -2132,8 +3579,23 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
               {/* INTEGRATED COMPARISON CHART */}
               <Card style={{ padding: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, letterSpacing: "0.05em" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      color: THEME.muted,
+                      letterSpacing: "0.05em",
+                    }}
+                  >
                     Wealth Projections Sandbox Overlay
                   </div>
                   {sandboxResult.liquidityCrisisAge !== -1 && (
@@ -2145,32 +3607,74 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
 
                 <div style={{ height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={sandboxResult.chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
+                    <AreaChart
+                      data={sandboxResult.chartData}
+                      margin={{ top: 10, right: 10, left: 15, bottom: 0 }}
+                    >
                       <defs>
                         <linearGradient id="baselineColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.01} />
                         </linearGradient>
                         <linearGradient id="sandboxColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} stopOpacity={0.01}/>
+                          <stop
+                            offset="5%"
+                            stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage}
+                            stopOpacity={0.15}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage}
+                            stopOpacity={0.01}
+                          />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
                       <XAxis dataKey="age" stroke={THEME.muted} fontSize={11} tickLine={false} />
-                      <YAxis 
-                        stroke={THEME.muted} 
-                        fontSize={11} 
-                        tickLine={false} 
-                        tickFormatter={(v) => v >= 10000000 ? `${(v/10000000).toFixed(1)}Cr` : v >= 100000 ? `${(v/100000).toFixed(0)}L` : v} 
+                      <YAxis
+                        stroke={THEME.muted}
+                        fontSize={11}
+                        tickLine={false}
+                        tickFormatter={(v) =>
+                          v >= 10000000
+                            ? `${(v / 10000000).toFixed(1)}Cr`
+                            : v >= 100000
+                              ? `${(v / 100000).toFixed(0)}L`
+                              : v
+                        }
                       />
-                      <Tooltip 
-                        contentStyle={{ background: THEME.paper, border: `1.5px solid ${THEME.line}`, borderRadius: 10, fontSize: 12, color: THEME.ink }}
+                      <Tooltip
+                        contentStyle={{
+                          background: THEME.paper,
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 10,
+                          fontSize: 12,
+                          color: THEME.ink,
+                        }}
                         formatter={(val) => fmtINRFull(Number(val))}
                       />
-                      <Area type="monotone" dataKey="Baseline Path" stroke={THEME.accent} strokeWidth={2.5} fillOpacity={1} fill="url(#baselineColor)" />
-                      <Area type="monotone" dataKey="Simulated Path" stroke={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage} strokeWidth={2.5} fillOpacity={1} fill="url(#sandboxColor)" />
-                      <ReferenceLine y={0} stroke={THEME.rust} strokeWidth={1.5} strokeDasharray="4 4" />
+                      <Area
+                        type="monotone"
+                        dataKey="Baseline Path"
+                        stroke={THEME.accent}
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#baselineColor)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="Simulated Path"
+                        stroke={sandboxResult.oppCost > 0 ? THEME.gold : THEME.sage}
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#sandboxColor)"
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke={THEME.rust}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -2179,22 +3683,40 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
               {/* CEO / CFO STRATEGIC ADVISORY */}
               <Card style={{ padding: 20, borderTop: `4px solid ${THEME.gold}` }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.gold}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: `${THEME.gold}15`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
                     <Info size={18} color={THEME.gold} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <h4 style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}>
+                    <h4
+                      style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink, marginBottom: 6 }}
+                    >
                       Strategic Sandboxing (CEO & CFO Executive Briefing)
                     </h4>
                     <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
                       {sandboxResult.oppCost > 0 ? (
                         <>
-                          Your simulated scenario has an opportunity cost of <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b>. 
-                          This introduces a <b>{sandboxResult.fiAgeGap.toFixed(1)} year delay</b> to reaching your Financial Independence target. 
+                          Your simulated scenario has an opportunity cost of{" "}
+                          <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b>. This introduces a{" "}
+                          <b>{sandboxResult.fiAgeGap.toFixed(1)} year delay</b> to reaching your
+                          Financial Independence target.
                           {sandboxResult.liquidityCrisisAge !== -1 ? (
                             <span style={{ color: THEME.rust, fontWeight: 700 }}>
-                              {" "}WARNING: Outstanding liabilities/downpayments trigger a liquidity crisis at age {sandboxResult.liquidityCrisisAge}. 
-                              We advise securing a capital buffer of at least 6 months of baseline expenses before initiating this choice.
+                              {" "}
+                              WARNING: Outstanding liabilities/downpayments trigger a liquidity
+                              crisis at age {sandboxResult.liquidityCrisisAge}. We advise securing a
+                              capital buffer of at least 6 months of baseline expenses before
+                              initiating this choice.
                             </span>
                           ) : (
                             " Ensure your emergency fund scales to absorb the increased annual carry costs before execution."
@@ -2202,19 +3724,20 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         </>
                       ) : (
                         <>
-                          Your simulated venture compounds wealth <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b> above your baseline projection! 
-                          This accelerates your Financial Independence target age by <b>{Math.abs(sandboxResult.fiAgeGap).toFixed(1)} years</b>, easily offsetting any initial CapEx risk.
+                          Your simulated venture compounds wealth{" "}
+                          <b>{fmtINRFull(Math.abs(sandboxResult.oppCost))}</b> above your baseline
+                          projection! This accelerates your Financial Independence target age by{" "}
+                          <b>{Math.abs(sandboxResult.fiAgeGap).toFixed(1)} years</b>, easily
+                          offsetting any initial CapEx risk.
                         </>
                       )}
                     </p>
                   </div>
                 </div>
               </Card>
-
             </div>
           </>
         )}
-
       </div>
     </div>
   );

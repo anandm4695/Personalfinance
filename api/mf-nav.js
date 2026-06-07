@@ -3,14 +3,21 @@ const https = require("https");
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
-      let data = "";
-      res.on("data", (chunk) => { data += chunk; });
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error("Invalid JSON from mfapi")); }
-      });
-    }).on("error", reject);
+    https
+      .get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error("Invalid JSON from mfapi"));
+          }
+        });
+      })
+      .on("error", reject);
   });
 }
 
@@ -21,7 +28,8 @@ module.exports = async function handler(req, res) {
 
   const { code } = req.query;
   if (!code) return res.status(400).json({ error: "code required" });
-  if (!/^\d+$/.test(String(code).trim())) return res.status(400).json({ error: "code must be numeric" });
+  if (!/^\d+$/.test(String(code).trim()))
+    return res.status(400).json({ error: "code must be numeric" });
 
   try {
     const data = await fetchJson(`https://api.mfapi.in/mf/${String(code).trim()}`);
@@ -38,14 +46,18 @@ module.exports = async function handler(req, res) {
 
     // Previous NAV (yesterday)
     const prevNav = data.data.length > 1 ? parseFloat(data.data[1].nav) : null;
-    const navChange = (prevNav && latestNav) ? latestNav - prevNav : null;
-    const navChangePct = (prevNav && navChange != null) ? (navChange / prevNav) * 100 : null;
+    const navChange = prevNav && latestNav ? latestNav - prevNav : null;
+    const navChangePct = prevNav && navChange != null ? (navChange / prevNav) * 100 : null;
 
     // 30-day chart — mfapi.in stores newest first, so reverse for chronological order
-    const chart = data.data.slice(0, 30).reverse().map((d) => ({
-      t: d.date,
-      p: parseFloat(d.nav),
-    })).filter((pt) => pt.p > 0);
+    const chart = data.data
+      .slice(0, 30)
+      .reverse()
+      .map((d) => ({
+        t: d.date,
+        p: parseFloat(d.nav),
+      }))
+      .filter((pt) => pt.p > 0);
 
     res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=7200");
     return res.status(200).json({

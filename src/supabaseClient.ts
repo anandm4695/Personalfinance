@@ -6,14 +6,12 @@ const DEMO_URL = import.meta.env.VITE_SUPABASE_DEMO_URL ?? "";
 const DEMO_KEY = import.meta.env.VITE_SUPABASE_DEMO_ANON_KEY ?? "";
 
 export const isSupabaseReady = Boolean(
-  LIVE_URL && !LIVE_URL.includes("placeholder") &&
-  LIVE_KEY && !LIVE_KEY.includes("placeholder")
+  LIVE_URL && !LIVE_URL.includes("placeholder") && LIVE_KEY && !LIVE_KEY.includes("placeholder")
 );
 
 // True when the demo Supabase project is configured via env vars
 export const isDemoDbReady = Boolean(
-  DEMO_URL && !DEMO_URL.includes("placeholder") &&
-  DEMO_KEY && !DEMO_KEY.includes("placeholder")
+  DEMO_URL && !DEMO_URL.includes("placeholder") && DEMO_KEY && !DEMO_KEY.includes("placeholder")
 );
 
 const _live = createBrowserClient(

@@ -15,28 +15,40 @@ const input = {
 };
 
 export function SubModal({ onClose, onSave, initialValues = null }: any) {
-  const [f, setF] = useState(initialValues ? {
-    owner: initialValues.owner || "self",
-    name: initialValues.name || "",
-    category: initialValues.category || "Entertainment",
-    amount: initialValues.amount || "",
-    cycle: initialValues.cycle || "monthly",
-    renewalDate: initialValues.renewalDate || "",
-    remark: initialValues.remark || "",
-  } : {
-    owner: "self",
-    name: "",
-    category: "Entertainment",
-    amount: "",
-    cycle: "monthly",
-    renewalDate: "",
-    remark: "",
-  });
+  const [f, setF] = useState(
+    initialValues
+      ? {
+          owner: initialValues.owner || "self",
+          name: initialValues.name || "",
+          category: initialValues.category || "Entertainment",
+          amount: initialValues.amount || "",
+          cycle: initialValues.cycle || "monthly",
+          renewalDate: initialValues.renewalDate || "",
+          remark: initialValues.remark || "",
+        }
+      : {
+          owner: "self",
+          name: "",
+          category: "Entertainment",
+          amount: "",
+          cycle: "monthly",
+          renewalDate: "",
+          remark: "",
+        }
+  );
   return (
     <Modal title={initialValues ? "Edit Subscription" : "Add Subscription"} onClose={onClose}>
       <Field label="Owner / Profile">
-        <select style={input} value={f.owner || "self"} onChange={e => setF({...f, owner: e.target.value})}>
-          {PROFILES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        <select
+          style={input}
+          value={f.owner || "self"}
+          onChange={(e) => setF({ ...f, owner: e.target.value })}
+        >
+          {PROFILES.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
         </select>
       </Field>
       <Field label="Service Name">
@@ -62,7 +74,11 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
         </select>
       </Field>
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+        }}
       >
         <Field label="Amount">
           <input
@@ -100,10 +116,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           placeholder="e.g., Shared with family, billed to credit card"
         />
       </Field>
-      <ModalActions
-        onSave={() => f.name && Number(f.amount) > 0 && onSave(f)}
-        onClose={onClose}
-      />
+      <ModalActions onSave={() => f.name && Number(f.amount) > 0 && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
