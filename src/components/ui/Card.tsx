@@ -33,10 +33,41 @@ export const Card: React.FC<CardProps> = ({
 
   const fullClassName = `spotlight-wrapper ${getVariantClass()} ${hover ? "card-hover" : ""} ${onClick ? "card-interactive" : ""} ${className}`;
 
+  const {
+    display,
+    flexDirection,
+    flexWrap,
+    gap,
+    alignItems,
+    justifyContent,
+    gridTemplateColumns,
+    gridTemplateRows,
+    gridGap,
+    rowGap,
+    columnGap,
+    ...outerStyle
+  } = style || {};
+
+  const contentStyle = {
+    display,
+    flexDirection,
+    flexWrap,
+    gap,
+    alignItems,
+    justifyContent,
+    gridTemplateColumns,
+    gridTemplateRows,
+    gridGap,
+    rowGap,
+    columnGap,
+    height: "100%",
+    width: "100%",
+  };
+
   return (
-    <div className={fullClassName} style={style} onClick={onClick}>
+    <div className={fullClassName} style={outerStyle} onClick={onClick}>
       {variant === "hero" && <div className="hero-card-mesh" />}
-      <div className="spotlight-content">{children}</div>
+      <div className="spotlight-content" style={contentStyle}>{children}</div>
     </div>
   );
 };
