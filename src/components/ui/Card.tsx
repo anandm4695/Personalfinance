@@ -48,21 +48,22 @@ export const Card: React.FC<CardProps> = ({
     ...outerStyle
   } = style || {};
 
-  const contentStyle = {
-    display,
-    flexDirection,
-    flexWrap,
-    gap,
-    alignItems,
-    justifyContent,
-    gridTemplateColumns,
-    gridTemplateRows,
-    gridGap,
-    rowGap,
-    columnGap,
+  const contentStyle: React.CSSProperties = {
     height: "100%",
     width: "100%",
   };
+
+  if (display !== undefined) contentStyle.display = display;
+  if (flexDirection !== undefined) contentStyle.flexDirection = flexDirection;
+  if (flexWrap !== undefined) contentStyle.flexWrap = flexWrap;
+  if (gap !== undefined) contentStyle.gap = typeof gap === "number" ? `${gap}px` : gap;
+  if (alignItems !== undefined) contentStyle.alignItems = alignItems;
+  if (justifyContent !== undefined) contentStyle.justifyContent = justifyContent;
+  if (gridTemplateColumns !== undefined) contentStyle.gridTemplateColumns = gridTemplateColumns;
+  if (gridTemplateRows !== undefined) contentStyle.gridTemplateRows = gridTemplateRows;
+  if (gridGap !== undefined) contentStyle.gridGap = typeof gridGap === "number" ? `${gridGap}px` : gridGap;
+  if (rowGap !== undefined) contentStyle.rowGap = typeof rowGap === "number" ? `${rowGap}px` : rowGap;
+  if (columnGap !== undefined) contentStyle.columnGap = typeof columnGap === "number" ? `${columnGap}px` : columnGap;
 
   return (
     <div className={fullClassName} style={outerStyle} onClick={onClick}>
