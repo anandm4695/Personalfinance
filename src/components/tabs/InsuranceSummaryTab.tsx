@@ -979,7 +979,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             />
           </Card>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16 }}>
             {state.lic.map((l: any) => {
               const paid = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0) || Number(l.premiumPaid || 0);
               const expectedTotal = l.annualPremium && l.policyTerm ? (Number(l.annualPremium) * parseInt(l.policyTerm, 10)) : 0;
@@ -1095,7 +1095,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             />
           </Card>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16 }}>
             {state.termPlans.map((t: any) => {
               const paid = (t.transactions || []).reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0) || Number(t.premiumPaid || 0);
               const expectedTotal = t.annualPremium && (t.premiumPayingTerm || t.term) ? (Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)) : 0;
@@ -1211,7 +1211,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             />
           </Card>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16 }}>
             {state.investmentPlans.map((ip: any) => {
               const paid = (ip.transactions || []).reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0) || Number(ip.premiumPaid || 0);
               const expectedTotal = Number(ip.annualPremium || 0) * Number(ip.premiumPayingTerm || ip.policyTerm || 0);
