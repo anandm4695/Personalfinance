@@ -889,6 +889,19 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // ── Diagnostics endpoint ──
+  if (req.method === "GET" && req.query?.action === "diagnose") {
+    try {
+      const supabase = getSupabase();
+      const { data: allSettings, error: settErr } = await supabase
+        .from("user_settings")
+        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address, from_email");
+      return res.status(200).json({ settings: allSettings, error: settErr?.message });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // ── Determine request type ───────────────────────────────────────────────
   const action = req.query?.action;
   const isCron = req.method === "GET" && action === "cron";
