@@ -12,6 +12,28 @@ const resend = new Resend(RESEND_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_ADDR = `Personal Finance <${FROM_EMAIL}>`;
 
+const PUBLIC_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+  "aol.com",
+  "zoho.com",
+  "protonmail.com",
+  "proton.me",
+];
+
+function getEffectiveFromEmail(userFromEmail) {
+  if (!userFromEmail || !userFromEmail.trim()) return FROM_EMAIL;
+  const email = userFromEmail.trim();
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (PUBLIC_DOMAINS.includes(domain)) {
+    return FROM_EMAIL;
+  }
+  return email;
+}
+
 // ── Supabase admin client (service role bypasses RLS) ─────────────────────────
 // VITE_ prefix is Vercel-set for the frontend build; API routes also see it.
 // SUPABASE_URL is the conventional non-prefixed fallback for pure server use.
@@ -901,7 +923,9 @@ module.exports = async function handler(req, res) {
       const supabase = getSupabase();
       const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
-        .select("user_id, email_enabled, email_frequency, email_day, email_hour, email_address, from_email");
+        .select(
+          "user_id, email_enabled, email_frequency, email_day, email_hour, email_address, from_email"
+        );
       return res.status(200).json({ settings: allSettings, error: settErr?.message });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -945,7 +969,7 @@ module.exports = async function handler(req, res) {
 
       // Use fromEmail from the request body if provided (user configured it in Settings UI),
       // otherwise fall back to the RESEND_FROM_EMAIL env var or the test sender.
-      const effectiveFromEmail = fromEmail || FROM_EMAIL;
+      const effectiveFromEmail = getEffectiveFromEmail(fromEmail);
       const effectiveFromAddr = `Personal Finance <${effectiveFromEmail}>`;
 
       const summary = computeSummary(state);
@@ -1030,7 +1054,7 @@ module.exports = async function handler(req, res) {
           const html = generateHTML(summary, freq, recipientName);
           const subject = buildSubject(freq, summary.netWorth);
 
-          const cronFromEmail = row.from_email || FROM_EMAIL;
+          const cronFromEmail = getEffectiveFromEmail(row.from_email);
           const { error } = await resend.emails.send({
             from: `Personal Finance <${cronFromEmail}>`,
             to: row.email_address,

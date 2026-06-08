@@ -1569,16 +1569,33 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   onChange={(e) => updateEmailSettings({ emailAddress: e.target.value })}
                 />
               </Field>
-              <Field label="Sender Email (From) — your Resend account email">
+              <Field label="Sender Email (From) — verified custom domain email (optional)">
                 <input
                   style={inp}
                   type="email"
-                  placeholder="e.g. anand@gmail.com (the email you registered with Resend)"
+                  placeholder="e.g. reports@yourdomain.com (Leave blank to use default onboarding@resend.dev)"
                   value={fromEmail}
                   onChange={(e) => updateEmailSettings({ fromEmail: e.target.value })}
                 />
               </Field>
               {!fromEmail && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    background: `${THEME.sage}09`,
+                    border: `1px solid ${THEME.sage}33`,
+                    fontSize: 12,
+                    color: THEME.ink,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <strong style={{ color: THEME.sage }}>💡 Default Mode:</strong> Sending from{" "}
+                  <strong>onboarding@resend.dev</strong>. Resend restriction: onboarding@resend.dev
+                  can <strong>only</strong> deliver to your Resend registration email.
+                </div>
+              )}
+              {fromEmail && (
                 <div
                   style={{
                     padding: "10px 14px",
@@ -1590,32 +1607,19 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     lineHeight: 1.6,
                   }}
                 >
-                  <strong style={{ color: THEME.gold }}>⚠ Action needed:</strong> Enter your Resend
-                  account email above. Without it, emails can only be sent to the Resend-registered
-                  address, not to any custom recipient.{" "}
+                  <strong style={{ color: THEME.gold }}>⚠ Verification Required:</strong> You must
+                  own and verify the domain of <strong>{fromEmail}</strong> in your{" "}
                   <a
-                    href="https://resend.com"
+                    href="https://resend.com/domains"
                     target="_blank"
                     rel="noreferrer"
                     style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}
                   >
-                    Check your Resend account →
+                    Resend account →
                   </a>
-                </div>
-              )}
-              {fromEmail && (
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    background: `${THEME.sage}09`,
-                    border: `1px solid ${THEME.sage}33`,
-                    fontSize: 12,
-                    color: THEME.sage,
-                    fontWeight: 600,
-                  }}
-                >
-                  ✓ Emails will be sent from: <strong>{fromEmail}</strong>
+                  <br />
+                  Note: Resend will reject public email domains (like Gmail, Yahoo, etc.) as
+                  senders.
                 </div>
               )}
             </div>
