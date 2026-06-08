@@ -4,7 +4,7 @@ const { Resend } = require("resend");
 const { createClient } = require("@supabase/supabase-js");
 
 const RESEND_KEY = process.env.Resend_Email_API || process.env.RESEND_API_KEY;
-const resend = new Resend(RESEND_KEY);
+const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
 
 // Allow a verified custom domain via RESEND_FROM_EMAIL env var.
 // If unset, falls back to the Resend test sender which can ONLY deliver
