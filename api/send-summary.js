@@ -917,21 +917,6 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // ── Diagnostics endpoint ──
-  if (req.method === "GET" && req.query?.action === "diagnose") {
-    try {
-      const supabase = getSupabase();
-      const { data: allSettings, error: settErr } = await supabase
-        .from("user_settings")
-        .select(
-          "user_id, email_enabled, email_frequency, email_day, email_hour, email_address, from_email"
-        );
-      return res.status(200).json({ settings: allSettings, error: settErr?.message });
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  }
-
   // ── Determine request type ───────────────────────────────────────────────
   const action = req.query?.action;
   const isCron = req.method === "GET" && action === "cron";
@@ -945,7 +930,7 @@ module.exports = async function handler(req, res) {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers["authorization"];
     // Vercel automatically sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && req.query?.bypass !== "true") {
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       console.error("[send-summary] Cron auth failed — Authorization header mismatch");
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1033,11 +1018,11 @@ module.exports = async function handler(req, res) {
       const results = [];
       for (const row of allSettings || []) {
         const freq = row.email_frequency || "weekly";
-        if (!shouldSendNow(row, freq) && req.query?.bypass !== "true") continue;
+        if (!shouldSendNow(row, freq)) continue;
 
         // Verify if the current IST hour matches the user's configured hour (defaulting to 8 AM IST)
         const userHour = Number(row.email_hour ?? 8);
-        if (istHour() !== userHour && req.query?.bypass !== "true") continue;
+        if (istHour() !== userHour) continue;
 
         try {
           const state = await fetchStateFromSupabase(supabase, row.user_id);
