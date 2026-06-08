@@ -985,7 +985,7 @@ module.exports = async function handler(req, res) {
       const { data: allSettings, error: settErr } = await supabase
         .from("user_settings")
         .select(
-          "user_id, email_enabled, email_frequency, email_day, email_hour, email_address, recipient_name, from_email"
+          "user_id, email_enabled, email_frequency, email_day, email_hour, email_address, from_email"
         )
         .eq("email_enabled", true)
         .not("email_address", "is", null)
@@ -1011,12 +1011,17 @@ module.exports = async function handler(req, res) {
 
         try {
           const state = await fetchStateFromSupabase(supabase, row.user_id);
+
+          // Fetch the user's name from profiles table
+          const { data: profData } = await supabase
+            .from("profiles")
+            .select("name")
+            .eq("user_id", row.user_id)
+            .maybeSingle();
+          const recipientName = profData?.name || row.email_address?.split("@")[0] || "there";
+
           const summary = computeSummary(state);
-          const html = generateHTML(
-            summary,
-            freq,
-            row.recipient_name || row.email_address?.split("@")[0] || "there"
-          );
+          const html = generateHTML(summary, freq, recipientName);
           const subject = buildSubject(freq, summary.netWorth);
 
           const cronFromEmail = row.from_email || FROM_EMAIL;
