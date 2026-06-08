@@ -777,12 +777,18 @@ async function fetchStateFromSupabase(supabase, userId) {
       .from("rental_properties")
       .select("*")
       .eq("user_id", userId)
-      .catch(() => ({ data: [] })),
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
     supabase
       .from("income_entries")
       .select("*")
       .eq("user_id", userId)
-      .catch(() => ({ data: [] })),
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
   ]);
 
   const rentalData = rentals.data || [];
