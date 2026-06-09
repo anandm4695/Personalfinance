@@ -91,7 +91,7 @@ function getBrokerTheme(broker: string) {
 function getBrokerLogoUrl(broker: string): string | null {
   const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
   for (const [k, domain] of Object.entries(BROKER_LOGO_DOMAINS)) {
-    if (key.includes(k)) return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+    if (key.includes(k)) return `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
   }
   return null;
 }
@@ -229,7 +229,7 @@ const BrokerLogo = ({
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: google favicon, 3: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: brandfetch, 3: google favicon, 4: initials
 
   React.useEffect(() => {
     if (domain) {
@@ -237,7 +237,7 @@ const BrokerLogo = ({
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
-      setFallbackLevel(3);
+      setFallbackLevel(4);
     }
   }, [domain]);
 
@@ -247,9 +247,12 @@ const BrokerLogo = ({
       setImgSrc(`https://logo.clearbit.com/${domain}`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://cdn.brandfetch.io/${domain}/w/400/h/400`);
     } else if (fallbackLevel === 2) {
       setFallbackLevel(3);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else if (fallbackLevel === 3) {
+      setFallbackLevel(4);
       setImgSrc(null);
     }
   };
@@ -257,7 +260,7 @@ const BrokerLogo = ({
   const initials = brokerInitials(broker || "?");
   const fontSize = Math.round(size * 0.38);
 
-  if (domain && fallbackLevel < 3 && imgSrc) {
+  if (domain && fallbackLevel < 4 && imgSrc) {
     return (
       <div
         style={{

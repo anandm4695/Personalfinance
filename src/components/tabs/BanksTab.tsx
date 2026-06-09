@@ -98,7 +98,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: google favicon, 3: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: brandfetch, 3: google favicon, 4: initials
 
   React.useEffect(() => {
     if (domain) {
@@ -106,7 +106,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
-      setFallbackLevel(3);
+      setFallbackLevel(4);
     }
   }, [domain]);
 
@@ -116,14 +116,17 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
       setImgSrc(`https://logo.clearbit.com/${domain}`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+      setImgSrc(`https://cdn.brandfetch.io/${domain}/w/400/h/400`);
     } else if (fallbackLevel === 2) {
       setFallbackLevel(3);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else if (fallbackLevel === 3) {
+      setFallbackLevel(4);
       setImgSrc(null);
     }
   };
 
-  if (domain && fallbackLevel < 3 && imgSrc) {
+  if (domain && fallbackLevel < 4 && imgSrc) {
     return (
       <div
         style={{
