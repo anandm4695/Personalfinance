@@ -786,6 +786,7 @@ export function DematTab({
   // Watchlist UI state
   const [dematView, setDematView] = useState<"holdings" | "watchlist">("holdings");
   const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
+  const [expandedWatchlistItems, setExpandedWatchlistItems] = useState(new Set<string>());
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editWishlistId, setEditWishlistId] = useState<string | null>(null);
   const [showWishlistItemModal, setShowWishlistItemModal] = useState(false);
@@ -2593,7 +2594,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                             <thead>
                               <tr>
-                                <th style={th}>Stock</th>
+                                <th style={{ ...th, paddingLeft: 20 }}>Stock</th>
                                 <th style={{ ...th, textAlign: "right" }}>Live Price</th>
                                 <th style={{ ...th, textAlign: "right" }}>Target</th>
                                 <th style={{ ...th, textAlign: "right" }}>Gap to Target</th>
@@ -2605,83 +2606,263 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             <tbody>
                               {items.map((it: any) => {
                                 const yfSym = `${it.symbol}.${it.exchange === "BSE" ? "BO" : "NS"}`;
-                                const livePrice = marketData[yfSym]?.price ?? null;
+                                const md = marketData[yfSym];
+                                const livePrice = md?.price ?? null;
                                 const gap = it.targetPrice && livePrice
                                   ? ((it.targetPrice - livePrice) / livePrice) * 100
                                   : null;
                                 const gapColor = gap === null ? THEME.muted : gap >= 0 ? THEME.sage : THEME.rust;
+                                const isItemExpanded = expandedWatchlistItems.has(it.id);
+                                const chartEntry = chartData[yfSym];
+                                const charts: any[] | null = chartEntry ? (chartEntry.points ?? chartEntry) : null;
+                                const chartDate: string | null = chartEntry?.date ?? null;
+                                const changeAmt = md?.change ?? 0;
+                                const changePct = md?.changePercent ?? 0;
+
+                                const toggleWatchItem = () => {
+                                  setExpandedWatchlistItems((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(it.id)) {
+                                      next.delete(it.id);
+                                    } else {
+                                      next.add(it.id);
+                                      fetchIntradayChart(yfSym);
+                                    }
+                                    return next;
+                                  });
+                                };
 
                                 return (
-                                  <tr key={it.id} style={{ background: "transparent" }}>
-                                    <td style={td}>
-                                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                        <StockLogo yfSym={yfSym} size={32} />
-                                        <div>
-                                          <div style={{ fontWeight: 700, color: THEME.ink }}>{it.symbol}</div>
-                                          <div style={{ fontSize: 11, color: THEME.muted }}>{it.exchange}</div>
+                                  <React.Fragment key={it.id}>
+                                    <tr
+                                      className="demat-holdings-row"
+                                      onClick={toggleWatchItem}
+                                      style={{
+                                        cursor: "pointer",
+                                        background: isItemExpanded ? `${THEME.accent}09` : "transparent",
+                                        transition: "background 0.15s ease",
+                                      }}
+                                    >
+                                      <td style={{ ...td, paddingLeft: 20 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                          <span
+                                            style={{
+                                              color: isItemExpanded ? THEME.accent : THEME.muted,
+                                              display: "inline-flex",
+                                              transform: isItemExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                                              transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                                            }}
+                                          >
+                                            <ChevronDown size={14} />
+                                          </span>
+                                          <StockLogo yfSym={yfSym} size={32} />
+                                          <div>
+                                            <div style={{ fontWeight: 700, color: THEME.ink }}>{it.symbol}</div>
+                                            <div style={{ fontSize: 11, color: THEME.muted }}>{it.exchange}</div>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </td>
-                                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                      {livePrice != null ? (
-                                        <span style={{ fontWeight: 700, color: THEME.ink }}>
-                                          ₹{livePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                        {livePrice != null ? (
+                                          <div>
+                                            <div style={{ fontWeight: 700, color: THEME.ink }}>
+                                              ₹{livePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                            </div>
+                                            {md && (
+                                              <div style={{ fontSize: 11, fontWeight: 700, color: changeAmt >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
+                                                {changeAmt >= 0 ? "+" : ""}{changePct.toFixed(2)}%
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span style={{ color: THEME.muted }}>—</span>
+                                        )}
+                                      </td>
+                                      <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                        {it.targetPrice ? (
+                                          <span style={{ fontWeight: 700, color: THEME.gold }}>
+                                            ₹{Number(it.targetPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                          </span>
+                                        ) : (
+                                          <span style={{ color: THEME.muted }}>—</span>
+                                        )}
+                                      </td>
+                                      <td style={{ ...td, textAlign: "right" }}>
+                                        {gap !== null ? (
+                                          <span style={{ fontWeight: 700, color: gapColor }}>
+                                            {gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
+                                          </span>
+                                        ) : (
+                                          <span style={{ color: THEME.muted }}>—</span>
+                                        )}
+                                      </td>
+                                      <td style={{ ...td, color: THEME.muted, maxWidth: 200 }} onClick={(e) => e.stopPropagation()}>
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                          {it.notes || "—"}
                                         </span>
-                                      ) : (
-                                        <span style={{ color: THEME.muted }}>—</span>
-                                      )}
-                                    </td>
-                                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                      {it.targetPrice ? (
-                                        <span style={{ fontWeight: 700, color: THEME.gold }}>
-                                          ₹{Number(it.targetPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                                        </span>
-                                      ) : (
-                                        <span style={{ color: THEME.muted }}>—</span>
-                                      )}
-                                    </td>
-                                    <td style={{ ...td, textAlign: "right" }}>
-                                      {gap !== null ? (
-                                        <span style={{ fontWeight: 700, color: gapColor }}>
-                                          {gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
-                                        </span>
-                                      ) : (
-                                        <span style={{ color: THEME.muted }}>—</span>
-                                      )}
-                                    </td>
-                                    <td style={{ ...td, color: THEME.muted, maxWidth: 200 }}>
-                                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                                        {it.notes || "—"}
-                                      </span>
-                                    </td>
-                                    <td style={{ ...td, textAlign: "right", color: THEME.muted, whiteSpace: "nowrap" }}>
-                                      {it.addedOn || "—"}
-                                    </td>
-                                    <td style={{ ...td, textAlign: "right" }}>
-                                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                                        <button
-                                          className="icon-btn"
-                                          style={iconBtn}
-                                          onClick={() => setEditWishlistItemId(it.id)}
-                                          title="Edit target price / notes"
-                                        >
-                                          <Edit3 size={13} />
-                                        </button>
-                                        <button
-                                          className="icon-btn danger"
-                                          style={iconBtn}
-                                          onClick={() => {
-                                            if (window.confirm(`Remove ${it.symbol} from this wishlist?`)) {
-                                              removeItem("wishlistItems", it.id);
-                                            }
-                                          }}
-                                          title="Remove from watchlist"
-                                        >
-                                          <X size={14} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
+                                      </td>
+                                      <td style={{ ...td, textAlign: "right", color: THEME.muted, whiteSpace: "nowrap" }}>
+                                        {it.addedOn || "—"}
+                                      </td>
+                                      <td style={{ ...td, textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                          <button
+                                            className="icon-btn"
+                                            style={iconBtn}
+                                            onClick={() => setEditWishlistItemId(it.id)}
+                                            title="Edit target price / notes"
+                                          >
+                                            <Edit3 size={13} />
+                                          </button>
+                                          <button
+                                            className="icon-btn danger"
+                                            style={iconBtn}
+                                            onClick={() => {
+                                              if (window.confirm(`Remove ${it.symbol} from this wishlist?`)) {
+                                                removeItem("wishlistItems", it.id);
+                                              }
+                                            }}
+                                            title="Remove from watchlist"
+                                          >
+                                            <X size={14} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+
+                                    {/* Expandable chart drawer */}
+                                    {isItemExpanded && (
+                                      <tr style={{ background: `${THEME.accent}08` }}>
+                                        <td colSpan={7} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
+                                          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+                                            {/* Intraday sparkline */}
+                                            {md && charts && charts.length > 2 ? (
+                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                  {chartDate ? `Session Sparkline — ${chartDate}` : "Live Intraday Chart"}
+                                                </div>
+                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
+                                                  <ResponsiveContainer width="100%" height={150}>
+                                                    <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                                                      <defs>
+                                                        <linearGradient id={`wl-ig-${it.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                          <stop offset="5%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                                          <stop offset="95%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                                                        </linearGradient>
+                                                      </defs>
+                                                      <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                                                      <YAxis hide domain={["auto", "auto"]} />
+                                                      <Tooltip
+                                                        contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }}
+                                                        formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]}
+                                                      />
+                                                      <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#wl-ig-${it.symbol})`} dot={false} />
+                                                    </AreaChart>
+                                                  </ResponsiveContainer>
+                                                  {/* Market data pills */}
+                                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                                                    {md.prevClose != null && (
+                                                      <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>
+                                                    )}
+                                                    {md.dayHigh != null && (
+                                                      <span>
+                                                        <span style={{ color: THEME.muted }}>Day High/Low: </span>
+                                                        <b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b>{" / "}
+                                                        <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b>
+                                                      </span>
+                                                    )}
+                                                    {md.weekHigh52 != null && (
+                                                      <span>
+                                                        <span style={{ color: THEME.muted }}>52W H/L: </span>
+                                                        <b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b>{" / "}
+                                                        <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b>
+                                                      </span>
+                                                    )}
+                                                    {md.volume != null && (
+                                                      <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ) : md && (!charts || charts.length <= 2) ? (
+                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                  Market Data
+                                                </div>
+                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "16px 14px", display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 12 }}>
+                                                  {md.prevClose != null && (
+                                                    <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>
+                                                  )}
+                                                  {md.dayHigh != null && (
+                                                    <span>
+                                                      <span style={{ color: THEME.muted }}>Day High/Low: </span>
+                                                      <b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b>{" / "}
+                                                      <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b>
+                                                    </span>
+                                                  )}
+                                                  {md.weekHigh52 != null && (
+                                                    <span>
+                                                      <span style={{ color: THEME.muted }}>52W H/L: </span>
+                                                      <b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b>{" / "}
+                                                      <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b>
+                                                    </span>
+                                                  )}
+                                                  {md.volume != null && (
+                                                    <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>
+                                                  )}
+                                                  {!md.prevClose && !md.dayHigh && !md.weekHigh52 && !md.volume && (
+                                                    <span style={{ color: THEME.muted, fontStyle: "italic" }}>Intraday chart unavailable — market may be closed</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ) : !md ? (
+                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "20px 14px", textAlign: "center" }}>
+                                                  <div style={{ color: THEME.muted, fontSize: 13 }}>No live data — click Live Refresh to load prices</div>
+                                                </div>
+                                              </div>
+                                            ) : null}
+
+                                            {/* Target price summary panel */}
+                                            <div style={{ flex: "0 0 220px", minWidth: 200 }}>
+                                              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                Target Summary
+                                              </div>
+                                              <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                  <span style={{ color: THEME.muted }}>Symbol</span>
+                                                  <b>{it.symbol} · {it.exchange}</b>
+                                                </div>
+                                                {livePrice != null && (
+                                                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span style={{ color: THEME.muted }}>Live Price</span>
+                                                    <b>₹{livePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
+                                                  </div>
+                                                )}
+                                                {it.targetPrice && (
+                                                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span style={{ color: THEME.muted }}>Target</span>
+                                                    <b style={{ color: THEME.gold }}>₹{Number(it.targetPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</b>
+                                                  </div>
+                                                )}
+                                                {gap !== null && (
+                                                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span style={{ color: THEME.muted }}>Gap</span>
+                                                    <b style={{ color: gapColor }}>{gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}%</b>
+                                                  </div>
+                                                )}
+                                                {it.notes && (
+                                                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 8, color: THEME.muted, fontSize: 12, fontStyle: "italic" }}>
+                                                    {it.notes}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
                                 );
                               })}
                             </tbody>
