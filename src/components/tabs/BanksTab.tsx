@@ -524,7 +524,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData }:
         !search ||
         (t.note || "").toLowerCase().includes(search.toLowerCase()) ||
         (t.category || "").toLowerCase().includes(search.toLowerCase()) ||
-        (t.narration || "").toLowerCase().includes(search.toLowerCase())
+        (t.narration || "").toLowerCase().includes(search.toLowerCase()) ||
+        (t.referenceNumber || "").toLowerCase().includes(search.toLowerCase())
     );
 
   // Sorting Logic
@@ -1389,6 +1390,20 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData }:
                               marginTop: 4,
                             }}
                           />
+                          <input
+                            value={inlineEdit.referenceNumber || ""}
+                            onChange={(e) =>
+                              setInlineEdit({ ...inlineEdit, referenceNumber: e.target.value })
+                            }
+                            placeholder="Cheque / Ref Number"
+                            style={{
+                              ...input,
+                              padding: "4px 6px",
+                              fontSize: 11,
+                              minWidth: 140,
+                              marginTop: 4,
+                            }}
+                          />
                         </td>
                         <td style={td}>
                           <select
@@ -1554,6 +1569,11 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData }:
                           {t.narration && (
                             <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>
                               {t.narration}
+                            </div>
+                          )}
+                          {t.referenceNumber && (
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                              Ref: {t.referenceNumber}
                             </div>
                           )}
                         </div>
@@ -1934,6 +1954,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
     category: cats[0] || "General",
     note: "",
     narration: "",
+    referenceNumber: "",
     toAccountId: defaultToId,
     linkedKey: "",
   });
@@ -2154,6 +2175,14 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
           placeholder="Bank description e.g. UPI/HDFC/REF123456"
         />
       </Field>
+      <Field label="Cheque / Reference Number">
+        <input
+          style={input}
+          value={f.referenceNumber || ""}
+          onChange={(e) => setF({ ...f, referenceNumber: e.target.value })}
+          placeholder="Cheque or reference number (optional)"
+        />
+      </Field>
       <ModalActions
         onSave={() =>
           f.amount &&
@@ -2178,6 +2207,7 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
     category: txn?.category || "General",
     note: txn?.note || "",
     narration: txn?.narration || "",
+    referenceNumber: txn?.referenceNumber || "",
   });
   return (
     <Modal title="Edit Transaction" onClose={onClose}>
@@ -2291,6 +2321,14 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
           value={f.narration}
           onChange={(e) => setF({ ...f, narration: e.target.value })}
           placeholder="Bank description e.g. UPI/HDFC/REF123456"
+        />
+      </Field>
+      <Field label="Cheque / Reference Number">
+        <input
+          style={input}
+          value={f.referenceNumber || ""}
+          onChange={(e) => setF({ ...f, referenceNumber: e.target.value })}
+          placeholder="Cheque or reference number (optional)"
         />
       </Field>
       <ModalActions onSave={() => f.amount && f.accountId && onSave(f)} onClose={onClose} />

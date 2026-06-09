@@ -24,6 +24,7 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
     amount: "",
     category: transactionCategories[0] || "Food",
     note: "",
+    referenceNumber: "",
     accountId: bankAccounts[0]?.id || "",
   });
 
@@ -94,6 +95,14 @@ export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
             setF({ ...f, note, ...(cat ? { category: cat } : {}) });
           }}
           placeholder="Optional note — category auto-detected"
+        />
+      </Field>
+      <Field label="Cheque / Reference Number">
+        <input
+          style={input}
+          value={f.referenceNumber || ""}
+          onChange={(e) => setF({ ...f, referenceNumber: e.target.value })}
+          placeholder="Cheque or reference number (optional)"
         />
       </Field>
       <ModalActions onSave={() => f.amount && onSave(f)} onClose={onClose} />
