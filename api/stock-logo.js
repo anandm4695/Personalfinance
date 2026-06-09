@@ -91,7 +91,8 @@ const STOCK_DOMAINS = {
   GLOBUSSP: "globusspirits.com",
   SH: "sostofinance.com",
   PATANJALI: "patanjaliayurved.org",
-  ZOMATO: "zomato.com",
+  ZOMATO: "zomato.com", // brand domain still zomato.com; NSE symbol is now ETERNAL (handled in StockLogo)
+  ETERNAL: "zomato.com",
   SWIGGY: "swiggy.com",
   PAYTM: "paytm.com",
   NYKAA: "nykaa.com",

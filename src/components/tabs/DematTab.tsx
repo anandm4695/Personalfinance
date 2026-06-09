@@ -102,6 +102,11 @@ function brokerInitials(broker: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// NSE symbols that have been renamed — Groww CDN uses the current exchange symbol
+const GROWW_SYMBOL_OVERRIDES: Record<string, string> = {
+  ZOMATO: "ETERNAL", // Zomato Ltd rebranded to Eternal Ltd on NSE (2025)
+};
+
 // Module-level cache so logos persist across re-renders without extra fetches
 const _logoCache: Record<string, { logoUrl: string | null; faviconUrl: string | null } | null> = {};
 
@@ -165,12 +170,22 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
 
   const markFailed = (url: string) => setFailedUrls((prev) => new Set([...prev, url]));
 
-  // Fallback chain: Clearbit/EODHD (from API) → EODHD CDN (client-direct, if not already logoUrl)
-  // → faviconUrl (Yahoo-sourced Google Favicon, last resort — always returns something).
-  // faviconUrl sits last so EODHD is tried first; it never triggers onError so acts as a guaranteed net.
-  const candidates: string[] = [logoUrl, eohdUrl !== logoUrl ? eohdUrl : null, faviconUrl].filter(
-    Boolean
-  ) as string[];
+  // Groww CDN: 256×256 WebP, covers virtually all NSE stocks, clean 404 on unknown symbols.
+  // Only for NSE stocks (BSE symbols don't match Groww's naming). Handles renamings via
+  // GROWW_SYMBOL_OVERRIDES (e.g. ZOMATO→ETERNAL) and special chars via encodeURIComponent.
+  const growwSym = GROWW_SYMBOL_OVERRIDES[base.toUpperCase()] ?? base;
+  const growwUrl = !isBSE
+    ? `https://assets-netstorage.groww.in/stock-assets/logos2/${encodeURIComponent(growwSym)}.webp`
+    : null;
+
+  // Fallback chain: Groww CDN (256×256 WebP) → Clearbit/EODHD (from API) → EODHD CDN (client-direct)
+  // → faviconUrl (Google Favicon, last resort). Any source returning a 404 fires onError → next candidate.
+  const candidates: string[] = [
+    growwUrl,
+    logoUrl,
+    eohdUrl !== logoUrl ? eohdUrl : null,
+    faviconUrl,
+  ].filter(Boolean) as string[];
   const activeSrc = candidates.find((u) => !failedUrls.has(u));
 
   if (activeSrc) {
