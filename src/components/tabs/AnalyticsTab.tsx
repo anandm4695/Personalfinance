@@ -1925,11 +1925,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     };
   }, [metrics, dashboardData.streak, state, passiveIncomeData, taxData80C]);
 
-  // ── Streak calendar: last 12 months of savings status ──
+  // ── Streak calendar: January to December of current year ──
   const streakCalendar = useMemo(() => {
     const now = new Date();
+    const currentYear = now.getFullYear();
     return Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+      const d = new Date(currentYear, i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const txns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(ym));
       const inc = txns
@@ -3770,13 +3771,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  {trendData.slice(-12).map((t: any, i: number) => {
-                    const saved = t.net > 0;
-                    const hasData = t.income > 0 || t.expense > 0;
+                  {streakCalendar.map((t: any, i: number) => {
+                    const saved = t.saved;
+                    const hasData = t.hasData;
                     return (
                       <div
                         key={i}
-                        title={`${t.month}: ${saved ? "+" : hasData ? "−" : "no data"}`}
+                        title={`${t.label} ${t.year}: ${saved ? "+" : hasData ? "−" : "no data"}`}
                         style={{
                           display: "flex",
                           flexDirection: "column",
@@ -3795,7 +3796,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         />
                         <span style={{ fontSize: 8, color: THEME.muted, fontWeight: 600 }}>
-                          {t.month.slice(0, 1)}
+                          {t.label.slice(0, 1)}
                         </span>
                       </div>
                     );
