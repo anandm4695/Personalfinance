@@ -32,7 +32,7 @@ const BROKER_LOGO_DOMAINS: Record<string, string> = {
   zerodha: "zerodha.com",
   kite: "zerodha.com",
   groww: "groww.in",
-  kotak: "kotakneo.com",
+  kotak: "kotak.com",
   upstox: "upstox.com",
   hdfc: "hdfcsec.com",
   icici: "icicidirect.com",
@@ -44,8 +44,8 @@ const BROKER_LOGO_DOMAINS: Record<string, string> = {
   fyers: "fyers.in",
   dhan: "dhan.co",
   iifl: "iiflsecurities.com",
-  sbi: "sbisec.co.in",
-  axis: "axissecurities.in",
+  sbi: "sbisecurities.in",
+  axis: "axisdirect.in",
   ninestar: "9star.in",
   "9star": "9star.in",
 };
@@ -244,7 +244,7 @@ const BrokerLogo = ({
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: google favicon, 3: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: google favicon, 2: initials
 
   React.useEffect(() => {
     if (domain) {
@@ -252,19 +252,16 @@ const BrokerLogo = ({
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
-      setFallbackLevel(3);
+      setFallbackLevel(2);
     }
   }, [domain]);
 
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://logo.clearbit.com/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
-    } else if (fallbackLevel === 2) {
-      setFallbackLevel(3);
       setImgSrc(null);
     }
   };
@@ -272,7 +269,7 @@ const BrokerLogo = ({
   const initials = brokerInitials(broker || "?");
   const fontSize = Math.round(size * 0.38);
 
-  if (domain && fallbackLevel < 3 && imgSrc) {
+  if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
