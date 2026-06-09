@@ -49,6 +49,7 @@ import { MonthlyReportModal } from "../modals/MonthlyReportModal";
 import { Modal } from "../ui/Modal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StockLogo } from "./DematTab";
+import { Prv } from "../../context/PrivacyContext";
 
 // ─── BADGE CATALOG ───────────────────────────────────────────────────────────
 // Each category is a sequential tier chain. Badges unlock when the previous tier
@@ -4152,6 +4153,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   })
                                 : "—"}
                               {t.category ? ` · ${t.category}` : ""}
+                              {(() => {
+                                const bank = (state.bankAccounts || []).find((b: any) => b.id === t.accountId);
+                                if (!bank) return null;
+                                const last4 = bank.accountNumber ? bank.accountNumber.slice(-4) : "";
+                                return (
+                                  <>
+                                    {" · "}
+                                    {bank.name}
+                                    {last4 && (
+                                      <span style={{ marginLeft: 4 }}>
+                                        (<Prv>•••• {last4}</Prv>)
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
