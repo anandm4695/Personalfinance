@@ -93,7 +93,30 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
     }
   }
 
-  if (domain) {
+  const [imgSrc, setImgSrc] = React.useState<string | null>(null);
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: clearbit, 1: google favicon, 2: initials
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logo.clearbit.com/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
+    } else if (fallbackLevel === 1) {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
@@ -110,13 +133,10 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         }}
       >
         <img
-          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
+          src={imgSrc}
           alt={bankName}
           style={{ width: "70%", height: "70%", objectFit: "contain" }}
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            e.currentTarget.parentElement!.innerHTML = `<span style="font-size: ${size / 2.5}px; font-weight: 800; color: ${THEME.muted}">${bankName.slice(0, 2).toUpperCase()}</span>`;
-          }}
+          onError={handleError}
         />
       </div>
     );

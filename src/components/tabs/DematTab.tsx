@@ -219,12 +219,42 @@ const BrokerLogo = ({
   size: number;
   borderRadius: number;
 }) => {
-  const [imgErr, setImgErr] = React.useState(false);
-  const logoUrl = getBrokerLogoUrl(broker);
+  const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
+  let domain = "";
+  for (const [k, d] of Object.entries(BROKER_LOGO_DOMAINS)) {
+    if (key.includes(k)) {
+      domain = d;
+      break;
+    }
+  }
+
+  const [imgSrc, setImgSrc] = React.useState<string | null>(null);
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: clearbit, 1: google favicon, 2: initials
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logo.clearbit.com/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
+    } else if (fallbackLevel === 1) {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
   const initials = brokerInitials(broker || "?");
   const fontSize = Math.round(size * 0.38);
 
-  if (logoUrl && !imgErr) {
+  if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{
@@ -242,9 +272,9 @@ const BrokerLogo = ({
         }}
       >
         <img
-          src={logoUrl}
+          src={imgSrc}
           alt={broker}
-          onError={() => setImgErr(true)}
+          onError={handleError}
           style={{
             width: Math.round(size * 0.75),
             height: Math.round(size * 0.75),
