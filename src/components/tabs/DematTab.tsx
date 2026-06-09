@@ -1081,42 +1081,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      {/* ── HORIZONTAL PORTFOLIOS SEGMENT BAR ── */}
-      <div className="demat-portfolio-bar no-scrollbar">
-        <button
-          onClick={() => setSelectedDematId(null)}
-          className={`demat-portfolio-pill ${selectedDematId === null ? "active" : ""}`}
-        >
-          <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
-          <span>Global View</span>
-        </button>
-        {state.demat.map((d: any) => {
-          const active = selectedDematId === d.id;
-          const theme = getBrokerTheme(d.broker || "");
-          return (
-            <button
-              key={d.id}
-              onClick={() => setSelectedDematId(d.id)}
-              className={`demat-portfolio-pill ${active ? "active" : ""}`}
-              style={
-                active
-                  ? ({
-                      "--active-bg": `${theme.color}15`,
-                      "--active-color": theme.color,
-                      "--active-border": `${theme.color}30`,
-                    } as React.CSSProperties)
-                  : {}
-              }
-            >
-              <BrokerLogo broker={d.broker || "?"} theme={theme} size={20} borderRadius={5} />
-              <span>{d.broker || "Broker"}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* ── VIEW SWITCHER: Holdings | Watchlist ── */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 0, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
         {(["holdings", "watchlist"] as const).map((view) => (
           <button
             key={view}
@@ -1156,8 +1122,44 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         ))}
       </div>
 
+      {/* ── BROKER FILTER BAR — only shown for Holdings tab ── */}
+      {dematView === "holdings" && (
+        <div className="demat-portfolio-bar no-scrollbar" style={{ marginTop: 16 }}>
+          <button
+            onClick={() => setSelectedDematId(null)}
+            className={`demat-portfolio-pill ${selectedDematId === null ? "active" : ""}`}
+          >
+            <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
+            <span>Global View</span>
+          </button>
+          {state.demat.map((d: any) => {
+            const active = selectedDematId === d.id;
+            const theme = getBrokerTheme(d.broker || "");
+            return (
+              <button
+                key={d.id}
+                onClick={() => setSelectedDematId(d.id)}
+                className={`demat-portfolio-pill ${active ? "active" : ""}`}
+                style={
+                  active
+                    ? ({
+                        "--active-bg": `${theme.color}15`,
+                        "--active-color": theme.color,
+                        "--active-border": `${theme.color}30`,
+                      } as React.CSSProperties)
+                    : {}
+                }
+              >
+                <BrokerLogo broker={d.broker || "?"} theme={theme} size={20} borderRadius={5} />
+                <span>{d.broker || "Broker"}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── MAIN CONTENT AREA (100% width) ── */}
-      {dematView === "holdings" && <div style={{ width: "100%" }}>
+      {dematView === "holdings" && <div style={{ width: "100%", marginTop: 24 }}>
         <div className="demat-stats-grid">
           <StatCard
             icon={<BarChart3 />}
@@ -2437,7 +2439,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
       {/* ── WATCHLIST SECTION ── */}
       {dematView === "watchlist" && (
-        <div style={{ width: "100%" }}>
+        <div style={{ width: "100%", marginTop: 24 }}>
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
