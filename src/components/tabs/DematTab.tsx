@@ -683,20 +683,25 @@ function WishlistModal({
 
 function WishlistItemModal({
   wishlistName,
+  initial,
   onClose,
   onSave,
 }: {
   wishlistName: string;
+  initial?: any;
   onClose: () => void;
   onSave: (v: any) => void;
 }) {
-  const [symbol, setSymbol] = React.useState("");
-  const [exchange, setExchange] = React.useState("NSE");
-  const [targetPrice, setTargetPrice] = React.useState("");
-  const [notes, setNotes] = React.useState("");
+  const isEdit = !!initial;
+  const [symbol, setSymbol] = React.useState(initial?.symbol || "");
+  const [exchange, setExchange] = React.useState(initial?.exchange || "NSE");
+  const [targetPrice, setTargetPrice] = React.useState(
+    initial?.targetPrice != null ? String(initial.targetPrice) : ""
+  );
+  const [notes, setNotes] = React.useState(initial?.notes || "");
 
   return (
-    <Modal title={`Add Stock to "${wishlistName}"`} onClose={onClose}>
+    <Modal title={isEdit ? `Edit "${initial.symbol}"` : `Add Stock to "${wishlistName}"`} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
         <Field label="Symbol ★">
           <input
@@ -704,7 +709,8 @@ function WishlistItemModal({
             placeholder="e.g. RELIANCE, INFY"
             value={symbol}
             onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            autoFocus
+            disabled={isEdit}
+            autoFocus={!isEdit}
           />
         </Field>
         <Field label="Exchange">
@@ -712,6 +718,7 @@ function WishlistItemModal({
             style={{ ...input, width: 80 }}
             value={exchange}
             onChange={(e) => setExchange(e.target.value)}
+            disabled={isEdit}
           >
             <option value="NSE">NSE</option>
             <option value="BSE">BSE</option>
@@ -726,6 +733,7 @@ function WishlistItemModal({
           placeholder="Buy target — optional"
           value={targetPrice}
           onChange={(e) => setTargetPrice(e.target.value)}
+          autoFocus={isEdit}
         />
       </Field>
       <Field label="Notes (optional)">
@@ -747,7 +755,7 @@ function WishlistItemModal({
           });
         }}
         onClose={onClose}
-        saveLabel="Add to Wishlist"
+        saveLabel={isEdit ? "Save Changes" : "Add to Wishlist"}
         disabled={!symbol.trim()}
       />
     </Modal>
@@ -782,6 +790,7 @@ export function DematTab({
   const [editWishlistId, setEditWishlistId] = useState<string | null>(null);
   const [showWishlistItemModal, setShowWishlistItemModal] = useState(false);
   const [wishlistItemTarget, setWishlistItemTarget] = useState<string | null>(null);
+  const [editWishlistItemId, setEditWishlistItemId] = useState<string | null>(null);
 
   const [chartData, setChartData] = useState<any>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
@@ -2588,7 +2597,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 <th style={{ ...th, textAlign: "right" }}>Gap to Target</th>
                                 <th style={th}>Notes</th>
                                 <th style={{ ...th, textAlign: "right" }}>Added</th>
-                                <th style={{ ...th, width: 40 }}></th>
+                                <th style={{ ...th, width: 72 }}></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2647,18 +2656,28 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       {it.addedOn || "—"}
                                     </td>
                                     <td style={{ ...td, textAlign: "right" }}>
-                                      <button
-                                        className="icon-btn danger"
-                                        style={iconBtn}
-                                        onClick={() => {
-                                          if (window.confirm(`Remove ${it.symbol} from this wishlist?`)) {
-                                            removeItem("wishlistItems", it.id);
-                                          }
-                                        }}
-                                        title="Remove from wishlist"
-                                      >
-                                        <X size={14} />
-                                      </button>
+                                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                        <button
+                                          className="icon-btn"
+                                          style={iconBtn}
+                                          onClick={() => setEditWishlistItemId(it.id)}
+                                          title="Edit target price / notes"
+                                        >
+                                          <Edit3 size={13} />
+                                        </button>
+                                        <button
+                                          className="icon-btn danger"
+                                          style={iconBtn}
+                                          onClick={() => {
+                                            if (window.confirm(`Remove ${it.symbol} from this wishlist?`)) {
+                                              removeItem("wishlistItems", it.id);
+                                            }
+                                          }}
+                                          title="Remove from wishlist"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 );
@@ -2826,6 +2845,25 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           }}
         />
       )}
+      {editWishlistItemId && (() => {
+        const item = wishlistItems.find((it: any) => it.id === editWishlistItemId);
+        const wl = wishlists.find((w: any) => w.id === item?.wishlistId);
+        if (!item) return null;
+        return (
+          <WishlistItemModal
+            wishlistName={wl?.name || "Wishlist"}
+            initial={item}
+            onClose={() => setEditWishlistItemId(null)}
+            onSave={(v: any) => {
+              updateItem("wishlistItems", editWishlistItemId, {
+                targetPrice: v.targetPrice,
+                notes: v.notes,
+              });
+              setEditWishlistItemId(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

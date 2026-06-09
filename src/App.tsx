@@ -280,6 +280,7 @@ function FinanceDashboard() {
   // Ref keeps stocks current inside fetchLivePrices without putting state.stocks in deps,
   // which would cause the callback to be recreated after every metadata sync → extra fetches.
   const stocksRef = useRef<any[]>([]);
+  const wishlistItemsRef = useRef<any[]>([]);
   // Tracks latest masterData synchronously inside setState callbacks, so rapid back-to-back
   // addItem calls (e.g. transfer = debit + credit) don't overwrite each other's DB upsert.
   const masterDataRef = useRef<any>(null);
@@ -334,6 +335,10 @@ function FinanceDashboard() {
   useEffect(() => {
     stocksRef.current = state.stocks;
   }, [state.stocks]);
+
+  useEffect(() => {
+    wishlistItemsRef.current = state.wishlistItems || [];
+  }, [state.wishlistItems]);
 
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
@@ -906,7 +911,8 @@ function FinanceDashboard() {
 
   const fetchLivePrices = useCallback(async () => {
     const stocks = stocksRef.current;
-    if (!stocks.length || fetchingRef.current) return;
+    const wlItems = wishlistItemsRef.current;
+    if ((!stocks.length && !wlItems.length) || fetchingRef.current) return;
 
     // Safety timeout to prevent getting stuck in "Updating..." state
     const timeout = setTimeout(() => {
@@ -917,14 +923,19 @@ function FinanceDashboard() {
     setFetchingPrices(true);
     fetchingRef.current = true;
     try {
-      const groups = Object.values(
-        stocks.reduce((acc: any, s: any) => {
-          const exch = s.exchange || "NSE";
-          const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
-          acc[yfSym] = yfSym;
-          return acc;
-        }, {})
-      );
+      // Build unique symbol set from both held stocks and wishlist items
+      const symbolMap: Record<string, string> = {};
+      stocks.forEach((s: any) => {
+        const exch = s.exchange || "NSE";
+        const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+        symbolMap[yfSym] = yfSym;
+      });
+      wlItems.forEach((it: any) => {
+        const exch = it.exchange || "NSE";
+        const yfSym = `${it.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+        symbolMap[yfSym] = yfSym;
+      });
+      const groups = Object.values(symbolMap);
       const res = await fetch(`/api/stock-price?symbols=${groups.join(",")}`);
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
