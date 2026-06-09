@@ -2492,7 +2492,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           {/* Watchlist cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {wishlists.map((wl: any) => {
-              const items = wishlistItems.filter((it: any) => it.wishlistId === wl.id);
+              const items = wishlistItems.filter((it: any) => it.watchlistId === wl.id);
               const isExpanded = expandedWishlistId === wl.id;
 
               return (
@@ -2839,7 +2839,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           wishlistName={wishlists.find((wl: any) => wl.id === wishlistItemTarget)?.name || "Wishlist"}
           onClose={() => { setShowWishlistItemModal(false); setWishlistItemTarget(null); }}
           onSave={(v: any) => {
-            addItem("wishlistItems", { ...v, wishlistId: wishlistItemTarget });
+            addItem("wishlistItems", { ...v, watchlistId: wishlistItemTarget });
             setShowWishlistItemModal(false);
             setWishlistItemTarget(null);
           }}
@@ -2847,7 +2847,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       )}
       {editWishlistItemId && (() => {
         const item = wishlistItems.find((it: any) => it.id === editWishlistItemId);
-        const wl = wishlists.find((w: any) => w.id === item?.wishlistId);
+        const wl = wishlists.find((w: any) => w.id === item?.watchlistId);
         if (!item) return null;
         return (
           <WishlistItemModal

@@ -698,8 +698,8 @@ function FinanceDashboard() {
         supabase.from("tax_payments").select("*").eq("user_id", userId),
         supabase.from("income_entries").select("*").eq("user_id", userId),
         supabase.from("recurring_expenses").select("*").eq("user_id", userId),
-        supabase.from("wishlists").select("*").eq("user_id", userId),
-        supabase.from("wishlist_items").select("*").eq("user_id", userId),
+        supabase.from("watchlists").select("*").eq("user_id", userId),
+        supabase.from("watchlist_items").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -2246,8 +2246,8 @@ function FinanceDashboard() {
     corporateActions: "corporate_actions",
     taxPayments: "tax_payments",
     income: "income_entries",
-    wishlists: "wishlists",
-    wishlistItems: "wishlist_items",
+    wishlists: "watchlists",
+    wishlistItems: "watchlist_items",
   };
 
   const camelToSnake = (obj: any) => {
@@ -2509,7 +2509,7 @@ function FinanceDashboard() {
     setState((s) => {
       const next: any = { ...s, [key]: s[key].filter((x: any) => x.id !== id) };
       if (key === "wishlists") {
-        next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.wishlistId !== id);
+        next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.watchlistId !== id);
       }
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
