@@ -4160,7 +4160,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 return (
                                   <>
                                     {" · "}
-                                    {bank.name}
+                                    {bank.bankName}
                                     {last4 && (
                                       <span style={{ marginLeft: 4 }}>
                                         (<Prv>•••• {last4}</Prv>)
