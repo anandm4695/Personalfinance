@@ -33,6 +33,7 @@ import {
   today,
   uid,
   monthsBetween,
+  calculateEpfBalance,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
@@ -828,7 +829,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     ) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.epf?.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0) || 0) +
     (state.mutualFunds?.reduce(
       (s: number, x: any) => s + (Number(x.invested || x.investedValue) || 0),
       0
@@ -844,7 +845,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     ) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
     (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.epf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.epf?.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0) || 0) +
     (state.mutualFunds?.reduce(
       (s: number, x: any) =>
         s +

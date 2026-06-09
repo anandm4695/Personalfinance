@@ -84,6 +84,7 @@ import {
   saveStateLocal,
   getLocalDateString,
   getTaxDueForDashboard,
+  calculateEpfBalance,
 } from "./utils/finance";
 
 // Tab Imports
@@ -1264,7 +1265,7 @@ function FinanceDashboard() {
         const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
         const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
         const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const epf = (s.epf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
+        const epf = (s.epf || []).reduce((a, x) => a + calculateEpfBalance(x), 0);
         const lic = (s.lic || []).reduce((a, x) => {
           const txTotal = (x.transactions || []).reduce(
             (sum: number, t: any) => sum + Number(t.amount || 0),
@@ -1457,7 +1458,7 @@ function FinanceDashboard() {
     );
     const ppfValue = sState.ppf.reduce((s, p) => s + Number(p.balance || 0), 0);
     const npsValue = sState.nps.reduce((s, n) => s + Number(n.balance || 0), 0);
-    const epfValue = (sState.epf || []).reduce((s, e) => s + Number(e.balance || 0), 0);
+    const epfValue = (sState.epf || []).reduce((s, e) => s + calculateEpfBalance(e), 0);
     const licValue = sState.lic.reduce((s, l) => {
       const txTotal = (l.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),

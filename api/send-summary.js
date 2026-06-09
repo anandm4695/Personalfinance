@@ -136,6 +136,81 @@ function computeSummary(state) {
   const y = now.getUTCFullYear();
   const curYm = `${y}-${String(m + 1).padStart(2, "0")}`;
 
+  const calculateEpfBalance = (e) => {
+    if (!e) return 0;
+    const txs = e.transactions || [];
+    const ests = e.establishments || [];
+
+    const hasPassbook = txs.some(
+      (t) =>
+        t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
+    );
+
+    if (!hasPassbook) {
+      return Number(e.balance || 0);
+    }
+
+    // Establishments whose balance has been transferred out via Form 13 (transfer_in recorded).
+    // Their individual transactions must NOT be summed — the transfer_in amount already captures them.
+    const transferredOutEstIds = new Set(
+      txs
+        .filter((x) => x.type === "transfer_in" && x.fromEmployer)
+        .map((x) => {
+          const est = ests.find((estItem) => estItem.employerName === x.fromEmployer);
+          return est ? est.id : null;
+        })
+        .filter(Boolean)
+    );
+
+    // activeTxs = everything except transactions explicitly tagged to transferred-out establishments
+    const activeTxs = txs.filter((t) => !t.estId || !transferredOutEstIds.has(t.estId));
+
+    const byType = (type) =>
+      activeTxs.filter((x) => x.type === type).reduce((s, x) => s + Number(x.amount || 0), 0);
+    const monthlyRows = activeTxs.filter((x) => x.type === "monthly_contribution");
+    const interestRows = activeTxs.filter((x) => x.type === "interest_credit");
+    const transferRows = txs.filter((x) => x.type === "transfer_in"); // all txs — all transfer_ins count
+
+    const totalEmployee =
+      byType("employee_contribution") +
+      monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
+    const totalEmployer =
+      byType("employer_contribution") +
+      monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+    const totalPension = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+    const totalInterest = interestRows.reduce((s, x) => {
+      if (x.employeeShare !== undefined || x.employerShare !== undefined)
+        return (
+          s +
+          Number(x.employeeShare || 0) +
+          Number(x.employerShare || 0) +
+          Number(x.pensionShare || 0)
+        );
+      return s + Number(x.amount || 0);
+    }, 0);
+    const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
+    const totalWithdrawal = byType("withdrawal");
+
+    // Compute closing balances per EPFO passbook column
+    const empInterest = interestRows.reduce((s, x) => {
+      if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
+      return s + Number(x.amount || 0); // backward compat: old single-amount interest → employee
+    }, 0);
+    const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+    const penInterest = interestRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+    // employee gets remainder: total - er - pen (handles partial splits and no-splits correctly)
+    const transferInEr = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+    const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+    const transferInEmp = totalTransferIn - transferInEr - transferInPen;
+
+    const closingEmployee = totalEmployee + empInterest + transferInEmp;
+    const closingEmployer = totalEmployer + erInterest + transferInEr;
+    const closingPension = totalPension + transferInPen + penInterest;
+    const closingTotal = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
+
+    return closingTotal;
+  };
+
   // ── Net worth ──────────────────────────────────────────────────────────────
   const bankTotal = (state.bankAccounts || []).reduce((s, b) => s + (Number(b.balance) || 0), 0);
   const mfTotal = (state.mutualFunds || []).reduce((s, m) => {
@@ -157,7 +232,7 @@ function computeSummary(state) {
   }, 0);
   const ppfTotal = (state.ppf || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
   const npsTotal = (state.nps || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
-  const epfTotal = (state.epf || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
+  const epfTotal = (state.epf || []).reduce((s, x) => s + calculateEpfBalance(x), 0);
   const bondsTotal = (state.bonds || []).reduce(
     (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
     0
