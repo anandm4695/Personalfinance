@@ -1,28 +1,45 @@
 -- Migration 49: Rename wishlists → watchlists, wishlist_items → watchlist_items
--- Safe to run even if migration 48 was never executed (IF EXISTS guards).
--- Run this if you already ran migration 48 and have the old table names.
+-- Handles three cases:
+--   A) wishlists exists, watchlists does NOT → rename it
+--   B) wishlists exists, watchlists ALSO exists → drop the old empty table
+--   C) only watchlists exists (or neither) → nothing to do
 
 DO $$
 BEGIN
-  -- Rename wishlists → watchlists
   IF EXISTS (
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'wishlists'
   ) THEN
-    ALTER TABLE public.wishlists RENAME TO watchlists;
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'watchlists'
+    ) THEN
+      -- watchlists already created fresh; drop the old wishlists table
+      DROP TABLE public.wishlists CASCADE;
+    ELSE
+      ALTER TABLE public.wishlists RENAME TO watchlists;
+    END IF;
   END IF;
+END $$;
 
-  -- Rename wishlist_items → watchlist_items
+DO $$
+BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'wishlist_items'
   ) THEN
-    ALTER TABLE public.wishlist_items RENAME TO watchlist_items;
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'watchlist_items'
+    ) THEN
+      DROP TABLE public.wishlist_items CASCADE;
+    ELSE
+      ALTER TABLE public.wishlist_items RENAME TO watchlist_items;
+    END IF;
   END IF;
 END $$;
 
--- Rename the FK column inside watchlist_items: wishlist_id → watchlist_id
--- (only if it still has the old name)
+-- Rename FK column wishlist_id → watchlist_id (only if still has old name)
 DO $$
 BEGIN
   IF EXISTS (
@@ -35,7 +52,7 @@ BEGIN
   END IF;
 END $$;
 
--- Rename old indexes (IF EXISTS, PostgreSQL 9.2+)
+-- Recreate indexes with correct names
 DROP INDEX IF EXISTS idx_wishlist_items_wishlist_id;
 DROP INDEX IF EXISTS idx_wishlist_items_user_id;
 
