@@ -2310,7 +2310,7 @@ function FinanceDashboard() {
 
     const newId = uid();
     setState((s) => {
-      const next: any = { ...s, [key]: [...(s[key] as any[]), { id: newId, ...itemWithOwner }] };
+      const next: any = { ...s, [key]: [...((s[key] as any[]) || []), { id: newId, ...itemWithOwner }] };
       if (key === "transactions" && itemWithOwner.accountId) {
         const delta =
           itemWithOwner.type === "credit"
@@ -2507,7 +2507,7 @@ function FinanceDashboard() {
       key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
 
     setState((s) => {
-      const next: any = { ...s, [key]: s[key].filter((x: any) => x.id !== id) };
+      const next: any = { ...s, [key]: (s[key] || []).filter((x: any) => x.id !== id) };
       if (key === "wishlists") {
         next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.watchlistId !== id);
       }
