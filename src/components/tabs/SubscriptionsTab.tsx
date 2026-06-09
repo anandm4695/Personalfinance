@@ -59,13 +59,28 @@ const CATEGORY_ORDER = [
   "Other",
 ];
 
-const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
+function extractDomain(website: string): string {
+  try {
+    const url = website.includes("://") ? website : `https://${website}`;
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+  }
+}
+
+const ServiceLogo = ({ name, size = 40, website }: { name: string; size?: number; website?: string }) => {
   const n = (name || "").toLowerCase();
   let domain = "";
-  for (const [k, d] of Object.entries(SUB_LOGOS)) {
-    if (n.includes(k)) {
-      domain = d;
-      break;
+
+  // User-supplied website takes priority over the hardcoded name→domain map
+  if (website && website.trim()) {
+    domain = extractDomain(website.trim());
+  } else {
+    for (const [k, d] of Object.entries(SUB_LOGOS)) {
+      if (n.includes(k)) {
+        domain = d;
+        break;
+      }
     }
   }
 
@@ -455,7 +470,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                     minWidth: 160,
                   }}
                 >
-                  <ServiceLogo name={s.name} size={28} />
+                  <ServiceLogo name={s.name} size={28} website={s.website} />
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{s.name}</div>
                     <div style={{ fontSize: 10, fontWeight: 700, color }}>
@@ -553,7 +568,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           style={{ padding: "16px 20px", borderTop: `3px solid ${color}` }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                            <ServiceLogo name={s.name} />
+                            <ServiceLogo name={s.name} website={s.website} />
 
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div
@@ -795,7 +810,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <ServiceLogo name={s.name} />
+                        <ServiceLogo name={s.name} website={s.website} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
                             style={{

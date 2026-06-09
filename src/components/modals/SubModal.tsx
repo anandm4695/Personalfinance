@@ -25,6 +25,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           cycle: initialValues.cycle || "monthly",
           renewalDate: initialValues.renewalDate || "",
           remark: initialValues.remark || "",
+          website: initialValues.website || "",
         }
       : {
           owner: "self",
@@ -34,6 +35,7 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           cycle: "monthly",
           renewalDate: "",
           remark: "",
+          website: "",
         }
   );
   return (
@@ -108,6 +110,14 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           />
         </Field>
       </div>
+      <Field label="Website (Optional — used to load logo)">
+        <input
+          style={input}
+          value={f.website}
+          onChange={(e) => setF({ ...f, website: e.target.value })}
+          placeholder="e.g., notion.so or https://notion.so"
+        />
+      </Field>
       <Field label="Remark (Optional)">
         <input
           style={input}
