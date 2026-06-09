@@ -27,22 +27,26 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recha
 
 const INSURER_LOGOS: Record<string, string> = {
   lic: "licindia.in",
-  hdfc: "hdfclife.com",
-  icici: "iciciprulife.com",
-  sbi: "sbilife.co.in",
+  "life insurance": "licindia.in",
+  hdfc: "hdfcbank.com",
+  icici: "icicibank.com",
+  sbi: "sbi.co.in",
+  "state bank": "sbi.co.in",
   max: "maxlifeinsurance.com",
-  tata: "tataaia.com",
-  bajaj: "bajajallianzlife.com",
-  kotak: "kotaklife.com",
-  birla: "adityabirlasunlifeinsurance.com",
-  absli: "adityabirlasunlifeinsurance.com",
-  pnb: "pnbmetlife.com",
-  metlife: "pnbmetlife.com",
-  canara: "canarahsbclife.com",
-  hsbc: "canarahsbclife.com",
-  aviva: "avivaindia.com",
-  reliance: "reliancenipponlife.com",
-  exide: "exidelife.in",
+  tata: "tata.com",
+  bajaj: "bajajallianz.com",
+  kotak: "kotak.com",
+  birla: "adityabirla.com",
+  "aditya birla": "adityabirla.com",
+  absli: "adityabirla.com",
+  pnb: "pnbindia.in",
+  "punjab national": "pnbindia.in",
+  metlife: "metlife.com",
+  canara: "canarabank.com",
+  hsbc: "hsbc.com",
+  aviva: "aviva.com",
+  reliance: "relianceindustries.com",
+  exide: "exideindustries.com",
 };
 
 const InsurerLogo = ({
@@ -108,7 +112,7 @@ const InsurerLogo = ({
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: "75%", height: "75%", objectFit: "contain" }}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
           onError={handleError}
         />
       </div>

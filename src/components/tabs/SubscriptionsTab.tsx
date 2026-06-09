@@ -114,7 +114,7 @@ const ServiceLogo = ({ name, size = 40 }: { name: string; size?: number }) => {
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: "75%", height: "75%", objectFit: "contain" }}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
           onError={handleError}
         />
       </div>

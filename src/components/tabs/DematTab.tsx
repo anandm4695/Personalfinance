@@ -279,8 +279,8 @@ const BrokerLogo = ({
           alt={broker}
           onError={handleError}
           style={{
-            width: Math.round(size * 0.75),
-            height: Math.round(size * 0.75),
+            width: Math.round(size * 0.80),
+            height: Math.round(size * 0.80),
             objectFit: "contain",
           }}
         />

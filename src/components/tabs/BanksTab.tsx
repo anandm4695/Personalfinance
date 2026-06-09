@@ -34,6 +34,7 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   hdfc: "hdfcbank.com",
   icici: "icicibank.com",
   sbi: "sbi.co.in",
+  "state bank": "sbi.co.in",
   axis: "axisbank.com",
   kotak: "kotak.com",
   idfc: "idfcfirstbank.com",
@@ -41,12 +42,15 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   yesbank: "yesbank.in",
   "yes bank": "yesbank.in",
   sc: "sc.com",
+  "standard chartered": "sc.com",
   citi: "citi.com",
-  hsbc: "hsbc.co.in",
+  hsbc: "hsbc.com",
   dbs: "dbs.com",
   bob: "bankofbaroda.in",
   baroda: "bankofbaroda.in",
+  "bank of baroda": "bankofbaroda.in",
   pnb: "pnbindia.in",
+  "punjab national": "pnbindia.in",
   canara: "canarabank.com",
   idbi: "idbibank.in",
   union: "unionbankofindia.co.in",
@@ -60,7 +64,7 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   slice: "sliceit.com",
   onecard: "getonecard.com",
   airtel: "airtel.in",
-  paytm: "paytmbank.com",
+  paytm: "paytm.com",
   amazon: "amazon.in",
 };
 
@@ -138,7 +142,7 @@ const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) 
         <img
           src={imgSrc}
           alt={bankName}
-          style={{ width: "75%", height: "75%", objectFit: "contain" }}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
           onError={handleError}
         />
       </div>
