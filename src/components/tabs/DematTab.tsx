@@ -607,7 +607,7 @@ function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number): Fifo
   return result;
 }
 
-// ─── WISHLIST ───────────────────────────────────────────────────────────────
+// ─── WATCHLIST ──────────────────────────────────────────────────────────────
 
 const WISHLIST_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
@@ -629,10 +629,10 @@ function WishlistModal({
 
   return (
     <Modal
-      title={initial ? "Rename Wishlist" : "New Wishlist"}
+      title={initial ? "Rename Watchlist" : "New Watchlist"}
       onClose={onClose}
     >
-      <Field label="Wishlist Name ★">
+      <Field label="Watchlist Name ★">
         <input
           style={input}
           placeholder="e.g. Tech Picks, Blue Chip, Dividend Stars"
@@ -644,7 +644,7 @@ function WishlistModal({
       <Field label="Description (optional)">
         <input
           style={input}
-          placeholder="Short note about this wishlist"
+          placeholder="Short note about this watchlist"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
@@ -674,7 +674,7 @@ function WishlistModal({
           onSave({ name: name.trim(), description: description.trim(), color });
         }}
         onClose={onClose}
-        saveLabel={initial ? "Save" : "Create Wishlist"}
+        saveLabel={initial ? "Save" : "Create Watchlist"}
         disabled={!name.trim()}
       />
     </Modal>
@@ -701,7 +701,7 @@ function WishlistItemModal({
   const [notes, setNotes] = React.useState(initial?.notes || "");
 
   return (
-    <Modal title={isEdit ? `Edit "${initial.symbol}"` : `Add Stock to "${wishlistName}"`} onClose={onClose}>
+    <Modal title={isEdit ? `Edit "${initial.symbol}"` : `Add Stock to Watchlist "${wishlistName}"`} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
         <Field label="Symbol ★">
           <input
@@ -755,7 +755,7 @@ function WishlistItemModal({
           });
         }}
         onClose={onClose}
-        saveLabel={isEdit ? "Save Changes" : "Add to Wishlist"}
+        saveLabel={isEdit ? "Save Changes" : "Add to Watchlist"}
         disabled={!symbol.trim()}
       />
     </Modal>
@@ -783,8 +783,8 @@ export function DematTab({
   const [stockDefaults, setStockDefaults] = useState<any>(null);
   const [editStockId, setEditStockId] = useState<string | null>(null);
 
-  // Wishlist UI state
-  const [dematView, setDematView] = useState<"holdings" | "wishlist">("holdings");
+  // Watchlist UI state
+  const [dematView, setDematView] = useState<"holdings" | "watchlist">("holdings");
   const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editWishlistId, setEditWishlistId] = useState<string | null>(null);
@@ -1115,9 +1115,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         })}
       </div>
 
-      {/* ── VIEW SWITCHER: Holdings | Wishlist ── */}
+      {/* ── VIEW SWITCHER: Holdings | Watchlist ── */}
       <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        {(["holdings", "wishlist"] as const).map((view) => (
+        {(["holdings", "watchlist"] as const).map((view) => (
           <button
             key={view}
             onClick={() => setDematView(view)}
@@ -1139,8 +1139,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             }}
           >
             {view === "holdings" ? <BarChart3 size={15} /> : <Star size={15} />}
-            {view === "holdings" ? "Holdings" : "Wishlist"}
-            {view === "wishlist" && wishlists.length > 0 && (
+            {view === "holdings" ? "Holdings" : "Watchlist"}
+            {view === "watchlist" && wishlists.length > 0 && (
               <span style={{
                 background: `${THEME.accent}20`,
                 color: THEME.accent,
@@ -2435,17 +2435,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         )}
       </div>}
 
-      {/* ── WISHLIST SECTION ── */}
-      {dematView === "wishlist" && (
+      {/* ── WATCHLIST SECTION ── */}
+      {dematView === "watchlist" && (
         <div style={{ width: "100%" }}>
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Wishlists</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Watchlists</div>
               <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
                 {wishlists.length === 0
-                  ? "Create wishlists to track stocks you want to buy"
-                  : `${wishlists.length} wishlist${wishlists.length !== 1 ? "s" : ""} · ${wishlistItems.length} stock${wishlistItems.length !== 1 ? "s" : ""} total`}
+                  ? "Create watchlists to track stocks you want to buy"
+                  : `${wishlists.length} watchlist${wishlists.length !== 1 ? "s" : ""} · ${wishlistItems.length} stock${wishlistItems.length !== 1 ? "s" : ""} total`}
               </div>
             </div>
             <Button
@@ -2453,7 +2453,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               icon={<Plus size={14} />}
               onClick={() => setShowWishlistModal(true)}
             >
-              New Wishlist
+              New Watchlist
             </Button>
           </div>
 
@@ -2479,17 +2479,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               }}>
                 <Star size={28} color={THEME.accent} />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>No Wishlists Yet</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>No Watchlists Yet</div>
               <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 340 }}>
-                Create wishlists to track stocks you're watching — set target prices and monitor when to buy.
+                Create watchlists to track stocks you're watching — set target prices and monitor when to buy.
               </div>
               <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowWishlistModal(true)}>
-                Create Your First Wishlist
+                Create Your First Watchlist
               </Button>
             </div>
           )}
 
-          {/* Wishlist cards */}
+          {/* Watchlist cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {wishlists.map((wl: any) => {
               const items = wishlistItems.filter((it: any) => it.wishlistId === wl.id);
@@ -2505,7 +2505,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     borderLeft: `4px solid ${wl.color || WISHLIST_COLORS[0]}`,
                   }}
                 >
-                  {/* Wishlist card header */}
+                  {/* Watchlist card header */}
                   <div
                     style={{
                       display: "flex",
@@ -2553,21 +2553,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         onClick={(e) => { e.stopPropagation(); setEditWishlistId(wl.id); }}
                         className="icon-btn"
                         style={iconBtn}
-                        title="Rename wishlist"
+                        title="Rename watchlist"
                       >
                         <Edit3 size={14} />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Delete wishlist "${wl.name}" and all its stocks?`)) {
+                          if (window.confirm(`Delete watchlist "${wl.name}" and all its stocks?`)) {
                             removeItem("wishlists", wl.id);
                             if (expandedWishlistId === wl.id) setExpandedWishlistId(null);
                           }
                         }}
                         className="icon-btn danger"
                         style={iconBtn}
-                        title="Delete wishlist"
+                        title="Delete watchlist"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -2673,7 +2673,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               removeItem("wishlistItems", it.id);
                                             }
                                           }}
-                                          title="Remove from wishlist"
+                                          title="Remove from watchlist"
                                         >
                                           <X size={14} />
                                         </button>
@@ -2697,7 +2697,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             setShowWishlistItemModal(true);
                           }}
                         >
-                          Add Stock to {wl.name}
+                          Add Stock to Watchlist {wl.name}
                         </Button>
                       </div>
                     </div>
@@ -2851,7 +2851,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         if (!item) return null;
         return (
           <WishlistItemModal
-            wishlistName={wl?.name || "Wishlist"}
+            wishlistName={wl?.name || "Watchlist"}
             initial={item}
             onClose={() => setEditWishlistItemId(null)}
             onSave={(v: any) => {
