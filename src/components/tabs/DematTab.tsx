@@ -8,6 +8,7 @@ import {
   ArrowLeftRight,
   RefreshCw,
   ChevronDown,
+  ChevronRight,
   Edit3,
   Trash2,
   Scissors,
@@ -17,6 +18,12 @@ import {
   Activity,
   ArrowUp,
   ArrowDown,
+  Star,
+  Target,
+  Bookmark,
+  Tag,
+  X,
+  ListChecks,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
@@ -600,6 +607,155 @@ function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number): Fifo
   return result;
 }
 
+// ─── WISHLIST ───────────────────────────────────────────────────────────────
+
+const WISHLIST_COLORS = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
+  "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#64748b",
+];
+
+function WishlistModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial?: any;
+  onClose: () => void;
+  onSave: (v: any) => void;
+}) {
+  const [name, setName] = React.useState(initial?.name || "");
+  const [description, setDescription] = React.useState(initial?.description || "");
+  const [color, setColor] = React.useState(initial?.color || WISHLIST_COLORS[0]);
+
+  return (
+    <Modal
+      title={initial ? "Rename Wishlist" : "New Wishlist"}
+      onClose={onClose}
+    >
+      <Field label="Wishlist Name ★">
+        <input
+          style={input}
+          placeholder="e.g. Tech Picks, Blue Chip, Dividend Stars"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+      </Field>
+      <Field label="Description (optional)">
+        <input
+          style={input}
+          placeholder="Short note about this wishlist"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </Field>
+      <Field label="Color">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {WISHLIST_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: c,
+                border: color === c ? `3px solid ${THEME.ink}` : "3px solid transparent",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            />
+          ))}
+        </div>
+      </Field>
+      <ModalActions
+        onSave={() => {
+          if (!name.trim()) return;
+          onSave({ name: name.trim(), description: description.trim(), color });
+        }}
+        onClose={onClose}
+        saveLabel={initial ? "Save" : "Create Wishlist"}
+        disabled={!name.trim()}
+      />
+    </Modal>
+  );
+}
+
+function WishlistItemModal({
+  wishlistName,
+  onClose,
+  onSave,
+}: {
+  wishlistName: string;
+  onClose: () => void;
+  onSave: (v: any) => void;
+}) {
+  const [symbol, setSymbol] = React.useState("");
+  const [exchange, setExchange] = React.useState("NSE");
+  const [targetPrice, setTargetPrice] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+
+  return (
+    <Modal title={`Add Stock to "${wishlistName}"`} onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
+        <Field label="Symbol ★">
+          <input
+            style={{ ...input, textTransform: "uppercase" }}
+            placeholder="e.g. RELIANCE, INFY"
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+            autoFocus
+          />
+        </Field>
+        <Field label="Exchange">
+          <select
+            style={{ ...input, width: 80 }}
+            value={exchange}
+            onChange={(e) => setExchange(e.target.value)}
+          >
+            <option value="NSE">NSE</option>
+            <option value="BSE">BSE</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Target Price (₹)">
+        <input
+          style={input}
+          type="number"
+          min="0"
+          placeholder="Buy target — optional"
+          value={targetPrice}
+          onChange={(e) => setTargetPrice(e.target.value)}
+        />
+      </Field>
+      <Field label="Notes (optional)">
+        <input
+          style={input}
+          placeholder="Why this stock? Catalyst, thesis…"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </Field>
+      <ModalActions
+        onSave={() => {
+          if (!symbol.trim()) return;
+          onSave({
+            symbol: symbol.trim(),
+            exchange,
+            targetPrice: targetPrice ? Number(targetPrice) : null,
+            notes: notes.trim() || null,
+          });
+        }}
+        onClose={onClose}
+        saveLabel="Add to Wishlist"
+        disabled={!symbol.trim()}
+      />
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function DematTab({
   state,
   addItem,
@@ -610,12 +766,22 @@ export function DematTab({
   fetchLivePrices,
   fetchingPrices,
   marketDataTs,
+  wishlists = [],
+  wishlistItems = [],
 }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
   const [showStock, setShowStock] = useState(false);
   const [stockDefaults, setStockDefaults] = useState<any>(null);
   const [editStockId, setEditStockId] = useState<string | null>(null);
+
+  // Wishlist UI state
+  const [dematView, setDematView] = useState<"holdings" | "wishlist">("holdings");
+  const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
+  const [showWishlistModal, setShowWishlistModal] = useState(false);
+  const [editWishlistId, setEditWishlistId] = useState<string | null>(null);
+  const [showWishlistItemModal, setShowWishlistItemModal] = useState(false);
+  const [wishlistItemTarget, setWishlistItemTarget] = useState<string | null>(null);
 
   const [chartData, setChartData] = useState<any>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
@@ -940,8 +1106,49 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         })}
       </div>
 
+      {/* ── VIEW SWITCHER: Holdings | Wishlist ── */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
+        {(["holdings", "wishlist"] as const).map((view) => (
+          <button
+            key={view}
+            onClick={() => setDematView(view)}
+            style={{
+              padding: "10px 20px",
+              background: "transparent",
+              border: "none",
+              borderBottom: dematView === view ? `2.5px solid ${THEME.accent}` : "2.5px solid transparent",
+              color: dematView === view ? THEME.accent : THEME.muted,
+              fontWeight: dematView === view ? 800 : 600,
+              fontSize: 14,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: -1,
+              borderRadius: 0,
+              transition: "color 0.15s",
+            }}
+          >
+            {view === "holdings" ? <BarChart3 size={15} /> : <Star size={15} />}
+            {view === "holdings" ? "Holdings" : "Wishlist"}
+            {view === "wishlist" && wishlists.length > 0 && (
+              <span style={{
+                background: `${THEME.accent}20`,
+                color: THEME.accent,
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "1px 6px",
+                borderRadius: 10,
+              }}>
+                {wishlists.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* ── MAIN CONTENT AREA (100% width) ── */}
-      <div style={{ width: "100%" }}>
+      {dematView === "holdings" && <div style={{ width: "100%" }}>
         <div className="demat-stats-grid">
           <StatCard
             icon={<BarChart3 />}
@@ -2217,7 +2424,271 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             </table>
           </div>
         )}
-      </div>
+      </div>}
+
+      {/* ── WISHLIST SECTION ── */}
+      {dematView === "wishlist" && (
+        <div style={{ width: "100%" }}>
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Your Wishlists</div>
+              <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+                {wishlists.length === 0
+                  ? "Create wishlists to track stocks you want to buy"
+                  : `${wishlists.length} wishlist${wishlists.length !== 1 ? "s" : ""} · ${wishlistItems.length} stock${wishlistItems.length !== 1 ? "s" : ""} total`}
+              </div>
+            </div>
+            <Button
+              variant="accent"
+              icon={<Plus size={14} />}
+              onClick={() => setShowWishlistModal(true)}
+            >
+              New Wishlist
+            </Button>
+          </div>
+
+          {/* Empty state */}
+          {wishlists.length === 0 && (
+            <div style={{
+              ...card,
+              textAlign: "center",
+              padding: "48px 32px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+            }}>
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: 18,
+                background: `${THEME.accent}15`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <Star size={28} color={THEME.accent} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>No Wishlists Yet</div>
+              <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 340 }}>
+                Create wishlists to track stocks you're watching — set target prices and monitor when to buy.
+              </div>
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowWishlistModal(true)}>
+                Create Your First Wishlist
+              </Button>
+            </div>
+          )}
+
+          {/* Wishlist cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {wishlists.map((wl: any) => {
+              const items = wishlistItems.filter((it: any) => it.wishlistId === wl.id);
+              const isExpanded = expandedWishlistId === wl.id;
+
+              return (
+                <div
+                  key={wl.id}
+                  style={{
+                    ...card,
+                    padding: 0,
+                    overflow: "hidden",
+                    borderLeft: `4px solid ${wl.color || WISHLIST_COLORS[0]}`,
+                  }}
+                >
+                  {/* Wishlist card header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "16px 20px",
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
+                    onClick={() => setExpandedWishlistId(isExpanded ? null : wl.id)}
+                  >
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: `${wl.color || WISHLIST_COLORS[0]}20`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <Star size={18} color={wl.color || WISHLIST_COLORS[0]} fill={`${wl.color || WISHLIST_COLORS[0]}40`} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>{wl.name}</div>
+                      {wl.description && (
+                        <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {wl.description}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{
+                        background: `${wl.color || WISHLIST_COLORS[0]}18`,
+                        color: wl.color || WISHLIST_COLORS[0],
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: "3px 10px",
+                        borderRadius: 20,
+                        whiteSpace: "nowrap",
+                      }}>
+                        {items.length} stock{items.length !== 1 ? "s" : ""}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditWishlistId(wl.id); }}
+                        className="icon-btn"
+                        style={iconBtn}
+                        title="Rename wishlist"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Delete wishlist "${wl.name}" and all its stocks?`)) {
+                            removeItem("wishlists", wl.id);
+                            if (expandedWishlistId === wl.id) setExpandedWishlistId(null);
+                          }
+                        }}
+                        className="icon-btn danger"
+                        style={iconBtn}
+                        title="Delete wishlist"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <ChevronRight
+                        size={16}
+                        color={THEME.muted}
+                        style={{ transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expanded: stock list */}
+                  {isExpanded && (
+                    <div style={{ borderTop: `1px solid ${THEME.line}` }}>
+                      {items.length === 0 ? (
+                        <div style={{ padding: "24px 20px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                          No stocks yet. Add your first stock to watch.
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                            <thead>
+                              <tr>
+                                <th style={th}>Stock</th>
+                                <th style={{ ...th, textAlign: "right" }}>Live Price</th>
+                                <th style={{ ...th, textAlign: "right" }}>Target</th>
+                                <th style={{ ...th, textAlign: "right" }}>Gap to Target</th>
+                                <th style={th}>Notes</th>
+                                <th style={{ ...th, textAlign: "right" }}>Added</th>
+                                <th style={{ ...th, width: 40 }}></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((it: any) => {
+                                const yfSym = `${it.symbol}.${it.exchange === "BSE" ? "BO" : "NS"}`;
+                                const livePrice = marketData[yfSym]?.price ?? null;
+                                const gap = it.targetPrice && livePrice
+                                  ? ((it.targetPrice - livePrice) / livePrice) * 100
+                                  : null;
+                                const gapColor = gap === null ? THEME.muted : gap >= 0 ? THEME.sage : THEME.rust;
+
+                                return (
+                                  <tr key={it.id} style={{ background: "transparent" }}>
+                                    <td style={td}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                        <StockLogo yfSym={yfSym} size={32} />
+                                        <div>
+                                          <div style={{ fontWeight: 700, color: THEME.ink }}>{it.symbol}</div>
+                                          <div style={{ fontSize: 11, color: THEME.muted }}>{it.exchange}</div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                      {livePrice != null ? (
+                                        <span style={{ fontWeight: 700, color: THEME.ink }}>
+                                          ₹{livePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: THEME.muted }}>—</span>
+                                      )}
+                                    </td>
+                                    <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                      {it.targetPrice ? (
+                                        <span style={{ fontWeight: 700, color: THEME.gold }}>
+                                          ₹{Number(it.targetPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: THEME.muted }}>—</span>
+                                      )}
+                                    </td>
+                                    <td style={{ ...td, textAlign: "right" }}>
+                                      {gap !== null ? (
+                                        <span style={{ fontWeight: 700, color: gapColor }}>
+                                          {gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: THEME.muted }}>—</span>
+                                      )}
+                                    </td>
+                                    <td style={{ ...td, color: THEME.muted, maxWidth: 200 }}>
+                                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                        {it.notes || "—"}
+                                      </span>
+                                    </td>
+                                    <td style={{ ...td, textAlign: "right", color: THEME.muted, whiteSpace: "nowrap" }}>
+                                      {it.addedOn || "—"}
+                                    </td>
+                                    <td style={{ ...td, textAlign: "right" }}>
+                                      <button
+                                        className="icon-btn danger"
+                                        style={iconBtn}
+                                        onClick={() => {
+                                          if (window.confirm(`Remove ${it.symbol} from this wishlist?`)) {
+                                            removeItem("wishlistItems", it.id);
+                                          }
+                                        }}
+                                        title="Remove from wishlist"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      {/* Add stock button */}
+                      <div style={{ padding: "12px 20px", borderTop: items.length > 0 ? `1px solid ${THEME.line}` : "none" }}>
+                        <Button
+                          variant="ghost"
+                          icon={<Plus size={13} />}
+                          style={{ fontSize: 13 }}
+                          onClick={() => {
+                            setWishlistItemTarget(wl.id);
+                            setShowWishlistItemModal(true);
+                          }}
+                        >
+                          Add Stock to {wl.name}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {showDemat && (
         <DematModal
@@ -2321,6 +2792,37 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             );
             addItem("corporateActions", actionLog);
             setSplitBonusGroup(null);
+          }}
+        />
+      )}
+
+      {showWishlistModal && (
+        <WishlistModal
+          onClose={() => setShowWishlistModal(false)}
+          onSave={(v: any) => {
+            addItem("wishlists", v);
+            setShowWishlistModal(false);
+          }}
+        />
+      )}
+      {editWishlistId && (
+        <WishlistModal
+          initial={wishlists.find((wl: any) => wl.id === editWishlistId)}
+          onClose={() => setEditWishlistId(null)}
+          onSave={(v: any) => {
+            updateItem("wishlists", editWishlistId, v);
+            setEditWishlistId(null);
+          }}
+        />
+      )}
+      {showWishlistItemModal && wishlistItemTarget && (
+        <WishlistItemModal
+          wishlistName={wishlists.find((wl: any) => wl.id === wishlistItemTarget)?.name || "Wishlist"}
+          onClose={() => { setShowWishlistItemModal(false); setWishlistItemTarget(null); }}
+          onSave={(v: any) => {
+            addItem("wishlistItems", { ...v, wishlistId: wishlistItemTarget });
+            setShowWishlistItemModal(false);
+            setWishlistItemTarget(null);
           }}
         />
       )}

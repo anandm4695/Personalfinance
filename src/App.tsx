@@ -140,6 +140,8 @@ const DEFAULT_STATE = {
   mutualFunds: [],
   stocks: [],
   demat: [],
+  wishlists: [],
+  wishlistItems: [],
   creditCards: [],
   prepaidCards: [],
   loansTaken: [],
@@ -657,6 +659,8 @@ function FinanceDashboard() {
         taxP,
         incomeQ,
         recExp,
+        wlists,
+        wlItems,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -689,6 +693,8 @@ function FinanceDashboard() {
         supabase.from("tax_payments").select("*").eq("user_id", userId),
         supabase.from("income_entries").select("*").eq("user_id", userId),
         supabase.from("recurring_expenses").select("*").eq("user_id", userId),
+        supabase.from("wishlists").select("*").eq("user_id", userId),
+        supabase.from("wishlist_items").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -884,6 +890,12 @@ function FinanceDashboard() {
           ...(!incomeQ.error && incomeQ.data != null ? { income: snakeToCamel(incomeQ.data) } : {}),
           ...(!recExp.error && recExp.data != null
             ? { recurringExpenses: snakeToCamel(recExp.data) }
+            : {}),
+          ...(!wlists.error && wlists.data != null
+            ? { wishlists: snakeToCamel(wlists.data) }
+            : {}),
+          ...(!wlItems.error && wlItems.data != null
+            ? { wishlistItems: snakeToCamel(wlItems.data) }
             : {}),
         };
       });
@@ -2223,6 +2235,8 @@ function FinanceDashboard() {
     corporateActions: "corporate_actions",
     taxPayments: "tax_payments",
     income: "income_entries",
+    wishlists: "wishlists",
+    wishlistItems: "wishlist_items",
   };
 
   const camelToSnake = (obj: any) => {
@@ -2483,6 +2497,9 @@ function FinanceDashboard() {
 
     setState((s) => {
       const next: any = { ...s, [key]: s[key].filter((x: any) => x.id !== id) };
+      if (key === "wishlists") {
+        next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.wishlistId !== id);
+      }
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];
         const appliedIds: string[] = s.masterData?.balanceAppliedTxnIds || [];
@@ -4535,6 +4552,8 @@ function FinanceDashboard() {
                   fetchLivePrices={fetchLivePrices}
                   fetchingPrices={fetchingPrices}
                   marketDataTs={marketDataTs}
+                  wishlists={state.wishlists || []}
+                  wishlistItems={state.wishlistItems || []}
                 />
               )}
               {tab === "txnhistory" && (
