@@ -85,32 +85,29 @@ const ServiceLogo = ({ name, size = 40, website }: { name: string; size?: number
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: clearbit, 1: hunter.io, 2: google favicon, 3: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: google favicon, 2: initials
 
   React.useEffect(() => {
     if (domain) {
-      setImgSrc(`https://logo.clearbit.com/${domain}`);
+      setImgSrc(`https://logos.hunter.io/${domain}`);
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
-      setFallbackLevel(3);
+      setFallbackLevel(2);
     }
   }, [domain]);
 
   const handleError = () => {
     if (fallbackLevel === 0) {
       setFallbackLevel(1);
-      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
-    } else if (fallbackLevel === 2) {
-      setFallbackLevel(3);
       setImgSrc(null);
     }
   };
 
-  if (domain && fallbackLevel < 3 && imgSrc) {
+  if (domain && fallbackLevel < 2 && imgSrc) {
     return (
       <div
         style={{

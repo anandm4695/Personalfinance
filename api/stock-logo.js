@@ -70,6 +70,7 @@ const STOCK_DOMAINS = {
   MAHINDRA: "mahindra.com",
   NESTLEIND: "nestle.in",
   BPCL: "bharatpetroleum.in",
+  CASTROLIND: "castrol.com",
 
   // ── FMCG / Consumer ────────────────────────────────────────────────────────
   DABUR: "dabur.com",
@@ -614,12 +615,12 @@ module.exports = async function handler(req, res) {
   let faviconUrl = null;
 
   // Priority 1: High-coverage local mapping
-  // logoUrl  = Clearbit Logo API — curated corporate logos, returns proper 404 so client fallback chain works
+  // logoUrl  = Hunter.io logos — good coverage, returns clean 404 so client fallback chain works
   // faviconUrl = Google Favicon — always returns something, used as secondary fallback
   const baseUpper = base.toUpperCase();
   if (STOCK_DOMAINS[baseUpper]) {
     const domain = STOCK_DOMAINS[baseUpper];
-    logoUrl = `https://logo.clearbit.com/${domain}`;
+    logoUrl = `https://logos.hunter.io/${domain}`;
     faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
   }
 
