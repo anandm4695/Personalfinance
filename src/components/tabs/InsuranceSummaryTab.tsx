@@ -68,7 +68,7 @@ const InsurerLogo = ({
   }
 
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
-  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: brandfetch, 3: google favicon, 4: initials
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: clearbit, 2: google favicon, 3: initials
 
   React.useEffect(() => {
     if (domain) {
@@ -76,7 +76,7 @@ const InsurerLogo = ({
       setFallbackLevel(0);
     } else {
       setImgSrc(null);
-      setFallbackLevel(4);
+      setFallbackLevel(3);
     }
   }, [domain]);
 
@@ -86,17 +86,14 @@ const InsurerLogo = ({
       setImgSrc(`https://logo.clearbit.com/${domain}`);
     } else if (fallbackLevel === 1) {
       setFallbackLevel(2);
-      setImgSrc(`https://cdn.brandfetch.io/${domain}/w/400/h/400`);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
     } else if (fallbackLevel === 2) {
       setFallbackLevel(3);
-      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
-    } else if (fallbackLevel === 3) {
-      setFallbackLevel(4);
       setImgSrc(null);
     }
   };
 
-  if (domain && fallbackLevel < 4 && imgSrc) {
+  if (domain && fallbackLevel < 3 && imgSrc) {
     return (
       <div
         style={{
