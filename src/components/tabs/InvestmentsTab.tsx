@@ -23,6 +23,7 @@ import {
   Zap,
   PiggyBank,
   Target,
+  RefreshCw,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -149,6 +150,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   const [mf, setMf] = useState({
     name: "",
     category: "Equity",
+    mfType: "Direct Growth",
     folioNumber: "",
     mfCode: "",
     buyDate: today(),
@@ -737,6 +739,20 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
                   ))}
                 </select>
               </Field>
+              <Field label="Fund Type">
+                <select
+                  style={inp}
+                  value={mf.mfType}
+                  onChange={(e) => setMf({ ...mf, mfType: e.target.value })}
+                >
+                  <option>Direct Growth</option>
+                  <option>Direct IDCW</option>
+                  <option>Regular Growth</option>
+                  <option>Regular IDCW</option>
+                </select>
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Field label="Folio Number">
                 <input
                   style={inp}
@@ -745,9 +761,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
                   placeholder="e.g. 1234567890"
                 />
               </Field>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="AMFI / mfapi.in Code">
+              <Field label="AMFI Code (for live NAV)">
                 <input
                   style={inp}
                   value={mf.mfCode}
@@ -1686,6 +1700,7 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
   const [form, setForm] = useState({
     name: initial.name || "",
     category: initial.category || "Equity",
+    mfType: initial.mfType || "Direct Growth",
     folioNumber: initial.folioNumber || "",
     mfCode: initial.mfCode || "",
     buyDate: initial.buyDate || "",
@@ -1722,6 +1737,20 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
             ))}
           </select>
         </Field>
+        <Field label="Fund Type">
+          <select
+            style={inp}
+            value={form.mfType}
+            onChange={(e) => setForm({ ...form, mfType: e.target.value })}
+          >
+            <option>Direct Growth</option>
+            <option>Direct IDCW</option>
+            <option>Regular Growth</option>
+            <option>Regular IDCW</option>
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Folio Number">
           <input
             style={inp}
@@ -1730,9 +1759,7 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
             placeholder="e.g. 1234567890"
           />
         </Field>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="AMFI / mfapi.in Code">
+        <Field label="AMFI Code (for live NAV)">
           <input
             style={inp}
             value={form.mfCode}
@@ -6573,6 +6600,7 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 function MFSection({ items, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [refreshingAll, setRefreshingAll] = useState(false);
   const [navError, setNavError] = useState<Record<string, string>>({});
 
   const refreshNav = async (m: any) => {
@@ -6590,6 +6618,16 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
     } finally {
       setRefreshingId(null);
     }
+  };
+
+  const refreshAllNavs = async () => {
+    const withCode = items.filter((m: any) => m.mfCode);
+    if (!withCode.length) return;
+    setRefreshingAll(true);
+    for (const m of withCode) {
+      await refreshNav(m);
+    }
+    setRefreshingAll(false);
   };
 
   const totalInvested = items.reduce(
@@ -6716,6 +6754,21 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
             ))}
           </div>
 
+          {/* Refresh All NAVs button */}
+          {items.some((m: any) => m.mfCode) && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
+                onClick={refreshAllNavs}
+                style={{ opacity: refreshingAll ? 0.6 : 1 }}
+              >
+                {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
+              </Button>
+            </div>
+          )}
+
           <div
             style={{
               display: "grid",
@@ -6742,7 +6795,12 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                   {/* Header row */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                      <Badge variant="accent">{m.category || "Equity"}</Badge>
+                      {m.category && <Badge variant="accent">{m.category}</Badge>}
+                      {m.mfType && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, color: THEME.sage }}>
+                          {m.mfType}
+                        </span>
+                      )}
                       {m.folioNumber && (
                         <span style={{ fontSize: 10, color: THEME.muted, padding: "2px 7px", borderRadius: 6, background: "rgba(128,128,128,0.08)", border: `1px solid ${THEME.line}` }}>
                           Folio: {m.folioNumber}
@@ -6824,6 +6882,14 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                   {navError[m.id] && (
                     <div style={{ fontSize: 10, color: THEME.rust, marginBottom: 8 }}>
                       NAV refresh failed: {navError[m.id]}
+                    </div>
+                  )}
+
+                  {/* No AMFI code hint */}
+                  {!m.mfCode && (
+                    <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                      <Activity size={9} />
+                      Edit fund and add AMFI code to enable live NAV
                     </div>
                   )}
 
