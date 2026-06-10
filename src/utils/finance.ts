@@ -719,16 +719,6 @@ export const calculateEpfBalance = (e: any): number => {
     byType("employer_contribution") +
     monthlyRows.reduce((s: number, x: any) => s + Number(x.employerShare || 0), 0);
   const totalPension = monthlyRows.reduce((s: number, x: any) => s + Number(x.pensionShare || 0), 0);
-  const totalInterest = interestRows.reduce((s: number, x: any) => {
-    if (x.employeeShare !== undefined || x.employerShare !== undefined)
-      return (
-        s +
-        Number(x.employeeShare || 0) +
-        Number(x.employerShare || 0) +
-        Number(x.pensionShare || 0)
-      );
-    return s + Number(x.amount || 0);
-  }, 0);
   const totalTransferIn = transferRows.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const totalWithdrawal = byType("withdrawal");
 

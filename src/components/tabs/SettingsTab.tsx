@@ -439,8 +439,8 @@ function AppearanceSection({
   setDensity,
   fontKey,
   setFontKey,
-  bgStyle,
-  setBgStyle,
+  bgStyle: _bgStyle,
+  setBgStyle: _setBgStyle,
   darkMode,
   toggleDarkMode,
 }: any) {
@@ -923,9 +923,11 @@ function ProfileSection({ state, updateProfile }: any) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
 
-  // Sync if parent profile changes (e.g., DB load after mount)
+  // Sync if parent profile changes (e.g., DB load after mount). Keyed on name only so
+  // in-progress edits aren't wiped on every keystroke that triggers a parent re-render.
   useEffect(() => {
     setProf((p) => ({ ...state.profile, ...p }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.profile?.name]);
 
   const initials = (prof.name || "U")
@@ -2237,18 +2239,18 @@ export function SettingsTab({
   toggleDarkMode,
   density,
   setDensity,
-  sidebarNav,
-  setSidebarNav,
-  radiusKey,
-  setRadiusKey,
+  sidebarNav: _sidebarNav,
+  setSidebarNav: _setSidebarNav,
+  radiusKey: _radiusKey,
+  setRadiusKey: _setRadiusKey,
   fontKey,
   setFontKey,
-  bgStyle,
-  setBgStyle,
-  animSpeed,
-  setAnimSpeed,
-  chartStyle,
-  setChartStyle,
+  bgStyle: _bgStyle2,
+  setBgStyle: _setBgStyle2,
+  animSpeed: _animSpeed,
+  setAnimSpeed: _setAnimSpeed,
+  chartStyle: _chartStyle,
+  setChartStyle: _setChartStyle,
   masterData,
   updateMasterData,
   emailSettings,

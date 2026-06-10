@@ -185,8 +185,8 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
     for (let year = 1; year <= 10; year++) {
       for (let month = 1; month <= 12; month++) {
-        sipsWithCalc.forEach((sip: any) => {
-          if (sip.isCompleted) return;
+        for (const sip of sipsWithCalc) {
+          if (sip.isCompleted) continue;
           const isQuarterly = sip.frequency === "quarterly";
           const totalInst = Number(sip.totalInstallments || 0);
           const elapsed = monthsBetween(sip.startDate, todayStr);
@@ -204,7 +204,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
               currentWealth += Number(sip.amount || 0);
             }
           }
-        });
+        }
         currentWealth *= 1 + r;
       }
       chartPoints.push({

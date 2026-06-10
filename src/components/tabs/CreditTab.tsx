@@ -446,13 +446,6 @@ const InvestCard = ({ children, onRemove, onEdit, cardStyle }: any) => (
   </div>
 );
 
-const Stat = ({ k, v }: { k: string; v: any }) => (
-  <div>
-    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase" }}>{k}</div>
-    <div style={{ fontWeight: 600 }}>{v}</div>
-  </div>
-);
-
 const th = {
   textAlign: "left" as const,
   padding: "11px 10px",
@@ -1140,7 +1133,7 @@ function getNextFeeDate(c: any): { dateStr: string; daysLeft: number } | null {
   return { dateStr, daysLeft };
 }
 
-function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups }: any) {
+function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: _existingGroups }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"active" | "closed">("active");
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -1797,16 +1790,19 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
       ];
     }
     return existing;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [txs, setTxs] = useState(initTxs);
   const [showAdd, setShowAdd] = useState(false);
 
-  // Persist the auto-generated opening balance on first render
+  // Persist the auto-generated opening balance on first render only; including
+  // card.outstanding/initTxs/onUpdate in deps would re-fire on every update.
   React.useEffect(() => {
     if ((card.transactions || []).length === 0 && Number(card.outstanding) > 0) {
       onUpdate(initTxs);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [newTx, setNewTx] = useState({
     date: today(),
@@ -5785,14 +5781,14 @@ function DebtPayoffOptimizer({ state }: any) {
       months++;
 
       // Accrue interest monthly
-      active.forEach((l) => {
+      for (const l of active) {
         if (l.outstanding > 0) {
           const r = l.rate / 100 / 12;
           const interest = l.outstanding * r;
           totalInterestPaid += interest;
           l.outstanding += interest;
         }
-      });
+      }
 
       // Sum up EMIs that are currently active
       const totalBudget = active.reduce((sum, l) => sum + l.emi, 0) + extra;
@@ -5800,7 +5796,7 @@ function DebtPayoffOptimizer({ state }: any) {
       let actualBasePaid = 0;
 
       // Step 1: Pay standard base EMIs
-      active.forEach((l) => {
+      for (const l of active) {
         if (l.outstanding > 0) {
           const basePay = Math.min(l.outstanding, l.emi);
           l.outstanding -= basePay;
@@ -5810,7 +5806,7 @@ function DebtPayoffOptimizer({ state }: any) {
             payoffSchedule[l.id] = months;
           }
         }
-      });
+      }
 
       // Step 2: Allocate surplus roll-overs to the first active target in sorted list
       if (strategy !== "standard") {

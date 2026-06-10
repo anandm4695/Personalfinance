@@ -4955,10 +4955,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
   const [editEst, setEditEst] = useState<any>(null);
   const [transferPrefill, setTransferPrefill] = useState<any>(null);
 
-  // Sync local state when parent data changes (e.g. after fetchAllData refresh)
+  // Sync local state when the selected EPF record changes (p.id change = different record).
+  // Intentionally omit p.transactions and p.establishments: adding them would re-run on every
+  // save, which resets in-progress edits before the user can save them.
   useEffect(() => {
     setTxs(p.transactions || []);
     setEsts(p.establishments || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.id]);
 
   /* ── helpers ── */

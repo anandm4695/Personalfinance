@@ -82,7 +82,7 @@ const fmtDate = (dateStr: string) => {
   }
 };
 
-export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: any) {
+export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _metrics }: any) {
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [showAddBudget, setShowAddBudget] = useState(false);
@@ -362,6 +362,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics }: a
       overdueCount,
       overdueTotal,
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRecurringExpenses, state.transactions, selectedMonth]);
 
   // One-click Record Payment (Quick Post)

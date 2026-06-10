@@ -91,14 +91,6 @@ function getBrokerTheme(broker: string) {
   };
 }
 
-function getBrokerLogoUrl(broker: string): string | null {
-  const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
-  for (const [k, domain] of Object.entries(BROKER_LOGO_DOMAINS)) {
-    if (key.includes(k)) return `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-  }
-  return null;
-}
-
 function brokerInitials(broker: string): string {
   const words = (broker || "?").trim().split(/\s+/);
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();

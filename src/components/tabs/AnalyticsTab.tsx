@@ -1326,7 +1326,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     metrics,
     state.mutualFunds.length,
     state.stocks.length,
-    state.fixedDeposits.length,
+    state.fixedDeposits,
     state.ppf.length,
     state.nps.length,
     state.creditCards,
@@ -1366,20 +1366,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const accel = changes.length >= 2 ? latest - changes[changes.length - 2] : 0;
     return { avg, latest, accel, months: changes.length };
   }, [state.netWorthHistory]);
-
-  const prevMonthExpenses = useMemo(() => {
-    const now = new Date();
-    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
-    const catMap: Record<string, number> = {};
-    (state.transactions || [])
-      .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(prevYm))
-      .forEach((t: any) => {
-        const cat = t.category || "Uncategorized";
-        catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
-      });
-    return catMap;
-  }, [state.transactions]);
 
   // Spending breakdown for the user-selected month (supports navigation)
   const spendingData = useMemo(() => {
@@ -1924,7 +1910,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       efMonthsHB,
       totalPassiveMonthly,
     };
-  }, [metrics, dashboardData.streak, state, passiveIncomeData, taxData80C]);
+  }, [metrics, dashboardData.streak, state]);
 
   // ── Streak calendar: January to December of current year ──
   const streakCalendar = useMemo(() => {
@@ -7729,10 +7715,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             }, []);
 
             const allLosses = [...losingStocks, ...losingMFs].sort((a, b) => b.loss - a.loss);
-            const totalLoss = allLosses.reduce((s, x) => s + x.loss, 0);
-            const stcgLoss = allLosses.filter((x) => x.isSTCG).reduce((s, x) => s + x.loss, 0);
-            const ltcgLoss = allLosses.filter((x) => !x.isSTCG).reduce((s, x) => s + x.loss, 0);
-            const estimatedTaxSaving = stcgLoss * 0.2 + ltcgLoss * 0.125;
 
             return (
               <Card style={{ padding: 24, marginTop: 24 }}>

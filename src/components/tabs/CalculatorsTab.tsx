@@ -797,7 +797,6 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       Number(metrics?.ppfValue || 0) +
       Number(metrics?.npsValue || 0);
     const baseCash = Number(metrics?.cashInBanks || 0);
-    const baseLiabilities = Number(metrics?.totalLiabilities || 0);
 
     // Loans EMI (drawn directly from loansTaken state)
     const activeEMIs = (state?.loansTaken || []).reduce(
