@@ -149,9 +149,13 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   const [mf, setMf] = useState({
     name: "",
     category: "Equity",
-    invested: "",
+    folioNumber: "",
+    mfCode: "",
+    buyDate: today(),
+    buyNav: "",
     units: "",
     currentNav: "",
+    invested: "",
   });
 
   const handleSave = () => {
@@ -196,10 +200,16 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       case "epf":
         onSave("epf", epf);
         break;
-      case "mf":
-        if (!mf.name || !mf.invested) return;
-        onSave("mutualFunds", mf);
+      case "mf": {
+        if (!mf.name) return;
+        const autoInvested =
+          !mf.invested && mf.units && mf.buyNav
+            ? String(Number(mf.units) * Number(mf.buyNav))
+            : mf.invested;
+        if (!autoInvested) return;
+        onSave("mutualFunds", { ...mf, invested: autoInvested });
         break;
+      }
       default:
         break;
     }
@@ -695,60 +705,147 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
       )}
 
       {/* ── Mutual Funds ── */}
-      {sub === "mf" && (
-        <>
-          <Field label="Fund Name">
-            <input
-              style={inp}
-              value={mf.name}
-              onChange={(e) => setMf({ ...mf, name: e.target.value })}
-              placeholder="e.g. Mirae Asset Large Cap Fund"
-            />
-          </Field>
-          <Field label="Category">
-            <select
-              style={inp}
-              value={mf.category}
-              onChange={(e) => setMf({ ...mf, category: e.target.value })}
-            >
-              {mfCategories.map((c: string) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Amount Invested (₹)">
+      {sub === "mf" && (() => {
+        const autoInvested = mf.units && mf.buyNav
+          ? Number(mf.units) * Number(mf.buyNav)
+          : null;
+        const currentValue = mf.units && mf.currentNav
+          ? Number(mf.units) * Number(mf.currentNav)
+          : null;
+        const costBasis = mf.invested ? Number(mf.invested) : autoInvested;
+        const pnl = currentValue !== null && costBasis ? currentValue - costBasis : null;
+        const pnlPct = pnl !== null && costBasis ? (pnl / costBasis) * 100 : null;
+        return (
+          <>
+            <Field label="Fund Name *">
               <input
                 style={inp}
-                type="number"
-                value={mf.invested}
-                onChange={(e) => setMf({ ...mf, invested: e.target.value })}
-                placeholder="100000"
+                value={mf.name}
+                onChange={(e) => setMf({ ...mf, name: e.target.value })}
+                placeholder="e.g. Mirae Asset Large Cap Fund"
               />
             </Field>
-            <Field label="Units Held">
-              <input
-                style={inp}
-                type="number"
-                value={mf.units}
-                onChange={(e) => setMf({ ...mf, units: e.target.value })}
-                placeholder="1234.56"
-                step="0.01"
-              />
-            </Field>
-            <Field label="Current NAV (₹)">
-              <input
-                style={inp}
-                type="number"
-                value={mf.currentNav}
-                onChange={(e) => setMf({ ...mf, currentNav: e.target.value })}
-                placeholder="93.22"
-                step="0.01"
-              />
-            </Field>
-          </div>
-        </>
-      )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Category (from Master Data)">
+                <select
+                  style={inp}
+                  value={mf.category}
+                  onChange={(e) => setMf({ ...mf, category: e.target.value })}
+                >
+                  {mfCategories.map((c: string) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Folio Number">
+                <input
+                  style={inp}
+                  value={mf.folioNumber}
+                  onChange={(e) => setMf({ ...mf, folioNumber: e.target.value })}
+                  placeholder="e.g. 1234567890"
+                />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="AMFI / mfapi.in Code">
+                <input
+                  style={inp}
+                  value={mf.mfCode}
+                  onChange={(e) => setMf({ ...mf, mfCode: e.target.value })}
+                  placeholder="e.g. 120716"
+                />
+              </Field>
+              <Field label="Purchase Date">
+                <input
+                  style={inp}
+                  type="date"
+                  value={mf.buyDate}
+                  onChange={(e) => setMf({ ...mf, buyDate: e.target.value })}
+                />
+              </Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Units Held *">
+                <input
+                  style={inp}
+                  type="number"
+                  value={mf.units}
+                  onChange={(e) => setMf({ ...mf, units: e.target.value })}
+                  placeholder="1234.56"
+                  step="0.01"
+                />
+              </Field>
+              <Field label="Buy NAV (₹ per unit)">
+                <input
+                  style={inp}
+                  type="number"
+                  value={mf.buyNav}
+                  onChange={(e) => setMf({ ...mf, buyNav: e.target.value })}
+                  placeholder="80.00"
+                  step="0.0001"
+                />
+              </Field>
+              <Field label="Amount Invested (₹)">
+                <input
+                  style={inp}
+                  type="number"
+                  value={mf.invested}
+                  onChange={(e) => setMf({ ...mf, invested: e.target.value })}
+                  placeholder={autoInvested ? String(autoInvested.toFixed(2)) : "100000"}
+                />
+              </Field>
+              <Field label="Current NAV (₹)">
+                <input
+                  style={inp}
+                  type="number"
+                  value={mf.currentNav}
+                  onChange={(e) => setMf({ ...mf, currentNav: e.target.value })}
+                  placeholder="93.22"
+                  step="0.0001"
+                />
+              </Field>
+            </div>
+            {(autoInvested || currentValue) && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: `${THEME.accent}09`,
+                  border: `1px solid ${THEME.accent}30`,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                {autoInvested && (
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
+                    <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
+                      {fmtINRFull(autoInvested)}
+                    </div>
+                  </div>
+                )}
+                {currentValue && (
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
+                    <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
+                      {fmtINRFull(currentValue)}
+                    </div>
+                  </div>
+                )}
+                {pnl !== null && (
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                      {pnl >= 0 ? "+" : ""}{pnlPct !== null ? pnlPct.toFixed(2) : "0"}%
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       <ModalActions
         onSave={handleSave}
@@ -1589,18 +1686,23 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
   const [form, setForm] = useState({
     name: initial.name || "",
     category: initial.category || "Equity",
-    invested:
-      initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
+    folioNumber: initial.folioNumber || "",
+    mfCode: initial.mfCode || "",
+    buyDate: initial.buyDate || "",
+    buyNav: initial.buyNav != null ? String(initial.buyNav || "") : "",
     units: initial.units != null ? String(initial.units) : "",
     currentNav: initial.currentNav != null ? String(initial.currentNav) : "",
+    invested: initial.invested != null ? String(initial.invested || initial.investedValue || "") : "",
   });
-  const current = Number(form.units) * Number(form.currentNav) || 0;
-  const invested = Number(form.invested) || 0;
-  const pnl = current - invested;
-  const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+
+  const currentValue = Number(form.units) * Number(form.currentNav) || 0;
+  const costBasis = form.invested ? Number(form.invested) : (form.units && form.buyNav ? Number(form.units) * Number(form.buyNav) : 0);
+  const pnl = currentValue - costBasis;
+  const pnlPct = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+
   return (
     <Modal title="Edit Mutual Fund" onClose={onClose}>
-      <Field label="Fund Name">
+      <Field label="Fund Name *">
         <input
           style={inp}
           value={form.name}
@@ -1608,28 +1710,47 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
           placeholder="e.g. Mirae Asset Large Cap Fund"
         />
       </Field>
-      <Field label="Category">
-        <select
-          style={inp}
-          value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
-        >
-          {mfCategories.map((c: string) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-      </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Amount Invested (₹)">
+        <Field label="Category (from Master Data)">
+          <select
+            style={inp}
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          >
+            {mfCategories.map((c: string) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Folio Number">
           <input
             style={inp}
-            type="number"
-            value={form.invested}
-            onChange={(e) => setForm({ ...form, invested: e.target.value })}
-            placeholder="100000"
+            value={form.folioNumber}
+            onChange={(e) => setForm({ ...form, folioNumber: e.target.value })}
+            placeholder="e.g. 1234567890"
           />
         </Field>
-        <Field label="Units Held">
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="AMFI / mfapi.in Code">
+          <input
+            style={inp}
+            value={form.mfCode}
+            onChange={(e) => setForm({ ...form, mfCode: e.target.value })}
+            placeholder="e.g. 120716"
+          />
+        </Field>
+        <Field label="Purchase Date">
+          <input
+            style={inp}
+            type="date"
+            value={form.buyDate}
+            onChange={(e) => setForm({ ...form, buyDate: e.target.value })}
+          />
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Units Held *">
           <input
             style={inp}
             type="number"
@@ -1639,6 +1760,25 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
             step="0.01"
           />
         </Field>
+        <Field label="Buy NAV (₹ per unit)">
+          <input
+            style={inp}
+            type="number"
+            value={form.buyNav}
+            onChange={(e) => setForm({ ...form, buyNav: e.target.value })}
+            placeholder="80.00"
+            step="0.0001"
+          />
+        </Field>
+        <Field label="Amount Invested (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={form.invested}
+            onChange={(e) => setForm({ ...form, invested: e.target.value })}
+            placeholder="100000"
+          />
+        </Field>
         <Field label="Current NAV (₹)">
           <input
             style={inp}
@@ -1646,41 +1786,56 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
             value={form.currentNav}
             onChange={(e) => setForm({ ...form, currentNav: e.target.value })}
             placeholder="93.22"
-            step="0.01"
+            step="0.0001"
           />
         </Field>
       </div>
-      {current > 0 && (
+      {(currentValue > 0 || costBasis > 0) && (
         <div
           style={{
             padding: "10px 14px",
             borderRadius: 10,
             background: `${THEME.accent}09`,
             border: `1px solid ${THEME.accent}33`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: 12,
           }}
         >
           <div>
-            <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
-            <div style={{ fontWeight: 900, color: THEME.accent, fontSize: 15 }}>
-              {fmtINRFull(current)}
+            <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
+            <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
+              {fmtINRFull(costBasis)}
             </div>
           </div>
-          <div style={{ textAlign: "right" as const }}>
-            <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
-            <div
-              style={{ fontWeight: 800, fontSize: 14, color: pnl >= 0 ? THEME.sage : THEME.rust }}
-            >
-              {pnl >= 0 ? "+" : ""}
-              {pnlPct.toFixed(2)}%
+          {currentValue > 0 && (
+            <div>
+              <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
+              <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
+                {fmtINRFull(currentValue)}
+              </div>
             </div>
-          </div>
+          )}
+          {currentValue > 0 && costBasis > 0 && (
+            <div>
+              <div style={{ fontSize: 10, color: THEME.muted }}>P&L</div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+              </div>
+            </div>
+          )}
         </div>
       )}
       <ModalActions
-        onSave={() => form.name && form.invested && onSave(form)}
+        onSave={() => {
+          if (!form.name) return;
+          const autoInvested =
+            !form.invested && form.units && form.buyNav
+              ? String(Number(form.units) * Number(form.buyNav))
+              : form.invested;
+          if (!autoInvested) return;
+          onSave({ ...form, invested: autoInvested });
+        }}
         onClose={onClose}
         saveLabel="Save Changes"
       />
@@ -6414,6 +6569,25 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
 /* ── MF Section ─────────────────────────────────────────────────────── */
 function MFSection({ items, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [navError, setNavError] = useState<Record<string, string>>({});
+
+  const refreshNav = async (m: any) => {
+    if (!m.mfCode) return;
+    setRefreshingId(m.id);
+    setNavError((prev) => ({ ...prev, [m.id]: "" }));
+    try {
+      const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(m.mfCode)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.nav) throw new Error("No NAV in response");
+      await updateItem("mutualFunds", m.id, { currentNav: String(data.nav) });
+    } catch (e: any) {
+      setNavError((prev) => ({ ...prev, [m.id]: e.message || "Refresh failed" }));
+    } finally {
+      setRefreshingId(null);
+    }
+  };
 
   const totalInvested = items.reduce(
     (s: number, m: any) => s + (Number(m.invested || m.investedValue) || 0),
@@ -6548,9 +6722,10 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
           >
             {items.map((m: any) => {
               const current = Number(m.units || 0) * Number(m.currentNav || 0) || 0;
-              const invested = Number(m.invested || m.investedValue) || 0;
-              const pnl = current - invested;
-              const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+              const costBasis = Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0);
+              const pnl = current > 0 ? current - costBasis : 0;
+              const pnlPct = costBasis > 0 && current > 0 ? (pnl / costBasis) * 100 : 0;
+              const isRefreshing = refreshingId === m.id;
               const lbl = {
                 fontSize: 9,
                 color: THEME.muted,
@@ -6561,91 +6736,104 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
               };
               return (
                 <Card key={m.id} style={{ padding: 20, borderTop: `3px solid ${THEME.accent}` }}>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}
-                  >
-                    <Badge variant="accent">{m.category || "Equity"}</Badge>
+                  {/* Header row */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                      <Badge variant="accent">{m.category || "Equity"}</Badge>
+                      {m.folioNumber && (
+                        <span style={{ fontSize: 10, color: THEME.muted, padding: "2px 7px", borderRadius: 6, background: "rgba(128,128,128,0.08)", border: `1px solid ${THEME.line}` }}>
+                          Folio: {m.folioNumber}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Pencil size={12} />}
-                        onClick={() => setEditMF(m)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Trash2 size={12} />}
-                        style={{ color: THEME.rust }}
-                        onClick={() => removeItem("mutualFunds", m.id)}
-                      />
+                      {m.mfCode && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Activity size={12} />}
+                          onClick={() => refreshNav(m)}
+                          style={{ opacity: isRefreshing ? 0.5 : 1, color: THEME.accent }}
+                          title="Refresh live NAV"
+                        />
+                      )}
+                      <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditMF(m)} />
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("mutualFunds", m.id)} />
                     </div>
                   </div>
+
+                  {/* Fund name */}
                   <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, lineHeight: 1.3 }}>
                     {m.name}
                   </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
+
+                  {/* Core metrics */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
                     <div>
                       <div style={lbl}>Invested</div>
                       <div style={{ fontWeight: 800, fontSize: 13 }}>
-                        <Prv>{fmtINR(invested)}</Prv>
+                        <Prv>{fmtINR(costBasis)}</Prv>
                       </div>
                     </div>
                     <div>
                       <div style={lbl}>Current</div>
                       <div style={{ fontWeight: 800, fontSize: 13, color: THEME.accent }}>
-                        <Prv>{fmtINR(current || invested)}</Prv>
+                        <Prv>{fmtINR(current || costBasis)}</Prv>
                       </div>
                     </div>
                     <div>
                       <div style={lbl}>Units</div>
                       <div style={{ fontWeight: 700, fontSize: 12, color: THEME.muted }}>
-                        {m.units
-                          ? Number(m.units).toLocaleString("en-IN", { maximumFractionDigits: 3 })
-                          : "—"}
+                        {m.units ? Number(m.units).toLocaleString("en-IN", { maximumFractionDigits: 3 }) : "—"}
                       </div>
                     </div>
                   </div>
-                  {m.currentNav && (
-                    <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 12 }}>
-                      NAV:{" "}
-                      <span style={{ color: THEME.ink, fontWeight: 700 }}>
-                        ₹{Number(m.currentNav).toFixed(2)}
-                      </span>
+
+                  {/* NAV row */}
+                  <div style={{ display: "flex", gap: 16, marginBottom: 12, flexWrap: "wrap" as const }}>
+                    {m.buyNav && (
+                      <div style={{ fontSize: 10, color: THEME.muted }}>
+                        Buy NAV:{" "}
+                        <span style={{ color: THEME.ink, fontWeight: 700 }}>
+                          ₹{Number(m.buyNav).toFixed(4)}
+                        </span>
+                      </div>
+                    )}
+                    {m.currentNav && (
+                      <div style={{ fontSize: 10, color: THEME.muted }}>
+                        Current NAV:{" "}
+                        <span style={{ color: isRefreshing ? THEME.muted : THEME.ink, fontWeight: 700 }}>
+                          {isRefreshing ? "…" : `₹${Number(m.currentNav).toFixed(4)}`}
+                        </span>
+                      </div>
+                    )}
+                    {m.buyDate && (
+                      <div style={{ fontSize: 10, color: THEME.muted }}>
+                        Bought:{" "}
+                        <span style={{ color: THEME.ink, fontWeight: 700 }}>
+                          {new Date(m.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* NAV refresh error */}
+                  {navError[m.id] && (
+                    <div style={{ fontSize: 10, color: THEME.rust, marginBottom: 8 }}>
+                      NAV refresh failed: {navError[m.id]}
                     </div>
                   )}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      paddingTop: 12,
-                      borderTop: `1px solid ${THEME.line}`,
-                    }}
-                  >
+
+                  {/* P&L footer */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
                     <div style={{ fontSize: 11, color: THEME.muted }}>P&L</div>
                     {current > 0 ? (
                       <div style={{ textAlign: "right" as const }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: pnl >= 0 ? THEME.sage : THEME.rust,
-                          }}
-                        >
-                          {pnl >= 0 ? "+" : ""}
-                          {fmtINR(pnl)}
+                        <div style={{ fontSize: 13, fontWeight: 800, color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                          {pnl >= 0 ? "+" : ""}{fmtINR(pnl)}
                         </div>
                         <div style={{ fontSize: 10, color: THEME.muted }}>
-                          {pnlPct >= 0 ? "+" : ""}
-                          {pnlPct.toFixed(2)}%
+                          {pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
                         </div>
                       </div>
                     ) : (
