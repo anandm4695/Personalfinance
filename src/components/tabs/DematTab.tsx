@@ -19,11 +19,7 @@ import {
   ArrowUp,
   ArrowDown,
   Star,
-  Target,
-  Bookmark,
-  Tag,
   X,
-  ListChecks,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
