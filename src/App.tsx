@@ -965,6 +965,8 @@ function FinanceDashboard() {
             return {
               id: s.id,
               user_id: userId,
+              owner: s.owner || "self",
+              symbol: s.symbol,
               sector: md.sector || null,
               market_cap: md.marketCap ? Number(md.marketCap) : null,
             };
