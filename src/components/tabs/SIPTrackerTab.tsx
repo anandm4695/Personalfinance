@@ -56,6 +56,23 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
   const sipsWithCalc = useMemo(() => {
     return (state.sips || []).map((sip: any) => {
+      if (!sip.startDate) {
+        return {
+          ...sip,
+          paid: 0,
+          totalInvested: 0,
+          remaining: Number(sip.totalInstallments || 0),
+          currentCorpus: 0,
+          projectedCorpus: 0,
+          estimatedGains: 0,
+          gainPct: 0,
+          progress: 0,
+          isCompleted: false,
+          monthlyEquivalent: Number(sip.amount || 0),
+          nextDueDateStr: null,
+          daysUntilDue: null,
+        };
+      }
       const isQuarterly = sip.frequency === "quarterly";
       const periodMonths = isQuarterly ? 3 : 1;
       const annualRate = Number(sipProjRate) || 12;

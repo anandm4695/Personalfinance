@@ -46,8 +46,14 @@ module.exports = async function handler(req, res) {
 
     // Previous NAV (yesterday)
     const prevNav = data.data.length > 1 ? parseFloat(data.data[1].nav) : null;
-    const navChange = prevNav && latestNav ? latestNav - prevNav : null;
-    const navChangePct = prevNav && navChange != null ? (navChange / prevNav) * 100 : null;
+    const navChange =
+      prevNav !== null && !isNaN(prevNav) && latestNav !== null && !isNaN(latestNav)
+        ? latestNav - prevNav
+        : null;
+    const navChangePct =
+      navChange !== null && prevNav !== null && !isNaN(prevNav) && prevNav !== 0
+        ? (navChange / prevNav) * 100
+        : null;
 
     // 30-day chart — mfapi.in stores newest first, so reverse for chronological order
     const chart = data.data

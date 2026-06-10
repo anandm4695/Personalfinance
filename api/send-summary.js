@@ -540,12 +540,6 @@ function computeSummary(state) {
         msg: `${b.category} budget exceeded: spent ${fmtINR(b.spent)} of ${fmtINR(b.limit)} (${b.pct}%)`,
       })
     );
-  const overdueDues = dues.filter((d) => d.date.getTime() < todayMs);
-  if (overdueDues.length)
-    alerts.push({
-      type: "alert",
-      msg: `${overdueDues.length} overdue payment${overdueDues.length > 1 ? "s" : ""} need attention`,
-    });
   if (savingsPct < 20 && monthIncome > 0)
     alerts.push({ type: "info", msg: `Savings rate this month: ${savingsPct}% — aim for 20%+` });
 
@@ -661,7 +655,7 @@ function generateHTML(summary, frequency, recipientName) {
     .map((d) => {
       const icon =
         d.type === "cc" ? "💳" : d.type === "emi" ? "🏠" : d.type === "sub" ? "📱" : "📌";
-      const isPast = d.date.getTime() < Date.now();
+      const isPast = d.date.getTime() < todayMs;
       return `
       <tr>
         <td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">

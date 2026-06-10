@@ -1417,18 +1417,22 @@ function FinanceDashboard() {
       return new Date(s.renewalDate) < todayD;
     });
     if (toAdvance.length === 0) return;
-    toAdvance.forEach((s: any) => {
-      let d = new Date(s.renewalDate);
-      // Advance until the renewal date is in the future
-      while (d < todayD) {
-        if (s.cycle === "yearly") d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
-        else if (s.cycle === "quarterly")
-          d = new Date(d.getFullYear(), d.getMonth() + 3, d.getDate());
-        else d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
-      }
-      const newDate = getLocalDateString(d);
-      updateItem("subscriptions", s.id, { renewalDate: newDate });
-    });
+    (async () => {
+      await Promise.all(
+        toAdvance.map(async (s: any) => {
+          let d = new Date(s.renewalDate);
+          // Advance until the renewal date is in the future
+          while (d < todayD) {
+            if (s.cycle === "yearly") d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
+            else if (s.cycle === "quarterly")
+              d = new Date(d.getFullYear(), d.getMonth() + 3, d.getDate());
+            else d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+          }
+          const newDate = getLocalDateString(d);
+          await updateItem("subscriptions", s.id, { renewalDate: newDate });
+        })
+      );
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
@@ -1607,7 +1611,7 @@ function FinanceDashboard() {
 
     // Income/Expense current month
     const now = new Date();
-    const ym = now.toISOString().slice(0, 7);
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const monthTxns = sState.transactions.filter((t) => t.date && t.date.startsWith(ym));
 
     // Prefer current month's manual/explicit income ledger entries if present, fallback to credit transactions
@@ -1826,7 +1830,7 @@ function FinanceDashboard() {
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym = d.toISOString().slice(0, 7);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleString("en-IN", { month: "short" });
       const txns = filteredState.transactions.filter((t) => t.date && t.date.startsWith(ym));
       const inc = txns
@@ -1856,16 +1860,17 @@ function FinanceDashboard() {
     const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
     const name = state.profile?.name || "there";
 
-    const now = Date.now();
+    const todayMidnight = new Date(today() + "T00:00:00").getTime();
     const day = 86400000;
     let currentWeek = 0;
     let prevWeek = 0;
     filteredState.transactions
       .filter((t) => t.type === "debit" && t.date)
       .forEach((t) => {
-        const diff = now - new Date(t.date).getTime();
-        if (diff <= 7 * day && diff >= 0) currentWeek += Number(t.amount);
-        else if (diff <= 14 * day && diff > 7 * day) prevWeek += Number(t.amount);
+        const txMidnight = new Date(t.date + "T00:00:00").getTime();
+        const diff = todayMidnight - txMidnight;
+        if (diff >= 0 && diff < 7 * day) currentWeek += Number(t.amount);
+        else if (diff >= 7 * day && diff < 14 * day) prevWeek += Number(t.amount);
       });
 
     let spendInsight = "";
@@ -1889,7 +1894,7 @@ function FinanceDashboard() {
       [];
     const now = new Date();
     // Over-budget categories
-    const ym = now.toISOString().slice(0, 7);
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const monthSpend: Record<string, number> = {};
     state.transactions
       .filter((t) => t.date && t.date.startsWith(ym) && t.type === "debit")
@@ -1941,16 +1946,27 @@ function FinanceDashboard() {
         : 0;
       if (g.targetDate) {
         const totalM = monthsBetween(today(), g.targetDate);
-        const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-        const totalDuration = elapsed + totalM;
-        const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-        if (progress < expectedPct - 10)
-          list.push({
-            level: "warn",
-            title: `Goal "${g.name}" behind schedule`,
-            detail: `${progress.toFixed(0)}% saved, expected ${expectedPct.toFixed(0)}%`,
-            tab: "goals",
-          });
+        if (totalM <= 0) {
+          // Goal is past its target date
+          if (progress < 100)
+            list.push({
+              level: "warn",
+              title: `Goal "${g.name}" is overdue`,
+              detail: `Target date passed — ${progress.toFixed(0)}% funded`,
+              tab: "goals",
+            });
+        } else {
+          const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
+          const totalDuration = elapsed + totalM;
+          const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+          if (progress < expectedPct - 10)
+            list.push({
+              level: "warn",
+              title: `Goal "${g.name}" behind schedule`,
+              detail: `${progress.toFixed(0)}% saved, expected ${expectedPct.toFixed(0)}%`,
+              tab: "goals",
+            });
+        }
       }
     });
     // Advance tax upcoming (within 30 days)
@@ -1981,11 +1997,14 @@ function FinanceDashboard() {
         tab: "banks",
       });
     }
-    // Subscription renewals in ≤7 days
+    // Subscription renewals in ≤7 days — compare midnight-to-midnight to avoid IST off-by-one
+    const todayMidnightMs = new Date(today() + "T00:00:00").getTime();
     state.subscriptions
       .filter((s) => s.renewalDate && !s.paused)
       .forEach((s) => {
-        const days = Math.ceil((new Date(s.renewalDate).getTime() - now.getTime()) / 86400000);
+        const days = Math.ceil(
+          (new Date(s.renewalDate + "T00:00:00").getTime() - todayMidnightMs) / 86400000
+        );
         if (days >= 0 && days <= 7)
           list.push({
             level: "info",
@@ -2386,16 +2405,23 @@ function FinanceDashboard() {
               itemWithOwner.type === "credit"
                 ? Number(itemWithOwner.amount || 0)
                 : -Number(itemWithOwner.amount || 0);
-            const linked = state.bankAccounts.find((a: any) => a.id === itemWithOwner.accountId);
-            if (linked) {
-              supabase
-                .from("bank_accounts")
-                .update({ balance: Number(linked.balance || 0) + delta })
-                .eq("id", itemWithOwner.accountId)
-                .then(({ error: e }) => {
-                  if (e) console.error("[Balance auto-update]", e.message);
-                });
-            }
+            // Re-read fresh balance from DB to avoid stale-closure race condition
+            supabase
+              .from("bank_accounts")
+              .select("balance")
+              .eq("id", itemWithOwner.accountId)
+              .single()
+              .then(({ data: freshAccount, error: fetchErr }) => {
+                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (!freshAccount) return;
+                supabase
+                  .from("bank_accounts")
+                  .update({ balance: Number(freshAccount.balance || 0) + delta })
+                  .eq("id", itemWithOwner.accountId)
+                  .then(({ error: e }) => {
+                    if (e) console.error("[Balance auto-update]", e.message);
+                  });
+              });
             const latestMaster = masterDataRef.current || state.masterData || DEFAULT_MASTER_DATA;
             const reconIds: string[] = latestMaster?.reconciledTxnIds || [];
             const appliedIds: string[] = latestMaster?.balanceAppliedTxnIds || [];
@@ -2554,16 +2580,23 @@ function FinanceDashboard() {
               txnToDelete.type === "credit"
                 ? -Number(txnToDelete.amount || 0)
                 : Number(txnToDelete.amount || 0);
-            const linked = state.bankAccounts.find((a: any) => a.id === txnToDelete.accountId);
-            if (linked) {
-              supabase
-                .from("bank_accounts")
-                .update({ balance: Number(linked.balance || 0) + delta })
-                .eq("id", txnToDelete.accountId)
-                .then(({ error: e }) => {
-                  if (e) console.error("[Balance auto-reverse]", e.message);
-                });
-            }
+            // Re-read fresh balance from DB to avoid stale-closure race condition
+            supabase
+              .from("bank_accounts")
+              .select("balance")
+              .eq("id", txnToDelete.accountId)
+              .single()
+              .then(({ data: freshAccount, error: fetchErr }) => {
+                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (!freshAccount) return;
+                supabase
+                  .from("bank_accounts")
+                  .update({ balance: Number(freshAccount.balance || 0) + delta })
+                  .eq("id", txnToDelete.accountId)
+                  .then(({ error: e }) => {
+                    if (e) console.error("[Balance auto-reverse]", e.message);
+                  });
+              });
           }
           // Save updated masterData (remove txn from both tracking arrays)
           if (key === "transactions") {
@@ -2761,35 +2794,58 @@ function FinanceDashboard() {
           if (oldTxn.accountId === updatedTxn.accountId) {
             const adjustment = newDelta - oldDelta;
             if (adjustment !== 0) {
-              const linked = state.bankAccounts.find((a: any) => a.id === oldTxn.accountId);
-              if (linked)
-                supabase
-                  .from("bank_accounts")
-                  .update({ balance: Number(linked.balance || 0) - oldDelta + newDelta })
-                  .eq("id", oldTxn.accountId)
-                  .then(({ error: e }) => {
-                    if (e) console.error("[Balance edit-update]", e.message);
-                  });
+              // Re-read fresh balance to avoid stale-closure race condition
+              supabase
+                .from("bank_accounts")
+                .select("balance")
+                .eq("id", oldTxn.accountId)
+                .single()
+                .then(({ data: freshAccount, error: fetchErr }) => {
+                  if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                  if (!freshAccount) return;
+                  supabase
+                    .from("bank_accounts")
+                    .update({ balance: Number(freshAccount.balance || 0) + adjustment })
+                    .eq("id", oldTxn.accountId)
+                    .then(({ error: e }) => {
+                      if (e) console.error("[Balance edit-update]", e.message);
+                    });
+                });
             }
           } else {
-            const oldLinked = state.bankAccounts.find((a: any) => a.id === oldTxn.accountId);
-            if (oldLinked)
-              supabase
-                .from("bank_accounts")
-                .update({ balance: Number(oldLinked.balance || 0) - oldDelta })
-                .eq("id", oldTxn.accountId)
-                .then(({ error: e }) => {
-                  if (e) console.error("[Balance edit-reverse]", e.message);
-                });
-            const newLinked = state.bankAccounts.find((a: any) => a.id === updatedTxn.accountId);
-            if (newLinked)
-              supabase
-                .from("bank_accounts")
-                .update({ balance: Number(newLinked.balance || 0) + newDelta })
-                .eq("id", updatedTxn.accountId)
-                .then(({ error: e }) => {
-                  if (e) console.error("[Balance edit-apply]", e.message);
-                });
+            // Account changed — reverse old, apply new (both with fresh DB reads)
+            supabase
+              .from("bank_accounts")
+              .select("balance")
+              .eq("id", oldTxn.accountId)
+              .single()
+              .then(({ data: freshOld, error: fetchErr }) => {
+                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (!freshOld) return;
+                supabase
+                  .from("bank_accounts")
+                  .update({ balance: Number(freshOld.balance || 0) - oldDelta })
+                  .eq("id", oldTxn.accountId)
+                  .then(({ error: e }) => {
+                    if (e) console.error("[Balance edit-reverse]", e.message);
+                  });
+              });
+            supabase
+              .from("bank_accounts")
+              .select("balance")
+              .eq("id", updatedTxn.accountId)
+              .single()
+              .then(({ data: freshNew, error: fetchErr }) => {
+                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (!freshNew) return;
+                supabase
+                  .from("bank_accounts")
+                  .update({ balance: Number(freshNew.balance || 0) + newDelta })
+                  .eq("id", updatedTxn.accountId)
+                  .then(({ error: e }) => {
+                    if (e) console.error("[Balance edit-apply]", e.message);
+                  });
+              });
           }
         }
         if (error) {

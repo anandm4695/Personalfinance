@@ -62,12 +62,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       accountRef,
       "#",
       "date,amount,type,category,note,narration,referenceNumber,accountId",
-      `2025-04-01,120000,credit,Salary,April 2025 salary,${firstAccountId}`,
-      `2025-04-05,15000,debit,Rent,House rent April,${firstAccountId}`,
-      `2025-04-10,3500,debit,Groceries,Monthly groceries,${firstAccountId}`,
-      `2025-04-15,500,debit,Food,Lunch with team,${firstAccountId}`,
-      `2025-04-20,50000,debit,Investment,SIP mutual fund,${firstAccountId}`,
-      `2025-04-25,2000,debit,Transport,Fuel & cab,${firstAccountId}`,
+      `2025-04-01,120000,credit,Salary,April 2025 salary,,,${firstAccountId}`,
+      `2025-04-05,15000,debit,Rent,House rent April,,,${firstAccountId}`,
+      `2025-04-10,3500,debit,Groceries,Monthly groceries,,,${firstAccountId}`,
+      `2025-04-15,500,debit,Food,Lunch with team,,,${firstAccountId}`,
+      `2025-04-20,50000,debit,Investment,SIP mutual fund,,,${firstAccountId}`,
+      `2025-04-25,2000,debit,Transport,Fuel & cab,,,${firstAccountId}`,
     ].join("\n");
 
     const blob = new Blob([lines], { type: "text/csv" });

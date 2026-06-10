@@ -494,7 +494,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData }:
       if (sub.cycle === "monthly") next.setMonth(next.getMonth() + 1);
       else if (sub.cycle === "quarterly") next.setMonth(next.getMonth() + 3);
       else next.setFullYear(next.getFullYear() + 1);
-      updateItem("subscriptions", lid, { renewalDate: next.toISOString().slice(0, 10) });
+      updateItem("subscriptions", lid, { renewalDate: getLocalDateString(next) });
     }
   };
 
@@ -590,7 +590,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData }:
     0
   );
   const now = new Date();
-  const startOfMonth = now.toISOString().slice(0, 7) + "-01";
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const monthlyTxns = state.transactions.filter((t: any) => t.date >= startOfMonth);
   const monthlyIncome = monthlyTxns
     .filter((t: any) => t.type === "credit" && t.category !== "Transfer")
