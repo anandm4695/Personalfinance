@@ -2616,16 +2616,17 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 const changePct = md?.changePercent ?? 0;
 
                                 const toggleWatchItem = () => {
+                                  const isExpanding = !expandedWatchlistItems.has(it.id);
                                   setExpandedWatchlistItems((prev) => {
                                     const next = new Set(prev);
                                     if (next.has(it.id)) {
                                       next.delete(it.id);
                                     } else {
                                       next.add(it.id);
-                                      fetchIntradayChart(yfSym);
                                     }
                                     return next;
                                   });
+                                  if (isExpanding) fetchIntradayChart(yfSym);
                                 };
 
                                 return (
@@ -2686,7 +2687,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       <td style={{ ...td, textAlign: "right" }}>
                                         {gap !== null ? (
                                           <span style={{ fontWeight: 700, color: gapColor }}>
-                                            {gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
+                                            {gap >= 0 ? "▲ " : "▼ "}{Math.abs(gap).toFixed(1)}% {gap >= 0 ? "below target" : "above target"}
                                           </span>
                                         ) : (
                                           <span style={{ color: THEME.muted }}>—</span>
@@ -2844,7 +2845,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 {gap !== null && (
                                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                                     <span style={{ color: THEME.muted }}>Gap</span>
-                                                    <b style={{ color: gapColor }}>{gap >= 0 ? "▼ " : "▲ "}{Math.abs(gap).toFixed(1)}%</b>
+                                                    <b style={{ color: gapColor }}>{gap >= 0 ? "▲ " : "▼ "}{Math.abs(gap).toFixed(1)}%</b>
                                                   </div>
                                                 )}
                                                 {it.notes && (

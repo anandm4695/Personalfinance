@@ -251,6 +251,7 @@ const NUMERIC_COLS = new Set([
   "fee_month",
   "fee_day",
   "property_value",
+  "target_price",
 ]);
 
 // ================== MAIN APP ==================
@@ -705,6 +706,8 @@ function FinanceDashboard() {
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
       const missing: string[] = [];
       if (corpAct.error?.code === "42P01") missing.push("corporate_actions");
+      if (wlists.error?.code === "42P01") missing.push("watchlists");
+      if (wlItems.error?.code === "42P01") missing.push("watchlist_items");
       setMissingTables(missing); // always set (clears when table is found)
 
       const hasAnyData = [
@@ -735,6 +738,8 @@ function FinanceDashboard() {
         corpAct,
         taxP,
         incomeQ,
+        wlists,
+        wlItems,
       ].some((r) => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
@@ -1006,10 +1011,10 @@ function FinanceDashboard() {
 
   // Initial price fetch
   useEffect(() => {
-    if (loaded && state.stocks.length > 0) {
+    if (loaded && (state.stocks.length > 0 || state.wishlistItems.length > 0)) {
       fetchLivePrices();
     }
-  }, [loaded, state.stocks.length, fetchLivePrices]);
+  }, [loaded, state.stocks.length, state.wishlistItems.length, fetchLivePrices]);
 
   // 1. Initial Load & Sync Refinement
   useEffect(() => {
