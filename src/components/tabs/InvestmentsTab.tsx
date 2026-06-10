@@ -6596,6 +6596,175 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
   </div>
 );
 
+/* ── MF Logo ──────────────────────────────────────────────────────────── */
+const MF_LOGO_DOMAINS: Record<string, string> = {
+  // SBI
+  "sbi": "sbimf.com",
+  // HDFC
+  "hdfc": "hdfcfund.com",
+  // ICICI
+  "icici": "icicipruamc.com",
+  // Nippon / Reliance
+  "nippon": "nipponindiaim.com",
+  "reliance": "nipponindiaim.com",
+  // Axis
+  "axis": "axismf.com",
+  // Mirae
+  "mirae": "miraeasset.co.in",
+  // Kotak
+  "kotak": "kotakmf.com",
+  // DSP
+  "dsp": "dspim.com",
+  // Aditya Birla / ABSL
+  "aditya birla": "adityabirlasunlifeamc.com",
+  "absl": "adityabirlasunlifeamc.com",
+  "birla": "adityabirlasunlifeamc.com",
+  // Parag Parikh / PPFAS
+  "parag parikh": "ppfas.com",
+  "ppfas": "ppfas.com",
+  // UTI
+  "uti": "utimf.com",
+  // Tata
+  "tata": "tatamutualfund.com",
+  // Motilal Oswal
+  "motilal": "motilaloswalmf.com",
+  // Quant
+  "quant": "quantmutual.com",
+  // Sundaram
+  "sundaram": "sundarammf.com",
+  // Franklin / Templeton
+  "franklin": "franklintempletonindia.com",
+  "templeton": "franklintempletonindia.com",
+  // PGIM
+  "pgim": "pgimindiamf.com",
+  // Edelweiss
+  "edelweiss": "edelweissmf.com",
+  // Canara Robeco
+  "canara robeco": "canararobeco.com",
+  "canara": "canararobeco.com",
+  // Invesco
+  "invesco": "invescomutualfund.com",
+  // LIC
+  "lic": "licmf.com",
+  // Navi
+  "navi": "navifunds.com",
+  // IDFC / Bandhan
+  "idfc": "bandhanmf.com",
+  "bandhan": "bandhanmf.com",
+  // WhiteOak
+  "whiteoak": "whiteoakam.com",
+  "white oak": "whiteoakam.com",
+  // Mahindra
+  "mahindra": "mahindramanulife.com",
+  // Samco
+  "samco": "samcomf.com",
+  // ITI
+  "iti": "itimf.com",
+  // JM
+  "jm financial": "jmfinancialservices.in",
+  // HSBC
+  "hsbc": "assetmanagement.hsbc.co.in",
+  // L&T (now HSBC)
+  "l&t": "assetmanagement.hsbc.co.in",
+  // Groww
+  "groww": "groww.in",
+  // Zerodha / Coin
+  "zerodha": "zerodha.com",
+  "coin": "coin.zerodha.com",
+  // Trust
+  "trust": "trustmf.com",
+};
+
+function getMFDomain(fundName: string): string {
+  const name = (fundName || "").toLowerCase();
+  for (const [k, d] of Object.entries(MF_LOGO_DOMAINS)) {
+    if (name.includes(k)) return d;
+  }
+  return "";
+}
+
+const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: number }) => {
+  const domain = getMFDomain(fundName);
+  const [imgSrc, setImgSrc] = React.useState<string | null>(
+    domain ? `https://logos.hunter.io/${domain}` : null
+  );
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(domain ? 0 : 2);
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  const initials = (fundName || "MF")
+    .split(" ")
+    .filter((w: string) => w.length > 2)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join("");
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.25),
+          background: "#fff",
+          border: `1px solid ${THEME.line}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          flexShrink: 0,
+          boxShadow: `0 2px 8px rgba(0,0,0,0.08)`,
+        }}
+      >
+        <img
+          src={imgSrc}
+          alt={fundName}
+          onError={handleError}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.25),
+        background: `${THEME.accent}18`,
+        border: `1px solid ${THEME.accent}30`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: Math.round(size / 2.8), fontWeight: 800, color: THEME.accent }}>
+        {initials || "MF"}
+      </span>
+    </div>
+  );
+};
+
 /* ── MF Section ─────────────────────────────────────────────────────── */
 function MFSection({ items, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
@@ -6823,9 +6992,12 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                     </div>
                   </div>
 
-                  {/* Fund name */}
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, lineHeight: 1.3 }}>
-                    {m.name}
+                  {/* Logo + Fund name */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                    <MFLogo fundName={m.name} size={40} />
+                    <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, flex: 1 }}>
+                      {m.name}
+                    </div>
                   </div>
 
                   {/* Core metrics */}
