@@ -2398,8 +2398,8 @@ export function SettingsTab({
             setDensity={setDensity}
             fontKey={fontKey}
             setFontKey={setFontKey}
-            bgStyle={bgStyle}
-            setBgStyle={setBgStyle}
+            bgStyle={_bgStyle2}
+            setBgStyle={_setBgStyle2}
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
           />
