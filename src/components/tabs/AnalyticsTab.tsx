@@ -2545,7 +2545,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       width: 26,
                       height: 26,
                       borderRadius: 7,
-                      background: `${color}1f`,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2945,64 +2945,62 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: "24px 32px",
-                  position: "relative",
-                  zIndex: 2,
-                  paddingTop: 32,
-                  borderTop: "1px solid rgba(255,255,255,0.07)",
-                }}
-              >
-                <HeroStat
-                  label="Bank Cash"
-                  value={metrics.cashInBanks}
-                  tabId="banks"
-                  setTab={setTab}
-                />
-                <HeroStat
-                  label="Fixed Deposits"
-                  value={metrics.fdValue}
-                  tabId="banks"
-                  setTab={setTab}
-                />
-                <HeroStat
-                  label="Mutual Funds"
-                  value={metrics.mfValue}
-                  tabId="investments"
-                  setTab={setTab}
-                />
-                <HeroStat label="Stocks" value={metrics.stockValue} tabId="demat" setTab={setTab} />
-                <HeroStat
-                  label="PPF / NPS / EPF"
-                  value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
-                  tabId="investments"
-                  setTab={setTab}
-                />
-                <HeroStat
-                  label="Card Dues"
-                  value={metrics.ccOutstanding}
-                  negative
-                  tabId="credit"
-                  setTab={setTab}
-                />
-                <HeroStat
-                  label="Loans Taken"
-                  value={metrics.loansTakenValue}
-                  negative
-                  tabId="banks"
-                  setTab={setTab}
-                />
-                <HeroStat
-                  label="Subs / Mo"
-                  value={metrics.subTotal}
-                  negative
-                  tabId="subs"
-                  setTab={setTab}
-                />
-              </div>
+              {/* ── Net Worth Breakdown Grid ── */}
+              {(() => {
+                // "Other Assets" catches every contributor to totalAssets not shown individually
+                const otherAssets =
+                  (metrics.rdValue || 0) +
+                  (metrics.bondValue || 0) +
+                  (metrics.licValue || 0) +
+                  (metrics.investmentValue || 0) +
+                  (metrics.loansGivenValue || 0) +
+                  (metrics.informalLentValue || 0) +
+                  (metrics.rentalPropertiesAsset || 0) +
+                  (metrics.rentedDepositAsset || 0) +
+                  (metrics.prepaidValue || 0);
+                // "Other Dues" catches every liability not shown individually
+                const otherDues =
+                  (metrics.realEstateOutstanding || 0) +
+                  (metrics.informalBorrowedValue || 0) +
+                  (metrics.rentalDepositLiability || 0);
+                return (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                      gap: "20px 28px",
+                      position: "relative",
+                      zIndex: 2,
+                      paddingTop: 28,
+                      borderTop: "1px solid rgba(255,255,255,0.07)",
+                    }}
+                  >
+                    {/* Assets */}
+                    <HeroStat label="Bank Cash" value={metrics.cashInBanks} tabId="banks" setTab={setTab} />
+                    <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="banks" setTab={setTab} />
+                    <HeroStat label="Mutual Funds" value={metrics.mfValue} tabId="investments" setTab={setTab} />
+                    <HeroStat label="Stocks" value={metrics.stockValue} tabId="demat" setTab={setTab} />
+                    <HeroStat
+                      label="PPF / NPS / EPF"
+                      value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
+                      tabId="investments"
+                      setTab={setTab}
+                    />
+                    {(metrics.realEstateAsset || 0) > 0 && (
+                      <HeroStat label="Real Estate" value={metrics.realEstateAsset} tabId="realestate" setTab={setTab} />
+                    )}
+                    {otherAssets > 0 && (
+                      <HeroStat label="Other Assets" value={otherAssets} tabId="investments" setTab={setTab} />
+                    )}
+                    {/* Liabilities */}
+                    <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative tabId="credit" setTab={setTab} />
+                    <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative tabId="banks" setTab={setTab} />
+                    {otherDues > 0 && (
+                      <HeroStat label="Other Dues" value={otherDues} negative tabId="realestate" setTab={setTab} />
+                    )}
+                  </div>
+                );
+              })()}
             </Card>
 
             {/* Core Stats Grid Row */}
@@ -10608,13 +10606,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
 const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
   const color = negative ? "#F87171" : sage ? "#34D399" : "rgba(255,255,255,0.9)";
+  // Border uses explicit rgba so appending digits to color string is avoided
+  const borderColor = negative ? "rgba(248,113,113,0.18)" : sage ? "rgba(52,211,153,0.18)" : "rgba(255,255,255,0.09)";
   const isClickable = !!(tabId && setTab);
   return (
     <div
       onClick={isClickable ? () => setTab(tabId) : undefined}
       title={isClickable ? `View in ${tabId}` : undefined}
       style={{
-        borderLeft: `2px solid ${color}22`,
+        borderLeft: `2px solid ${borderColor}`,
         paddingLeft: 12,
         cursor: isClickable ? "pointer" : "default",
         borderRadius: 6,
