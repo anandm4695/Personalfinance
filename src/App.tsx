@@ -1335,6 +1335,13 @@ function FinanceDashboard() {
           );
           return a + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
         }, 0);
+        const investment = (s.investmentPlans || []).reduce((a: number, ip: any) => {
+          const txTotal = (ip.transactions || []).reduce(
+            (sum: number, t: any) => sum + Number(t.amount || 0),
+            0
+          );
+          return a + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
+        }, 0);
         const mf = (s.mutualFunds || []).reduce((a, x) => {
           const liveNav = Number(x.currentNav || 0);
           const fallbackNav =
@@ -1438,6 +1445,7 @@ function FinanceDashboard() {
           nps +
           epf +
           lic +
+          investment +
           mf +
           stocks +
           loansGiven +
