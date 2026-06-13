@@ -585,8 +585,21 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
     }
   };
 
+  const txnNetByAccount = useMemo(() => {
+    const map: Record<string, number> = {};
+    state.transactions.forEach((t: any) => {
+      if (!map[t.accountId]) map[t.accountId] = 0;
+      if (t.type === "credit") map[t.accountId] += Number(t.amount || 0);
+      else if (t.type === "debit") map[t.accountId] -= Number(t.amount || 0);
+    });
+    return map;
+  }, [state.transactions]);
+
+  const getEffectiveBalance = (acc: any) =>
+    Number(acc.balance || 0) + (txnNetByAccount[acc.id] || 0);
+
   const totalBalance = state.bankAccounts.reduce(
-    (acc: any, a: any) => acc + (Number(a.balance) || 0),
+    (acc: any, a: any) => acc + getEffectiveBalance(a),
     0
   );
   const now = new Date();
@@ -620,17 +633,18 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       .slice(0, 4);
 
     const totalAssetBal = state.bankAccounts.reduce(
-      (s: number, a: any) => s + Number(a.balance || 0),
+      (s: number, a: any) => s + getEffectiveBalance(a),
       0
     );
     const weights = state.bankAccounts
       .map((a: any) => {
-        const share = totalAssetBal > 0 ? (Number(a.balance || 0) / totalAssetBal) * 100 : 0;
+        const effBal = getEffectiveBalance(a);
+        const share = totalAssetBal > 0 ? (effBal / totalAssetBal) * 100 : 0;
         const theme = getAccountTheme(a.type);
         return {
           id: a.id,
           name: accountLabel(a),
-          balance: a.balance,
+          balance: effBal,
           share,
           color: theme.color,
         };
@@ -642,7 +656,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       topSpendCategories: sortedCats,
       liquidityWeights: weights,
     };
-  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts]);
+  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts, txnNetByAccount]);
 
   return (
     <div>
@@ -1072,7 +1086,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       color: THEME.ink,
                     }}
                   >
-                    <Prv>{fmtINRFull(a.balance)}</Prv>
+                    <Prv>{fmtINRFull(getEffectiveBalance(a))}</Prv>
                   </div>
                 </div>
                 <div
@@ -1743,6 +1757,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         <TxnEditModal
           txn={state.transactions.find((t: any) => t.id === editTxnId)}
           accounts={state.bankAccounts}
+          transactions={state.transactions}
           onClose={() => setEditTxnId(null)}
           onSave={(v: any) => {
             updateItem("transactions", editTxnId, v);
@@ -1970,6 +1985,18 @@ function BankModal({ onClose, onSave }: any) {
 
 function TxnModal({ accounts, state, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
+
+  const txnNetMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (state.transactions || []).forEach((t: any) => {
+      if (!map[t.accountId]) map[t.accountId] = 0;
+      if (t.type === "credit") map[t.accountId] += Number(t.amount || 0);
+      else if (t.type === "debit") map[t.accountId] -= Number(t.amount || 0);
+    });
+    return map;
+  }, [state.transactions]);
+
+  const getAccBalance = (acc: any) => Number(acc.balance || 0) + (txnNetMap[acc.id] || 0);
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
   const [f, setF] = useState({
     owner: "self",
@@ -1989,7 +2016,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
   const BalanceChip = ({ accId, label }: { accId: string; label: string }) => {
     const sel = accounts.find((a: any) => a.id === accId);
     if (!sel) return null;
-    const bal = Number(sel.balance || 0);
+    const bal = getAccBalance(sel);
     const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
     return (
       <div
@@ -2053,7 +2080,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
         (() => {
           const sel = accounts.find((a: any) => a.id === f.accountId);
           if (!sel) return null;
-          const bal = Number(sel.balance || 0);
+          const bal = getAccBalance(sel);
           const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
           return (
             <div
@@ -2222,8 +2249,16 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
   );
 }
 
-function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
+function TxnEditModal({ txn, accounts, transactions, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
+
+  const getAccBalance = (acc: any) => {
+    const net = (transactions || []).reduce((s: number, t: any) => {
+      if (t.accountId !== acc.id) return s;
+      return s + (t.type === "credit" ? Number(t.amount || 0) : -Number(t.amount || 0));
+    }, 0);
+    return Number(acc.balance || 0) + net;
+  };
   const [f, setF] = useState({
     owner: txn?.owner || "self",
     date: txn?.date || today(),
@@ -2276,7 +2311,7 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
       {(() => {
         const sel = accounts.find((a: any) => a.id === f.accountId);
         if (!sel) return null;
-        const bal = Number(sel.balance || 0);
+        const bal = getAccBalance(sel);
         const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
         return (
           <div
