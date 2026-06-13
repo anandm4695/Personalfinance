@@ -18,7 +18,7 @@ import {
   Building2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today } from "../../utils/finance";
+import { fmtINRFull, fmtINR, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
