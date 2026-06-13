@@ -3401,23 +3401,6 @@ function FinanceDashboard() {
     return (
       <Auth
         onLogin={setSession}
-        onOffline={async () => {
-          const demoEmail = import.meta.env.VITE_DEMO_USER_EMAIL;
-          const demoPass = import.meta.env.VITE_DEMO_USER_PASSWORD;
-          if (isDemoDbReady && demoEmail && demoPass) {
-            // Use signInToDemo() which calls _demo.auth directly, bypassing
-            // the Proxy — createBrowserClient shares cookie state between
-            // instances so the Proxy cannot reliably redirect auth requests.
-            const { data } = await signInToDemo(demoEmail, demoPass);
-            if (data?.session) {
-              setDemoMode(true);
-              setSession(data.session);
-              return;
-            }
-          }
-          // Fallback: true offline / localStorage-only mode
-          setSession({ user: { id: "offline-user", email: "demo@example.com" } } as any);
-        }}
       />
     );
   }
