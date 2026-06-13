@@ -1511,7 +1511,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
     }, 0);
-    const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee, limit);
+    // NPS employee contribution qualifies under 80CCD(1) within the ₹1.5L limit
+    const npsContrib = (state.nps || []).reduce(
+      (s: number, n: any) => s + Number(n.yearlyContribution || n.annualContribution || 0),
+      0
+    );
+    const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee + npsContrib, limit);
     const remaining = Math.max(0, limit - total);
     return {
       elss,
@@ -1758,7 +1763,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       return s + (lTotal > 0 ? lTotal : Number(e.yearlyContribution || 0));
     }, 0);
-    const total80C = Math.min(elss80C + ppf80C + lic80C + epf80C, 150000);
+    const nps80C = (state.nps || []).reduce(
+      (s: number, n: any) => s + Number(n.yearlyContribution || n.annualContribution || 0),
+      0
+    );
+    const total80C = Math.min(elss80C + ppf80C + lic80C + epf80C + nps80C, 150000);
     if (total80C >= 150000) earned.add("tax2");
     if (!earned.has("tax1"))
       prog["tax1"] = { current: 0, target: 1, label: "Add a PPF/ELSS/NPS/LIC investment" };
@@ -6133,8 +6142,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     width: 52,
                                     padding: "2px 6px",
                                     borderRadius: 6,
-                                    border: `1px solid ${color}33`,
-                                    background: `${color}08`,
+                                    border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
+                                    background: `color-mix(in srgb, ${color} 8%, transparent)`,
                                     fontSize: 12,
                                     fontWeight: 700,
                                     color,
@@ -6239,7 +6248,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   width: 34,
                                   height: 34,
                                   borderRadius: 9,
-                                  background: color + "15",
+                                  background: `color-mix(in srgb, ${color} 12%, transparent)`,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -10542,7 +10551,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         background: isPaid ? `color-mix(in srgb, var(--t-sage) 12%, transparent)` : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
                         color: isPaid ? THEME.sage : THEME.gold,
-                        border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
+                        border: `1px solid color-mix(in srgb, ${isPaid ? THEME.sage : THEME.gold} 35%, transparent)`,
                         fontSize: 10,
                         fontWeight: 800,
                         padding: "4px 10px",
