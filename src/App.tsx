@@ -13,6 +13,7 @@ import {
   Landmark,
   Target,
   Building2,
+  Home,
   Heart,
   Wallet,
   Bell,
@@ -105,6 +106,7 @@ import { RemindersTab } from "./components/tabs/RemindersTab";
 import { CalculatorsTab } from "./components/tabs/CalculatorsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
+import { RealEstateTab } from "./components/tabs/RealEstateTab";
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
@@ -161,6 +163,9 @@ const DEFAULT_STATE = {
   mfSells: [],
   netWorthHistory: [],
   sips: [],
+  realEstateProperties: [],
+  realEstateDemands: [],
+  realEstatePayments: [],
   corporateActions: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
@@ -252,6 +257,15 @@ const NUMERIC_COLS = new Set([
   "fee_day",
   "property_value",
   "target_price",
+  "agreement_value",
+  "tds_value",
+  "market_value",
+  "sale_price",
+  "sale_stamp_duty",
+  "sale_tds",
+  "gst_amount",
+  "total_amount",
+  "area_sqft",
 ]);
 
 // ================== MAIN APP ==================
@@ -667,6 +681,9 @@ function FinanceDashboard() {
         recExp,
         wlists,
         wlItems,
+        reProps,
+        reDemands,
+        rePayments,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -701,6 +718,9 @@ function FinanceDashboard() {
         supabase.from("recurring_expenses").select("*").eq("user_id", userId),
         supabase.from("watchlists").select("*").eq("user_id", userId),
         supabase.from("watchlist_items").select("*").eq("user_id", userId),
+        supabase.from("real_estate_properties").select("*").eq("user_id", userId),
+        supabase.from("real_estate_demands").select("*").eq("user_id", userId),
+        supabase.from("real_estate_payments").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -740,6 +760,9 @@ function FinanceDashboard() {
         incomeQ,
         wlists,
         wlItems,
+        reProps,
+        reDemands,
+        rePayments,
       ].some((r) => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
@@ -906,6 +929,15 @@ function FinanceDashboard() {
             : {}),
           ...(!wlItems.error && wlItems.data != null
             ? { wishlistItems: snakeToCamel(wlItems.data) }
+            : {}),
+          ...(!reProps.error && reProps.data != null
+            ? { realEstateProperties: snakeToCamel(reProps.data) }
+            : {}),
+          ...(!reDemands.error && reDemands.data != null
+            ? { realEstateDemands: snakeToCamel(reDemands.data) }
+            : {}),
+          ...(!rePayments.error && rePayments.data != null
+            ? { realEstatePayments: snakeToCamel(rePayments.data) }
             : {}),
         };
       });
@@ -2274,6 +2306,9 @@ function FinanceDashboard() {
     income: "income_entries",
     wishlists: "watchlists",
     wishlistItems: "watchlist_items",
+    realEstateProperties: "real_estate_properties",
+    realEstateDemands: "real_estate_demands",
+    realEstatePayments: "real_estate_payments",
   };
 
   const camelToSnake = (obj: any) => {
@@ -2988,6 +3023,9 @@ function FinanceDashboard() {
       ...push("corporate_actions", data.corporateActions),
       ...push("tax_payments", data.taxPayments),
       ...push("income_entries", data.income),
+      ...push("real_estate_properties", data.realEstateProperties),
+      ...push("real_estate_demands", data.realEstateDemands),
+      ...push("real_estate_payments", data.realEstatePayments),
       ...(data.netWorthHistory || []).map((entry) =>
         supabase.from("net_worth_history").upsert(
           {
@@ -3136,6 +3174,7 @@ function FinanceDashboard() {
           ],
         },
         { id: "goals", label: "Financial Goals", icon: Target },
+        { id: "realestate", label: "Real Estate", icon: Home },
       ],
     },
     {
@@ -4582,6 +4621,14 @@ function FinanceDashboard() {
               )}
               {tab === "rental" && (
                 <RentalTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
+              )}
+              {tab === "realestate" && (
+                <RealEstateTab
                   state={filteredState}
                   addItem={addItem}
                   removeItem={removeItem}
