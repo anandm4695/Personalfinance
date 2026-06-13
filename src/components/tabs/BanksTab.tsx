@@ -585,8 +585,26 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
     }
   };
 
+  // Compute each account's balance from its transactions (credits − debits).
+  // Falls back to stored `balance` only if the account has zero transactions,
+  // so the displayed value always matches the ledger total.
+  const txnNetByAccount = useMemo(() => {
+    const map: Record<string, number> = {};
+    state.transactions.forEach((t: any) => {
+      if (map[t.accountId] === undefined) map[t.accountId] = 0;
+      if (t.type === "credit") map[t.accountId] += Number(t.amount || 0);
+      else if (t.type === "debit") map[t.accountId] -= Number(t.amount || 0);
+    });
+    return map;
+  }, [state.transactions]);
+
+  const getDisplayBalance = (acc: any): number =>
+    txnNetByAccount[acc.id] !== undefined
+      ? txnNetByAccount[acc.id]
+      : Number(acc.balance || 0);
+
   const totalBalance = state.bankAccounts.reduce(
-    (acc: any, a: any) => acc + (Number(a.balance) || 0),
+    (acc: any, a: any) => acc + getDisplayBalance(a),
     0
   );
   const now = new Date();
@@ -620,17 +638,18 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       .slice(0, 4);
 
     const totalAssetBal = state.bankAccounts.reduce(
-      (s: number, a: any) => s + Number(a.balance || 0),
+      (s: number, a: any) => s + getDisplayBalance(a),
       0
     );
     const weights = state.bankAccounts
       .map((a: any) => {
-        const share = totalAssetBal > 0 ? (Number(a.balance || 0) / totalAssetBal) * 100 : 0;
+        const bal = getDisplayBalance(a);
+        const share = totalAssetBal > 0 ? (bal / totalAssetBal) * 100 : 0;
         const theme = getAccountTheme(a.type);
         return {
           id: a.id,
           name: accountLabel(a),
-          balance: a.balance,
+          balance: bal,
           share,
           color: theme.color,
         };
@@ -642,7 +661,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       topSpendCategories: sortedCats,
       liquidityWeights: weights,
     };
-  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts]);
+  }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts, txnNetByAccount]);
 
   return (
     <div>
@@ -1072,7 +1091,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       color: THEME.ink,
                     }}
                   >
-                    <Prv>{fmtINRFull(a.balance)}</Prv>
+                    <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
                   </div>
                 </div>
                 <div
@@ -1656,14 +1675,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             <Edit3 size={13} />
                           </button>
                           <button
-                            onClick={() => {
-                              const acc = state.bankAccounts.find((a: any) => a.id === t.accountId);
-                              if (acc) {
-                                const delta = t.type === "credit" ? -Number(t.amount || 0) : Number(t.amount || 0);
-                                updateItem("bankAccounts", acc.id, { balance: Number(acc.balance || 0) + delta });
-                              }
-                              removeItem("transactions", t.id);
-                            }}
+                            onClick={() => removeItem("transactions", t.id)}
                             className="icon-btn danger"
                             style={iconBtn}
                             title="Delete"
@@ -1752,21 +1764,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
           accounts={state.bankAccounts}
           onClose={() => setEditTxnId(null)}
           onSave={(v: any) => {
-            const old = state.transactions.find((t: any) => t.id === editTxnId);
             updateItem("transactions", editTxnId, v);
-            if (old) {
-              const oldDelta = old.type === "credit" ? Number(old.amount || 0) : -Number(old.amount || 0);
-              const newDelta = v.type === "credit" ? Number(v.amount || 0) : -Number(v.amount || 0);
-              if (old.accountId === v.accountId) {
-                const acc = state.bankAccounts.find((a: any) => a.id === v.accountId);
-                if (acc) updateItem("bankAccounts", acc.id, { balance: Number(acc.balance || 0) - oldDelta + newDelta });
-              } else {
-                const oldAcc = state.bankAccounts.find((a: any) => a.id === old.accountId);
-                const newAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
-                if (oldAcc) updateItem("bankAccounts", oldAcc.id, { balance: Number(oldAcc.balance || 0) - oldDelta });
-                if (newAcc) updateItem("bankAccounts", newAcc.id, { balance: Number(newAcc.balance || 0) + newDelta });
-              }
-            }
             setEditTxnId(null);
           }}
         />
@@ -1786,7 +1784,6 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
           state={state}
           onClose={() => setShowTxn(false)}
           onSave={(v: any) => {
-            const amt = Number(v.amount || 0);
             if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
               const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
               const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
@@ -1812,8 +1809,6 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 narration: v.narration,
                 referenceNumber: v.referenceNumber,
               });
-              if (srcAcc) updateItem("bankAccounts", srcAcc.id, { balance: Number(srcAcc.balance || 0) - amt });
-              if (destAcc) updateItem("bankAccounts", destAcc.id, { balance: Number(destAcc.balance || 0) + amt });
             } else {
               const { toAccountId: _drop, linkedKey, ...txnBase } = v;
               const ci = linkedKey ? linkedKey.indexOf(":") : -1;
@@ -1824,11 +1819,6 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 ...(linkedType ? { linkedType, linkedId } : {}),
               });
               if (linkedKey) autoPostLinkedTransaction(linkedKey, v);
-              const acc = state.bankAccounts.find((a: any) => a.id === v.accountId);
-              if (acc) {
-                const delta = v.type === "credit" ? amt : -amt;
-                updateItem("bankAccounts", acc.id, { balance: Number(acc.balance || 0) + delta });
-              }
             }
             setShowTxn(false);
           }}
