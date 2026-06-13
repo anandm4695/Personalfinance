@@ -1688,61 +1688,87 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                   );
                 })}
               </tbody>
-              {sortedTxns.length > 0 && (
-                <tfoot>
-                  <tr style={{ background: `${THEME.accent}08` }}>
-                    <td
-                      colSpan={4}
-                      style={{
-                        padding: "10px",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        borderTop: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      {sortedTxns.length} {sortedTxns.length === 1 ? "transaction" : "transactions"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "10px",
-                        textAlign: "right",
-                        fontWeight: 900,
-                        color: THEME.rust,
-                        fontSize: 13,
-                        borderTop: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      -
-                      {fmtINRFull(
-                        sortedTxns
-                          .filter((t: any) => t.type === "debit")
-                          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0)
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "10px",
-                        textAlign: "right",
-                        fontWeight: 900,
-                        color: THEME.sage,
-                        fontSize: 13,
-                        borderTop: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      +
-                      {fmtINRFull(
-                        sortedTxns
-                          .filter((t: any) => t.type === "credit")
-                          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0)
-                      )}
-                    </td>
-                    <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
-                  </tr>
-                </tfoot>
-              )}
+              {sortedTxns.length > 0 && (() => {
+                const totalDebit = sortedTxns
+                  .filter((t: any) => t.type === "debit")
+                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                const totalCredit = sortedTxns
+                  .filter((t: any) => t.type === "credit")
+                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                const net = totalCredit - totalDebit;
+                const netColor = net > 0 ? THEME.sage : net < 0 ? THEME.rust : THEME.muted;
+                const borderTop = `1.5px solid ${THEME.line}`;
+                return (
+                  <tfoot>
+                    <tr style={{ background: `${THEME.accent}08` }}>
+                      <td
+                        colSpan={3}
+                        style={{
+                          padding: "10px",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                          borderTop,
+                        }}
+                      >
+                        {sortedTxns.length} {sortedTxns.length === 1 ? "transaction" : "transactions"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          textAlign: "right",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: THEME.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                          borderTop,
+                        }}
+                      >
+                        Net Balance
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          textAlign: "right",
+                          fontWeight: 900,
+                          color: THEME.rust,
+                          fontSize: 13,
+                          borderTop,
+                        }}
+                      >
+                        -{fmtINRFull(totalDebit)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          textAlign: "right",
+                          fontWeight: 900,
+                          color: THEME.sage,
+                          fontSize: 13,
+                          borderTop,
+                        }}
+                      >
+                        +{fmtINRFull(totalCredit)}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          textAlign: "right",
+                          fontWeight: 900,
+                          color: netColor,
+                          fontSize: 13,
+                          borderTop,
+                        }}
+                      >
+                        {net >= 0 ? "+" : ""}{fmtINRFull(Math.abs(net))}
+                      </td>
+                    </tr>
+                  </tfoot>
+                );
+              })()}
             </table>
           </div>
         )}
