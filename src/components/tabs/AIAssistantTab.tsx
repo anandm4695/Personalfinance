@@ -463,12 +463,14 @@ Fixed Deposits:   ${fmtCr(metrics.fdValue || 0)}
 PPF:              ${fmtCr(metrics.ppfValue || 0)}
 EPF:              ${fmtCr(metrics.epfValue || 0)}
 NPS:              ${fmtCr(metrics.npsValue || 0)}
+Real Estate:      ${fmtCr(metrics.realEstateAsset || 0)} (${(state.realEstateProperties || []).filter((p: any) => p.status !== 'sold').length} properties; sold excluded)
 Total Assets:     ${fmtCr(metrics.totalAssets || 0)}
 
 == LIABILITIES ==
 Credit Cards:     ${fmtCr(metrics.ccOutstanding || 0)} outstanding (util ${(metrics.creditUtilization || 0).toFixed(0)}%)
 Loans:
 ${loans}
+Real Estate (builder dues): ${fmtCr(metrics.realEstateOutstanding || 0)} outstanding to builder
 Total Liabilities: ${fmtCr(metrics.totalLiabilities || 0)}
 FOIR:              ${(metrics.foir || 0).toFixed(1)}%
 Debt-to-Asset:     ${(metrics.debtToAssetRatio || 0).toFixed(1)}%

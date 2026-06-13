@@ -536,7 +536,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // ── Database-Synced Rebalancing Target States ──
   const initialRebalTargets = useMemo(() => {
-    return state.masterData?._rebalTargets || { equity: 60, debt: 25, cash: 10, other: 5 };
+    return state.masterData?._rebalTargets || { equity: 60, debt: 25, cash: 10, realEstate: 0, other: 5 };
   }, [state.masterData?._rebalTargets]);
 
   const [rebalTargets, setRebalTargetsState] = useState(initialRebalTargets);
@@ -6024,13 +6024,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 (metrics.licValue || 0) +
                 (metrics.investmentValue || 0);
               const cash = metrics.cashInBanks || 0;
-              const other = Math.max(0, (metrics.totalAssets || 0) - equity - debt - cash);
-              const total = equity + debt + cash + other;
+              const realEstate = metrics.realEstateAsset || 0;
+              const other = Math.max(0, (metrics.totalAssets || 0) - equity - debt - cash - realEstate);
+              const total = equity + debt + cash + realEstate + other;
 
               const actual = {
                 equity: total > 0 ? (equity / total) * 100 : 0,
                 debt: total > 0 ? (debt / total) * 100 : 0,
                 cash: total > 0 ? (cash / total) * 100 : 0,
+                realEstate: total > 0 ? (realEstate / total) * 100 : 0,
                 other: total > 0 ? (other / total) * 100 : 0,
               };
 
@@ -6060,6 +6062,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   icon: Activity,
                 },
                 {
+                  key: "realEstate",
+                  label: "Real Estate",
+                  actualPct: actual.realEstate,
+                  actualVal: realEstate,
+                  color: "#8b5cf6",
+                  icon: Building2,
+                },
+                {
                   key: "other",
                   label: "Other",
                   actualPct: actual.other,
@@ -6070,14 +6080,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               ] as const;
 
               const totalTarget =
-                rebalTargets.equity + rebalTargets.debt + rebalTargets.cash + rebalTargets.other;
+                rebalTargets.equity + rebalTargets.debt + rebalTargets.cash + (rebalTargets.realEstate || 0) + rebalTargets.other;
 
               return (
                 <>
                   {/* Sliders */}
                   <div style={{ display: "grid", gap: 14, marginBottom: 24 }}>
                     {classes.map(({ key, label, actualPct, color }) => {
-                      const targetPct = rebalTargets[key];
+                      const targetPct = rebalTargets[key] ?? 0;
                       return (
                         <div key={key}>
                           <div
@@ -6205,7 +6215,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     ) : (
                       <div style={{ display: "grid", gap: 10 }}>
                         {classes.map(({ key, label, actualPct, actualVal, color }) => {
-                          const targetPct = rebalTargets[key];
+                          const targetPct = rebalTargets[key] ?? 0;
                           const targetVal = (targetPct / 100) * total;
                           const diff = targetVal - actualVal;
                           const absDiff = Math.abs(diff);
@@ -6271,7 +6281,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         })}
                         {classes.every(
                           ({ key, actualVal }) =>
-                            Math.abs((rebalTargets[key] / 100) * total - actualVal) < 1000
+                            Math.abs(((rebalTargets[key] ?? 0) / 100) * total - actualVal) < 1000
                         ) && (
                           <div
                             style={{

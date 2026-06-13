@@ -1407,6 +1407,28 @@ function FinanceDashboard() {
           return a + Math.max(0, totalT - totalP);
         }, 0);
 
+        const rentalPropertyAsset = (s.rentalProperties || []).reduce(
+          (a, r) => a + Number(r.propertyValue || 0),
+          0
+        );
+        const realEstateSnap = (s.realEstateProperties || [])
+          .filter((p: any) => p.status !== "sold")
+          .reduce((a: number, p: any) => a + Number(p.marketValue || p.agreementValue || 0), 0);
+        const realEstateOutstandingSnap = (() => {
+          const ucIds = new Set(
+            (s.realEstateProperties || [])
+              .filter((p: any) => p.status === "under-construction")
+              .map((p: any) => p.id)
+          );
+          const demanded = (s.realEstateDemands || [])
+            .filter((d: any) => ucIds.has(d.propertyId))
+            .reduce((a: number, d: any) => a + Number(d.totalAmount || d.amount || 0), 0);
+          const paid = (s.realEstatePayments || [])
+            .filter((p: any) => ucIds.has(p.propertyId))
+            .reduce((a: number, p: any) => a + Number(p.amount || 0), 0);
+          return Math.max(0, demanded - paid);
+        })();
+
         const assets =
           cash +
           fd +
@@ -1421,8 +1443,10 @@ function FinanceDashboard() {
           loansGiven +
           prepaid +
           rentedDepositAsset +
-          informalLent;
-        const liabilities = cc + loansTaken + rentalDepositLiability + informalBorrowed;
+          informalLent +
+          rentalPropertyAsset +
+          realEstateSnap;
+        const liabilities = cc + loansTaken + rentalDepositLiability + informalBorrowed + realEstateOutstandingSnap;
         return assets - liabilities;
       })();
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
