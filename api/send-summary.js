@@ -650,6 +650,8 @@ function generateHTML(summary, frequency, recipientName) {
   }
 
   // ── Upcoming dues rows ────────────────────────────────────────────────────
+  const _todayVal = nowIST();
+  const todayMs = Date.UTC(_todayVal.getUTCFullYear(), _todayVal.getUTCMonth(), _todayVal.getUTCDate());
   const dueRows = dues
     .slice(0, 6)
     .map((d) => {
