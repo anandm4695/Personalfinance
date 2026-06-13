@@ -995,7 +995,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
 
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <BankLogo bankName={a.bankName} />
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, paddingRight: 52 }}>
                   <div
                     style={{
                       display: "flex",
