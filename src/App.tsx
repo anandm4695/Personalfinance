@@ -1496,6 +1496,9 @@ function FinanceDashboard() {
       informalLent: filterByOwner(state.informalLent || []),
       rentalProperties: filterByOwner(state.rentalProperties || []),
       rentedProperties: filterByOwner(state.rentedProperties || []),
+      realEstateProperties: filterByOwner(state.realEstateProperties || []),
+      realEstateDemands: filterByOwner(state.realEstateDemands || []),
+      realEstatePayments: filterByOwner(state.realEstatePayments || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -1620,6 +1623,28 @@ function FinanceDashboard() {
       (s, r) => s + Number(r.propertyValue || 0),
       0
     );
+
+    // Real estate: owned + under-construction properties counted at market value (or agreement value)
+    const realEstateAsset = (sState.realEstateProperties || [])
+      .filter((p: any) => p.status !== "sold")
+      .reduce((s: number, p: any) => s + Number(p.marketValue || p.agreementValue || 0), 0);
+
+    // Outstanding builder demands for under-construction properties = contractual cash obligations
+    const realEstateOutstanding = (() => {
+      const ucIds = new Set(
+        (sState.realEstateProperties || [])
+          .filter((p: any) => p.status === "under-construction")
+          .map((p: any) => p.id)
+      );
+      const demanded = (sState.realEstateDemands || [])
+        .filter((d: any) => ucIds.has(d.propertyId))
+        .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
+      const paid = (sState.realEstatePayments || [])
+        .filter((p: any) => ucIds.has(p.propertyId))
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      return Math.max(0, demanded - paid);
+    })();
+
     const totalAssets =
       cashInBanks +
       fdValue +
@@ -1636,9 +1661,10 @@ function FinanceDashboard() {
       prepaidValue +
       rentedDepositAsset +
       informalLentValue +
-      rentalPropertiesAsset;
+      rentalPropertiesAsset +
+      realEstateAsset;
     const totalLiabilities =
-      ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue;
+      ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue + realEstateOutstanding;
     const netWorth = totalAssets - totalLiabilities;
 
     // Income/Expense current month
@@ -1692,7 +1718,7 @@ function FinanceDashboard() {
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
     const lockedAssets =
-      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue;
+      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
@@ -1777,6 +1803,8 @@ function FinanceDashboard() {
       stockPnL: stockValue - stockInvested,
       liquidAssets,
       lockedAssets,
+      realEstateAsset,
+      realEstateOutstanding,
       savingsRate,
       debtToAssetRatio,
       taxDue,
@@ -1852,6 +1880,7 @@ function FinanceDashboard() {
         { name: "LIC", value: metrics.licValue },
         { name: "Investment Plans", value: metrics.investmentValue },
         { name: "Loans Given", value: metrics.loansGivenValue },
+        { name: "Real Estate", value: metrics.realEstateAsset },
       ].filter((x) => x.value > 0),
     [metrics]
   );
