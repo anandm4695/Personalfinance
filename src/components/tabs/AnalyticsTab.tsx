@@ -2079,7 +2079,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "Low Savings Rate",
         value: `${metrics.savingsRate.toFixed(0)}% · target 20%+`,
         color: THEME.rust,
-        bg: `${THEME.rust}12`,
+        bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
       });
     else if (metrics.savingsRate >= 30)
       insights.push({
@@ -2087,7 +2087,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "Strong Savings Rate",
         value: `${metrics.savingsRate.toFixed(0)}% this month`,
         color: THEME.sage,
-        bg: `${THEME.sage}12`,
+        bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
     if (metrics.monthExpense > 0 && emergencyMonths < 3)
@@ -2096,7 +2096,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "Emergency Fund",
         value: `${emergencyMonths.toFixed(1)} mo liquid · need 3+`,
         color: THEME.rust,
-        bg: `${THEME.rust}12`,
+        bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
       });
     else if (emergencyMonths >= 6)
       insights.push({
@@ -2104,7 +2104,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "Emergency Fund",
         value: `${emergencyMonths.toFixed(1)} mo — solid cover`,
         color: THEME.sage,
-        bg: `${THEME.sage}12`,
+        bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
     if (annualIncome > 0 && coverRatio < 10)
@@ -2113,7 +2113,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "Insurance Gap",
         value: `${fmtINR(annualIncome * 15 - totalTermCover)} short of 15× cover`,
         color: THEME.gold,
-        bg: `${THEME.gold}12`,
+        bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
 
     if (metrics.debtToAssetRatio > 40)
@@ -2122,7 +2122,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "High Debt Ratio",
         value: `${metrics.debtToAssetRatio.toFixed(0)}% of total assets`,
         color: THEME.rust,
-        bg: `${THEME.rust}12`,
+        bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
       });
 
     const urgentDues = dashboardData.dues.filter((d: any) => d.daysLeft <= 7);
@@ -2135,7 +2135,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           .map((d: any) => d.name)
           .join(", "),
         color: THEME.gold,
-        bg: `${THEME.gold}12`,
+        bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
 
     if ((state.sips || []).length === 0 && metrics.monthIncome > 0)
@@ -2144,7 +2144,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "No Active SIPs",
         value: "Consider starting a monthly mutual fund SIP",
         color: THEME.accent,
-        bg: `${THEME.accent}12`,
+        bg: `color-mix(in srgb, var(--t-accent) 7%, transparent)`,
       });
 
     // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
@@ -2160,7 +2160,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: "EMI Burden Critical",
           value: `${foirPct.toFixed(0)}% FOIR — reduce debt urgently`,
           color: THEME.rust,
-          bg: `${THEME.rust}12`,
+          bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
         });
       else if (foirPct > 40)
         insights.push({
@@ -2168,7 +2168,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: "High EMI Burden",
           value: `${foirPct.toFixed(0)}% FOIR · keep under 40%`,
           color: THEME.gold,
-          bg: `${THEME.gold}12`,
+          bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
         });
     }
 
@@ -2184,7 +2184,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: "High Credit Utilization",
           value: `${utilPct.toFixed(0)}% used · aim for below 30%`,
           color: THEME.rust,
-          bg: `${THEME.rust}12`,
+          bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
         });
     }
 
@@ -2221,7 +2221,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: `${soonest.name} payoff in ${timeStr}`,
           value: `${fmtINR(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`,
           color: THEME.accent,
-          bg: `${THEME.accent}12`,
+          bg: `color-mix(in srgb, var(--t-accent) 7%, transparent)`,
         });
       }
     }
@@ -2266,7 +2266,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: `${topCat} Spike`,
           value: `${fmtINR(topVal)} this month vs ${fmtINR(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`,
           color: THEME.gold,
-          bg: `${THEME.gold}12`,
+          bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
         });
       }
     }
@@ -2284,7 +2284,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           title: "SIP Exceeds Savings",
           value: `SIPs ${fmtINR(totalSIPAmt)}/mo · only ${fmtINR(Math.max(0, monthlySavings))} available`,
           color: THEME.rust,
-          bg: `${THEME.rust}12`,
+          bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
         });
       }
     }
@@ -2304,7 +2304,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "CC Interest Risk",
         value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`,
         color: THEME.rust,
-        bg: `${THEME.rust}12`,
+        bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
       });
     }
 
@@ -2326,7 +2326,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "CC Annual Fees",
         value: `${fmtINRFull(totalAnnualFees)}/yr · ${sub}`,
         color: THEME.gold,
-        bg: `${THEME.gold}12`,
+        bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
     }
 
@@ -2336,7 +2336,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         title: "All Clear",
         value: "Your finances are on a healthy track",
         color: THEME.sage,
-        bg: `${THEME.sage}12`,
+        bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
     return insights;
@@ -2640,8 +2640,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     padding: "1px 8px",
                     borderRadius: 20,
                     background: smartInsights.some((ins: any) => ins.color === THEME.rust)
-                      ? `${THEME.rust}1f`
-                      : `${THEME.gold}1f`,
+                      ? `color-mix(in srgb, var(--t-rust) 12%, transparent)`
+                      : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
                     color: smartInsights.some((ins: any) => ins.color === THEME.rust)
                       ? THEME.rust
                       : THEME.gold,
@@ -2670,7 +2670,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         padding: "10px 16px",
                         borderRadius: 12,
                         background: ins.bg,
-                        border: `1px solid ${ins.color}28`,
+                        border: `1px solid color-mix(in srgb, ${ins.color} 16%, transparent)`,
                         borderLeft: `3px solid ${ins.color}`,
                       }}
                     >
@@ -2679,7 +2679,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           width: 32,
                           height: 32,
                           borderRadius: 8,
-                          background: `${ins.color}18`,
+                          background: `color-mix(in srgb, ${ins.color} 9%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -3446,7 +3446,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         padding: "3px 8px",
                         borderRadius: 6,
                         border: `1px solid ${healthSimActive ? THEME.accent : THEME.line}`,
-                        background: healthSimActive ? `${THEME.accent}14` : "transparent",
+                        background: healthSimActive ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "transparent",
                         color: healthSimActive ? THEME.accent : THEME.muted,
                         cursor: "pointer",
                         transition: "all 0.2s ease",
@@ -3668,9 +3668,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "10px 14px 10px 0",
                           borderRadius: 12,
                           background: d.isFdMaturity
-                            ? `${THEME.sage}09`
+                            ? `color-mix(in srgb, var(--t-sage) 4%, transparent)`
                             : d.daysLeft <= 5
-                              ? `${THEME.rust}08`
+                              ? `color-mix(in srgb, var(--t-rust) 3%, transparent)`
                               : "rgba(128,128,128,0.03)",
                           border: `1px solid ${borderColor}22`,
                           overflow: "hidden",
@@ -4063,7 +4063,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         fontSize: 11,
                         color: THEME.accent,
                         background: "none",
-                        border: `1px solid ${THEME.accent}44`,
+                        border: `1px solid color-mix(in srgb, var(--t-accent) 27%, transparent)`,
                         cursor: "pointer",
                         fontWeight: 700,
                         padding: "3px 10px",
@@ -4116,7 +4116,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               height: 40,
                               borderRadius: 10,
                               background:
-                                t.type === "credit" ? `${THEME.sage}1f` : `${THEME.rust}1f`,
+                                t.type === "credit" ? `color-mix(in srgb, var(--t-sage) 12%, transparent)` : `color-mix(in srgb, var(--t-rust) 12%, transparent)`,
                               color: t.type === "credit" ? THEME.sage : THEME.rust,
                               display: "flex",
                               alignItems: "center",
@@ -4180,7 +4180,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               textTransform: "uppercase" as const,
                               letterSpacing: "0.04em",
                               background:
-                                t.type === "credit" ? `${THEME.sage}1a` : `${THEME.rust}1a`,
+                                t.type === "credit" ? `color-mix(in srgb, var(--t-sage) 10%, transparent)` : `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
                               color: t.type === "credit" ? THEME.sage : THEME.rust,
                             }}
                           >
@@ -4561,7 +4561,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "5px 12px",
                       borderRadius: 8,
                       border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
-                      background: ytdMode === mode ? `${THEME.accent}1a` : "transparent",
+                      background: ytdMode === mode ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
                       color: ytdMode === mode ? THEME.accent : THEME.muted,
                       fontSize: 11,
                       fontWeight: 700,
@@ -5890,7 +5890,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   value: passiveIncomeData.stockDividendsMonthly,
                   icon: TrendingUp,
                   color: THEME.accent,
-                  bg: `${THEME.accent}15`,
+                  bg: `color-mix(in srgb, var(--t-accent) 8%, transparent)`,
                 },
                 {
                   label: "MF Yield / Mo",
@@ -6220,8 +6220,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 gap: 14,
                                 padding: "12px 14px",
                                 borderRadius: 10,
-                                background: isBuy ? `${THEME.sage}09` : `${THEME.rust}09`,
-                                border: `1px solid ${isBuy ? `${THEME.sage}26` : `${THEME.rust}1f`}`,
+                                background: isBuy ? `color-mix(in srgb, var(--t-sage) 4%, transparent)` : `color-mix(in srgb, var(--t-rust) 4%, transparent)`,
+                                border: `1px solid ${isBuy ? `color-mix(in srgb, var(--t-sage) 15%, transparent)` : `color-mix(in srgb, var(--t-rust) 12%, transparent)`}`,
                               }}
                             >
                               <div
@@ -6447,9 +6447,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 style={{
                   marginTop: 20,
                   padding: "16px 20px",
-                  background: `${THEME.accent}0f`,
+                  background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
                   borderRadius: 12,
-                  border: `1px solid ${THEME.accent}2e`,
+                  border: `1px solid color-mix(in srgb, var(--t-accent) 18%, transparent)`,
                 }}
               >
                 <div
@@ -6476,7 +6476,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         flex: 1,
                         padding: "8px 12px",
                         borderRadius: 8,
-                        border: `1px solid ${THEME.accent}4d`,
+                        border: `1px solid color-mix(in srgb, var(--t-accent) 30%, transparent)`,
                         background: "var(--surface-0)",
                         color: THEME.ink,
                         fontSize: 13,
@@ -6515,9 +6515,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           padding: "3px 8px",
                           borderRadius: 6,
-                          border: `1px solid ${THEME.accent}3d`,
+                          border: `1px solid color-mix(in srgb, var(--t-accent) 24%, transparent)`,
                           background:
-                            fireWhatIfExtra === preset.val ? `${THEME.accent}24` : "transparent",
+                            fireWhatIfExtra === preset.val ? `color-mix(in srgb, var(--t-accent) 14%, transparent)` : "transparent",
                           color: THEME.accent,
                           fontSize: 11,
                           fontWeight: 700,
@@ -6560,7 +6560,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           alignItems: "center",
                           gap: 20,
                           padding: "10px 16px",
-                          background: `${THEME.accent}15`,
+                          background: `color-mix(in srgb, var(--t-accent) 8%, transparent)`,
                           borderRadius: 10,
                         }}
                       >
@@ -6869,9 +6869,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           style={{
                             padding: "3px 8px",
                             borderRadius: 6,
-                            border: `1px solid ${THEME.sage}33`,
+                            border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)`,
                             background:
-                              windfallAmount === preset.val ? `${THEME.sage}1a` : "transparent",
+                              windfallAmount === preset.val ? `color-mix(in srgb, var(--t-sage) 10%, transparent)` : "transparent",
                             color: THEME.sage,
                             fontSize: 10,
                             fontWeight: 700,
@@ -6958,9 +6958,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           style={{
                             padding: "3px 8px",
                             borderRadius: 6,
-                            border: `1px solid ${THEME.rust}33`,
+                            border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)`,
                             background:
-                              extraExpenseAmount === preset.val ? `${THEME.rust}1a` : "transparent",
+                              extraExpenseAmount === preset.val ? `color-mix(in srgb, var(--t-rust) 10%, transparent)` : "transparent",
                             color: THEME.rust,
                             fontSize: 10,
                             fontWeight: 700,
@@ -7053,7 +7053,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </defs>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke={`${THEME.line}80`}
+                          stroke={`color-mix(in srgb, var(--t-line) 50%, transparent)`}
                           vertical={false}
                         />
                         <XAxis
@@ -7129,8 +7129,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   gap: 14,
                   alignItems: "center",
                   padding: "16px 20px",
-                  background: crossoverYear ? `${THEME.sage}0f` : `${THEME.gold}0f`,
-                  border: `1px solid ${crossoverYear ? `${THEME.sage}2e` : `${THEME.gold}2e`}`,
+                  background: crossoverYear ? `color-mix(in srgb, var(--t-sage) 6%, transparent)` : `color-mix(in srgb, var(--t-gold) 6%, transparent)`,
+                  border: `1px solid ${crossoverYear ? `color-mix(in srgb, var(--t-sage) 18%, transparent)` : `color-mix(in srgb, var(--t-gold) 18%, transparent)`}`,
                   borderRadius: 12,
                 }}
               >
@@ -7309,7 +7309,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                     style={{
                       width: 60,
-                      background: `${THEME.sage}1a`,
+                      background: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
                       border: `1px solid ${THEME.sage}`,
                       borderRadius: 6,
                       color: THEME.sage,
@@ -7515,8 +7515,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           padding: "12px",
                           borderRadius: 12,
-                          background: isOverBudget ? `${THEME.rust}09` : `${THEME.sage}09`,
-                          border: `1px solid ${isOverBudget ? `${THEME.rust}1a` : `${THEME.sage}1a`}`,
+                          background: isOverBudget ? `color-mix(in srgb, var(--t-rust) 4%, transparent)` : `color-mix(in srgb, var(--t-sage) 4%, transparent)`,
+                          border: `1px solid ${isOverBudget ? `color-mix(in srgb, var(--t-rust) 10%, transparent)` : `color-mix(in srgb, var(--t-sage) 10%, transparent)`}`,
                           fontSize: 12,
                           lineHeight: 1.5,
                           color: isOverBudget ? THEME.rust : THEME.sage,
@@ -7749,7 +7749,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "24px 0",
                       color: THEME.muted,
                       fontSize: 13,
-                      background: `${THEME.sage}08`,
+                      background: `color-mix(in srgb, var(--t-sage) 3%, transparent)`,
                       borderRadius: 12,
                     }}
                   >
@@ -7787,9 +7787,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               gridTemplateColumns: "repeat(3, 1fr)",
                               gap: 12,
                               padding: 16,
-                              background: `${THEME.rust}09`,
+                              background: `color-mix(in srgb, var(--t-rust) 4%, transparent)`,
                               borderRadius: 12,
-                              border: `1px solid ${THEME.rust}1a`,
+                              border: `1px solid color-mix(in srgb, var(--t-rust) 10%, transparent)`,
                               marginBottom: 20,
                             }}
                           >
@@ -8074,7 +8074,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             borderRadius: 6,
                             border: `1px solid ${THEME.line}`,
                             background:
-                              sipLsTarget === preset ? `${THEME.accent}1f` : "transparent",
+                              sipLsTarget === preset ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent",
                             color: sipLsTarget === preset ? THEME.accent : THEME.muted,
                             fontSize: 10,
                             fontWeight: 700,
@@ -8166,8 +8166,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         padding: "20px 24px",
                         borderRadius: 14,
-                        background: `${THEME.accent}0f`,
-                        border: `1.5px solid ${THEME.accent}40`,
+                        background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
+                        border: `1.5px solid color-mix(in srgb, var(--t-accent) 25%, transparent)`,
                       }}
                     >
                       <div
@@ -9366,15 +9366,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             fontSize: 11,
                             background:
                               d && d === today2
-                                ? `${THEME.accent}26`
+                                ? `color-mix(in srgb, var(--t-accent) 15%, transparent)`
                                 : d && dueDays[d]
-                                  ? `${THEME.gold}0f`
+                                  ? `color-mix(in srgb, var(--t-gold) 6%, transparent)`
                                   : "transparent",
                             border:
                               d && d === today2
                                 ? `1.5px solid ${THEME.accent}`
                                 : d && dueDays[d]
-                                  ? `1px dashed ${THEME.gold}4d`
+                                  ? `1px dashed color-mix(in srgb, var(--t-gold) 30%, transparent)`
                                   : `1px solid ${THEME.line}`,
                             cursor: hasEvents ? "pointer" : "default",
                             transition: "all 0.18s ease-in-out",
@@ -10530,7 +10530,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <Badge
                       style={{
-                        background: isPaid ? `${THEME.sage}1f` : `${THEME.gold}1f`,
+                        background: isPaid ? `color-mix(in srgb, var(--t-sage) 12%, transparent)` : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
                         color: isPaid ? THEME.sage : THEME.gold,
                         border: `1px solid ${isPaid ? THEME.sage : THEME.gold}33`,
                         fontSize: 10,
@@ -10566,7 +10566,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontWeight: 800,
                           color: THEME.accent,
                           background: "var(--surface-0)",
-                          border: `1px solid ${THEME.accent}44`,
+                          border: `1px solid color-mix(in srgb, var(--t-accent) 27%, transparent)`,
                           padding: "4px 10px",
                           borderRadius: 6,
                           cursor: "pointer",
