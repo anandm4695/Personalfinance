@@ -46,6 +46,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     | "emi"
     | "sip"
     | "step-sip"
+    | "swp"
     | "cagr"
     | "fire"
     | "fdrd"
@@ -182,6 +183,66 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       yearlyData,
     };
   }, [stepSipAmt, stepSipStep, stepSipYrs, stepSipRate]);
+
+  // ── 2c. SWP (SYSTEMATIC WITHDRAWAL PLAN) STATE & LOGIC ──
+  const [swpCorpus, setSwpCorpus] = useState(() => String(Math.round((metrics?.netWorth || 5000000) / 100000) * 100000));
+  const [swpWithdrawal, setSwpWithdrawal] = useState("30000");
+  const [swpRate, setSwpRate] = useState("8");
+  const [swpYears, setSwpYears] = useState("20");
+
+  const swpResult = useMemo(() => {
+    const corpus0 = Math.max(0, Number(swpCorpus) || 0);
+    const monthly = Math.max(0, Number(swpWithdrawal) || 0);
+    const r = Math.max(0, (Number(swpRate) || 0) / 12 / 100);
+    const years = Math.max(1, Number(swpYears) || 1);
+    const n = years * 12;
+
+    let balance = corpus0;
+    let totalWithdrawn = 0;
+    let depletionMonth = -1;
+    const yearlyData: { year: number; balance: number; withdrawn: number }[] = [];
+
+    for (let m = 1; m <= n; m++) {
+      // Apply monthly return first, then withdraw (standard SWP convention)
+      balance = balance * (1 + r);
+      const actualWithdrawal = Math.min(monthly, balance);
+      balance -= actualWithdrawal;
+      totalWithdrawn += actualWithdrawal;
+
+      if (balance <= 0 && depletionMonth === -1 && monthly > 0) {
+        depletionMonth = m;
+        balance = 0;
+      }
+
+      if (m % 12 === 0) {
+        yearlyData.push({
+          year: m / 12,
+          balance: Math.max(0, Math.round(balance)),
+          withdrawn: Math.round(totalWithdrawn),
+        });
+      }
+    }
+
+    const monthlyInterest = corpus0 * r;
+    const isSustainable = r > 0 && monthlyInterest >= monthly;
+    // PV of annuity: min corpus needed so balance reaches exactly 0 after N months
+    const minCorpus = r === 0 ? monthly * n : (monthly * (1 - Math.pow(1 + r, -n))) / r;
+    // Corpus needed to withdraw this amount forever (perpetuity)
+    const perpetuityCorpus = r > 0 ? Math.round(monthly / r) : null;
+
+    return {
+      remainingCorpus: Math.max(0, Math.round(balance)),
+      totalWithdrawn: Math.round(totalWithdrawn),
+      depletionMonth,
+      isSustainable,
+      monthlyInterest: Math.round(monthlyInterest),
+      minCorpus: Math.round(minCorpus),
+      perpetuityCorpus,
+      yearlyData,
+      deficit: Math.max(0, Math.round(minCorpus - corpus0)),
+      surplus: Math.max(0, Math.round(corpus0 - minCorpus)),
+    };
+  }, [swpCorpus, swpWithdrawal, swpRate, swpYears]);
 
   // ── 3. CAGR CALCULATOR STATE & LOGIC ──
   const [cagrInvested, setCagrInvested] = useState("100000");
@@ -1082,6 +1143,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "emi", label: "EMI Calculator", icon: Clock },
           { id: "sip", label: "SIP Returns", icon: TrendingUp },
           { id: "step-sip", label: "Step-Up SIP", icon: Sparkles },
+          { id: "swp", label: "SWP Calculator", icon: Wallet },
           { id: "cagr", label: "CAGR Calculator", icon: BarChart2 },
           { id: "fire", label: "FIRE Planner", icon: Flame },
           { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
@@ -1501,6 +1563,394 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         strokeWidth={1.5}
                         fill="url(#gStepInvested)"
+                        strokeDasharray="4 2"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* ── 2c. SWP CALCULATOR ── */}
+        {calcTab === "swp" && (
+          <>
+            <div className="bento-col-5">
+              <Card style={{ padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Wallet size={18} color={THEME.accent} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>SWP Parameters</div>
+                </div>
+                {inpRow("Initial Corpus (₹)", swpCorpus, setSwpCorpus)}
+                {inpRow("Monthly Withdrawal (₹)", swpWithdrawal, setSwpWithdrawal)}
+                {sliderRow("Expected Annual Return", swpRate, setSwpRate, 1, 15, 0.5, "%")}
+                {sliderRow("Planning Period", swpYears, setSwpYears, 1, 40, 1, " years")}
+
+                <div className="divider" style={{ margin: "20px 0 16px" }} />
+                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
+                  A Systematic Withdrawal Plan lets you withdraw a fixed amount monthly from your
+                  corpus while the remaining amount continues to earn returns — ideal for retirement
+                  income planning.
+                </div>
+
+                {/* Perpetuity tip */}
+                {swpResult.perpetuityCorpus && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+                      fontSize: 11.5,
+                      color: THEME.muted,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <span style={{ color: THEME.accent, fontWeight: 700 }}>Perpetuity tip: </span>
+                    To withdraw ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month{" "}
+                    <strong>forever</strong>, you need{" "}
+                    <span style={{ color: THEME.accent, fontWeight: 700 }}>
+                      {fmtINRFull(swpResult.perpetuityCorpus)}
+                    </span>{" "}
+                    at {swpRate}% p.a.
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            <div
+              className="bento-col-7"
+              style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            >
+              {/* Key result tiles */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+                {/* Remaining corpus */}
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: swpResult.isSustainable
+                      ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                      : swpResult.remainingCorpus > 0
+                      ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
+                      : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${
+                      swpResult.isSustainable
+                        ? THEME.sage
+                        : swpResult.remainingCorpus > 0
+                        ? THEME.accent
+                        : THEME.rust
+                    } 30%, transparent)`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Corpus After {swpYears}y
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: swpResult.isSustainable
+                        ? THEME.sage
+                        : swpResult.remainingCorpus > 0
+                        ? THEME.accent
+                        : THEME.rust,
+                    }}
+                  >
+                    {fmtINRFull(swpResult.remainingCorpus)}
+                  </div>
+                </div>
+
+                {/* Total withdrawn */}
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Total Withdrawn
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                    {fmtINRFull(swpResult.totalWithdrawn)}
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div
+                  style={{
+                    padding: "16px 18px",
+                    borderRadius: 14,
+                    background: swpResult.isSustainable
+                      ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                      : swpResult.depletionMonth > 0
+                      ? `color-mix(in srgb, ${THEME.rust} 10%, transparent)`
+                      : `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                    border: `1.5px solid color-mix(in srgb, ${
+                      swpResult.isSustainable
+                        ? THEME.sage
+                        : swpResult.depletionMonth > 0
+                        ? THEME.rust
+                        : THEME.gold
+                    } 30%, transparent)`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Status
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 900,
+                      color: swpResult.isSustainable
+                        ? THEME.sage
+                        : swpResult.depletionMonth > 0
+                        ? THEME.rust
+                        : THEME.gold,
+                    }}
+                  >
+                    {swpResult.isSustainable
+                      ? "Self-Sustaining"
+                      : swpResult.depletionMonth > 0
+                      ? `Depletes in ${Math.floor(swpResult.depletionMonth / 12)}y ${swpResult.depletionMonth % 12}m`
+                      : "Corpus Survives"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Analysis card */}
+              <Card style={{ padding: 20 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
+                  }}
+                >
+                  Sustainability Analysis
+                </div>
+
+                {swpResult.isSustainable ? (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                      border: `1.5px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                    }}
+                  >
+                    <CheckCircle2 size={18} color={THEME.sage} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 4 }}>
+                        Corpus is fully self-sustaining
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
+                        Your monthly interest of{" "}
+                        <strong style={{ color: THEME.ink }}>{fmtINRFull(swpResult.monthlyInterest)}</strong>{" "}
+                        exceeds your withdrawal of{" "}
+                        <strong style={{ color: THEME.ink }}>
+                          ₹{Number(swpWithdrawal).toLocaleString("en-IN")}
+                        </strong>
+                        . The corpus will grow over time even after withdrawals.
+                      </div>
+                    </div>
+                  </div>
+                ) : swpResult.depletionMonth > 0 ? (
+                  <>
+                    <div
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                        border: `1.5px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <AlertTriangle size={18} color={THEME.rust} style={{ marginTop: 1, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, marginBottom: 4 }}>
+                          Corpus depletes in{" "}
+                          {Math.floor(swpResult.depletionMonth / 12) > 0
+                            ? `${Math.floor(swpResult.depletionMonth / 12)} year${Math.floor(swpResult.depletionMonth / 12) > 1 ? "s" : ""}`
+                            : ""}{" "}
+                          {swpResult.depletionMonth % 12 > 0
+                            ? `${swpResult.depletionMonth % 12} month${swpResult.depletionMonth % 12 > 1 ? "s" : ""}`
+                            : ""}
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
+                          At ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/month, your corpus runs
+                          out before the {swpYears}-year planning period ends.
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                          border: `1.5px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
+                        }}
+                      >
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                          MIN CORPUS NEEDED
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: THEME.gold }}>
+                          {fmtINRFull(swpResult.minCorpus)}
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
+                          to sustain ₹{Number(swpWithdrawal).toLocaleString("en-IN")}/mo for {swpYears}y
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                          border: `1.5px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
+                        }}
+                      >
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, marginBottom: 4 }}>
+                          CORPUS SHORTFALL
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: THEME.rust }}>
+                          {fmtINRFull(swpResult.deficit)}
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 3 }}>
+                          additional corpus required
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                      border: `1.5px solid color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                    }}
+                  >
+                    <Info size={18} color={THEME.gold} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.gold, marginBottom: 4 }}>
+                        Corpus survives the planning period
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
+                        Remaining corpus after {swpYears} years:{" "}
+                        <strong style={{ color: THEME.ink }}>
+                          {fmtINRFull(swpResult.remainingCorpus)}
+                        </strong>
+                        . Consider increasing your monthly withdrawal or extending the period.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* Year-by-year corpus balance chart */}
+              <Card style={{ padding: 20 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    color: THEME.muted,
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
+                  }}
+                >
+                  Year-by-Year Corpus Balance
+                </div>
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={swpResult.yearlyData}
+                      margin={{ top: 5, right: 5, left: -10, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="gSwpBalance" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={swpResult.isSustainable ? "#22c55e" : "#6366f1"} stopOpacity={0.35} />
+                          <stop offset="100%" stopColor={swpResult.isSustainable ? "#22c55e" : "#6366f1"} stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gSwpWithdrawn" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
+                          <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                      <XAxis
+                        dataKey="year"
+                        tick={{ fontSize: 10, fill: "var(--t-muted)" }}
+                        tickFormatter={(v) => `Y${v}`}
+                      />
+                      <YAxis tickFormatter={fmtINR} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        contentStyle={{
+                          background: "var(--t-card-bg)",
+                          borderColor: THEME.line,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="balance"
+                        name="Corpus Balance"
+                        stroke={swpResult.isSustainable ? "#22c55e" : "#6366f1"}
+                        strokeWidth={2.5}
+                        fill="url(#gSwpBalance)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="withdrawn"
+                        name="Total Withdrawn"
+                        stroke="#94a3b8"
+                        strokeWidth={1.5}
+                        fill="url(#gSwpWithdrawn)"
                         strokeDasharray="4 2"
                       />
                     </AreaChart>
