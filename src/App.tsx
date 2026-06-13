@@ -1472,6 +1472,65 @@ function FinanceDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally omit other deps — runs once after initial load
 
+  // One-time backfill: historical netWorthHistory snapshots were saved without
+  // investmentPlans (investment schemes). This adds the missing value to every
+  // past month using transaction dates where available, persists to Supabase,
+  // then sets a flag in masterData so this never double-applies on any device.
+  useEffect(() => {
+    if (!loaded) return;
+    if (state.masterData?._nwBackfillV2) return; // already done
+    const history = state.netWorthHistory || [];
+    if (history.length === 0) return;
+
+    const nowBf = new Date();
+    const currentYm = `${nowBf.getFullYear()}-${String(nowBf.getMonth() + 1).padStart(2, "0")}`;
+
+    setState((s) => {
+      const corrected = (s.netWorthHistory || []).map((h: any) => {
+        // Current month was already corrected by the auto-snapshot above — skip it
+        if (h.month === currentYm) return h;
+
+        // For this historical month, sum investment plan transactions dated on or
+        // before the last day of that month. Fall back to premiumPaid if no dated
+        // transactions exist (slightly overstates very old months, but better than 0).
+        const investAtMonth = (s.investmentPlans || []).reduce((a: number, ip: any) => {
+          const datedTxns = (ip.transactions || []).filter(
+            (t: any) => t.date && t.date.slice(0, 7) <= h.month
+          );
+          if (datedTxns.length > 0) {
+            return a + datedTxns.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          }
+          return a + Number(ip.premiumPaid || 0);
+        }, 0);
+
+        if (investAtMonth === 0) return h;
+        return { ...h, netWorth: h.netWorth + investAtMonth };
+      });
+
+      const uid3 = session?.user?.id;
+      if (uid3 && uid3 !== "offline-user") {
+        // Persist every corrected snapshot to Supabase
+        corrected.forEach((h: any) => {
+          if (h.month === currentYm) return; // already persisted by auto-snapshot
+          supabase
+            .from("net_worth_history")
+            .upsert({ user_id: uid3, month: h.month, net_worth: h.netWorth }, { onConflict: "user_id,month" })
+            .then(() => {});
+        });
+        // Set the "done" flag so this never runs again on any device
+        const newMaster = { ...(s.masterData || {}), _nwBackfillV2: true };
+        supabase
+          .from("user_settings")
+          .upsert({ user_id: uid3, master_data: newMaster })
+          .then(() => {});
+        return { ...s, netWorthHistory: corrected, masterData: newMaster };
+      }
+
+      return { ...s, netWorthHistory: corrected, masterData: { ...(s.masterData || {}), _nwBackfillV2: true } };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]); // intentionally runs once after initial load
+
   // Auto-advance overdue subscription renewal dates based on their billing cycle
   useEffect(() => {
     if (!loaded) return;
