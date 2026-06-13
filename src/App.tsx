@@ -1925,9 +1925,15 @@ function FinanceDashboard() {
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleString("en-IN", { month: "short" });
       const txns = filteredState.transactions.filter((t) => t.date && t.date.startsWith(ym));
-      const inc = txns
+      // Mirror metrics.monthIncome: prefer explicit income ledger for this month,
+      // fall back to credit transactions — exactly the same priority as the dashboard.
+      const explicitInc = (filteredState.income || [])
+        .filter((inc: any) => inc.date && inc.date.startsWith(ym))
+        .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
+      const txnInc = txns
         .filter((t) => t.type === "credit")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
+      const inc = explicitInc > 0 ? explicitInc : txnInc;
       const txnExp = txns
         .filter((t) => t.type === "debit")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
@@ -1945,7 +1951,7 @@ function FinanceDashboard() {
       arr.push({ month: label, income: inc, expense: exp, net: inc - exp });
     }
     return arr;
-  }, [filteredState.transactions, filteredState.rentedProperties]);
+  }, [filteredState.transactions, filteredState.rentedProperties, filteredState.income]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();

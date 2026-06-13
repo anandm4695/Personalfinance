@@ -1001,19 +1001,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ];
 
   const netWorthTrend = useMemo(() => {
-    const histMap: Record<string, number> = {};
-    (state.netWorthHistory || []).forEach((h: any) => {
-      histMap[h.month] = h.netWorth;
+    // Build directly from saved snapshots — sorted oldest→newest.
+    // Never fill missing months with metrics.netWorth (current value); that caused
+    // old months to falsely show today's net worth and made the chart look wrong.
+    const hist = [...(state.netWorthHistory || [])].sort((a: any, b: any) =>
+      a.month.localeCompare(b.month)
+    );
+    return hist.map((h: any) => {
+      const [yr, mo] = h.month.split("-");
+      const d = new Date(Number(yr), Number(mo) - 1, 1);
+      // Include short year suffix so months are unambiguous across years (e.g. "Jun'25")
+      const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
+      return { month: label, ym: h.month, value: h.netWorth };
     });
-    const now = new Date();
-    return trendData.map((t, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (trendData.length - 1 - i), 1);
-      // Use local date parts — toISOString() returns UTC which shifts month for IST (UTC+5:30)
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const value = histMap[ym] !== undefined ? histMap[ym] : metrics.netWorth;
-      return { month: t.month, value, real: histMap[ym] !== undefined };
-    });
-  }, [trendData, metrics, state.netWorthHistory]);
+  }, [state.netWorthHistory]);
 
   const filteredNetWorthTrend = useMemo(() => {
     if (trendPeriod === "All") return netWorthTrend;
