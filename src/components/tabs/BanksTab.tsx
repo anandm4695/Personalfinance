@@ -1777,6 +1777,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 category: "Transfer",
                 note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
                 narration: v.narration,
+                referenceNumber: v.referenceNumber,
               });
               addItem("transactions", {
                 owner: v.owner,
@@ -1787,6 +1788,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 category: "Transfer",
                 note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
                 narration: v.narration,
+                referenceNumber: v.referenceNumber,
               });
             } else {
               const { toAccountId: _drop, linkedKey, ...txnBase } = v;
