@@ -1762,6 +1762,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         <TxnEditModal
           txn={state.transactions.find((t: any) => t.id === editTxnId)}
           accounts={state.bankAccounts}
+          getDisplayBalance={getDisplayBalance}
           onClose={() => setEditTxnId(null)}
           onSave={(v: any) => {
             updateItem("transactions", editTxnId, v);
@@ -1782,6 +1783,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         <TxnModal
           accounts={state.bankAccounts}
           state={state}
+          getDisplayBalance={getDisplayBalance}
           onClose={() => setShowTxn(false)}
           onSave={(v: any) => {
             if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
@@ -1987,7 +1989,7 @@ function BankModal({ onClose, onSave }: any) {
   );
 }
 
-function TxnModal({ accounts, state, onClose, onSave }: any) {
+function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
   const [f, setF] = useState({
@@ -2072,7 +2074,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
         (() => {
           const sel = accounts.find((a: any) => a.id === f.accountId);
           if (!sel) return null;
-          const bal = Number(sel.balance || 0);
+          const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
           const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
           return (
             <div
@@ -2241,7 +2243,7 @@ function TxnModal({ accounts, state, onClose, onSave }: any) {
   );
 }
 
-function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
+function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any) {
   const { transactionCategories: cats } = useMasterData();
   const [f, setF] = useState({
     owner: txn?.owner || "self",
@@ -2295,7 +2297,7 @@ function TxnEditModal({ txn, accounts, onClose, onSave }: any) {
       {(() => {
         const sel = accounts.find((a: any) => a.id === f.accountId);
         if (!sel) return null;
-        const bal = Number(sel.balance || 0);
+        const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
         const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
         return (
           <div
