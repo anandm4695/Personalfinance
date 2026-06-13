@@ -2010,7 +2010,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
   const BalanceChip = ({ accId, label }: { accId: string; label: string }) => {
     const sel = accounts.find((a: any) => a.id === accId);
     if (!sel) return null;
-    const bal = Number(sel.balance || 0);
+    const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
     const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
     return (
       <div
