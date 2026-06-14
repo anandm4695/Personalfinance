@@ -902,7 +902,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
                   <div>
                     <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
                     <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                      {fmtINRFull(autoInvested)}
+                      {fmtINR(autoInvested)}
                     </div>
                   </div>
                 )}
@@ -910,7 +910,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
                   <div>
                     <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
                     <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                      {fmtINRFull(currentValue)}
+                      {fmtINR(currentValue)}
                     </div>
                   </div>
                 )}
@@ -1899,14 +1899,14 @@ function EditMFModal({ mf: initial, onClose, onSave }: any) {
           <div>
             <div style={{ fontSize: 10, color: THEME.muted }}>Cost Basis</div>
             <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-              {fmtINRFull(costBasis)}
+              {fmtINR(costBasis)}
             </div>
           </div>
           {currentValue > 0 && (
             <div>
               <div style={{ fontSize: 10, color: THEME.muted }}>Current Value</div>
               <div style={{ fontWeight: 800, color: THEME.accent, fontSize: 13 }}>
-                {fmtINRFull(currentValue)}
+                {fmtINR(currentValue)}
               </div>
             </div>
           )}
@@ -7798,21 +7798,21 @@ const YieldTracker = ({ state }: any) => {
         {[
           {
             label: "Annual Yield",
-            value: fmtINRFull(totalAnnual),
+            value: fmtINR(totalAnnual),
             sub: "All income streams combined",
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Monthly Income",
-            value: fmtINRFull(totalMonthly),
+            value: fmtINR(totalMonthly),
             sub: "Average cash flow / month",
             color: THEME.sage,
             Icon: Receipt,
           },
           {
             label: "Daily Passive",
-            value: fmtINRFull(totalAnnual / 365),
+            value: fmtINR(totalAnnual / 365),
             sub: "₹ earned every day",
             color: THEME.gold,
             Icon: Zap,
@@ -7948,7 +7948,7 @@ const YieldTracker = ({ state }: any) => {
                     </div>
                     <div style={{ textAlign: "right" as const }}>
                       <div style={{ fontSize: 14, fontWeight: 900, color }}>
-                        {fmtINRFull(value)}
+                        {fmtINR(value)}
                       </div>
                       <div style={{ fontSize: 10, color: THEME.muted }}>
                         {sharePct.toFixed(1)}% share
@@ -8001,7 +8001,7 @@ const YieldTracker = ({ state }: any) => {
                 Total Annual Yield
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: THEME.accent }}>
-                {fmtINRFull(totalAnnual)}
+                {fmtINR(totalAnnual)}
               </div>
             </div>
             <div style={{ textAlign: "right" as const }}>
@@ -8017,7 +8017,7 @@ const YieldTracker = ({ state }: any) => {
                 Monthly Avg.
               </div>
               <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage }}>
-                {fmtINRFull(totalMonthly)}
+                {fmtINR(totalMonthly)}
               </div>
             </div>
           </div>
