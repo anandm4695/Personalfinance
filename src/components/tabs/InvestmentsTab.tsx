@@ -2339,6 +2339,12 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                     </div>
                   </div>
 
+                  {/* Logo + Bank name */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <BankLogo name={f.bank} size={36} accentColor={FD_AMBER} />
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{f.bank}</div>
+                  </div>
+
                   <div style={lbl}>Principal</div>
                   <div
                     style={{
@@ -2691,6 +2697,12 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                     </div>
                   </div>
 
+                  {/* Logo + Bank name */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <BankLogo name={r.bank} size={36} accentColor={RD_BLUE} />
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{r.bank}</div>
+                  </div>
+
                   <div style={lbl}>Monthly Installment</div>
                   <div
                     style={{
@@ -3032,33 +3044,35 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                     </div>
                   </div>
 
-                  {/* Bond name + ISIN */}
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      marginBottom: 2,
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {b.name}
-                  </div>
-                  {b.isin ? (
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: THEME.muted,
-                        marginBottom: 14,
-                        fontFamily: "monospace",
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      {b.isin}
+                  {/* Logo + Bond name + ISIN */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+                    <BankLogo name={b.issuer || b.name} size={36} accentColor={BOND_AMBER} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 800,
+                          color: THEME.ink,
+                          lineHeight: 1.3,
+                          marginBottom: 2,
+                        }}
+                      >
+                        {b.name}
+                      </div>
+                      {b.isin && (
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            fontFamily: "monospace",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {b.isin}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div style={{ marginBottom: 14 }} />
-                  )}
+                  </div>
 
                   {/* Investment amount (primary) */}
                   <div style={lbl}>Total Investment</div>
@@ -3727,19 +3741,22 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
           marginBottom: 16,
         }}
       >
-        <div>
-          <Badge variant="accent">PPF Account</Badge>
-          {(p.institution || p.bank) && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-              Bank/Post Office:{" "}
-              <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.institution || p.bank}</span>
-            </div>
-          )}
-          {p.accountNumber && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
-              A/C: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.accountNumber}</span>
-            </div>
-          )}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <BankLogo name={p.institution || p.bank || "PPF"} size={36} accentColor={THEME.sage} />
+          <div>
+            <Badge variant="accent">PPF Account</Badge>
+            {(p.institution || p.bank) && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                Bank/Post Office:{" "}
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.institution || p.bank}</span>
+              </div>
+            )}
+            {p.accountNumber && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+                A/C: <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.accountNumber}</span>
+              </div>
+            )}
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -4133,8 +4150,8 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
 
                   {/* Fund manager */}
                   {n.fundManager && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, padding: "8px 10px", background: `${pfmColor}0d`, borderRadius: 10 }}>
-                      <Briefcase size={13} color={pfmColor} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 10px", background: `${pfmColor}0d`, borderRadius: 10 }}>
+                      <BankLogo name={n.fundManager} size={28} accentColor={pfmColor} />
                       <div style={{ fontSize: 12, fontWeight: 700, color: pfmColor }}>{n.fundManager} Pension</div>
                       <div style={{ marginLeft: "auto", fontSize: 10, color: THEME.muted }}>PFM</div>
                     </div>
@@ -5384,20 +5401,23 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
           marginBottom: 16,
         }}
       >
-        <div>
-          <Badge variant="accent">EPF Account</Badge>
-          {(p.employer || p.bank) && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-              Employer:{" "}
-              <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span>
-            </div>
-          )}
-          {(p.uan || p.accountNumber) && (
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
-              UAN:{" "}
-              <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span>
-            </div>
-          )}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <BankLogo name="EPFO" size={36} accentColor={THEME.accent} />
+          <div>
+            <Badge variant="accent">EPF Account</Badge>
+            {(p.employer || p.bank) && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                Employer:{" "}
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.employer || p.bank}</span>
+              </div>
+            )}
+            {(p.uan || p.accountNumber) && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+                UAN:{" "}
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{p.uan || p.accountNumber}</span>
+              </div>
+            )}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           <Button
@@ -6749,6 +6769,128 @@ const EPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
     )}
   </div>
 );
+
+/* ── Bank / Institution Logo ─────────────────────────────────────────── */
+const BANK_LOGO_DOMAINS: Record<string, string> = {
+  // Public sector banks
+  "state bank": "sbi.co.in", "sbi": "sbi.co.in",
+  // Private banks
+  "hdfc": "hdfcbank.com", "icici": "icicibank.com", "axis": "axisbank.com",
+  "kotak": "kotakmahindrabank.com", "yes bank": "yesbank.in", "yes ": "yesbank.in",
+  "indusind": "indusind.com", "rbl": "rblbank.com", "federal": "federalbank.co.in",
+  "idfc": "idfcfirstbank.com", "bandhan": "bandhanbank.com",
+  "au bank": "aubank.in", "au small": "aubank.in",
+  "south indian": "southindianbank.com", "karnataka bank": "karnatakabank.com",
+  "saraswat": "saraswatbank.com", "jammu": "jkbank.com",
+  // Public sector banks (more)
+  "bank of baroda": "bankofbaroda.in", "bob": "bankofbaroda.in",
+  "canara": "canarabank.in", "punjab national": "pnbindia.in", "pnb": "pnbindia.in",
+  "bank of india": "bankofindia.co.in", "union bank": "unionbankofindia.co.in",
+  "idbi": "idbi.co.in", "central bank": "centralbankofindia.co.in",
+  "indian bank": "indianbank.in", "uco bank": "ucobank.in",
+  // Post office / Govt savings
+  "post office": "indiapost.gov.in", "india post": "indiapost.gov.in",
+  // Insurance
+  "lic": "licindia.in",
+  // Government / RBI (bonds)
+  "rbi": "rbi.org.in", "reserve bank": "rbi.org.in",
+  "government of india": "india.gov.in", "govt of india": "india.gov.in",
+  "nabard": "nabard.org", "nhai": "nhai.gov.in",
+  // NPS PFMs (use AMC domains)
+  "uti": "utimf.com", "aditya birla": "adityabirlasunlifeamc.com",
+  "dsp": "dspim.com", "tata": "tatamutualfund.com", "max life": "maxlifeinsurance.com",
+  // EPFO
+  "epfo": "epfindia.gov.in", "employees provident": "epfindia.gov.in",
+};
+
+function getBankDomain(name: string): string {
+  const n = (name || "").toLowerCase().trim();
+  for (const [k, d] of Object.entries(BANK_LOGO_DOMAINS)) {
+    if (n.includes(k)) return d;
+  }
+  return "";
+}
+
+const BankLogo = ({
+  name,
+  size = 36,
+  accentColor,
+}: {
+  name: string;
+  size?: number;
+  accentColor?: string;
+}) => {
+  const domain = getBankDomain(name);
+  const color = accentColor || THEME.accent;
+  const [imgSrc, setImgSrc] = React.useState<string | null>(
+    domain ? `https://logos.hunter.io/${domain}` : null
+  );
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(domain ? 0 : 2);
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  const initials =
+    (name || "?")
+      .split(/\s+/)
+      .filter((w: string) => w.length > 1)
+      .slice(0, 2)
+      .map((w: string) => w[0].toUpperCase())
+      .join("") || (name || "?")[0]?.toUpperCase() || "?";
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
+    return (
+      <div
+        style={{
+          width: size, height: size,
+          borderRadius: Math.round(size * 0.25),
+          background: "#fff",
+          border: `1px solid ${THEME.line}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          overflow: "hidden", flexShrink: 0,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        }}
+      >
+        <img src={imgSrc} alt={name} onError={handleError}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size, height: size,
+        borderRadius: Math.round(size * 0.25),
+        background: `${color}18`,
+        border: `1px solid ${color}30`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: Math.round(size / 2.8), fontWeight: 800, color }}>
+        {initials}
+      </span>
+    </div>
+  );
+};
 
 /* ── MF Logo ──────────────────────────────────────────────────────────── */
 const MF_LOGO_DOMAINS: Record<string, string> = {
