@@ -482,9 +482,45 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         }
       : { ...EMPTY_VEHICLE }
   );
+  const [rcStatus, setRcStatus] = useState<"idle" | "loading" | "ok" | "error" | "nokey">("idle");
+  const [rcMsg, setRcMsg] = useState("");
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const canSave = f.make.trim() && f.model.trim();
+
+  const lookupRC = async () => {
+    const reg = (f.registrationNumber || "").trim();
+    if (!reg) { setRcStatus("error"); setRcMsg("Enter a registration number first"); return; }
+    setRcStatus("loading"); setRcMsg("");
+    try {
+      const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`);
+      const data = await r.json();
+      if (!r.ok) {
+        if (r.status === 503) { setRcStatus("nokey"); setRcMsg(data.hint || "API not configured"); }
+        else { setRcStatus("error"); setRcMsg(data.error || "Not found"); }
+        return;
+      }
+      // Auto-fill all returned fields (user can still override)
+      setF((p: any) => ({
+        ...p,
+        registrationNumber: data.registrationNumber || p.registrationNumber,
+        make: data.make || p.make,
+        model: data.model || p.model,
+        year: data.year || p.year,
+        color: data.color || p.color,
+        fuelType: data.fuelType || p.fuelType,
+        vehicleType: data.vehicleType || p.vehicleType,
+        chassisNumber: data.chassisNumber || p.chassisNumber,
+        engineNumber: data.engineNumber || p.engineNumber,
+        insuranceExpiry: data.insuranceExpiry || p.insuranceExpiry,
+        pucExpiry: data.pucExpiry || p.pucExpiry,
+      }));
+      setRcStatus("ok");
+      setRcMsg(`Fetched from VAHAN${data.ownerName ? ` · Owner: ${data.ownerName}` : ""}${data.rto ? ` · RTO: ${data.rto}` : ""}`);
+    } catch {
+      setRcStatus("error"); setRcMsg("Network error — try again");
+    }
+  };
 
   const handleSave = () => {
     if (!canSave) return;
@@ -557,12 +593,79 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       <ModalSection title="Registration Details" />
 
       <Field label="Registration Number">
-        <input
-          style={inp}
-          value={f.registrationNumber}
-          onChange={(e) => set("registrationNumber", e.target.value.toUpperCase())}
-          placeholder="e.g. MH04 AB 1234"
-        />
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            style={{ ...inp, flex: 1 }}
+            value={f.registrationNumber}
+            onChange={(e) => { set("registrationNumber", e.target.value.toUpperCase()); setRcStatus("idle"); }}
+            placeholder="e.g. MH04AB1234"
+          />
+          <button
+            onClick={lookupRC}
+            disabled={rcStatus === "loading"}
+            style={{
+              flexShrink: 0,
+              padding: "9px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: rcStatus === "loading" ? "#6b7280" : THEME.accent,
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: rcStatus === "loading" ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {rcStatus === "loading" ? (
+              <span style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: 14 }}>↻</span>
+            ) : (
+              <span>🔍</span>
+            )}
+            {rcStatus === "loading" ? "Fetching…" : "Lookup RC"}
+          </button>
+        </div>
+
+        {/* RC lookup status banner */}
+        {rcStatus !== "idle" && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              ...(rcStatus === "ok"
+                ? { background: "#10b98115", border: "1px solid #10b98130", color: "#065f46" }
+                : rcStatus === "nokey"
+                ? { background: "#f59e0b14", border: "1px solid #f59e0b40", color: "#78350f" }
+                : { background: "#ef444414", border: "1px solid #ef444430", color: "#7f1d1d" }),
+            }}
+          >
+            <span style={{ flexShrink: 0, fontSize: 14 }}>
+              {rcStatus === "ok" ? "✓" : rcStatus === "nokey" ? "⚙" : "✕"}
+            </span>
+            <span>
+              {rcStatus === "nokey" ? (
+                <>
+                  {rcMsg}
+                  {" — "}
+                  <a href="https://surepass.io" target="_blank" rel="noreferrer" style={{ color: "#b45309", fontWeight: 700 }}>
+                    Get free API token at surepass.io
+                  </a>
+                  {", then add "}
+                  <code style={{ background: "#0001", borderRadius: 4, padding: "1px 5px", fontFamily: "monospace" }}>SUREPASS_TOKEN</code>
+                  {" to Vercel env vars"}
+                </>
+              ) : rcMsg}
+            </span>
+          </div>
+        )}
       </Field>
 
       <div style={g2}>
