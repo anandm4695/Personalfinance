@@ -20,9 +20,11 @@ export const fmtINR = (n: number | string | null | undefined) => {
   const num = Number(n);
   const abs = Math.abs(num);
   const sign = num < 0 ? "-" : "";
-  if (abs >= 10000000) return `${sign}₹${(abs / 10000000).toFixed(2)}Cr`;
-  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(2)}L`;
-  if (abs >= 1000) return `${sign}₹${(abs / 1000).toFixed(1)}K`;
+  // parseFloat strips trailing zeros: 50.0 → "50", 1.50 → "1.5", 2.00 → "2"
+  const fmt = (val: number, dec: number) => parseFloat(val.toFixed(dec)).toString();
+  if (abs >= 10000000) return `${sign}₹${fmt(abs / 10000000, 2)}Cr`;
+  if (abs >= 100000)   return `${sign}₹${fmt(abs / 100000, 2)}L`;
+  if (abs >= 1000)     return `${sign}₹${fmt(abs / 1000, 1)}K`;
   return `${sign}₹${abs.toFixed(0)}`;
 };
 

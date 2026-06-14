@@ -1138,19 +1138,19 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         {[
           {
             label: "Total Invested",
-            value: fmtINRFull(totalPrincipal),
+            value: fmtINR(totalPrincipal),
             color: THEME.accent,
             Icon: IndianRupee,
           },
           {
             label: "Current Value",
-            value: fmtINRFull(totalCurrent),
+            value: fmtINR(totalCurrent),
             color: THEME.sage,
             Icon: TrendingUp,
           },
           {
             label: "Net Returns",
-            value: `${netGain >= 0 ? "+" : ""}${fmtINRFull(Math.abs(netGain))}`,
+            value: `${netGain >= 0 ? "+" : ""}${fmtINR(Math.abs(netGain))}`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: netGain >= 0 ? TrendingUp : TrendingDown,
           },
@@ -2178,13 +2178,13 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total Invested",
-                value: fmtINRFull(totalInvested),
+                value: fmtINR(totalInvested),
                 color: FD_AMBER,
                 Icon: IndianRupee,
               },
               {
                 label: "Total Maturity",
-                value: fmtINRFull(totalMaturity),
+                value: fmtINR(totalMaturity),
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
@@ -2355,7 +2355,7 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                       marginBottom: 14,
                     }}
                   >
-                    <Prv>{fmtINRFull(Number(f.principal))}</Prv>
+                    <Prv>{fmtINR(Number(f.principal))}</Prv>
                   </div>
 
                   <div
@@ -2548,19 +2548,19 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                 {[
                   {
                     label: "Monthly SIP Total",
-                    value: fmtINRFull(totalMonthly),
+                    value: fmtINR(totalMonthly),
                     color: RD_BLUE,
                     Icon: Repeat,
                   },
                   {
                     label: "Total Deposited",
-                    value: fmtINRFull(totalDeposited),
+                    value: fmtINR(totalDeposited),
                     color: THEME.accent,
                     Icon: IndianRupee,
                   },
                   {
                     label: "Projected Maturity",
-                    value: fmtINRFull(totalMaturity),
+                    value: fmtINR(totalMaturity),
                     color: THEME.sage,
                     Icon: TrendingUp,
                   },
@@ -2713,7 +2713,7 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    {fmtINRFull(Number(r.monthly))}
+                    {fmtINR(Number(r.monthly))}
                     <span style={{ fontSize: 14, color: THEME.muted }}>/mo</span>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 14 }}>
@@ -2882,13 +2882,13 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total Invested",
-                value: fmtINRFull(totalInvested),
+                value: fmtINR(totalInvested),
                 color: BOND_AMBER,
                 Icon: IndianRupee,
               },
               {
                 label: "Annual Coupon",
-                value: fmtINRFull(annualIncome),
+                value: fmtINR(annualIncome),
                 color: THEME.sage,
                 Icon: Coins,
               },
@@ -3770,7 +3770,7 @@ function PPFAccountCard({ p, removeItem, updateItem }: any) {
       {/* Balance */}
       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Current Balance</div>
       <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.02em" }}>
-        <Prv>{fmtINRFull(p.balance)}</Prv>
+        <Prv>{fmtINR(p.balance)}</Prv>
       </div>
 
       {/* Stats row */}
@@ -4416,7 +4416,7 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
               )}
             </div>
             <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
-              <Prv>{fmtINRFull(displayCorpus)}</Prv>
+              <Prv>{fmtINR(displayCorpus)}</Prv>
             </div>
           </>
         );
@@ -4596,7 +4596,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
           {/* Summary tiles */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
             {[
-              { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
+              { label: "Total NPS Corpus", value: fmtINR(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
               ...(totalEmployee + totalEmployer > 0
                 ? [{ label: "Employee Contributions", value: fmtINR(totalEmployee), color: THEME.accent, Icon: TrendingUp },
                    { label: "Employer Contributions", value: fmtINR(totalEmployer), color: "#0ea5e9", Icon: Briefcase }]
@@ -5852,7 +5852,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
           marginBottom: hasPassbook ? 10 : 20,
         }}
       >
-        <Prv>{fmtINRFull(displayCorpus)}</Prv>
+        <Prv>{fmtINR(displayCorpus)}</Prv>
       </div>
       {hasPassbook && (
         <div
@@ -7387,19 +7387,19 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
             {[
               {
                 label: "Total Invested",
-                value: fmtINRFull(totalInvested),
+                value: fmtINR(totalInvested),
                 color: THEME.accent,
                 Icon: IndianRupee,
               },
               {
                 label: "Current Value",
-                value: fmtINRFull(totalCurrent),
+                value: fmtINR(totalCurrent),
                 color: THEME.sage,
                 Icon: TrendingUp,
               },
               {
                 label: "Overall P&L",
-                value: `${totalPnl >= 0 ? "+" : ""}${fmtINRFull(Math.abs(totalPnl))}`,
+                value: `${totalPnl >= 0 ? "+" : ""}${fmtINR(Math.abs(totalPnl))}`,
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: totalPnl >= 0 ? TrendingUp : TrendingDown,
               },
