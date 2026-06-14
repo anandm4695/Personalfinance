@@ -4408,15 +4408,16 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 
       {/* Contribution breakdown (from ledger) */}
       {totalContributed > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-          <div style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.accent}33`, background: `${THEME.accent}09` }}>
-            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employee Total</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(totalEmployee)}</Prv></div>
-          </div>
-          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid #0ea5e933", background: "#0ea5e909" }}>
-            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employer Total</div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(totalEmployer)}</Prv></div>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginBottom: 14 }}>
+          {[
+            { label: "Employee Total", value: totalEmployee, color: THEME.accent, bg: "rgba(99,102,241,0.07)", border: "rgba(99,102,241,0.22)" },
+            { label: "Employer Total", value: totalEmployer, color: "#0ea5e9",    bg: "rgba(14,165,233,0.07)",  border: "rgba(14,165,233,0.22)" },
+          ].map(({ label, value, color, bg, border }) => (
+            <div key={label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${border}`, background: bg }}>
+              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color }}><Prv>{fmtINR(value)}</Prv></div>
+            </div>
+          ))}
         </div>
       )}
 
