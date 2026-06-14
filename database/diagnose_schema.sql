@@ -74,7 +74,9 @@ FROM (VALUES
   ('ppf_nps','transactions'), -- migration 06
   ('ppf_nps','epf_type'), ('ppf_nps','employee_contribution'), ('ppf_nps','employer_contribution'), -- migration 07
   ('ppf_nps','epf_balance'), ('ppf_nps','pension_balance'), -- migration 08
-  ('ppf_nps','establishments'), -- migration 28
+  ('ppf_nps','account_number'), -- migration 10 (also needed for NPS PRAN)
+  ('ppf_nps','establishments'), -- migration 28 (also stores NPS investment details)
+  -- migration 55: NPS investment columns (account_number + epf_type + employer_contribution + establishments — covered above)
   -- stocks
   ('stocks','day_low'), ('stocks','day_high'), ('stocks','week_52_low'), ('stocks','week_52_high'),
   ('stocks','pe_ratio'), ('stocks','market_cap'), ('stocks','sector'), -- migration 11
