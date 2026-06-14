@@ -24,6 +24,191 @@ import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Vehicle make → company domain (for logo fetching)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VEHICLE_MAKE_DOMAINS: Record<string, string> = {
+  honda: "honda.com",
+  yamaha: "yamaha-motor.com",
+  suzuki: "suzuki.com",
+  hero: "heromotocorp.com",
+  bajaj: "bajajauto.com",
+  tvs: "tvsmotor.com",
+  royalenfield: "royalenfield.com",
+  "royal enfield": "royalenfield.com",
+  ktm: "ktm.com",
+  kawasaki: "kawasaki.com",
+  maruti: "marutisuzuki.com",
+  hyundai: "hyundai.com",
+  tata: "tatamotors.com",
+  toyota: "toyota.com",
+  ford: "ford.com",
+  mahindra: "mahindra.com",
+  kia: "kia.com",
+  mg: "mgmotor.co.in",
+  bmw: "bmw.com",
+  mercedes: "mercedes-benz.com",
+  audi: "audi.com",
+  volkswagen: "volkswagen.com",
+  vw: "volkswagen.com",
+  skoda: "skoda-auto.com",
+  nissan: "nissan.com",
+  renault: "renault.com",
+  jeep: "jeep.com",
+  citroen: "citroen.com",
+  byd: "byd.com",
+  ola: "olaelectric.com",
+  ather: "atherenergy.com",
+  revolt: "revoltmotors.in",
+  harley: "harley-davidson.com",
+  ducati: "ducati.com",
+  triumph: "triumphmotorcycles.co.uk",
+  isuzu: "isuzu.com",
+  force: "forcemotors.com",
+};
+
+// Brand-matched gradient themes for known makes
+const VEHICLE_MAKE_THEMES: Record<string, { gradient: string; color: string }> = {
+  honda: { gradient: "linear-gradient(135deg,#cc0000 0%,#ff4444 100%)", color: "#cc0000" },
+  yamaha: { gradient: "linear-gradient(135deg,#0049cc 0%,#4488ff 100%)", color: "#0049cc" },
+  suzuki: { gradient: "linear-gradient(135deg,#1a1a7c 0%,#4444cc 100%)", color: "#1a1a7c" },
+  hero: { gradient: "linear-gradient(135deg,#002868 0%,#2255aa 100%)", color: "#002868" },
+  bajaj: { gradient: "linear-gradient(135deg,#1a2b6b 0%,#3355aa 100%)", color: "#1a2b6b" },
+  tvs: { gradient: "linear-gradient(135deg,#e31e26 0%,#ff5555 100%)", color: "#e31e26" },
+  royalenfield: { gradient: "linear-gradient(135deg,#5a3e28 0%,#8b6347 100%)", color: "#5a3e28" },
+  "royal enfield": { gradient: "linear-gradient(135deg,#5a3e28 0%,#8b6347 100%)", color: "#5a3e28" },
+  ktm: { gradient: "linear-gradient(135deg,#ff6600 0%,#ff9944 100%)", color: "#ff6600" },
+  kawasaki: { gradient: "linear-gradient(135deg,#00a651 0%,#33cc77 100%)", color: "#00a651" },
+  maruti: { gradient: "linear-gradient(135deg,#003087 0%,#1155bb 100%)", color: "#003087" },
+  hyundai: { gradient: "linear-gradient(135deg,#002c5f 0%,#1155aa 100%)", color: "#002c5f" },
+  tata: { gradient: "linear-gradient(135deg,#1d2671 0%,#3355bb 100%)", color: "#1d2671" },
+  toyota: { gradient: "linear-gradient(135deg,#eb0a1e 0%,#ff4455 100%)", color: "#eb0a1e" },
+  ford: { gradient: "linear-gradient(135deg,#003478 0%,#1155cc 100%)", color: "#003478" },
+  mahindra: { gradient: "linear-gradient(135deg,#e31837 0%,#ff4466 100%)", color: "#e31837" },
+  kia: { gradient: "linear-gradient(135deg,#ea0029 0%,#ff3355 100%)", color: "#ea0029" },
+  mg: { gradient: "linear-gradient(135deg,#c41230 0%,#ee3355 100%)", color: "#c41230" },
+  bmw: { gradient: "linear-gradient(135deg,#1c69d4 0%,#4488ff 100%)", color: "#1c69d4" },
+  mercedes: { gradient: "linear-gradient(135deg,#555555 0%,#999999 100%)", color: "#666666" },
+  audi: { gradient: "linear-gradient(135deg,#bb0a30 0%,#ee3355 100%)", color: "#bb0a30" },
+  volkswagen: { gradient: "linear-gradient(135deg,#001e50 0%,#003399 100%)", color: "#001e50" },
+  vw: { gradient: "linear-gradient(135deg,#001e50 0%,#003399 100%)", color: "#001e50" },
+  skoda: { gradient: "linear-gradient(135deg,#4ba82e 0%,#6dcc44 100%)", color: "#4ba82e" },
+  nissan: { gradient: "linear-gradient(135deg,#c3002f 0%,#ee3355 100%)", color: "#c3002f" },
+  renault: { gradient: "linear-gradient(135deg,#c8b700 0%,#eecc00 100%)", color: "#c8b700" },
+  jeep: { gradient: "linear-gradient(135deg,#1f4e2b 0%,#2e7a40 100%)", color: "#1f4e2b" },
+  ola: { gradient: "linear-gradient(135deg,#4c00c8 0%,#8844ff 100%)", color: "#4c00c8" },
+  ather: { gradient: "linear-gradient(135deg,#00b4aa 0%,#33ddcc 100%)", color: "#00b4aa" },
+  harley: { gradient: "linear-gradient(135deg,#cc4400 0%,#ff7722 100%)", color: "#cc4400" },
+  ducati: { gradient: "linear-gradient(135deg,#cc0000 0%,#ff3333 100%)", color: "#cc0000" },
+};
+
+function getMakeKey(make: string): string {
+  return (make || "").toLowerCase().replace(/[\s\-_.]+/g, "");
+}
+
+function getMakeTheme(make: string) {
+  const key = getMakeKey(make);
+  for (const [k, v] of Object.entries(VEHICLE_MAKE_THEMES)) {
+    if (key === getMakeKey(k) || key.startsWith(getMakeKey(k))) return v;
+  }
+  const hue = Array.from(make || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  return {
+    gradient: `linear-gradient(135deg,hsl(${hue},55%,38%) 0%,hsl(${hue},70%,58%) 100%)`,
+    color: `hsl(${hue},55%,38%)`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VehicleMakeLogo — brand logo with graceful fallback (mirrors BrokerLogo)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
+  const key = getMakeKey(make);
+  let domain = "";
+  for (const [k, d] of Object.entries(VEHICLE_MAKE_DOMAINS)) {
+    if (key === getMakeKey(k) || key.startsWith(getMakeKey(k))) {
+      domain = d;
+      break;
+    }
+  }
+
+  const theme = getMakeTheme(make);
+  const [imgSrc, setImgSrc] = React.useState<string | null>(null);
+  const [fallbackLevel, setFallbackLevel] = React.useState(0);
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  const br = Math.round(size * 0.27);
+  const initials = (make || "?").slice(0, 2).toUpperCase();
+  const fontSize = Math.round(size * 0.34);
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: br,
+          background: "#fff",
+          border: `1.5px solid ${theme.color}30`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          boxShadow: `0 4px 14px ${theme.color}28`,
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src={imgSrc}
+          alt={make}
+          onError={handleError}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: br,
+        background: theme.gradient,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        boxShadow: `0 4px 14px ${theme.color}40`,
+      }}
+    >
+      <span style={{ fontSize, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>
+        {initials}
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -507,8 +692,6 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
     ? sh.slice().sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
     : null;
 
-  const emoji = vehicle.vehicleType === "four-wheeler" ? "🚗" : vehicle.vehicleType === "commercial" ? "🚛" : "🛵";
-
   const deprPct =
     vehicle.purchasePrice && vehicle.currentValue && vehicle.purchasePrice > vehicle.currentValue
       ? Math.round(((vehicle.purchasePrice - vehicle.currentValue) / vehicle.purchasePrice) * 100)
@@ -530,23 +713,8 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
         onClick={onToggle}
         style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", cursor: "pointer", userSelect: "none" }}
       >
-        {/* Vehicle icon */}
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: `linear-gradient(135deg, ${THEME.accent}22 0%, ${THEME.accent}0a 100%)`,
-            border: `1.5px solid ${THEME.accent}30`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 26,
-            flexShrink: 0,
-          }}
-        >
-          {emoji}
-        </div>
+        {/* Brand logo */}
+        <VehicleMakeLogo make={vehicle.make} size={52} />
 
         {/* Main info */}
         <div style={{ flex: 1, minWidth: 0 }}>
