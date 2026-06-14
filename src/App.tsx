@@ -1311,155 +1311,18 @@ function FinanceDashboard() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showProfileMenu]);
 
-  // Auto-snapshot: always refresh the current month's net worth on every load so it stays accurate
+  // Auto-snapshot: always refresh the current month's net worth on every load so it stays accurate.
+  // Uses metricsNwRef (which mirrors metrics.netWorth from the dashboard) so the stored snapshot
+  // is ALWAYS identical to what the dashboard headline shows — no separate recomputation that can diverge.
   useEffect(() => {
     if (!loaded) return;
+    const nw = metricsNwRef.current;
+    if (!nw) return; // Safety: don't snapshot before metrics have computed
     const nowSnap = new Date();
     const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
     setState((s) => {
-      const nw = (() => {
-        const cash = (s.bankAccounts || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const fd = (s.fixedDeposits || []).reduce((a, x) => a + Number(x.principal || 0), 0);
-        const rd = (s.recurringDeposits || []).reduce((a, r) => {
-          const m = monthsBetween(r.startDate, today());
-          return a + Math.min(m, Number(r.tenureMonths || 0)) * Number(r.monthly || 0);
-        }, 0);
-        const bonds = (s.bonds || []).reduce((a, x) => a + Number(x.faceValue || 0), 0);
-        const ppf = (s.ppf || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const nps = (s.nps || []).reduce((a, x) => a + Number(x.balance || 0), 0);
-        const epf = (s.epf || []).reduce((a, x) => a + calculateEpfBalance(x), 0);
-        const lic = (s.lic || []).reduce((a, x) => {
-          const txTotal = (x.transactions || []).reduce(
-            (sum: number, t: any) => sum + Number(t.amount || 0),
-            0
-          );
-          return a + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
-        }, 0);
-        const investment = (s.investmentPlans || []).reduce((a: number, ip: any) => {
-          const txTotal = (ip.transactions || []).reduce(
-            (sum: number, t: any) => sum + Number(t.amount || 0),
-            0
-          );
-          return a + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
-        }, 0);
-        const mf = (s.mutualFunds || []).reduce((a, x) => {
-          const liveNav = Number(x.currentNav || 0);
-          const fallbackNav =
-            liveNav ||
-            Number(x.buyNav || 0) ||
-            (Number(x.units || 1) > 0 ? Number(x.invested || 0) / Number(x.units || 1) : 0);
-          return a + Number(x.units || 0) * fallbackNav;
-        }, 0);
-        const stocks = (s.stocks || []).reduce((a, x) => {
-          const livePrice = Number(x.currentPrice || 0);
-          const fallbackPrice = livePrice || Number(x.avgPrice || 0);
-          return a + Number(x.qty || 0) * fallbackPrice;
-        }, 0);
-        const loansGiven = (s.loansGiven || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        const prepaid = (s.prepaidCards || [])
-          .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
-          .reduce((a, p) => {
-            const txns = p.transactions || [];
-            const loaded = txns
-              .filter((t: any) => t.type === "load")
-              .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-            const spent = txns
-              .filter((t: any) => t.type === "spend")
-              .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-            return a + (loaded - spent);
-          }, 0);
-        const rentedDepositAsset = (s.rentedProperties || []).reduce((a, p) => {
-          const actualDeposit =
-            p.depositTransactions && p.depositTransactions.length > 0
-              ? p.depositTransactions.reduce(
-                  (sum: number, tx: any) => sum + Number(tx.amount || 0),
-                  0
-                )
-              : Number(p.securityDeposit || 0);
-          const returned = Number(p.depositReturned || 0);
-          return a + Math.max(0, actualDeposit - returned);
-        }, 0);
-        const informalLent = (s.informalLent || []).reduce((a, person) => {
-          const tranches = person.tranches || [];
-          const payments = person.payments || [];
-          const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-          const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-          return a + Math.max(0, totalT - totalP);
-        }, 0);
-
-        const cc = (s.creditCards || [])
-          .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-          .reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        const loansTaken = (s.loansTaken || []).reduce((a, x) => a + Number(x.outstanding || 0), 0);
-        const rentalDepositLiability = (s.rentalProperties || []).reduce((a, p) => {
-          const actualDeposit =
-            p.depositTransactions && p.depositTransactions.length > 0
-              ? p.depositTransactions.reduce(
-                  (sum: number, tx: any) => sum + Number(tx.amount || 0),
-                  0
-                )
-              : Number(p.securityDeposit || 0);
-          const deducted = (p.depositDeductions || []).reduce(
-            (ad, d) => ad + Number(d.amount || 0),
-            0
-          );
-          const returned = Number(p.depositReturned || 0);
-          return a + Math.max(0, actualDeposit - deducted - returned);
-        }, 0);
-        const informalBorrowed = (s.informalBorrowed || []).reduce((a, person) => {
-          const tranches = person.tranches || [];
-          const payments = person.payments || [];
-          const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-          const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-          return a + Math.max(0, totalT - totalP);
-        }, 0);
-
-        const rentalPropertyAsset = (s.rentalProperties || []).reduce(
-          (a, r) => a + Number(r.propertyValue || 0),
-          0
-        );
-        const realEstateSnap = (s.realEstateProperties || [])
-          .filter((p: any) => p.status !== "sold")
-          .reduce((a: number, p: any) => a + Number(p.marketValue || p.agreementValue || 0), 0);
-        const realEstateOutstandingSnap = (() => {
-          const ucIds = new Set(
-            (s.realEstateProperties || [])
-              .filter((p: any) => p.status === "under-construction")
-              .map((p: any) => p.id)
-          );
-          const demanded = (s.realEstateDemands || [])
-            .filter((d: any) => ucIds.has(d.propertyId))
-            .reduce((a: number, d: any) => a + Number(d.totalAmount || d.amount || 0), 0);
-          const paid = (s.realEstatePayments || [])
-            .filter((p: any) => ucIds.has(p.propertyId))
-            .reduce((a: number, p: any) => a + Number(p.amount || 0), 0);
-          return Math.max(0, demanded - paid);
-        })();
-
-        const assets =
-          cash +
-          fd +
-          rd +
-          bonds +
-          ppf +
-          nps +
-          epf +
-          lic +
-          investment +
-          mf +
-          stocks +
-          loansGiven +
-          prepaid +
-          rentedDepositAsset +
-          informalLent +
-          rentalPropertyAsset +
-          realEstateSnap;
-        const liabilities = cc + loansTaken + rentalDepositLiability + informalBorrowed + realEstateOutstandingSnap;
-        return assets - liabilities;
-      })();
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
       const newHistory = [...history, { month: ym, netWorth: nw }].slice(-36);
-      // Persist current month's snapshot to Supabase
       const uid2 = session?.user?.id;
       if (uid2 && uid2 !== "offline-user") {
         supabase
@@ -1530,6 +1393,57 @@ function FinanceDashboard() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally runs once after initial load
+
+  // One-time cleanup: remove netWorthHistory entries that are clearly corrupted —
+  // defined as any past-month entry whose stored value is less than 10% of the current
+  // net worth. These were snapshots captured before real estate was wired into the
+  // auto-snapshot, leaving them drastically understated (assets minus loans = negative
+  // or near-zero when the real net worth is ₹2Cr+). Runs once per account lifetime.
+  useEffect(() => {
+    if (!loaded) return;
+    if (state.masterData?._nwCleanV1) return;
+    const nowClean = new Date();
+    const currentYm = `${nowClean.getFullYear()}-${String(nowClean.getMonth() + 1).padStart(2, "0")}`;
+    const currentNw = metricsNwRef.current;
+    const threshold = currentNw * 0.1; // 10% of current net worth
+    const uid4 = session?.user?.id;
+
+    setState((s) => {
+      const cleaned = (s.netWorthHistory || []).filter(
+        (h: any) => h.month === currentYm || h.netWorth >= threshold
+      );
+      const didClean = cleaned.length !== (s.netWorthHistory || []).length;
+
+      if (uid4 && uid4 !== "offline-user") {
+        if (didClean) {
+          const keptMonths = new Set(cleaned.map((h: any) => h.month));
+          const removedMonths = (s.netWorthHistory || [])
+            .filter((h: any) => !keptMonths.has(h.month))
+            .map((h: any) => h.month);
+          if (removedMonths.length > 0) {
+            supabase
+              .from("net_worth_history")
+              .delete()
+              .eq("user_id", uid4)
+              .in("month", removedMonths)
+              .then(() => {});
+          }
+        }
+        const newMaster = { ...(s.masterData || {}), _nwCleanV1: true };
+        supabase
+          .from("user_settings")
+          .upsert({ user_id: uid4, master_data: newMaster })
+          .then(() => {});
+        return { ...s, netWorthHistory: cleaned, masterData: newMaster };
+      }
+      return {
+        ...s,
+        netWorthHistory: cleaned,
+        masterData: { ...(s.masterData || {}), _nwCleanV1: true },
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
   // Auto-advance overdue subscription renewal dates based on their billing cycle
   useEffect(() => {
@@ -1958,6 +1872,11 @@ function FinanceDashboard() {
       })(),
     };
   }, [filteredState, marketData]);
+
+  // Ref so the auto-snapshot effect always reads the same net worth the dashboard shows.
+  // Updated on every render (before effects run) so effects always see the current value.
+  const metricsNwRef = useRef(0);
+  metricsNwRef.current = metrics.netWorth;
 
   const assetBreakdown = useMemo(
     () =>
