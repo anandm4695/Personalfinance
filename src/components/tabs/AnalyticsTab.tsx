@@ -1001,20 +1001,27 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ];
 
   const netWorthTrend = useMemo(() => {
-    // Build directly from saved snapshots — sorted oldest→newest.
-    // Never fill missing months with metrics.netWorth (current value); that caused
-    // old months to falsely show today's net worth and made the chart look wrong.
+    // Build from saved snapshots, sorted oldest→newest.
     const hist = [...(state.netWorthHistory || [])].sort((a: any, b: any) =>
       a.month.localeCompare(b.month)
     );
-    return hist.map((h: any) => {
+    const points = hist.map((h: any) => {
       const [yr, mo] = h.month.split("-");
       const d = new Date(Number(yr), Number(mo) - 1, 1);
-      // Include short year suffix so months are unambiguous across years (e.g. "Jun'25")
       const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
       return { month: label, ym: h.month, value: h.netWorth };
     });
-  }, [state.netWorthHistory]);
+    // Always append the current live net worth as "Today" if it isn't already the latest snapshot.
+    // This ensures the hero sparkline renders even when the user has only 1–2 saved snapshots.
+    const todayYM = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const lastYM = points.length > 0 ? points[points.length - 1].ym : "";
+    if (lastYM !== todayYM && metrics.netWorth > 0) {
+      const now = new Date();
+      const label = now.toLocaleString("en-IN", { month: "short", year: "2-digit" });
+      points.push({ month: label, ym: todayYM, value: metrics.netWorth });
+    }
+    return points;
+  }, [state.netWorthHistory, metrics.netWorth]);
 
   const filteredNetWorthTrend = useMemo(() => {
     if (trendPeriod === "All") return netWorthTrend;
@@ -2766,7 +2773,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 ₹
               </div>
 
-              {netWorthTrend.filter((t: any) => t.value > 0).length > 2 && (
+              {netWorthTrend.filter((t: any) => t.value > 0).length >= 2 && (
                 <div
                   style={{
                     position: "absolute",
