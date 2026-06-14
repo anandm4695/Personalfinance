@@ -1,14 +1,13 @@
-// RC Lookup — tries multiple sources in priority order
+// RC Lookup — tries configured providers in priority order.
 //
-// SOURCE 1 (no signup): mParivahan government app backend
-//   - The official government mParivahan mobile app uses this endpoint
-//   - Attempted without any API key — works from server-side (no CORS, sometimes no CAPTCHA)
+// NOTE: maas.parivahan.gov.in (old mParivahan app backend) is dead as of 2026 —
+//       the domain no longer resolves. Set one of the env vars below instead.
 //
-// SOURCE 2 (env: SUREPASS_TOKEN): Surepass.io — 100 free calls, then ₹2-4/call
-// SOURCE 3 (env: ATTESTR_TOKEN):  Attestr.com  — simpler signup for Indian devs
-// SOURCE 4 (env: RAPIDAPI_KEY):   RapidAPI     — sign in with Google account (easiest)
+// SOURCE 1 (env: SUREPASS_TOKEN): Surepass.io — 100 free calls, then ₹2-4/call  ← recommended
+// SOURCE 2 (env: ATTESTR_TOKEN):  Attestr.com  — Indian developer API
+// SOURCE 3 (env: RAPIDAPI_KEY):   RapidAPI     — sign in with Google (easiest signup)
 //
-// Set any ONE of these in Vercel → Settings → Environment Variables.
+// Set any ONE of these in Vercel → Settings → Environment Variables → Redeploy.
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -21,13 +20,7 @@ module.exports = async function handler(req, res) {
     .replace(/[\s\-]/g, "");
   if (!reg) return res.status(400).json({ error: "reg param required" });
 
-  // ── SOURCE 1: mParivahan government app API (no key needed) ─────────────
-  try {
-    const data = await tryMParivahan(reg);
-    if (data) return res.json(data);
-  } catch (_) {}
-
-  // ── SOURCE 2: Surepass ───────────────────────────────────────────────────
+  // ── SOURCE 1: Surepass (recommended — 100 free calls) ───────────────────
   if (process.env.SUREPASS_TOKEN) {
     try {
       const data = await trySurepass(reg, process.env.SUREPASS_TOKEN);
@@ -35,7 +28,7 @@ module.exports = async function handler(req, res) {
     } catch (_) {}
   }
 
-  // ── SOURCE 3: Attestr ────────────────────────────────────────────────────
+  // ── SOURCE 2: Attestr ────────────────────────────────────────────────────
   if (process.env.ATTESTR_TOKEN) {
     try {
       const data = await tryAttestr(reg, process.env.ATTESTR_TOKEN);
@@ -43,7 +36,7 @@ module.exports = async function handler(req, res) {
     } catch (_) {}
   }
 
-  // ── SOURCE 4: RapidAPI ───────────────────────────────────────────────────
+  // ── SOURCE 3: RapidAPI ───────────────────────────────────────────────────
   if (process.env.RAPIDAPI_KEY) {
     try {
       const data = await tryRapidApi(reg, process.env.RAPIDAPI_KEY);
@@ -51,53 +44,17 @@ module.exports = async function handler(req, res) {
     } catch (_) {}
   }
 
-  // ── No source worked ─────────────────────────────────────────────────────
+  // ── No provider configured ───────────────────────────────────────────────
+  const hasAnyKey = process.env.SUREPASS_TOKEN || process.env.ATTESTR_TOKEN || process.env.RAPIDAPI_KEY;
   return res.status(503).json({
-    error: "RC lookup not available",
-    noProvider: true,
+    error: hasAnyKey
+      ? "Vehicle not found in VAHAN database — the number may be invalid or the provider is temporarily down"
+      : "RC lookup not available",
+    noProvider: !hasAnyKey,
   });
 };
 
 // ─── Provider implementations ────────────────────────────────────────────────
-
-async function tryMParivahan(reg) {
-  // The mParivahan government app (Android/iOS) uses this backend.
-  // Attempted without auth — works for many vehicles from server-side.
-  const r = await fetch("https://maas.parivahan.gov.in/maasapi/user/verifyvehicle", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "User-Agent": "okhttp/4.9.0", // mimic Android mParivahan app
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ regn_no: reg, oth: "N" }),
-    signal: AbortSignal.timeout(7000),
-  });
-  if (!r.ok) return null;
-  const json = await r.json();
-  // mParivahan returns response_code "1" on success
-  const d = json?.result?.[0] || json?.result || null;
-  if (!d || json.response_code === "0") return null;
-
-  const cls = (d.vehicle_category || d.vehicle_class || "").toUpperCase();
-  return {
-    registrationNumber: d.reg_no || reg,
-    make: normalizeMake(d.maker_desc || d.manufacturer || ""),
-    model: cleanModel(d.model || d.model_desc || ""),
-    year: extractYear(d.manufacturing_mon_yr || d.reg_date || ""),
-    color: titleCase(d.color || ""),
-    fuelType: mapFuel(d.vehicle_fuel_type || ""),
-    vehicleType: mapClass(cls),
-    chassisNumber: d.chassis_no || "",
-    engineNumber: d.engine_no || "",
-    insuranceExpiry: normalizeDate(d.insurance_upto || d.insurance_validity || ""),
-    pucExpiry: normalizeDate(d.pucc_upto || d.pucc_validity_upto || ""),
-    ownerName: titleCase(d.owner_name || ""),
-    rto: titleCase(d.rto || d.registration_authority || ""),
-    state: titleCase(d.state || ""),
-    source: "mParivahan (Government)",
-  };
-}
 
 async function trySurepass(reg, token) {
   const r = await fetch("https://kyc-api.surepass.io/api/v1/rc/rc-full", {

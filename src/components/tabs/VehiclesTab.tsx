@@ -650,18 +650,30 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             {[
               {
                 num: "1",
-                title: "RapidAPI",
-                badge: "Easiest — sign in with Google",
-                color: "#2563eb",
+                title: "Surepass",
+                badge: "⭐ Recommended — 100 free calls",
+                color: "#059669",
                 steps: [
-                  "Go to rapidapi.com → click Sign Up → choose Continue with Google",
-                  'Search "RTO Vehicle Information Verification India" → Subscribe (free tier)',
-                  "Copy your X-RapidAPI-Key from the API page",
-                  "Vercel → Settings → Env Vars → add RAPIDAPI_KEY = your key → Redeploy",
+                  "Go to surepass.io → click Sign Up (email or Google)",
+                  "After login: Dashboard → copy your API Token",
+                  "Vercel → Settings → Environment Variables → add  SUREPASS_TOKEN = (paste token)",
+                  "Click Save → Redeploy → done! RC Lookup will work instantly",
                 ],
               },
               {
                 num: "2",
+                title: "RapidAPI",
+                badge: "Sign in with Google",
+                color: "#2563eb",
+                steps: [
+                  "Go to rapidapi.com → Sign Up → Continue with Google",
+                  'Search "RTO Vehicle Information Verification India" → Subscribe (free tier)',
+                  "API page → copy your X-RapidAPI-Key",
+                  "Vercel → Env Vars → add RAPIDAPI_KEY = your key → Redeploy",
+                ],
+              },
+              {
+                num: "3",
                 title: "Attestr",
                 badge: "Indian developer API",
                 color: "#7c3aed",
@@ -670,17 +682,6 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                   "Dashboard → API Console → create credentials",
                   "Copy the Base64 token shown",
                   "Vercel → Env Vars → add ATTESTR_TOKEN = your token → Redeploy",
-                ],
-              },
-              {
-                num: "3",
-                title: "Surepass",
-                badge: "100 free calls",
-                color: "#059669",
-                steps: [
-                  "Go to surepass.io → Sign Up",
-                  "Dashboard → copy your API Token",
-                  "Vercel → Env Vars → add SUREPASS_TOKEN = your token → Redeploy",
                 ],
               },
             ].map((p) => (
