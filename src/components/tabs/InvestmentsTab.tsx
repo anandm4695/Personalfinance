@@ -4086,11 +4086,476 @@ function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: a
   );
 }
 
+/* ── NPS Transaction Modal ──────────────────────────────────────────── */
+function NPSTransactionModal({ onClose, onSave, initial }: any) {
+  const [form, setForm] = useState(() => {
+    if (!initial)
+      return {
+        date: today(),
+        particulars: "",
+        uploadedBy: "",
+        employeeAmount: "",
+        employerAmount: "",
+      };
+    return {
+      date: initial.date || today(),
+      particulars: initial.particulars || "",
+      uploadedBy: initial.uploadedBy || "",
+      employeeAmount: initial.employeeAmount != null ? String(initial.employeeAmount) : "",
+      employerAmount: initial.employerAmount != null ? String(initial.employerAmount) : "",
+    };
+  });
+
+  const empAmt = Number(form.employeeAmount || 0);
+  const erAmt = Number(form.employerAmount || 0);
+  const valid = !!form.date && (empAmt > 0 || erAmt > 0);
+
+  return (
+    <Modal title={initial ? "Edit NPS Transaction" : "Add NPS Transaction"} onClose={onClose}>
+      <Field label="Date *">
+        <input style={inp} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+      </Field>
+      <Field label="Particulars">
+        <input style={inp} value={form.particulars} onChange={(e) => setForm({ ...form, particulars: e.target.value })}
+          placeholder="e.g. By Arrear - Regular Contribution for April" />
+      </Field>
+      <Field label="Uploaded By / Source">
+        <input style={inp} value={form.uploadedBy} onChange={(e) => setForm({ ...form, uploadedBy: e.target.value })}
+          placeholder="e.g. Kotak Mahindra Bank Limited (5000041) or eNPS - Online" />
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Employee Contribution (₹)">
+          <input style={inp} type="number" min={0} value={form.employeeAmount}
+            onChange={(e) => setForm({ ...form, employeeAmount: e.target.value })} placeholder="0" />
+        </Field>
+        <Field label="Employer Contribution (₹)">
+          <input style={inp} type="number" min={0} value={form.employerAmount}
+            onChange={(e) => setForm({ ...form, employerAmount: e.target.value })} placeholder="0" />
+        </Field>
+      </div>
+      {(empAmt > 0 || erAmt > 0) && (
+        <div style={{ padding: "8px 12px", background: `${NPS_ORANGE}0d`, borderRadius: 8, fontSize: 12, color: NPS_ORANGE, fontWeight: 700 }}>
+          Total: {fmtINR(empAmt + erAmt)}
+          {empAmt > 0 && erAmt > 0 && (
+            <span style={{ color: THEME.muted, fontWeight: 500 }}> (Employee: {fmtINR(empAmt)} + Employer: {fmtINR(erAmt)})</span>
+          )}
+        </div>
+      )}
+      <ModalActions onSave={() => valid && onSave({
+        date: form.date,
+        particulars: form.particulars,
+        uploadedBy: form.uploadedBy,
+        employeeAmount: empAmt,
+        employerAmount: erAmt,
+      })} onClose={onClose} saveLabel={initial ? "Save Changes" : "Add Transaction"} />
+    </Modal>
+  );
+}
+
+/* ── NPS CSV Import Panel ───────────────────────────────────────────── */
+function NPSCsvPanel({ onImport }: any) {
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+  const [importDone, setImportDone] = useState(false);
+
+  const parseCsvText = (text: string) => {
+    setCsvError("");
+    setCsvPreview([]);
+    setImportDone(false);
+    try {
+      const lines = text.trim().split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) { setCsvError("No data rows found."); return; }
+      const rows = lines.map((line, i) => {
+        const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+        if (parts.length < 4) throw new Error(`Row ${i + 1}: need date, particulars, uploaded_by, employee_amount[, employer_amount]`);
+        const [date, particulars, uploadedBy, empRaw, erRaw] = parts;
+        if (!date.match(/^\d{4}-\d{2}-\d{2}$/))
+          throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD`);
+        const empAmt = Number(empRaw) || 0;
+        const erAmt = Number(erRaw || 0) || 0;
+        if (empAmt < 0 || erAmt < 0) throw new Error(`Row ${i + 1}: amounts cannot be negative`);
+        if (empAmt === 0 && erAmt === 0) throw new Error(`Row ${i + 1}: at least one of employee or employer amount must be > 0`);
+        return {
+          id: `npstx-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+          date, particulars, uploadedBy, employeeAmount: empAmt, employerAmount: erAmt,
+        };
+      });
+      setCsvPreview(rows);
+    } catch (e: any) { setCsvError(e.message); }
+  };
+
+  const handleFile = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: any) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; setCsvText(text); parseCsvText(text); };
+    reader.readAsText(file);
+  };
+
+  const downloadTemplate = () => {
+    const content =
+      "# NPS Transaction Import Template\n# Columns: date, particulars, uploaded_by, employee_amount, employer_amount\n# Amounts: 0 means no contribution from that side\n2025-04-14,By Arrear - Regular Contribution for April,Kotak Mahindra Bank Limited (5000041),0,4664.6\n2025-08-17,By Voluntary Contributions,eNPS - Online (5000682),20000,0\n2026-01-13,For January 2026,Kotak Mahindra Bank Limited (5000041),0,4664.6";
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "nps_import_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const doImport = () => {
+    if (!csvPreview.length) return;
+    onImport(csvPreview);
+    setImportDone(true); setCsvPreview([]); setCsvText(""); setCsvFileName("");
+  };
+
+  const btnStyle = { padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" } as const;
+
+  return (
+    <div style={{ padding: 18, borderRadius: 12, marginBottom: 16, background: `${NPS_ORANGE}09`, border: `1px solid ${NPS_ORANGE}38` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: NPS_ORANGE, display: "flex", alignItems: "center", gap: 8 }}>
+          <FileText size={15} /> Bulk Import via CSV
+        </div>
+        <button onClick={downloadTemplate} style={{ ...btnStyle, border: `1px solid ${NPS_ORANGE}4d`, background: "transparent", color: NPS_ORANGE }}>
+          Download Template
+        </button>
+      </div>
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 12, padding: "8px 12px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, lineHeight: 1.6 }}>
+        <b style={{ color: THEME.ink }}>Format:</b>{" "}
+        <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>date, particulars, uploaded_by, employee_amount, employer_amount</code>
+        <br />Use <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>0</code> for the side that did not contribute. Date format: <code style={{ background: `${THEME.line}40`, padding: "1px 5px", borderRadius: 4 }}>YYYY-MM-DD</code>
+      </div>
+      <label
+        style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, padding: "20px 0", border: `1.5px dashed ${NPS_ORANGE}66`, borderRadius: 10, cursor: "pointer", marginBottom: 12, background: `${NPS_ORANGE}08` }}
+        onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
+      >
+        <Upload size={22} color={NPS_ORANGE} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: NPS_ORANGE }}>{csvFileName || "Drop CSV file here or click to browse"}</div>
+        <div style={{ fontSize: 11, color: THEME.muted }}>Supports .csv and .txt files</div>
+        <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
+      </label>
+      <div style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginBottom: 6, textAlign: "center" as const }}>— or paste CSV text below —</div>
+      <textarea
+        style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 10, color: THEME.ink, fontSize: 12, fontFamily: "monospace", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        value={csvText}
+        onChange={(e) => { setCsvText(e.target.value); setCsvPreview([]); setCsvError(""); setImportDone(false); }}
+        placeholder={"2025-04-14, By Arrear - Regular Contribution for April, Kotak Mahindra Bank (5000041), 0, 4664.60\n2025-08-17, By Voluntary Contributions, eNPS - Online (5000682), 20000, 0"}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" as const }}>
+        <button style={{ ...btnStyle, border: `1px solid ${NPS_ORANGE}66`, background: "transparent", color: NPS_ORANGE }} onClick={() => parseCsvText(csvText)}>
+          Preview Data
+        </button>
+        {csvPreview.length > 0 && !importDone && (
+          <button style={{ ...btnStyle, border: "none", background: NPS_ORANGE, color: "#fff" }} onClick={doImport}>
+            Import {csvPreview.length} Row{csvPreview.length !== 1 ? "s" : ""}
+          </button>
+        )}
+        {importDone && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.sage, fontSize: 12, fontWeight: 700 }}>
+            <CheckCircle2 size={15} /> Imported!
+          </div>
+        )}
+      </div>
+      {csvError && (
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start", color: THEME.rust, fontSize: 12, padding: "8px 12px", background: `${THEME.rust}0f`, borderRadius: 8 }}>
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {csvError}
+        </div>
+      )}
+      {csvPreview.length > 0 && (
+        <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "8px 12px", background: `${NPS_ORANGE}12`, fontSize: 11, fontWeight: 700, color: NPS_ORANGE }}>
+            {csvPreview.length} rows ready — preview:
+          </div>
+          <div style={{ maxHeight: 160, overflowY: "auto" as const }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-0)" }}>
+                  {["Date", "Particulars", "Uploaded By", "Employee (₹)", "Employer (₹)"].map((h) => (
+                    <th key={h} style={{ padding: "6px 10px", textAlign: "left" as const, fontWeight: 600, fontSize: 10, color: THEME.muted }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {csvPreview.map((r, i) => (
+                  <tr key={i} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "6px 10px" }}>{r.date}</td>
+                    <td style={{ padding: "6px 10px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.particulars || "—"}</td>
+                    <td style={{ padding: "6px 10px", color: THEME.muted, fontSize: 11 }}>{r.uploadedBy || "—"}</td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700, color: THEME.accent }}>{r.employeeAmount > 0 ? fmtINR(r.employeeAmount) : "—"}</td>
+                    <td style={{ padding: "6px 10px", fontWeight: 700, color: "#0ea5e9" }}>{r.employerAmount > 0 ? fmtINR(r.employerAmount) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── NPS Account Card ────────────────────────────────────────────────── */
+function NPSAccountCard({ n, removeItem, updateItem }: any) {
+  const pfmColor = NPS_PFM_COLOR[n.fundManager] || NPS_ORANGE;
+  const isActive = n.investmentChoice === "Active";
+
+  const [txs, setTxs] = useState<any[]>(n.transactions || []);
+  const [showLedger, setShowLedger] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
+  const [editTx, setEditTx] = useState<any>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showEditAccount, setShowEditAccount] = useState(false);
+
+  useEffect(() => { setTxs(n.transactions || []); }, [n.id]);
+
+  const persistTxs = (updated: any[]) => {
+    setTxs(updated);
+    updateItem("nps", n.id, { transactions: updated });
+  };
+
+  const saveTx = (form: any) => {
+    const entry = { ...form, id: editTx ? editTx.id : uid() };
+    const updated = editTx
+      ? txs.map((t) => (t.id === editTx.id ? entry : t))
+      : [...txs, entry];
+    persistTxs(updated);
+    setShowTxModal(false);
+    setEditTx(null);
+  };
+
+  const removeTx = (id: string) => persistTxs(txs.filter((t) => t.id !== id));
+  const importRows = (rows: any[]) => { persistTxs([...txs, ...rows]); setShowCsvImport(false); };
+
+  const sortedTxs = [...txs].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const totalEmployee = txs.reduce((s, t) => s + (Number(t.employeeAmount) || 0), 0);
+  const totalEmployer = txs.reduce((s, t) => s + (Number(t.employerAmount) || 0), 0);
+  const totalContributed = totalEmployee + totalEmployer;
+  const annualTotal = (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0);
+
+  const fmtDate = (d: string) =>
+    d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+  const exportCsv = () => {
+    const header = "Date,Particulars,Uploaded By,Employee Contribution (Rs),Employer Contribution (Rs)";
+    const rows = sortedTxs.map((t) =>
+      [t.date, `"${(t.particulars || "").replace(/"/g, '""')}"`, `"${(t.uploadedBy || "").replace(/"/g, '""')}"`, t.employeeAmount || 0, t.employerAmount || 0].join(",")
+    );
+    const content = [header, ...rows].join("\n");
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nps_transactions_${(n.pran || n.id || "account").replace(/\s+/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const btnGhost = {
+    background: "transparent", border: `1px solid ${THEME.line}`, borderRadius: 8,
+    color: THEME.ink, cursor: "pointer", display: "flex", alignItems: "center",
+    gap: 6, fontWeight: 600, fontSize: 12, padding: "7px 14px",
+  } as const;
+
+  return (
+    <Card style={{ padding: 20, borderTop: `3px solid ${pfmColor}` }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <BankLogo name={n.fundManager || "NPS"} size={36} accentColor={pfmColor} />
+          <div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+              <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
+              {n.schemeType && n.schemeType !== "All Citizen" && (
+                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: `${pfmColor}18`, color: pfmColor, fontWeight: 700, border: `1px solid ${pfmColor}40` }}>{n.schemeType}</span>
+              )}
+            </div>
+            {n.fundManager && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                PFM: <span style={{ color: pfmColor, fontWeight: 700 }}>{n.fundManager} Pension</span>
+              </div>
+            )}
+            {n.pran && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}><Prv>{n.pran}</Prv></span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setShowEditAccount(true)} />
+          <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
+        </div>
+      </div>
+
+      {/* Corpus */}
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Current Corpus</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
+        <Prv>{fmtINRFull(n.balance)}</Prv>
+      </div>
+
+      {/* Contribution breakdown (from ledger) */}
+      {totalContributed > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${THEME.accent}33`, background: `${THEME.accent}09` }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employee Total</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINR(totalEmployee)}</Prv></div>
+          </div>
+          <div style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid #0ea5e933", background: "#0ea5e909" }}>
+            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Employer Total</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0ea5e9" }}><Prv>{fmtINR(totalEmployer)}</Prv></div>
+          </div>
+        </div>
+      )}
+
+      {/* Investment approach */}
+      <div style={{ fontSize: 11, marginBottom: 4 }}>
+        <span style={{ color: THEME.muted }}>Investment: </span>
+        <span style={{ fontWeight: 700, color: THEME.ink }}>
+          {isActive ? "Active Choice (Manual)" : `Auto Choice — ${NPS_LC_LABEL[n.lifecycleFund] || n.lifecycleFund || "LC-50"}`}
+        </span>
+      </div>
+      {!isActive && (
+        <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 8 }}>
+          {n.lifecycleFund === "LC-75" ? "Starts 75% equity at ≤35 yrs, tapers to 15% at 55"
+            : n.lifecycleFund === "LC-25" ? "Starts 25% equity, low risk — tapers to 5% at 55"
+            : "Starts 50% equity, balanced — tapers to 10% at 55"}
+        </div>
+      )}
+
+      {/* Asset allocation bar (Active only) */}
+      {isActive && <NpsAllocationBar equityPct={n.equityPct} corpBondPct={n.corpBondPct} govtSecPct={n.govtSecPct} altAssetPct={n.altAssetPct} />}
+
+      {/* Annual contribution from account fields */}
+      {annualTotal > 0 && totalContributed === 0 && (
+        <div style={{ marginTop: 8, fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
+          Annual estimate: {fmtINR(annualTotal)}/yr{Number(n.employerContribution) > 0 ? " (incl. employer — 80CCD(2))" : ""}
+        </div>
+      )}
+
+      {/* Tier note */}
+      <div style={{ fontSize: 10, color: THEME.muted, marginTop: 12, padding: "6px 10px", background: "var(--surface-1)", borderRadius: 8, lineHeight: 1.5 }}>
+        {n.tier === "II"
+          ? "Tier II — No lock-in. Fully withdrawable anytime. No additional tax benefit."
+          : "Tier I — Locked till age 60. At exit: 60% lump sum (tax-free) + 40% compulsory annuity."}
+      </div>
+
+      {/* Ledger toolbar */}
+      <div style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+        <button style={{ ...btnGhost, color: NPS_ORANGE, borderColor: `${NPS_ORANGE}4d` }} onClick={() => { setShowLedger((v) => !v); setShowCsvImport(false); }}>
+          <List size={13} /> {showLedger ? "Hide Ledger" : `Ledger${txs.length > 0 ? ` (${txs.length})` : ""}`}
+        </button>
+        <button style={{ ...btnGhost }} onClick={() => { setShowTxModal(true); setEditTx(null); }}>
+          <Plus size={13} /> Add Transaction
+        </button>
+        <button style={{ ...btnGhost }} onClick={() => { setShowCsvImport((v) => !v); setShowLedger(false); }}>
+          <Upload size={13} /> Import CSV
+        </button>
+        {txs.length > 0 && (
+          <button style={{ ...btnGhost }} onClick={exportCsv}>
+            <FileText size={13} /> Export CSV
+          </button>
+        )}
+      </div>
+
+      {/* CSV import panel */}
+      {showCsvImport && (
+        <div style={{ marginTop: 14 }}>
+          <NPSCsvPanel onImport={importRows} />
+        </div>
+      )}
+
+      {/* Ledger table */}
+      {showLedger && (
+        <div style={{ marginTop: 14 }}>
+          {txs.length === 0 ? (
+            <div style={{ padding: "24px 0", textAlign: "center" as const, color: THEME.muted, fontSize: 13 }}>
+              No transactions yet — add manually or import CSV above
+            </div>
+          ) : (
+            <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ overflowX: "auto" as const }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: "var(--surface-1)" }}>
+                      {["Date", "Particulars", "Uploaded By", "Employee (₹)", "Employer (₹)", ""].map((h) => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: h === "Employee (₹)" || h === "Employer (₹)" ? "right" as const : "left" as const, fontWeight: 700, fontSize: 10, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedTxs.map((t) => (
+                      <tr key={t.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                        <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const, color: THEME.muted, fontSize: 11 }}>{fmtDate(t.date)}</td>
+                        <td style={{ padding: "8px 12px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t.particulars || "—"}</td>
+                        <td style={{ padding: "8px 12px", color: THEME.muted, fontSize: 11, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t.uploadedBy || "—"}</td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 700, color: t.employeeAmount > 0 ? THEME.accent : THEME.muted }}>
+                          {t.employeeAmount > 0 ? fmtINR(t.employeeAmount) : "—"}
+                        </td>
+                        <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 700, color: t.employerAmount > 0 ? "#0ea5e9" : THEME.muted }}>
+                          {t.employerAmount > 0 ? fmtINR(t.employerAmount) : "—"}
+                        </td>
+                        <td style={{ padding: "8px 12px", whiteSpace: "nowrap" as const }}>
+                          <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                            <Button variant="ghost" size="sm" icon={<Pencil size={11} />} onClick={() => { setEditTx(t); setShowTxModal(true); }} />
+                            <Button variant="ghost" size="sm" icon={<Trash2 size={11} />} style={{ color: THEME.rust }} onClick={() => removeTx(t.id)} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: `2px solid ${THEME.line}`, background: "var(--surface-1)" }}>
+                      <td colSpan={3} style={{ padding: "8px 12px", fontWeight: 700, fontSize: 11 }}>Total ({txs.length} entries)</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 800, color: THEME.accent }}>{fmtINR(totalEmployee)}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 800, color: "#0ea5e9" }}>{fmtINR(totalEmployer)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      {showTxModal && (
+        <NPSTransactionModal
+          initial={editTx}
+          onClose={() => { setShowTxModal(false); setEditTx(null); }}
+          onSave={saveTx}
+        />
+      )}
+      {showEditAccount && (
+        <EditNPSModal
+          nps={n}
+          onClose={() => setShowEditAccount(false)}
+          onSave={(updated: any) => { updateItem("nps", n.id, updated); setShowEditAccount(false); }}
+        />
+      )}
+    </Card>
+  );
+}
+
 /* ── NPS Section ────────────────────────────────────────────────────── */
 function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
-  const [editNPS, setEditNPS] = useState<any>(null);
   const totalCorpus = items.reduce((s: number, n: any) => s + (Number(n.balance) || 0), 0);
-  const totalAnnual = items.reduce((s: number, n: any) => s + (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0), 0);
+  const totalEmployee = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employeeAmount) || 0), 0), 0);
+  const totalEmployer = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employerAmount) || 0), 0), 0);
+  const totalTx = items.reduce((s: number, n: any) => s + (n.transactions || []).length, 0);
 
   return (
     <div className="animate-fade-in-up">
@@ -4111,8 +4576,11 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
             {[
               { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
-              { label: "Annual Contribution", value: fmtINR(totalAnnual), color: "#0ea5e9", Icon: TrendingUp },
-              { label: "Accounts", value: String(items.length), color: THEME.accent, Icon: BarChart3 },
+              ...(totalEmployee + totalEmployer > 0
+                ? [{ label: "Employee Contributions", value: fmtINR(totalEmployee), color: THEME.accent, Icon: TrendingUp },
+                   { label: "Employer Contributions", value: fmtINR(totalEmployer), color: "#0ea5e9", Icon: Briefcase }]
+                : [{ label: "Accounts", value: String(items.length), color: THEME.accent, Icon: BarChart3 }]),
+              ...(totalTx > 0 ? [{ label: "Transactions", value: String(totalTx), color: THEME.gold, Icon: List }] : []),
             ].map(({ label, value, color, Icon }) => (
               <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -4126,104 +4594,13 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
             ))}
           </div>
 
-          {/* NPS cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-            {items.map((n: any) => {
-              const pfmColor = NPS_PFM_COLOR[n.fundManager] || NPS_ORANGE;
-              const isActive = n.investmentChoice === "Active";
-              const annualTotal = (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0);
-              return (
-                <Card key={n.id} style={{ padding: 20, borderTop: `3px solid ${pfmColor}` }}>
-                  {/* Header */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                      <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
-                      {n.schemeType && n.schemeType !== "All Citizen" && (
-                        <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: `${pfmColor}18`, color: pfmColor, fontWeight: 700, border: `1px solid ${pfmColor}40` }}>{n.schemeType}</span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditNPS(n)} />
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
-                    </div>
-                  </div>
-
-                  {/* Fund manager */}
-                  {n.fundManager && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "8px 10px", background: `${pfmColor}0d`, borderRadius: 10 }}>
-                      <BankLogo name={n.fundManager} size={28} accentColor={pfmColor} />
-                      <div style={{ fontSize: 12, fontWeight: 700, color: pfmColor }}>{n.fundManager} Pension</div>
-                      <div style={{ marginLeft: "auto", fontSize: 10, color: THEME.muted }}>PFM</div>
-                    </div>
-                  )}
-
-                  {/* Corpus */}
-                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Current Corpus</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
-                    <Prv>{fmtINRFull(n.balance)}</Prv>
-                  </div>
-
-                  {/* Investment approach */}
-                  <div style={{ fontSize: 11, marginBottom: 4 }}>
-                    <span style={{ color: THEME.muted }}>Investment: </span>
-                    <span style={{ fontWeight: 700, color: THEME.ink }}>
-                      {isActive ? "Active Choice (Manual)" : `Auto Choice — ${NPS_LC_LABEL[n.lifecycleFund] || n.lifecycleFund || "LC-50"}`}
-                    </span>
-                  </div>
-                  {!isActive && (
-                    <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 8 }}>
-                      {n.lifecycleFund === "LC-75"
-                        ? "Starts 75% equity at ≤35 yrs, tapers to 15% at 55"
-                        : n.lifecycleFund === "LC-25"
-                        ? "Starts 25% equity, low risk — tapers to 5% at 55"
-                        : "Starts 50% equity, balanced — tapers to 10% at 55"}
-                    </div>
-                  )}
-
-                  {/* Asset allocation bar (Active only) */}
-                  {isActive && <NpsAllocationBar equityPct={n.equityPct} corpBondPct={n.corpBondPct} govtSecPct={n.govtSecPct} altAssetPct={n.altAssetPct} />}
-
-                  {/* Details grid */}
-                  <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>PRAN</div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}><Prv>{n.pran || "—"}</Prv></div>
-                    </div>
-                    {annualTotal > 0 && (
-                      <div>
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>ANNUAL CONTRIBUTION</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{fmtINR(annualTotal)}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {Number(n.employerContribution) > 0 && (
-                    <div style={{ marginTop: 6, fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
-                      Employer: {fmtINR(n.employerContribution)}/yr — qualifies for 80CCD(2)
-                    </div>
-                  )}
-
-                  {/* Tier description */}
-                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 12, padding: "6px 10px", background: "var(--surface-1)", borderRadius: 8, lineHeight: 1.5 }}>
-                    {n.tier === "II"
-                      ? "Tier II — No lock-in. Fully withdrawable anytime. No additional tax benefit."
-                      : "Tier I — Locked till age 60. At exit: 60% lump sum (tax-free) + 40% compulsory annuity."}
-                  </div>
-                </Card>
-              );
-            })}
+          {/* NPS account cards */}
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
+            {items.map((n: any) => (
+              <NPSAccountCard key={n.id} n={n} removeItem={removeItem} updateItem={updateItem} />
+            ))}
           </div>
         </>
-      )}
-      {editNPS && (
-        <EditNPSModal
-          nps={editNPS}
-          onClose={() => setEditNPS(null)}
-          onSave={(updated: any) => {
-            updateItem("nps", editNPS.id, updated);
-            setEditNPS(null);
-          }}
-        />
       )}
     </div>
   );
