@@ -3516,9 +3516,21 @@ function FinanceDashboard() {
         </div>
       );
     }
+    const isDemoSite =
+      window.location.hostname.includes("personalfinancedemo") ||
+      window.location.hostname === "localhost";
     return (
       <Auth
         onLogin={setSession}
+        onOffline={
+          isDemoSite
+            ? () =>
+                setSession({
+                  user: { id: "offline-user", email: "demo@personalfinance.app" },
+                  access_token: "offline",
+                })
+            : undefined
+        }
       />
     );
   }
