@@ -466,7 +466,16 @@ function FinanceDashboard() {
 
       const userId = session?.user?.id;
       if (userId && userId !== "offline-user") {
-        await supabase.from("profiles").upsert({ user_id: userId, ...updates });
+        // Explicitly map camelCase profile fields to the DB's snake_case columns.
+        // Spreading `updates` directly fails because keys like `savingsTarget` or
+        // `updatedAt` (from a prior DB load) don't match any column, causing the
+        // entire upsert to be rejected by PostgREST — silently losing all changes.
+        const dbProfile: Record<string, any> = { user_id: userId };
+        if ("name" in updates) dbProfile.name = updates.name;
+        if ("fy" in updates) dbProfile.fy = updates.fy;
+        if ("regime" in updates) dbProfile.regime = updates.regime;
+        if ("savingsTarget" in updates) dbProfile.savings_target = updates.savingsTarget;
+        await supabase.from("profiles").upsert(dbProfile);
       }
       logActivity("UPDATE_PROFILE", "Updated user profile", updates);
     },
