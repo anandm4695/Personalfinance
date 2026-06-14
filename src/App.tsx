@@ -50,6 +50,7 @@ import {
   EyeOff,
   Bot,
   Sparkles,
+  Car,
 } from "lucide-react";
 import {
   supabase,
@@ -107,6 +108,7 @@ import { CalculatorsTab } from "./components/tabs/CalculatorsTab";
 import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
 import { RealEstateTab } from "./components/tabs/RealEstateTab";
+import { VehiclesTab } from "./components/tabs/VehiclesTab";
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
@@ -166,6 +168,7 @@ const DEFAULT_STATE = {
   realEstateProperties: [],
   realEstateDemands: [],
   realEstatePayments: [],
+  vehicles: [],
   corporateActions: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
@@ -684,6 +687,7 @@ function FinanceDashboard() {
         reProps,
         reDemands,
         rePayments,
+        vehiclesQ,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -721,6 +725,7 @@ function FinanceDashboard() {
         supabase.from("real_estate_properties").select("*").eq("user_id", userId),
         supabase.from("real_estate_demands").select("*").eq("user_id", userId),
         supabase.from("real_estate_payments").select("*").eq("user_id", userId),
+        supabase.from("vehicles").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -763,6 +768,7 @@ function FinanceDashboard() {
         reProps,
         reDemands,
         rePayments,
+        vehiclesQ,
       ].some((r) => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
@@ -938,6 +944,14 @@ function FinanceDashboard() {
             : {}),
           ...(!rePayments.error && rePayments.data != null
             ? { realEstatePayments: snakeToCamel(rePayments.data) }
+            : {}),
+          ...(!vehiclesQ.error && vehiclesQ.data != null
+            ? {
+                vehicles: snakeToCamel(vehiclesQ.data).map((v: any) => ({
+                  ...v,
+                  serviceHistory: v.serviceHistory || [],
+                })),
+              }
             : {}),
         };
       });
@@ -1504,6 +1518,7 @@ function FinanceDashboard() {
       realEstateProperties: filterByOwner(state.realEstateProperties || []),
       realEstateDemands: filterByOwner(state.realEstateDemands || []),
       realEstatePayments: filterByOwner(state.realEstatePayments || []),
+      vehicles: filterByOwner(state.vehicles || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -1629,6 +1644,12 @@ function FinanceDashboard() {
       0
     );
 
+    // Vehicles: counted at current market value (user-maintained estimate), fallback to purchase price
+    const vehicleAsset = (sState.vehicles || []).reduce(
+      (s: number, v: any) => s + Number(v.currentValue || v.purchasePrice || 0),
+      0
+    );
+
     // Real estate: owned + under-construction properties counted at market value (or agreement value)
     const realEstateAsset = (sState.realEstateProperties || [])
       .filter((p: any) => p.status !== "sold")
@@ -1667,7 +1688,8 @@ function FinanceDashboard() {
       rentedDepositAsset +
       informalLentValue +
       rentalPropertiesAsset +
-      realEstateAsset;
+      realEstateAsset +
+      vehicleAsset;
     const totalLiabilities =
       ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue + realEstateOutstanding;
     const netWorth = totalAssets - totalLiabilities;
@@ -1723,7 +1745,7 @@ function FinanceDashboard() {
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
     const lockedAssets =
-      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset;
+      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset + vehicleAsset;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
@@ -1810,6 +1832,7 @@ function FinanceDashboard() {
       lockedAssets,
       realEstateAsset,
       realEstateOutstanding,
+      vehicleAsset,
       informalLentValue,
       informalBorrowedValue,
       rentalPropertiesAsset,
@@ -1898,6 +1921,7 @@ function FinanceDashboard() {
         { name: "Security Deposit", value: metrics.rentedDepositAsset },
         { name: "Prepaid Cards", value: metrics.prepaidValue },
         { name: "Real Estate", value: metrics.realEstateAsset },
+        { name: "Vehicles", value: metrics.vehicleAsset },
       ].filter((x) => x.value > 0),
     [metrics]
   );
@@ -2361,6 +2385,7 @@ function FinanceDashboard() {
     realEstateProperties: "real_estate_properties",
     realEstateDemands: "real_estate_demands",
     realEstatePayments: "real_estate_payments",
+    vehicles: "vehicles",
   };
 
   const camelToSnake = (obj: any) => {
@@ -3078,6 +3103,7 @@ function FinanceDashboard() {
       ...push("real_estate_properties", data.realEstateProperties),
       ...push("real_estate_demands", data.realEstateDemands),
       ...push("real_estate_payments", data.realEstatePayments),
+      ...push("vehicles", data.vehicles),
       ...(data.netWorthHistory || []).map((entry) =>
         supabase.from("net_worth_history").upsert(
           {
@@ -3227,6 +3253,7 @@ function FinanceDashboard() {
         },
         { id: "goals", label: "Financial Goals", icon: Target },
         { id: "realestate", label: "Real Estate", icon: Home },
+        { id: "vehicles", label: "Vehicles", icon: Car },
       ],
     },
     {
@@ -4681,6 +4708,14 @@ function FinanceDashboard() {
               )}
               {tab === "realestate" && (
                 <RealEstateTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
+              )}
+              {tab === "vehicles" && (
+                <VehiclesTab
                   state={filteredState}
                   addItem={addItem}
                   removeItem={removeItem}
