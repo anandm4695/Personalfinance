@@ -273,7 +273,13 @@ const NUMERIC_COLS = new Set([
 
 // ================== MAIN APP ==================
 function FinanceDashboard() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem("demo_session");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -531,8 +537,16 @@ function FinanceDashboard() {
     try {
       supabase.auth
         .getSession()
-        .then(({ data: { session }, error }) => {
-          if (!error) setSession(session);
+        .then(({ data: { session: supaSession }, error }) => {
+          if (!error && supaSession) {
+            // Real Supabase session — clear any stale demo session and use real one
+            sessionStorage.removeItem("demo_session");
+            setSession(supaSession);
+          } else if (!sessionStorage.getItem("demo_session")) {
+            // No demo session saved — truly logged out
+            setSession(null);
+          }
+          // else: demo session already restored via useState initializer — keep it
           setIsAuthChecking(false);
         })
         .catch(() => {
@@ -540,8 +554,13 @@ function FinanceDashboard() {
         });
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session);
+      } = supabase.auth.onAuthStateChange((_event, supaSession) => {
+        if (supaSession) {
+          sessionStorage.removeItem("demo_session");
+          setSession(supaSession);
+        } else if (!sessionStorage.getItem("demo_session")) {
+          setSession(null);
+        }
       });
       return () => subscription.unsubscribe();
     } catch (e) {
@@ -3607,11 +3626,14 @@ function FinanceDashboard() {
         onLogin={setSession}
         onOffline={
           isDemoSite
-            ? () =>
-                setSession({
+            ? () => {
+                const demoSession = {
                   user: { id: "offline-user", email: "demo@personalfinance.app" },
                   access_token: "offline",
-                })
+                };
+                sessionStorage.setItem("demo_session", JSON.stringify(demoSession));
+                setSession(demoSession);
+              }
             : undefined
         }
       />
@@ -4671,6 +4693,7 @@ function FinanceDashboard() {
                             <button
                               onClick={async () => {
                                 setShowProfileMenu(false);
+                                sessionStorage.removeItem("demo_session");
                                 if (getIsDemoMode()) {
                                   await signOutOfDemo().catch(() => {});
                                 } else {
@@ -4923,6 +4946,7 @@ function FinanceDashboard() {
                   resetAll={resetAll}
                   showToast={showToast}
                   onSignOut={async () => {
+                    sessionStorage.removeItem("demo_session");
                     if (getIsDemoMode()) {
                       await signOutOfDemo().catch(() => {});
                     } else {
