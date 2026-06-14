@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "build",
-    chunkSizeWarningLimit: 700,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -20,6 +20,15 @@ export default defineConfig({
           }
           if (id.includes("node_modules/lucide-react")) {
             return "vendor-icons";
+          }
+          if (id.includes("node_modules/yahoo-finance2")) {
+            return "vendor-yahoo-finance";
+          }
+          if (id.includes("node_modules/@google")) {
+            return "vendor-google-ai";
+          }
+          if (id.includes("node_modules/resend") || id.includes("node_modules/@vercel")) {
+            return "vendor-services";
           }
         },
       },
