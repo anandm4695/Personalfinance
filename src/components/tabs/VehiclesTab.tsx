@@ -208,6 +208,117 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
   );
 }
 
+// Module-level Wikipedia image cache — shared by VehicleHeroBanner + VehiclePhotoThumb
+const _vpCache: Record<string, string | null> = {};
+
+// Small thumbnail for the collapsed card header
+function VehiclePhotoThumb({ make, model, photoUrl }: { make: string; model: string; photoUrl?: string }) {
+  const [src, setSrc] = React.useState<string | null>(photoUrl || null);
+  const [loaded, setLoaded] = React.useState(false);
+  const [failed, setFailed] = React.useState(false);
+  const cacheKey = `${make}|${model}`;
+
+  React.useEffect(() => {
+    if (photoUrl) { setSrc(photoUrl); return; }
+    if (cacheKey in _vpCache) { setSrc(_vpCache[cacheKey]); return; }
+    // wait for VehicleHeroBanner (shared cache) — poll briefly
+    const t = setTimeout(() => { if (_vpCache[cacheKey] !== undefined) setSrc(_vpCache[cacheKey]); }, 2000);
+    return () => clearTimeout(t);
+  }, [make, model, photoUrl]);
+
+  if (!src || failed) return null;
+
+  return (
+    <div
+      style={{
+        width: 88,
+        height: 58,
+        borderRadius: 10,
+        overflow: "hidden",
+        flexShrink: 0,
+        border: "1.5px solid var(--t-line, var(--border))",
+        background: "var(--surface)",
+        opacity: loaded ? 1 : 0,
+        transition: "opacity 0.3s",
+      }}
+    >
+      <img
+        src={src}
+        alt={`${make} ${model}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    </div>
+  );
+}
+
+// Full-width hero photo banner for the expanded card section
+function VehicleHeroBanner({ make, model, photoUrl }: { make: string; model: string; photoUrl?: string }) {
+  const [src, setSrc] = React.useState<string | null>(photoUrl || null);
+  const [failed, setFailed] = React.useState(false);
+  const cacheKey = `${make}|${model}`;
+
+  React.useEffect(() => {
+    if (photoUrl) { setSrc(photoUrl); setFailed(false); return; }
+    if (cacheKey in _vpCache) { setSrc(_vpCache[cacheKey]); return; }
+
+    const tryFetch = (query: string) =>
+      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => d.originalimage?.source || d.thumbnail?.source || null);
+
+    tryFetch(`${make} ${model}`)
+      .then((url) => {
+        if (url) { _vpCache[cacheKey] = url; setSrc(url); return; }
+        return tryFetch(`${make} ${model} motorcycle`).then((u) => {
+          _vpCache[cacheKey] = u;
+          setSrc(u);
+        });
+      })
+      .catch(() => { _vpCache[cacheKey] = null; });
+  }, [make, model, photoUrl]);
+
+  if (!src || failed) return null;
+
+  return (
+    <div style={{ position: "relative", height: 200, overflow: "hidden", background: "#000" }}>
+      <img
+        src={src}
+        alt={`${make} ${model}`}
+        onError={() => setFailed(true)}
+        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.88, display: "block" }}
+      />
+      {/* gradient fade at bottom so content below feels connected */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 60,
+          background: "linear-gradient(to bottom, transparent, var(--surface-0, var(--surface)))",
+        }}
+      />
+      {/* Make / model watermark */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 14,
+          left: 18,
+          fontSize: 13,
+          fontWeight: 800,
+          color: "#fff",
+          textShadow: "0 1px 4px rgba(0,0,0,0.7)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {make} {model}
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
@@ -354,6 +465,7 @@ const EMPTY_VEHICLE = {
   currentValue: "",
   insuranceExpiry: "",
   pucExpiry: "",
+  photoUrl: "",
   notes: "",
   owner: "self",
 };
@@ -489,6 +601,37 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           <input style={inp} type="date" value={f.pucExpiry} onChange={(e) => set("pucExpiry", e.target.value)} />
         </Field>
       </div>
+
+      {/* Photo & Notes */}
+      <ModalSection title="Photo & Notes" />
+
+      <Field label="Vehicle Photo URL (optional)">
+        <input
+          style={inp}
+          value={f.photoUrl || ""}
+          onChange={(e) => set("photoUrl", e.target.value)}
+          placeholder="Paste a direct image URL — or leave blank to auto-fetch from Wikipedia"
+        />
+        {f.photoUrl && (
+          <div
+            style={{
+              marginTop: 8,
+              borderRadius: 8,
+              overflow: "hidden",
+              height: 120,
+              background: "var(--surface)",
+              border: "1px solid var(--t-line, var(--border))",
+            }}
+          >
+            <img
+              src={f.photoUrl}
+              alt="preview"
+              onError={(e: any) => { e.target.style.display = "none"; }}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        )}
+      </Field>
 
       <Field label="Notes">
         <textarea
@@ -757,25 +900,34 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
           )}
         </div>
 
-        {/* Value + expand */}
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontWeight: 900, fontSize: 20, color: THEME.accent, letterSpacing: "-0.03em" }}>
-            {fmtINR(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}
-          </div>
-          {deprPct !== null && (
-            <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
-              <TrendingDown size={10} /> {deprPct}% depreciated
+        {/* Value + thumbnail photo + expand */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          {/* Small vehicle photo thumbnail — visible in collapsed header */}
+          <VehiclePhotoThumb make={vehicle.make} model={vehicle.model} photoUrl={vehicle.photoUrl} />
+
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 900, fontSize: 20, color: THEME.accent, letterSpacing: "-0.03em" }}>
+              {fmtINR(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}
             </div>
-          )}
-          <div style={{ marginTop: 8, color: "var(--t-muted, var(--text-muted))" }}>
-            {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {deprPct !== null && (
+              <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
+                <TrendingDown size={10} /> {deprPct}% depreciated
+              </div>
+            )}
+            <div style={{ marginTop: 8, color: "var(--t-muted, var(--text-muted))" }}>
+              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Expanded detail ── */}
       {expanded && (
-        <div style={{ borderTop: "1px solid var(--t-line, var(--border))", padding: "18px 18px" }}>
+        <div style={{ borderTop: "1px solid var(--t-line, var(--border))" }}>
+          {/* Hero photo banner */}
+          <VehicleHeroBanner make={vehicle.make} model={vehicle.model} photoUrl={vehicle.photoUrl} />
+
+          <div style={{ padding: "18px 18px" }}>
           {/* Action row */}
           <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
             <Button variant="secondary" size="sm" icon={<Edit2 size={12} />} onClick={onEdit}>
@@ -915,6 +1067,7 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
               </div>
             </div>
           )}
+          </div>{/* end padding wrapper */}
         </div>
       )}
     </div>
