@@ -7178,6 +7178,11 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "dsp": "dspim.com", "tata": "tatamutualfund.com", "max life": "maxlifeinsurance.com",
   // EPFO
   "epfo": "epfindia.gov.in", "employees provident": "epfindia.gov.in",
+  // NBFCs / Bond issuers
+  "iifl": "iifl.com",
+  "arman financial": "armanfinancial.co.in",
+  "muthoottu mini": "muthoottufinanciers.com", "muthoottu": "muthoottufinanciers.com",
+  "muthoot finance": "muthootfin.com", "muthoot fin": "muthootfin.com",
 };
 
 function getBankDomain(name: string): string {
