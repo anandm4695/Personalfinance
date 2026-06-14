@@ -5835,80 +5835,22 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
       </div>
       {hasPassbook && (
         <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 20 }}
         >
-          <div
-            style={{
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: `1px solid ${THEME.accent}33`,
-              background: `${THEME.accent}09`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: THEME.muted,
-                fontWeight: 700,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 3,
-              }}
-            >
-              Employee PF
+          {[
+            { label: "Employee PF", value: closingEmployee, color: THEME.accent, bg: "rgba(99,102,241,0.07)", border: "rgba(99,102,241,0.22)" },
+            { label: "Employer PF", value: closingEmployer, color: "#0ea5e9", bg: "rgba(14,165,233,0.07)", border: "rgba(14,165,233,0.22)" },
+            { label: "EPS (Pension)", value: closingPension, color: THEME.gold, bg: `rgba(234,179,8,0.07)`, border: `rgba(234,179,8,0.22)` },
+          ].map(({ label, value, color, bg, border }) => (
+            <div key={label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${border}`, background: bg }}>
+              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color }}>
+                <Prv>{fmtINR(value)}</Prv>
+              </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
-              <Prv>{fmtINR(closingEmployee)}</Prv>
-            </div>
-          </div>
-          <div
-            style={{
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid #0ea5e933",
-              background: "#0ea5e909",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: THEME.muted,
-                fontWeight: 700,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 3,
-              }}
-            >
-              Employer PF
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0ea5e9" }}>
-              <Prv>{fmtINR(closingEmployer)}</Prv>
-            </div>
-          </div>
-          <div
-            style={{
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: `1px solid ${THEME.gold}33`,
-              background: `${THEME.gold}09`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: THEME.muted,
-                fontWeight: 700,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 3,
-              }}
-            >
-              EPS (Pension)
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}>
-              <Prv>{fmtINR(closingPension)}</Prv>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
@@ -6155,89 +6097,17 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
                     {/* per-establishment closing balance (only if transactions tagged to this est) */}
                     {estHasTxs && (
-                      <div
-                        style={{
-                          marginTop: 10,
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 8,
-                            background: `${THEME.accent}09`,
-                            border: `1px solid ${THEME.accent}26`,
-                            textAlign: "center" as const,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 8,
-                              color: THEME.muted,
-                              fontWeight: 700,
-                              textTransform: "uppercase" as const,
-                              letterSpacing: "0.06em",
-                              marginBottom: 2,
-                            }}
-                          >
-                            Emp PF
+                      <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+                        {[
+                          { label: "Emp PF",  value: estEmpC + estIntEmp, color: THEME.accent, bg: "rgba(99,102,241,0.07)",  border: "rgba(99,102,241,0.2)" },
+                          { label: "Er PF",   value: estErC + estIntEr,   color: "#0ea5e9",    bg: "rgba(14,165,233,0.07)",  border: "rgba(14,165,233,0.2)" },
+                          { label: "Pension", value: estPenC,             color: THEME.gold,   bg: "rgba(234,179,8,0.07)",   border: "rgba(234,179,8,0.2)" },
+                        ].map(({ label, value, color, bg, border }) => (
+                          <div key={label} style={{ padding: "7px 10px", borderRadius: 8, background: bg, border: `1px solid ${border}`, textAlign: "center" as const }}>
+                            <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>{label}</div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color }}><Prv>{fmtINR(value)}</Prv></div>
                           </div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.accent }}>
-                            <Prv>{fmtINR(estEmpC + estIntEmp)}</Prv>
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 8,
-                            background: "#0ea5e909",
-                            border: "1px solid #0ea5e926",
-                            textAlign: "center" as const,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 8,
-                              color: THEME.muted,
-                              fontWeight: 700,
-                              textTransform: "uppercase" as const,
-                              letterSpacing: "0.06em",
-                              marginBottom: 2,
-                            }}
-                          >
-                            Er PF
-                          </div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: "#0ea5e9" }}>
-                            <Prv>{fmtINR(estErC + estIntEr)}</Prv>
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            padding: "7px 10px",
-                            borderRadius: 8,
-                            background: `${THEME.gold}09`,
-                            border: `1px solid ${THEME.gold}26`,
-                            textAlign: "center" as const,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 8,
-                              color: THEME.muted,
-                              fontWeight: 700,
-                              textTransform: "uppercase" as const,
-                              letterSpacing: "0.06em",
-                              marginBottom: 2,
-                            }}
-                          >
-                            Pension
-                          </div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: THEME.gold }}>
-                            <Prv>{fmtINR(estPenC)}</Prv>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                     {estHasTxs && (
@@ -6327,33 +6197,10 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 
       {/* ── Interest / Withdrawal Stats ── */}
       {stats.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-            gap: 8,
-            marginBottom: 16,
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 16 }}>
           {stats.map((s) => (
-            <div
-              key={s.label}
-              style={{
-                padding: "9px 12px",
-                borderRadius: 10,
-                border: `1px solid ${THEME.line}`,
-                background: "var(--surface-0)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 9,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.05em",
-                  marginBottom: 3,
-                }}
-              >
+            <div key={s.label} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${s.color}33`, background: `${s.color}0d` }}>
+              <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>
                 {s.label}
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{fmtINR(s.value)}</div>
