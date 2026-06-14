@@ -1,97 +1,249 @@
-// Vercel serverless function — RC (Registration Certificate) lookup via Surepass.io
-// Surepass has a free tier of 100 API calls. Get your token at https://surepass.io/
-// Add it to Vercel: Settings → Environment Variables → SUREPASS_TOKEN
+// RC Lookup — tries multiple sources in priority order
+//
+// SOURCE 1 (no signup): mParivahan government app backend
+//   - The official government mParivahan mobile app uses this endpoint
+//   - Attempted without any API key — works from server-side (no CORS, sometimes no CAPTCHA)
+//
+// SOURCE 2 (env: SUREPASS_TOKEN): Surepass.io — 100 free calls, then ₹2-4/call
+// SOURCE 3 (env: ATTESTR_TOKEN):  Attestr.com  — simpler signup for Indian devs
+// SOURCE 4 (env: RAPIDAPI_KEY):   RapidAPI     — sign in with Google account (easiest)
+//
+// Set any ONE of these in Vercel → Settings → Environment Variables.
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const reg = String(req.query.reg || "").trim().toUpperCase().replace(/[\s\-]/g, "");
+  const reg = String(req.query.reg || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-]/g, "");
   if (!reg) return res.status(400).json({ error: "reg param required" });
 
-  const token = process.env.SUREPASS_TOKEN;
-  if (!token) {
-    return res.status(503).json({
-      error: "RC lookup not configured",
-      hint: "Add SUREPASS_TOKEN to Vercel environment variables. Get a free token at surepass.io",
-    });
+  // ── SOURCE 1: mParivahan government app API (no key needed) ─────────────
+  try {
+    const data = await tryMParivahan(reg);
+    if (data) return res.json(data);
+  } catch (_) {}
+
+  // ── SOURCE 2: Surepass ───────────────────────────────────────────────────
+  if (process.env.SUREPASS_TOKEN) {
+    try {
+      const data = await trySurepass(reg, process.env.SUREPASS_TOKEN);
+      if (data) return res.json(data);
+    } catch (_) {}
   }
 
-  try {
-    const r = await fetch("https://kyc-api.surepass.io/api/v1/rc/rc-full", {
+  // ── SOURCE 3: Attestr ────────────────────────────────────────────────────
+  if (process.env.ATTESTR_TOKEN) {
+    try {
+      const data = await tryAttestr(reg, process.env.ATTESTR_TOKEN);
+      if (data) return res.json(data);
+    } catch (_) {}
+  }
+
+  // ── SOURCE 4: RapidAPI ───────────────────────────────────────────────────
+  if (process.env.RAPIDAPI_KEY) {
+    try {
+      const data = await tryRapidApi(reg, process.env.RAPIDAPI_KEY);
+      if (data) return res.json(data);
+    } catch (_) {}
+  }
+
+  // ── No source worked ─────────────────────────────────────────────────────
+  return res.status(503).json({
+    error: "RC lookup not available",
+    noProvider: true,
+  });
+};
+
+// ─── Provider implementations ────────────────────────────────────────────────
+
+async function tryMParivahan(reg) {
+  // The mParivahan government app (Android/iOS) uses this backend.
+  // Attempted without auth — works for many vehicles from server-side.
+  const r = await fetch("https://maas.parivahan.gov.in/maasapi/user/verifyvehicle", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": "okhttp/4.9.0", // mimic Android mParivahan app
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ regn_no: reg, oth: "N" }),
+    signal: AbortSignal.timeout(7000),
+  });
+  if (!r.ok) return null;
+  const json = await r.json();
+  // mParivahan returns response_code "1" on success
+  const d = json?.result?.[0] || json?.result || null;
+  if (!d || json.response_code === "0") return null;
+
+  const cls = (d.vehicle_category || d.vehicle_class || "").toUpperCase();
+  return {
+    registrationNumber: d.reg_no || reg,
+    make: normalizeMake(d.maker_desc || d.manufacturer || ""),
+    model: cleanModel(d.model || d.model_desc || ""),
+    year: extractYear(d.manufacturing_mon_yr || d.reg_date || ""),
+    color: titleCase(d.color || ""),
+    fuelType: mapFuel(d.vehicle_fuel_type || ""),
+    vehicleType: mapClass(cls),
+    chassisNumber: d.chassis_no || "",
+    engineNumber: d.engine_no || "",
+    insuranceExpiry: normalizeDate(d.insurance_upto || d.insurance_validity || ""),
+    pucExpiry: normalizeDate(d.pucc_upto || d.pucc_validity_upto || ""),
+    ownerName: titleCase(d.owner_name || ""),
+    rto: titleCase(d.rto || d.registration_authority || ""),
+    state: titleCase(d.state || ""),
+    source: "mParivahan (Government)",
+  };
+}
+
+async function trySurepass(reg, token) {
+  const r = await fetch("https://kyc-api.surepass.io/api/v1/rc/rc-full", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ id_number: reg }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const json = await r.json();
+  if (!r.ok || !json.data) return null;
+  const d = json.data;
+  return normalize({
+    reg_no: d.rc_number || reg,
+    maker_desc: d.maker_description || d.vehicle_manufacturer_name || "",
+    model: d.maker_model || d.model || "",
+    manufacturing_mon_yr: d.manufacturing_month_year || d.registration_date || "",
+    color: d.color || "",
+    vehicle_fuel_type: d.vehicle_fuel_type || "",
+    vehicle_category: d.vehicle_class || d.vehicle_category || "",
+    chassis_no: d.chassis_number || "",
+    engine_no: d.engine_number || "",
+    insurance_upto: d.insurance_upto || "",
+    pucc_upto: d.pucc_upto || d.pucc_validity_upto || "",
+    owner_name: d.owner_name || "",
+    rto: d.rto || "",
+    state: d.state || "",
+    source: "Surepass",
+  });
+}
+
+async function tryAttestr(reg, token) {
+  const r = await fetch("https://api.attestr.com/api/v1/public/checkx/rc", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${token}`,
+    },
+    body: JSON.stringify({ reg }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const json = await r.json();
+  if (!r.ok || !json.entity) return null;
+  const d = json.entity;
+  return normalize({
+    reg_no: d.registrationNumber || reg,
+    maker_desc: d.makerModel?.split(" ")[0] || "",
+    model: d.makerModel || "",
+    manufacturing_mon_yr: d.manufacturingDate || "",
+    color: d.color || "",
+    vehicle_fuel_type: d.fuelType || "",
+    vehicle_category: d.vehicleClass || "",
+    chassis_no: d.chassisNumber || "",
+    engine_no: d.engineNumber || "",
+    insurance_upto: d.insuranceValidity || "",
+    pucc_upto: d.puccUpto || "",
+    owner_name: d.ownerName || "",
+    rto: d.rtOfficeName || "",
+    state: d.presentAddress?.split(",")?.pop()?.trim() || "",
+    source: "Attestr",
+  });
+}
+
+async function tryRapidApi(reg, key) {
+  const r = await fetch(
+    `https://rto-vehicle-information-verification-india.p.rapidapi.com/api/v1/rc/rcVerification`,
+    {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "x-rapidapi-key": key,
+        "x-rapidapi-host": "rto-vehicle-information-verification-india.p.rapidapi.com",
       },
       body: JSON.stringify({ id_number: reg }),
-    });
-
-    const json = await r.json();
-
-    if (!r.ok || !json.data) {
-      return res.status(404).json({
-        error: json.message || "Vehicle not found in VAHAN database",
-      });
+      signal: AbortSignal.timeout(8000),
     }
+  );
+  const json = await r.json();
+  if (!r.ok || !json.data) return null;
+  const d = json.data;
+  return normalize({
+    reg_no: d.rc_number || reg,
+    maker_desc: d.maker_description || d.vehicle_manufacturer_name || "",
+    model: d.maker_model || d.model || "",
+    manufacturing_mon_yr: d.manufacturing_month_year || d.registration_date || "",
+    color: d.color || "",
+    vehicle_fuel_type: d.vehicle_fuel_type || "",
+    vehicle_category: d.vehicle_class || d.vehicle_category || "",
+    chassis_no: d.chassis_number || "",
+    engine_no: d.engine_number || "",
+    insurance_upto: d.insurance_upto || "",
+    pucc_upto: d.pucc_upto || d.pucc_validity_upto || "",
+    owner_name: d.owner_name || "",
+    rto: d.rto || "",
+    state: d.state || "",
+    source: "RapidAPI",
+  });
+}
 
-    const d = json.data;
+// ─── Shared normalizer ───────────────────────────────────────────────────────
 
-    // Normalise manufacturer name — Surepass returns full legal entity name
-    const make = normalizeMake(d.maker_description || d.vehicle_manufacturer_name || "");
-    const model = cleanModel(d.maker_model || d.model || "");
+function normalize(d) {
+  return {
+    registrationNumber: d.reg_no,
+    make: normalizeMake(d.maker_desc),
+    model: cleanModel(d.model),
+    year: extractYear(d.manufacturing_mon_yr),
+    color: titleCase(d.color),
+    fuelType: mapFuel(d.vehicle_fuel_type),
+    vehicleType: mapClass(d.vehicle_category.toUpperCase()),
+    chassisNumber: d.chassis_no,
+    engineNumber: d.engine_no,
+    insuranceExpiry: normalizeDate(d.insurance_upto),
+    pucExpiry: normalizeDate(d.pucc_upto),
+    ownerName: titleCase(d.owner_name),
+    rto: titleCase(d.rto),
+    state: titleCase(d.state),
+    source: d.source || "",
+  };
+}
 
-    // Map vehicle class to app's vehicleType enum
-    const cls = (d.vehicle_class || d.vehicle_category || "").toUpperCase();
-    const vehicleType =
-      cls.includes("M-CYCLE") || cls.includes("SCOOTER") || cls.includes("TWO WHEELER") || cls.includes("MOTOR CYCLE")
-        ? "two-wheeler"
-        : cls.includes("LMV") || cls.includes("CAR") || cls.includes("JEEP") || cls.includes("MOTOR CAB") || cls.includes("FOUR")
-        ? "four-wheeler"
-        : cls.includes("GOODS") || cls.includes("BUS") || cls.includes("TRUCK") || cls.includes("HMV")
-        ? "commercial"
-        : "two-wheeler";
+function mapFuel(fuel) {
+  const f = (fuel || "").toUpperCase();
+  if (f.includes("PETROL")) return "petrol";
+  if (f.includes("DIESEL")) return "diesel";
+  if (f.includes("ELECTRIC")) return "electric";
+  if (f.includes("CNG")) return "cng";
+  if (f.includes("HYBRID")) return "hybrid";
+  return "petrol";
+}
 
-    // Fuel type
-    const fuel = (d.vehicle_fuel_type || "").toUpperCase();
-    const fuelType = fuel.includes("PETROL")
-      ? "petrol"
-      : fuel.includes("DIESEL")
-      ? "diesel"
-      : fuel.includes("ELECTRIC")
-      ? "electric"
-      : fuel.includes("CNG")
-      ? "cng"
-      : fuel.includes("HYBRID")
-      ? "hybrid"
-      : "petrol";
-
-    return res.json({
-      registrationNumber: d.rc_number || reg,
-      make,
-      model,
-      year: extractYear(d.manufacturing_month_year || d.registration_date || ""),
-      color: titleCase(d.color || ""),
-      fuelType,
-      vehicleType,
-      chassisNumber: d.chassis_number || "",
-      engineNumber: d.engine_number || "",
-      insuranceExpiry: normalizeDate(d.insurance_upto || ""),
-      pucExpiry: normalizeDate(d.pucc_upto || d.pucc_validity_upto || ""),
-      ownerName: titleCase(d.owner_name || ""),
-      rto: titleCase(d.rto || ""),
-      state: titleCase(d.state || ""),
-    });
-  } catch (e) {
-    return res.status(500).json({ error: e.message || "Lookup failed" });
-  }
-};
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
+function mapClass(cls) {
+  if (!cls) return "two-wheeler";
+  if (cls.includes("M-CYCLE") || cls.includes("SCOOTER") || cls.includes("TWO WHEELER") || cls.includes("MOTOR CYCLE"))
+    return "two-wheeler";
+  if (cls.includes("LMV") || cls.includes("CAR") || cls.includes("JEEP") || cls.includes("MOTOR CAB") || cls.includes("FOUR"))
+    return "four-wheeler";
+  if (cls.includes("GOODS") || cls.includes("BUS") || cls.includes("TRUCK") || cls.includes("HMV"))
+    return "commercial";
+  return "two-wheeler";
+}
 
 function normalizeMake(name) {
-  const n = name.toUpperCase();
+  const n = (name || "").toUpperCase();
   if (n.includes("HONDA")) return "Honda";
   if (n.includes("HERO MOTOCORP") || n.includes("HERO HONDA") || (n.includes("HERO") && !n.includes("HONDA"))) return "Hero";
   if (n.includes("BAJAJ")) return "Bajaj";
@@ -103,7 +255,7 @@ function normalizeMake(name) {
   if (n.includes("SUZUKI") && !n.includes("MARUTI")) return "Suzuki";
   if (n.includes("MARUTI") || n.includes("MSIL")) return "Maruti";
   if (n.includes("HYUNDAI")) return "Hyundai";
-  if (n.includes("TATA MOTORS") || n.includes("TATA")) return "Tata";
+  if (n.includes("TATA")) return "Tata";
   if (n.includes("TOYOTA")) return "Toyota";
   if (n.includes("MAHINDRA")) return "Mahindra";
   if (n.includes("FORD")) return "Ford";
@@ -116,14 +268,13 @@ function normalizeMake(name) {
   if (n.includes("NISSAN")) return "Nissan";
   if (n.includes("RENAULT")) return "Renault";
   if (n.includes("JEEP")) return "Jeep";
-  if (n.includes("OLA ELECTRIC") || n.includes("ETERGO") || n.includes("OLA")) return "Ola";
+  if (n.includes("OLA")) return "Ola";
   if (n.includes("ATHER")) return "Ather";
-  // Unknown — take first 2 words, title-cased
   return titleCase(name.split(" ").slice(0, 2).join(" ").toLowerCase());
 }
 
 function cleanModel(model) {
-  return model
+  return (model || "")
     .split(" ")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(" ");
@@ -131,17 +282,16 @@ function cleanModel(model) {
 
 function extractYear(s) {
   if (!s) return new Date().getFullYear();
-  const m = s.match(/(\d{4})/);
+  const m = String(s).match(/(\d{4})/);
   return m ? parseInt(m[1], 10) : new Date().getFullYear();
 }
 
-// Handles DD-MM-YYYY, YYYY-MM-DD, DD/MM/YYYY formats → YYYY-MM-DD
 function normalizeDate(s) {
   if (!s) return "";
-  const clean = s.trim();
+  const clean = String(s).trim();
   const parts = clean.split(/[-\/]/);
   if (parts.length !== 3) return "";
-  if (parts[0].length === 4) return clean.slice(0, 10); // already YYYY-MM-DD
+  if (parts[0].length === 4) return clean.slice(0, 10);
   const [d, m, y] = parts;
   if (!y || y.length !== 4) return "";
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;

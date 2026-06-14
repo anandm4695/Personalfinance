@@ -496,11 +496,10 @@ function VehicleModal({ existing, onClose, onSave }: any) {
       const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`);
       const data = await r.json();
       if (!r.ok) {
-        if (r.status === 503) { setRcStatus("nokey"); setRcMsg(data.hint || "API not configured"); }
-        else { setRcStatus("error"); setRcMsg(data.error || "Not found"); }
+        if (data.noProvider) { setRcStatus("nokey"); setRcMsg(""); }
+        else { setRcStatus("error"); setRcMsg(data.error || "Vehicle not found in VAHAN database"); }
         return;
       }
-      // Auto-fill all returned fields (user can still override)
       setF((p: any) => ({
         ...p,
         registrationNumber: data.registrationNumber || p.registrationNumber,
@@ -516,9 +515,13 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         pucExpiry: data.pucExpiry || p.pucExpiry,
       }));
       setRcStatus("ok");
-      setRcMsg(`Fetched from VAHAN${data.ownerName ? ` · Owner: ${data.ownerName}` : ""}${data.rto ? ` · RTO: ${data.rto}` : ""}`);
+      setRcMsg(
+        `✓ Details auto-filled via ${data.source || "VAHAN"}` +
+        (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
+        (data.rto ? ` · RTO: ${data.rto}` : "")
+      );
     } catch {
-      setRcStatus("error"); setRcMsg("Network error — try again");
+      setRcStatus("error"); setRcMsg("Network error — check your connection and try again");
     }
   };
 
@@ -629,41 +632,69 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         </div>
 
         {/* RC lookup status banner */}
-        {rcStatus !== "idle" && (
-          <div
-            style={{
-              marginTop: 8,
-              padding: "8px 12px",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 8,
-              ...(rcStatus === "ok"
-                ? { background: "#10b98115", border: "1px solid #10b98130", color: "#065f46" }
-                : rcStatus === "nokey"
-                ? { background: "#f59e0b14", border: "1px solid #f59e0b40", color: "#78350f" }
-                : { background: "#ef444414", border: "1px solid #ef444430", color: "#7f1d1d" }),
-            }}
-          >
-            <span style={{ flexShrink: 0, fontSize: 14 }}>
-              {rcStatus === "ok" ? "✓" : rcStatus === "nokey" ? "⚙" : "✕"}
-            </span>
-            <span>
-              {rcStatus === "nokey" ? (
-                <>
-                  {rcMsg}
-                  {" — "}
-                  <a href="https://surepass.io" target="_blank" rel="noreferrer" style={{ color: "#b45309", fontWeight: 700 }}>
-                    Get free API token at surepass.io
-                  </a>
-                  {", then add "}
-                  <code style={{ background: "#0001", borderRadius: 4, padding: "1px 5px", fontFamily: "monospace" }}>SUREPASS_TOKEN</code>
-                  {" to Vercel env vars"}
-                </>
-              ) : rcMsg}
-            </span>
+        {rcStatus === "ok" && (
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: "#10b98115", border: "1px solid #10b98130", color: "#065f46" }}>
+            {rcMsg}
+          </div>
+        )}
+        {rcStatus === "error" && (
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: "#ef444414", border: "1px solid #ef444430", color: "#7f1d1d" }}>
+            ✕ {rcMsg}
+          </div>
+        )}
+        {rcStatus === "nokey" && (
+          <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", border: "1px solid #f59e0b40", fontSize: 12 }}>
+            <div style={{ background: "#f59e0b14", padding: "8px 12px", fontWeight: 700, color: "#78350f", display: "flex", alignItems: "center", gap: 6 }}>
+              <span>⚙</span> RC lookup needs a one-time API setup — choose the easiest option below:
+            </div>
+            {[
+              {
+                num: "1",
+                title: "RapidAPI",
+                badge: "Easiest — sign in with Google",
+                color: "#2563eb",
+                steps: [
+                  "Go to rapidapi.com → click Sign Up → choose Continue with Google",
+                  'Search "RTO Vehicle Information Verification India" → Subscribe (free tier)',
+                  "Copy your X-RapidAPI-Key from the API page",
+                  "Vercel → Settings → Env Vars → add RAPIDAPI_KEY = your key → Redeploy",
+                ],
+              },
+              {
+                num: "2",
+                title: "Attestr",
+                badge: "Indian developer API",
+                color: "#7c3aed",
+                steps: [
+                  "Go to attestr.com → Sign Up with email/Google",
+                  "Dashboard → API Console → create credentials",
+                  "Copy the Base64 token shown",
+                  "Vercel → Env Vars → add ATTESTR_TOKEN = your token → Redeploy",
+                ],
+              },
+              {
+                num: "3",
+                title: "Surepass",
+                badge: "100 free calls",
+                color: "#059669",
+                steps: [
+                  "Go to surepass.io → Sign Up",
+                  "Dashboard → copy your API Token",
+                  "Vercel → Env Vars → add SUREPASS_TOKEN = your token → Redeploy",
+                ],
+              },
+            ].map((p) => (
+              <div key={p.num} style={{ borderTop: "1px solid #f59e0b20", padding: "10px 12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: p.color, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{p.num}</span>
+                  <span style={{ fontWeight: 700, color: p.color }}>{p.title}</span>
+                  <span style={{ fontSize: 11, background: p.color + "15", color: p.color, borderRadius: 20, padding: "1px 7px", fontWeight: 600 }}>{p.badge}</span>
+                </div>
+                <ol style={{ margin: 0, paddingLeft: 20, color: "#78350f", lineHeight: 1.7 }}>
+                  {p.steps.map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                </ol>
+              </div>
+            ))}
           </div>
         )}
       </Field>
