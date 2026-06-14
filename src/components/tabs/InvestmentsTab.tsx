@@ -4401,10 +4401,26 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
       </div>
 
       {/* Corpus */}
-      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Current Corpus</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
-        <Prv>{fmtINRFull(n.balance)}</Prv>
-      </div>
+      {(() => {
+        const manualBalance = Number(n.balance) || 0;
+        const corpusFromTxs = manualBalance === 0 && totalContributed > 0;
+        const displayCorpus = manualBalance > 0 ? manualBalance : totalContributed;
+        return (
+          <>
+            <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
+              Current Corpus
+              {corpusFromTxs && (
+                <span style={{ fontSize: 10, color: "#0ea5e9", marginLeft: 6, fontWeight: 600 }}>
+                  based on contributions — update corpus for market value
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
+              <Prv>{fmtINRFull(displayCorpus)}</Prv>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Contribution breakdown (from ledger) */}
       {totalContributed > 0 && (
@@ -4553,7 +4569,11 @@ function NPSAccountCard({ n, removeItem, updateItem }: any) {
 
 /* ── NPS Section ────────────────────────────────────────────────────── */
 function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
-  const totalCorpus = items.reduce((s: number, n: any) => s + (Number(n.balance) || 0), 0);
+  const totalCorpus = items.reduce((s: number, n: any) => {
+    const bal = Number(n.balance) || 0;
+    const txTotal = (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+    return s + (bal > 0 ? bal : txTotal);
+  }, 0);
   const totalEmployee = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employeeAmount) || 0), 0), 0);
   const totalEmployer = items.reduce((s: number, n: any) => s + (n.transactions || []).reduce((ss: number, t: any) => ss + (Number(t.employerAmount) || 0), 0), 0);
   const totalTx = items.reduce((s: number, n: any) => s + (n.transactions || []).length, 0);
