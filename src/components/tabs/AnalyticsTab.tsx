@@ -2124,7 +2124,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         bg: `color-mix(in srgb, var(--t-sage) 7%, transparent)`,
       });
 
-    if (annualIncome > 0 && coverRatio < 10)
+    if (annualIncome > 0 && coverRatio < 15)
       insights.push({
         icon: AlertTriangle,
         title: "Insurance Gap",
@@ -2165,10 +2165,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       });
 
     // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
-    const totalEMISmart = (state.loansTaken || []).reduce(
-      (s: number, l: any) => s + Number(l.emi || 0),
-      0
-    );
+    // Only count active loans (same filter as metrics.foir) to stay consistent with the FOIR tile
+    const totalEMISmart = (state.loansTaken || [])
+      .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
+      .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (metrics.monthIncome > 0 && totalEMISmart > 0) {
       const foirPct = (totalEMISmart / metrics.monthIncome) * 100;
       if (foirPct > 50)
@@ -2247,18 +2247,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (metrics.monthExpense > 0) {
       const now3 = new Date();
       const currentYm = `${now3.getFullYear()}-${String(now3.getMonth() + 1).padStart(2, "0")}`;
-      // Build category totals for previous 3 months
+      // Build per-month category totals for the previous 3 months, then average those
+      // monthly totals (not individual transaction amounts) to avoid skew from transaction count
       const prev3Map: Record<string, number[]> = {};
       for (let m = 1; m <= 3; m++) {
         const d3 = new Date(now3.getFullYear(), now3.getMonth() - m, 1);
         const ym3 = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, "0")}`;
+        const monthTotals: Record<string, number> = {};
         (state.transactions || [])
           .filter((t: any) => t.type === "debit" && t.date && t.date.startsWith(ym3))
           .forEach((t: any) => {
             const cat = t.category || "Uncategorized";
-            if (!prev3Map[cat]) prev3Map[cat] = [];
-            prev3Map[cat].push(Number(t.amount || 0));
+            monthTotals[cat] = (monthTotals[cat] || 0) + Number(t.amount || 0);
           });
+        for (const [cat, total] of Object.entries(monthTotals)) {
+          if (!prev3Map[cat]) prev3Map[cat] = [];
+          prev3Map[cat].push(total);
+        }
       }
       const currentCatMap: Record<string, number> = {};
       (state.transactions || [])
