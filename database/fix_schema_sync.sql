@@ -453,6 +453,7 @@ ALTER TABLE public.ppf_nps ADD COLUMN IF NOT EXISTS employer_contribution numeri
 ALTER TABLE public.ppf_nps ADD COLUMN IF NOT EXISTS epf_balance          numeric DEFAULT 0;
 ALTER TABLE public.ppf_nps ADD COLUMN IF NOT EXISTS pension_balance      numeric DEFAULT 0;
 ALTER TABLE public.ppf_nps ADD COLUMN IF NOT EXISTS establishments       jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.ppf_nps ADD COLUMN IF NOT EXISTS account_number       text;
 
 -- Fix ppf_nps type check constraint to include EPF
 ALTER TABLE public.ppf_nps DROP CONSTRAINT IF EXISTS ppf_nps_type_check;

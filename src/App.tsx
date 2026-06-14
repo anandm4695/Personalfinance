@@ -832,7 +832,11 @@ function FinanceDashboard() {
           ...(!pn.error && pn.data != null
             ? {
                 ppf: snakeToCamel(pn.data.filter((x) => x.type === "PPF")),
-                nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")),
+                nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")).map((n: any) => ({
+                  ...n,
+                  pran: n.accountNumber || n.pran || "",
+                  tier: n.bank || n.tier || "I",
+                })),
                 epf: snakeToCamel(pn.data.filter((x) => x.type === "EPF")),
               }
             : {}),
@@ -2412,6 +2416,12 @@ function FinanceDashboard() {
       finalItem.bank = item.institution || "";
       delete finalItem.institution;
     }
+    if (key === "nps") {
+      finalItem.account_number = item.pran || "";
+      delete finalItem.pran;
+      finalItem.bank = item.tier || "I";
+      delete finalItem.tier;
+    }
     if (key === "epf") {
       finalItem.bank = item.employer || "";
       delete finalItem.employer;
@@ -2862,6 +2872,16 @@ function FinanceDashboard() {
         if (key === "ppf" && patch.institution !== undefined) {
           finalPatch.bank = patch.institution || "";
           delete finalPatch.institution;
+        }
+        if (key === "nps") {
+          if (patch.pran !== undefined) {
+            finalPatch.account_number = patch.pran || "";
+            delete finalPatch.pran;
+          }
+          if (patch.tier !== undefined) {
+            finalPatch.bank = patch.tier || "I";
+            delete finalPatch.tier;
+          }
         }
         if (key === "epf") {
           if (patch.employer !== undefined) {
