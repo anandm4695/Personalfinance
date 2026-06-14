@@ -144,7 +144,21 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
   // ── PPF State ──
   const [ppf, setPpf] = useState({ institution: "", balance: "", accountNumber: "" });
   // ── NPS State ──
-  const [nps, setNps] = useState({ tier: "I", pran: "", balance: "" });
+  const [nps, setNps] = useState({
+    tier: "I",
+    pran: "",
+    balance: "",
+    schemeType: "All Citizen",
+    fundManager: "",
+    investmentChoice: "Auto",
+    lifecycleFund: "LC-50",
+    equityPct: "",
+    corpBondPct: "",
+    govtSecPct: "",
+    altAssetPct: "",
+    yearContribution: "",
+    employerContribution: "",
+  });
   // ── EPF State ──
   const [epf, setEpf] = useState({ uan: "", employer: "", balance: "" });
   const [mf, setMf] = useState({
@@ -643,33 +657,87 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Tier">
-              <select
-                style={inp}
-                value={nps.tier}
-                onChange={(e) => setNps({ ...nps, tier: e.target.value })}
-              >
-                <option value="I">Tier I</option>
-                <option value="II">Tier II</option>
+              <select style={inp} value={nps.tier} onChange={(e) => setNps({ ...nps, tier: e.target.value })}>
+                <option value="I">Tier I — Pension (Tax Benefits)</option>
+                <option value="II">Tier II — Savings (Flexible)</option>
               </select>
             </Field>
-            <Field label="PRAN Number">
-              <input
-                style={inp}
-                value={nps.pran}
-                onChange={(e) => setNps({ ...nps, pran: e.target.value })}
-                placeholder="12-digit PRAN"
-              />
+            <Field label="Subscriber Type">
+              <select style={inp} value={nps.schemeType} onChange={(e) => setNps({ ...nps, schemeType: e.target.value })}>
+                <option value="All Citizen">All Citizen Model</option>
+                <option value="Corporate">Corporate NPS</option>
+                <option value="Government">Government (NPS-G)</option>
+                <option value="NPS Lite">NPS Lite / Swavalamban</option>
+              </select>
             </Field>
           </div>
-          <Field label="Current Corpus (₹)">
-            <input
-              style={inp}
-              type="number"
-              value={nps.balance}
-              onChange={(e) => setNps({ ...nps, balance: e.target.value })}
-              placeholder="500000"
-            />
-          </Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="PRAN Number">
+              <input style={inp} value={nps.pran} onChange={(e) => setNps({ ...nps, pran: e.target.value })} placeholder="12-digit PRAN" maxLength={12} />
+            </Field>
+            <Field label="Pension Fund Manager (PFM)">
+              <select style={inp} value={nps.fundManager} onChange={(e) => setNps({ ...nps, fundManager: e.target.value })}>
+                <option value="">Select Fund Manager</option>
+                <option value="SBI">SBI Pension Funds</option>
+                <option value="LIC">LIC Pension Fund</option>
+                <option value="UTI">UTI Retirement Solutions</option>
+                <option value="HDFC">HDFC Pension Management</option>
+                <option value="ICICI">ICICI Prudential Pension</option>
+                <option value="Kotak">Kotak Mahindra Pension</option>
+                <option value="Aditya Birla">Aditya Birla Sun Life Pension</option>
+                <option value="DSP">DSP Pension Fund</option>
+                <option value="Tata">Tata Pension Management</option>
+                <option value="Max Life">Max Life Pension Fund</option>
+              </select>
+            </Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Investment Choice">
+              <select style={inp} value={nps.investmentChoice} onChange={(e) => setNps({ ...nps, investmentChoice: e.target.value })}>
+                <option value="Auto">Auto Choice (Lifecycle)</option>
+                <option value="Active">Active Choice (Manual)</option>
+              </select>
+            </Field>
+            {nps.investmentChoice === "Auto" ? (
+              <Field label="Lifecycle Fund">
+                <select style={inp} value={nps.lifecycleFund} onChange={(e) => setNps({ ...nps, lifecycleFund: e.target.value })}>
+                  <option value="LC-75">LC-75 Aggressive (High Equity)</option>
+                  <option value="LC-50">LC-50 Moderate (Balanced)</option>
+                  <option value="LC-25">LC-25 Conservative (Low Equity)</option>
+                </select>
+              </Field>
+            ) : (
+              <Field label="Equity (E) % — max 75%">
+                <input style={inp} type="number" min={0} max={75} value={nps.equityPct} onChange={(e) => setNps({ ...nps, equityPct: e.target.value })} placeholder="e.g. 50" />
+              </Field>
+            )}
+          </div>
+          {nps.investmentChoice === "Active" && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+              <Field label="Corp Bond (C) %">
+                <input style={inp} type="number" min={0} max={100} value={nps.corpBondPct} onChange={(e) => setNps({ ...nps, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+              </Field>
+              <Field label="Govt Sec (G) %">
+                <input style={inp} type="number" min={0} max={100} value={nps.govtSecPct} onChange={(e) => setNps({ ...nps, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+              </Field>
+              <Field label="Alternative (A) % — max 5%">
+                <input style={inp} type="number" min={0} max={5} value={nps.altAssetPct} onChange={(e) => setNps({ ...nps, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+              </Field>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Current Corpus (₹)">
+              <input style={inp} type="number" value={nps.balance} onChange={(e) => setNps({ ...nps, balance: e.target.value })} placeholder="e.g. 500000" />
+            </Field>
+            <Field label="Annual Contribution (₹)">
+              <input style={inp} type="number" value={nps.yearContribution} onChange={(e) => setNps({ ...nps, yearContribution: e.target.value })} placeholder="e.g. 50000" />
+            </Field>
+          </div>
+          {nps.schemeType === "Corporate" && (
+            <Field label="Employer Contribution (₹/year) — 80CCD(2)">
+              <input style={inp} type="number" value={nps.employerContribution} onChange={(e) => setNps({ ...nps, employerContribution: e.target.value })} placeholder="e.g. 60000" />
+            </Field>
+          )}
         </>
       )}
 
@@ -1875,43 +1943,103 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
     tier: initial.tier || "I",
     pran: initial.pran || "",
     balance: initial.balance != null ? String(initial.balance) : "",
+    schemeType: initial.schemeType || "All Citizen",
+    fundManager: initial.fundManager || "",
+    investmentChoice: initial.investmentChoice || "Auto",
+    lifecycleFund: initial.lifecycleFund || "LC-50",
+    equityPct: initial.equityPct != null ? String(initial.equityPct) : "",
+    corpBondPct: initial.corpBondPct != null ? String(initial.corpBondPct) : "",
+    govtSecPct: initial.govtSecPct != null ? String(initial.govtSecPct) : "",
+    altAssetPct: initial.altAssetPct != null ? String(initial.altAssetPct) : "",
+    yearContribution: initial.yearContribution != null ? String(initial.yearContribution) : "",
+    employerContribution: initial.employerContribution != null ? String(initial.employerContribution) : "",
   });
   return (
     <Modal title="Edit NPS Account" onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Tier">
-          <select
-            style={inp}
-            value={form.tier}
-            onChange={(e) => setForm({ ...form, tier: e.target.value })}
-          >
-            <option value="I">Tier I</option>
-            <option value="II">Tier II</option>
+          <select style={inp} value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value })}>
+            <option value="I">Tier I — Pension (Tax Benefits)</option>
+            <option value="II">Tier II — Savings (Flexible)</option>
           </select>
         </Field>
-        <Field label="PRAN Number">
-          <input
-            style={inp}
-            value={form.pran}
-            onChange={(e) => setForm({ ...form, pran: e.target.value })}
-            placeholder="12-digit PRAN"
-          />
+        <Field label="Subscriber Type">
+          <select style={inp} value={form.schemeType} onChange={(e) => setForm({ ...form, schemeType: e.target.value })}>
+            <option value="All Citizen">All Citizen Model</option>
+            <option value="Corporate">Corporate NPS</option>
+            <option value="Government">Government (NPS-G)</option>
+            <option value="NPS Lite">NPS Lite / Swavalamban</option>
+          </select>
         </Field>
       </div>
-      <Field label="Current Corpus (₹)">
-        <input
-          style={inp}
-          type="number"
-          value={form.balance}
-          onChange={(e) => setForm({ ...form, balance: e.target.value })}
-          placeholder="500000"
-        />
-      </Field>
-      <ModalActions
-        onSave={() => form.balance && onSave(form)}
-        onClose={onClose}
-        saveLabel="Save Changes"
-      />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="PRAN Number">
+          <input style={inp} value={form.pran} onChange={(e) => setForm({ ...form, pran: e.target.value })} placeholder="12-digit PRAN" maxLength={12} />
+        </Field>
+        <Field label="Pension Fund Manager (PFM)">
+          <select style={inp} value={form.fundManager} onChange={(e) => setForm({ ...form, fundManager: e.target.value })}>
+            <option value="">Select Fund Manager</option>
+            <option value="SBI">SBI Pension Funds</option>
+            <option value="LIC">LIC Pension Fund</option>
+            <option value="UTI">UTI Retirement Solutions</option>
+            <option value="HDFC">HDFC Pension Management</option>
+            <option value="ICICI">ICICI Prudential Pension</option>
+            <option value="Kotak">Kotak Mahindra Pension</option>
+            <option value="Aditya Birla">Aditya Birla Sun Life Pension</option>
+            <option value="DSP">DSP Pension Fund</option>
+            <option value="Tata">Tata Pension Management</option>
+            <option value="Max Life">Max Life Pension Fund</option>
+          </select>
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Investment Choice">
+          <select style={inp} value={form.investmentChoice} onChange={(e) => setForm({ ...form, investmentChoice: e.target.value })}>
+            <option value="Auto">Auto Choice (Lifecycle)</option>
+            <option value="Active">Active Choice (Manual)</option>
+          </select>
+        </Field>
+        {form.investmentChoice === "Auto" ? (
+          <Field label="Lifecycle Fund">
+            <select style={inp} value={form.lifecycleFund} onChange={(e) => setForm({ ...form, lifecycleFund: e.target.value })}>
+              <option value="LC-75">LC-75 Aggressive (High Equity)</option>
+              <option value="LC-50">LC-50 Moderate (Balanced)</option>
+              <option value="LC-25">LC-25 Conservative (Low Equity)</option>
+            </select>
+          </Field>
+        ) : (
+          <Field label="Equity (E) % — max 75%">
+            <input style={inp} type="number" min={0} max={75} value={form.equityPct} onChange={(e) => setForm({ ...form, equityPct: e.target.value })} placeholder="e.g. 50" />
+          </Field>
+        )}
+      </div>
+      {form.investmentChoice === "Active" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+          <Field label="Corp Bond (C) %">
+            <input style={inp} type="number" min={0} max={100} value={form.corpBondPct} onChange={(e) => setForm({ ...form, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+          </Field>
+          <Field label="Govt Sec (G) %">
+            <input style={inp} type="number" min={0} max={100} value={form.govtSecPct} onChange={(e) => setForm({ ...form, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+          </Field>
+          <Field label="Alternative (A) % — max 5%">
+            <input style={inp} type="number" min={0} max={5} value={form.altAssetPct} onChange={(e) => setForm({ ...form, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+          </Field>
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Current Corpus (₹)">
+          <input style={inp} type="number" value={form.balance} onChange={(e) => setForm({ ...form, balance: e.target.value })} placeholder="500000" />
+        </Field>
+        <Field label="Annual Contribution (₹)">
+          <input style={inp} type="number" value={form.yearContribution} onChange={(e) => setForm({ ...form, yearContribution: e.target.value })} placeholder="50000" />
+        </Field>
+      </div>
+      {form.schemeType === "Corporate" && (
+        <Field label="Employer Contribution (₹/year) — 80CCD(2)">
+          <input style={inp} type="number" value={form.employerContribution} onChange={(e) => setForm({ ...form, employerContribution: e.target.value })} placeholder="60000" />
+        </Field>
+      )}
+      <ModalActions onSave={() => onSave(form)} onClose={onClose} saveLabel="Save Changes" />
     </Modal>
   );
 }
@@ -3894,11 +4022,58 @@ const PPFSection = ({ items, removeItem, updateItem, onAdd }: any) => (
   </div>
 );
 
+/* ── NPS helpers ─────────────────────────────────────────────────────── */
+const NPS_ORANGE = "#c2410c";
+
+const NPS_PFM_COLOR: Record<string, string> = {
+  SBI: "#0067b2", LIC: "#00a651", UTI: "#e31b23", HDFC: "#004c8f",
+  ICICI: "#F58220", Kotak: "#e31e25", "Aditya Birla": "#d2232a",
+  DSP: "#003087", Tata: "#00529b", "Max Life": "#c2185b",
+};
+
+const NPS_LC_LABEL: Record<string, string> = {
+  "LC-75": "LC-75 Aggressive",
+  "LC-50": "LC-50 Moderate",
+  "LC-25": "LC-25 Conservative",
+};
+
+function NpsAllocationBar({ equityPct, corpBondPct, govtSecPct, altAssetPct }: any) {
+  const e = Number(equityPct) || 0;
+  const c = Number(corpBondPct) || 0;
+  const g = Number(govtSecPct) || 0;
+  const a = Number(altAssetPct) || 0;
+  const total = e + c + g + a;
+  if (!total) return null;
+  const bars = [
+    { label: "E", pct: e, color: "#f59e0b" },
+    { label: "C", pct: c, color: "#3b82f6" },
+    { label: "G", pct: g, color: "#22c55e" },
+    { label: "A", pct: a, color: "#a855f7" },
+  ].filter((b) => b.pct > 0);
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", height: 8 }}>
+        {bars.map((b) => (
+          <div key={b.label} style={{ width: `${(b.pct / total) * 100}%`, background: b.color }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 5, flexWrap: "wrap" as const }}>
+        {bars.map((b) => (
+          <span key={b.label} style={{ fontSize: 10, color: THEME.muted, display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: b.color, display: "inline-block" }} />
+            {b.label} {b.pct}%
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── NPS Section ────────────────────────────────────────────────────── */
 function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
   const [editNPS, setEditNPS] = useState<any>(null);
   const totalCorpus = items.reduce((s: number, n: any) => s + (Number(n.balance) || 0), 0);
-  const NPS_ORANGE = "#c2410c";
+  const totalAnnual = items.reduce((s: number, n: any) => s + (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0), 0);
 
   return (
     <div className="animate-fade-in-up">
@@ -3908,138 +4083,118 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
           gradient="linear-gradient(135deg,#c2410c 0%,#fb923c 100%)"
           dotColor="#ea580c"
           title="No NPS Account Added Yet"
-          description="Track your National Pension System corpus — Tier I and Tier II accounts with PRAN details."
-          pills={["Tier I Account", "Tier II Account", "PRAN Number", "Corpus Growth"]}
+          description="Track your NPS — Tier I & II, fund manager, scheme type, asset allocation (E/C/G/A), and corpus."
+          pills={["Tier I / Tier II", "PRAN Number", "Fund Manager", "Asset Allocation"]}
           buttonLabel="Add NPS Account"
           onAdd={onAdd}
         />
       ) : (
         <>
-          {items.length > 1 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 12,
-                marginBottom: 20,
-              }}
-            >
-              {[
-                {
-                  label: "Total NPS Corpus",
-                  value: fmtINRFull(totalCorpus),
-                  color: NPS_ORANGE,
-                  Icon: PiggyBank,
-                },
-                {
-                  label: "Accounts",
-                  value: String(items.length),
-                  color: THEME.accent,
-                  Icon: BarChart3,
-                },
-              ].map(({ label, value, color, Icon }) => (
-                <div
-                  key={label}
-                  className="card-lift"
-                  style={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderTop: `4px solid ${color}`,
-                    borderRadius: 14,
-                    padding: "16px 18px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                    boxShadow: "var(--shadow-card)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9,
-                        background: `${color}1f`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={16} />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase" as const,
-                        letterSpacing: "0.1em",
-                      }}
-                    >
-                      {label}
-                    </div>
+          {/* Summary tiles */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
+              { label: "Annual Contribution", value: fmtINR(totalAnnual), color: "#0ea5e9", Icon: TrendingUp },
+              { label: "Accounts", value: String(items.length), color: THEME.accent, Icon: BarChart3 },
+            ].map(({ label, value, color, Icon }) => (
+              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+                    <Icon size={16} />
                   </div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: THEME.ink,
-                      letterSpacing: "-0.03em",
-                      lineHeight: 1,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {value}
-                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
                 </div>
-              ))}
-            </div>
-          )}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {items.map((n: any) => (
-              <Card key={n.id} style={{ padding: 20, borderTop: `3px solid ${NPS_ORANGE}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                  <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Pencil size={12} />}
-                      onClick={() => setEditNPS(n)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Trash2 size={12} />}
-                      style={{ color: THEME.rust }}
-                      onClick={() => removeItem("nps", n.id)}
-                    />
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4 }}>
-                  Current Corpus
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE }}>
-                  <Prv>{fmtINRFull(n.balance)}</Prv>
-                </div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 12 }}>
-                  PRAN: <span style={{ color: THEME.ink, fontWeight: 600 }}>{n.pran || "—"}</span>
-                </div>
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 6 }}>
-                  {n.tier === "II"
-                    ? "Tier II — fully withdrawable"
-                    : "Tier I — locked till retirement (60%)"}
-                </div>
-              </Card>
+                <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+              </div>
             ))}
+          </div>
+
+          {/* NPS cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+            {items.map((n: any) => {
+              const pfmColor = NPS_PFM_COLOR[n.fundManager] || NPS_ORANGE;
+              const isActive = n.investmentChoice === "Active";
+              const annualTotal = (Number(n.yearContribution) || 0) + (Number(n.employerContribution) || 0);
+              return (
+                <Card key={n.id} style={{ padding: 20, borderTop: `3px solid ${pfmColor}` }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                      <Badge variant="gold">NPS Tier {n.tier || "I"}</Badge>
+                      {n.schemeType && n.schemeType !== "All Citizen" && (
+                        <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: `${pfmColor}18`, color: pfmColor, fontWeight: 700, border: `1px solid ${pfmColor}40` }}>{n.schemeType}</span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditNPS(n)} />
+                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("nps", n.id)} />
+                    </div>
+                  </div>
+
+                  {/* Fund manager */}
+                  {n.fundManager && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, padding: "8px 10px", background: `${pfmColor}0d`, borderRadius: 10 }}>
+                      <Briefcase size={13} color={pfmColor} />
+                      <div style={{ fontSize: 12, fontWeight: 700, color: pfmColor }}>{n.fundManager} Pension</div>
+                      <div style={{ marginLeft: "auto", fontSize: 10, color: THEME.muted }}>PFM</div>
+                    </div>
+                  )}
+
+                  {/* Corpus */}
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>Current Corpus</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: NPS_ORANGE, letterSpacing: "-0.03em", marginBottom: 12 }}>
+                    <Prv>{fmtINRFull(n.balance)}</Prv>
+                  </div>
+
+                  {/* Investment approach */}
+                  <div style={{ fontSize: 11, marginBottom: 4 }}>
+                    <span style={{ color: THEME.muted }}>Investment: </span>
+                    <span style={{ fontWeight: 700, color: THEME.ink }}>
+                      {isActive ? "Active Choice (Manual)" : `Auto Choice — ${NPS_LC_LABEL[n.lifecycleFund] || n.lifecycleFund || "LC-50"}`}
+                    </span>
+                  </div>
+                  {!isActive && (
+                    <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 8 }}>
+                      {n.lifecycleFund === "LC-75"
+                        ? "Starts 75% equity at ≤35 yrs, tapers to 15% at 55"
+                        : n.lifecycleFund === "LC-25"
+                        ? "Starts 25% equity, low risk — tapers to 5% at 55"
+                        : "Starts 50% equity, balanced — tapers to 10% at 55"}
+                    </div>
+                  )}
+
+                  {/* Asset allocation bar (Active only) */}
+                  {isActive && <NpsAllocationBar equityPct={n.equityPct} corpBondPct={n.corpBondPct} govtSecPct={n.govtSecPct} altAssetPct={n.altAssetPct} />}
+
+                  {/* Details grid */}
+                  <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>PRAN</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}><Prv>{n.pran || "—"}</Prv></div>
+                    </div>
+                    {annualTotal > 0 && (
+                      <div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>ANNUAL CONTRIBUTION</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{fmtINR(annualTotal)}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {Number(n.employerContribution) > 0 && (
+                    <div style={{ marginTop: 6, fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
+                      Employer: {fmtINR(n.employerContribution)}/yr — qualifies for 80CCD(2)
+                    </div>
+                  )}
+
+                  {/* Tier description */}
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 12, padding: "6px 10px", background: "var(--surface-1)", borderRadius: 8, lineHeight: 1.5 }}>
+                    {n.tier === "II"
+                      ? "Tier II — No lock-in. Fully withdrawable anytime. No additional tax benefit."
+                      : "Tier I — Locked till age 60. At exit: 60% lump sum (tax-free) + 40% compulsory annuity."}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </>
       )}

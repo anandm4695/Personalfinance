@@ -832,11 +832,25 @@ function FinanceDashboard() {
           ...(!pn.error && pn.data != null
             ? {
                 ppf: snakeToCamel(pn.data.filter((x) => x.type === "PPF")),
-                nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")).map((n: any) => ({
-                  ...n,
-                  pran: n.accountNumber || n.pran || "",
-                  tier: n.bank || n.tier || "I",
-                })),
+                nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")).map((n: any) => {
+                  const meta = n.establishments && typeof n.establishments === "object" && !Array.isArray(n.establishments)
+                    ? n.establishments : {};
+                  return {
+                    ...n,
+                    pran: n.accountNumber || n.pran || "",
+                    tier: n.epfType || (n.bank === "I" || n.bank === "II" ? n.bank : null) || "I",
+                    fundManager: (n.bank !== "I" && n.bank !== "II") ? (n.bank || "") : "",
+                    schemeType: meta.schemeType || "All Citizen",
+                    investmentChoice: meta.investmentChoice || "Auto",
+                    lifecycleFund: meta.lifecycleFund || "LC-50",
+                    equityPct: meta.equityPct || 0,
+                    corpBondPct: meta.corpBondPct || 0,
+                    govtSecPct: meta.govtSecPct || 0,
+                    altAssetPct: meta.altAssetPct || 0,
+                    yearContribution: n.thisYearContribution || 0,
+                    employerContribution: n.employerContribution || 0,
+                  };
+                }),
                 epf: snakeToCamel(pn.data.filter((x) => x.type === "EPF")),
               }
             : {}),
@@ -2417,10 +2431,31 @@ function FinanceDashboard() {
       delete finalItem.institution;
     }
     if (key === "nps") {
-      finalItem.account_number = item.pran || "";
+      finalItem.account_number = finalItem.pran || "";
       delete finalItem.pran;
-      finalItem.bank = item.tier || "I";
+      finalItem.epf_type = finalItem.tier || "I";
       delete finalItem.tier;
+      finalItem.bank = finalItem.fund_manager || "";
+      delete finalItem.fund_manager;
+      finalItem.this_year_contribution = Number(finalItem.year_contribution) || 0;
+      delete finalItem.year_contribution;
+      finalItem.employer_contribution = Number(finalItem.employer_contribution) || 0;
+      finalItem.establishments = {
+        schemeType: item.schemeType || "All Citizen",
+        investmentChoice: item.investmentChoice || "Auto",
+        lifecycleFund: item.lifecycleFund || "LC-50",
+        equityPct: Number(item.equityPct) || 0,
+        corpBondPct: Number(item.corpBondPct) || 0,
+        govtSecPct: Number(item.govtSecPct) || 0,
+        altAssetPct: Number(item.altAssetPct) || 0,
+      };
+      delete finalItem.scheme_type;
+      delete finalItem.investment_choice;
+      delete finalItem.lifecycle_fund;
+      delete finalItem.equity_pct;
+      delete finalItem.corp_bond_pct;
+      delete finalItem.govt_sec_pct;
+      delete finalItem.alt_asset_pct;
     }
     if (key === "epf") {
       finalItem.bank = item.employer || "";
@@ -2879,8 +2914,36 @@ function FinanceDashboard() {
             delete finalPatch.pran;
           }
           if (patch.tier !== undefined) {
-            finalPatch.bank = patch.tier || "I";
+            finalPatch.epf_type = patch.tier || "I";
             delete finalPatch.tier;
+          }
+          if (patch.fundManager !== undefined) {
+            finalPatch.bank = patch.fundManager || "";
+            delete finalPatch.fund_manager;
+          }
+          if (patch.yearContribution !== undefined) {
+            finalPatch.this_year_contribution = Number(patch.yearContribution) || 0;
+            delete finalPatch.year_contribution;
+          }
+          if (patch.employerContribution !== undefined) {
+            finalPatch.employer_contribution = Number(patch.employerContribution) || 0;
+          }
+          const hasMeta = patch.schemeType !== undefined || patch.investmentChoice !== undefined ||
+            patch.lifecycleFund !== undefined || patch.equityPct !== undefined;
+          if (hasMeta) {
+            finalPatch.establishments = {
+              schemeType: patch.schemeType || "All Citizen",
+              investmentChoice: patch.investmentChoice || "Auto",
+              lifecycleFund: patch.lifecycleFund || "LC-50",
+              equityPct: Number(patch.equityPct) || 0,
+              corpBondPct: Number(patch.corpBondPct) || 0,
+              govtSecPct: Number(patch.govtSecPct) || 0,
+              altAssetPct: Number(patch.altAssetPct) || 0,
+            };
+            delete finalPatch.scheme_type; delete finalPatch.investment_choice;
+            delete finalPatch.lifecycle_fund; delete finalPatch.equity_pct;
+            delete finalPatch.corp_bond_pct; delete finalPatch.govt_sec_pct;
+            delete finalPatch.alt_asset_pct;
           }
         }
         if (key === "epf") {
