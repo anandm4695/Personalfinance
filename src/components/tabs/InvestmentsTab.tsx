@@ -7180,8 +7180,8 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "epfo": "epfindia.gov.in", "employees provident": "epfindia.gov.in",
   // NBFCs / Bond issuers
   "iifl": "iifl.com",
-  "arman financial": "armanfinancial.co.in",
-  "muthoottu mini": "muthoottufinanciers.com", "muthoottu": "muthoottufinanciers.com",
+  "arman financial": "armanindia.com", "arman india": "armanindia.com",
+  "muthoottu mini": "muthoottumini.com", "muthoottu": "muthoottumini.com",
   "muthoot finance": "muthootfin.com", "muthoot fin": "muthootfin.com",
 };
 
