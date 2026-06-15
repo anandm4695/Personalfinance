@@ -87,6 +87,7 @@ import {
   getLocalDateString,
   getTaxDueForDashboard,
   calculateEpfBalance,
+  rdMaturity,
 } from "./utils/finance";
 
 // Tab Imports
@@ -1584,8 +1585,10 @@ function FinanceDashboard() {
     const cashInBanks = (sState.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
     const fdValue = sState.fixedDeposits.reduce((s, f) => s + Number(f.principal || 0), 0);
     const rdValue = sState.recurringDeposits.reduce((s, r) => {
-      const m = monthsBetween(r.startDate, today());
-      return s + Math.min(m, Number(r.tenureMonths || 0)) * Number(r.monthly || 0);
+      const elapsed = r.startDate
+        ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
+        : Number(r.tenureMonths || 0);
+      return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
     }, 0);
     const bondValue = sState.bonds.reduce(
       (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),

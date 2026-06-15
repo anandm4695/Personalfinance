@@ -7689,43 +7689,7 @@ const YieldTracker = ({ state }: any) => {
 
   // EPF: balance × 8.25%
   const epfInterest = (state.epf || []).reduce((s: number, e: any) => {
-    const corpus = (() => {
-      const txs = e.transactions || [];
-      const hasPassbook = txs.some(
-        (t: any) =>
-          t.type === "monthly_contribution" ||
-          t.type === "interest_credit" ||
-          t.type === "transfer_in"
-      );
-      if (!hasPassbook) return Number(e.balance || 0);
-      const empC = txs
-        .filter((x: any) => x.type === "monthly_contribution" || x.type === "employee_contribution")
-        .reduce((ss: number, x: any) => ss + Number(x.employeeShare || x.amount || 0), 0);
-      const erC = txs
-        .filter((x: any) => x.type === "monthly_contribution" || x.type === "employer_contribution")
-        .reduce((ss: number, x: any) => ss + Number(x.employerShare || 0), 0);
-      const penC = txs
-        .filter((x: any) => x.type === "monthly_contribution")
-        .reduce((ss: number, x: any) => ss + Number(x.pensionShare || 0), 0);
-      const int = txs
-        .filter((x: any) => x.type === "interest_credit")
-        .reduce(
-          (ss: number, x: any) =>
-            ss +
-            Number(x.employeeShare !== undefined ? x.employeeShare : x.amount || 0) +
-            Number(x.employerShare || 0) +
-            Number(x.pensionShare || 0),
-          0
-        );
-      const tin = txs
-        .filter((x: any) => x.type === "transfer_in")
-        .reduce((ss: number, x: any) => ss + Number(x.amount || 0), 0);
-      const wdl = txs
-        .filter((x: any) => x.type === "withdrawal")
-        .reduce((ss: number, x: any) => ss + Number(x.amount || 0), 0);
-      return empC + erC + penC + int + tin - wdl;
-    })();
-    return s + (corpus * EPF_RATE) / 100;
+    return s + (calculateEpfBalance(e) * EPF_RATE) / 100;
   }, 0);
 
   // NPS: rough 10% annual growth (mixed equity/debt)

@@ -41,7 +41,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, getCCDueDate, rdMaturity } from "../../utils/finance";
+import { fmtINR, fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -1434,8 +1434,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const passiveIncomeData = useMemo(() => {
     const rentalMonthly = (state.rentalProperties || [])
-      .filter((r: any) => Number(r.rent || 0) > 0)
-      .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+      .reduce((s: number, r: any) => s + getEffectiveRent(r), 0);
 
     const fdMonthly = (state.fixedDeposits || []).reduce(
       (s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12,
@@ -1493,7 +1492,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const fyStartStr = `${fyStartYear}-04-01`;
     const fyEndStr = `${fyStartYear + 1}-03-31`;
     const elss = (state.mutualFunds || [])
-      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
+      .filter(
+        (m: any) =>
+          (m.type || m.category || "").toUpperCase().includes("ELSS") &&
+          m.buyDate &&
+          m.buyDate >= fyStartStr &&
+          m.buyDate <= fyEndStr
+      )
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
     const ppfThisYear = (state.ppfLedger || [])
       .filter(
@@ -1745,7 +1750,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const fyStartStr80C = `${fyStart80C}-04-01`;
     const fyEndStr80C = `${fyStart80C + 1}-03-31`;
     const elss80C = (state.mutualFunds || [])
-      .filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS"))
+      .filter(
+        (m: any) =>
+          (m.type || m.category || "").toUpperCase().includes("ELSS") &&
+          m.buyDate &&
+          m.buyDate >= fyStartStr80C &&
+          m.buyDate <= fyEndStr80C
+      )
       .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
     const ppf80C =
       (state.ppfLedger || [])
@@ -1788,8 +1799,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // Passive Income (rent + estimated FD/bond interest)
     const rentalPassive = (state.rentalProperties || [])
-      .filter((r: any) => Number(r.rent || 0) > 0)
-      .reduce((s: number, r: any) => s + Number(r.rent || 0), 0);
+      .reduce((s: number, r: any) => s + getEffectiveRent(r), 0);
     const fdPassive = (state.fixedDeposits || []).reduce(
       (s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12,
       0
