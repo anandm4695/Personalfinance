@@ -845,8 +845,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.sage}12`,
-                            border: `1px solid ${THEME.sage}38`,
+                            background: "color-mix(in srgb, var(--t-sage) 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-sage) 22%, transparent)",
                           }}
                         >
                           <div
@@ -873,8 +873,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.gold}12`,
-                            border: `1px solid ${THEME.gold}38`,
+                            background: "color-mix(in srgb, var(--t-gold) 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-gold) 22%, transparent)",
                           }}
                         >
                           <div
@@ -2198,8 +2198,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.rust}12`,
-                            border: `1px solid ${THEME.rust}38`,
+                            background: "color-mix(in srgb, var(--t-rust) 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-rust) 22%, transparent)",
                           }}
                         >
                           <div
@@ -2226,8 +2226,8 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           style={{
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.sage}12`,
-                            border: `1px solid ${THEME.sage}38`,
+                            background: "color-mix(in srgb, var(--t-sage) 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-sage) 22%, transparent)",
                           }}
                         >
                           <div
@@ -3113,9 +3113,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                   {label}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 800, color }}>
-                  {label === "Net Cashflow"
-                    ? (outThisFY >= inThisFY ? "+" : "-")
-                    : (value !== 0 ? sign : "")}
+                  {value !== 0
+                    ? (label === "Net Cashflow" ? (outThisFY >= inThisFY ? "+" : "-") : sign)
+                    : ""}
                   {fmtINRFull(Math.abs(value))}
                 </div>
               </div>
