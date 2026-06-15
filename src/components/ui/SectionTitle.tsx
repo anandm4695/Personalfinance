@@ -18,9 +18,7 @@ export const SectionTitle: React.FC<SectionTitleProps> = ({ children, sub, right
               fontWeight: 800,
               letterSpacing: "-0.04em",
               margin: 0,
-              background: "linear-gradient(135deg, var(--t-ink) 0%, var(--t-ink)b3 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: "var(--t-ink)",
             }}
           >
             {children}
