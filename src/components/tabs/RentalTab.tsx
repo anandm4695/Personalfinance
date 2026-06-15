@@ -819,49 +819,49 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       >
                         <div
                           style={{
-                            padding: "10px 12px",
+                            padding: "9px 12px",
                             borderRadius: 10,
-                            background: `color-mix(in srgb, #A78BFA 5%, transparent)`,
-                            border: `1px solid color-mix(in srgb, #A78BFA 15%, transparent)`,
+                            background: "#A78BFA12",
+                            border: "1px solid #A78BFA38",
                           }}
                         >
                           <div
                             style={{
                               fontSize: 9,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: THEME.muted,
                               textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
+                              letterSpacing: "0.06em",
+                              marginBottom: 3,
                             }}
                           >
                             Property Value
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: "#A78BFA" }}>
-                            {p.propertyValue ? fmtINRFull(p.propertyValue) : "₹0"}
+                          <div style={{ fontWeight: 800, fontSize: 13, color: "#A78BFA" }}>
+                            {p.propertyValue ? fmtINRFull(p.propertyValue) : "—"}
                           </div>
                         </div>
                         <div
                           style={{
-                            padding: "10px 12px",
+                            padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.sage}09`,
-                            border: `1px solid ${THEME.sage}22`,
+                            background: `${THEME.sage}12`,
+                            border: `1px solid ${THEME.sage}38`,
                           }}
                         >
                           <div
                             style={{
                               fontSize: 9,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: THEME.muted,
                               textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
+                              letterSpacing: "0.06em",
+                              marginBottom: 3,
                             }}
                           >
                             FY Received
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
                             {fmtINRFull(
                               (p.receipts || [])
                                 .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
@@ -871,25 +871,25 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         </div>
                         <div
                           style={{
-                            padding: "10px 12px",
+                            padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.gold}09`,
-                            border: `1px solid ${THEME.gold}22`,
+                            background: `${THEME.gold}12`,
+                            border: `1px solid ${THEME.gold}38`,
                           }}
                         >
                           <div
                             style={{
                               fontSize: 9,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: THEME.muted,
                               textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
+                              letterSpacing: "0.06em",
+                              marginBottom: 3,
                             }}
                           >
                             Deposit Held
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.gold }}>
                             {fmtINRFull(
                               Math.max(
                                 0,
@@ -903,59 +903,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
-                            <div
-                              style={{
-                                fontSize: 9,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                marginTop: 2,
-                              }}
-                            >
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
                               Agreed:{" "}
-                              <span style={{ color: THEME.gold }}>
-                                {fmtINRFull(p.securityDeposit || 0)}
-                              </span>
+                              <span style={{ color: THEME.gold }}>{fmtINRFull(p.securityDeposit || 0)}</span>
                             </div>
                           ) : p.depositReceivedDate ? (
-                            <div
-                              style={{
-                                fontSize: 9,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                marginTop: 2,
-                                display: "flex",
-                                gap: 3,
-                              }}
-                            >
-                              Recd:{" "}
-                              <span style={{ color: THEME.gold }}>
-                                {fmtDate(p.depositReceivedDate)}
-                              </span>
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                              Recd: <span style={{ color: THEME.gold }}>{fmtDate(p.depositReceivedDate)}</span>
                             </div>
                           ) : null}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowLogModal({ type: "deposit_out", property: p });
-                            }}
-                            style={{
-                              marginTop: 6,
-                              border: "none",
-                              cursor: "pointer",
-                              color: THEME.gold,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              padding: "3px 8px",
-                              borderRadius: 4,
-                              background: `${THEME.gold}15`,
-                              fontSize: 9,
-                              fontWeight: 800,
-                            }}
-                            title="Log Partial Deposit Receipt"
-                          >
-                            <Plus size={8} /> Log Deposit
-                          </button>
                         </div>
                       </div>
 
@@ -1023,34 +979,58 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Receipt size={14} />
                           {expandedLedger === p.id ? "Hide Receipt Ledger" : "View Receipt Ledger"}
                         </button>
-                        {(() => {
-                          const currMonth = today().slice(0, 7);
-                          const alreadyLogged = (p.receipts || []).some(
-                            (r: any) => r.month === currMonth
-                          );
-                          if (alreadyLogged) return null;
-                          return (
-                            <button
-                              onClick={() => setShowLogModal({ type: "receipt", property: p })}
-                              style={{
-                                fontSize: 11,
-                                padding: "4px 10px",
-                                borderRadius: 6,
-                                border: `1px solid ${THEME.accent}44`,
-                                background: `${THEME.accent}10`,
-                                color: THEME.accent,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                              }}
-                              title={`Quick log rent for ${currMonth}`}
-                            >
-                              <Plus size={11} /> {currMonth}
-                            </button>
-                          );
-                        })()}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowLogModal({ type: "deposit_out", property: p });
+                            }}
+                            style={{
+                              fontSize: 11,
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              border: `1px solid ${THEME.gold}44`,
+                              background: `${THEME.gold}10`,
+                              color: THEME.gold,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title="Log Partial Deposit Receipt"
+                          >
+                            <Plus size={11} /> Deposit
+                          </button>
+                          {(() => {
+                            const currMonth = today().slice(0, 7);
+                            const alreadyLogged = (p.receipts || []).some(
+                              (r: any) => r.month === currMonth
+                            );
+                            if (alreadyLogged) return null;
+                            return (
+                              <button
+                                onClick={() => setShowLogModal({ type: "receipt", property: p })}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "4px 10px",
+                                  borderRadius: 6,
+                                  border: `1px solid ${THEME.accent}44`,
+                                  background: `${THEME.accent}10`,
+                                  color: THEME.accent,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}
+                                title={`Quick log rent for ${currMonth}`}
+                              >
+                                <Plus size={11} /> {currMonth}
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {/* Expanded Ledger Section */}
@@ -2216,25 +2196,25 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                       >
                         <div
                           style={{
-                            padding: "10px 12px",
+                            padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.rust}09`,
-                            border: `1px solid ${THEME.rust}22`,
+                            background: `${THEME.rust}12`,
+                            border: `1px solid ${THEME.rust}38`,
                           }}
                         >
                           <div
                             style={{
                               fontSize: 9,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: THEME.muted,
                               textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
+                              letterSpacing: "0.06em",
+                              marginBottom: 3,
                             }}
                           >
                             FY Paid
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.rust }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.rust }}>
                             {fmtINRFull(
                               (p.payments || [])
                                 .filter((r: any) => r.date >= fyStart && r.date <= fyEnd)
@@ -2244,83 +2224,39 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         </div>
                         <div
                           style={{
-                            padding: "10px 12px",
+                            padding: "9px 12px",
                             borderRadius: 10,
-                            background: `${THEME.sage}09`,
-                            border: `1px solid ${THEME.sage}22`,
+                            background: `${THEME.sage}12`,
+                            border: `1px solid ${THEME.sage}38`,
                           }}
                         >
                           <div
                             style={{
                               fontSize: 9,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               color: THEME.muted,
                               textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
+                              letterSpacing: "0.06em",
+                              marginBottom: 3,
                             }}
                           >
                             Deposit Paid
                           </div>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.sage }}>
                             {fmtINRFull(
                               Math.max(0, getActualSecurityDeposit(p) - (p.depositReturned || 0))
                             )}
                           </div>
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
-                            <div
-                              style={{
-                                fontSize: 9,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                marginTop: 2,
-                              }}
-                            >
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
                               Agreed:{" "}
-                              <span style={{ color: THEME.sage }}>
-                                {fmtINRFull(p.securityDeposit || 0)}
-                              </span>
+                              <span style={{ color: THEME.sage }}>{fmtINRFull(p.securityDeposit || 0)}</span>
                             </div>
                           ) : p.depositPaidDate ? (
-                            <div
-                              style={{
-                                fontSize: 9,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                marginTop: 2,
-                                display: "flex",
-                                gap: 3,
-                              }}
-                            >
-                              Paid:{" "}
-                              <span style={{ color: THEME.sage }}>
-                                {fmtDate(p.depositPaidDate)}
-                              </span>
+                            <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
+                              Paid: <span style={{ color: THEME.sage }}>{fmtDate(p.depositPaidDate)}</span>
                             </div>
                           ) : null}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowLogModal({ type: "deposit_in", property: p });
-                            }}
-                            style={{
-                              marginTop: 6,
-                              border: "none",
-                              cursor: "pointer",
-                              color: THEME.sage,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              padding: "3px 8px",
-                              borderRadius: 4,
-                              background: `${THEME.sage}15`,
-                              fontSize: 9,
-                              fontWeight: 800,
-                            }}
-                            title="Log Partial Deposit Payment"
-                          >
-                            <Plus size={8} /> Log Deposit
-                          </button>
                         </div>
                       </div>
 
@@ -2388,34 +2324,58 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           <Receipt size={14} />
                           {expandedLedger === p.id ? "Hide Payment Ledger" : "View Payment Ledger"}
                         </button>
-                        {(() => {
-                          const currMonth = today().slice(0, 7);
-                          const alreadyLogged = (p.payments || []).some(
-                            (r: any) => r.month === currMonth
-                          );
-                          if (alreadyLogged) return null;
-                          return (
-                            <button
-                              onClick={() => setShowLogModal({ type: "payment", property: p })}
-                              style={{
-                                fontSize: 11,
-                                padding: "4px 10px",
-                                borderRadius: 6,
-                                border: `1px solid ${THEME.rust}44`,
-                                background: `${THEME.rust}10`,
-                                color: THEME.rust,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                              }}
-                              title={`Quick log rent for ${currMonth}`}
-                            >
-                              <Plus size={11} /> {currMonth}
-                            </button>
-                          );
-                        })()}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowLogModal({ type: "deposit_in", property: p });
+                            }}
+                            style={{
+                              fontSize: 11,
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              border: `1px solid ${THEME.sage}44`,
+                              background: `${THEME.sage}10`,
+                              color: THEME.sage,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title="Log Partial Deposit Payment"
+                          >
+                            <Plus size={11} /> Deposit
+                          </button>
+                          {(() => {
+                            const currMonth = today().slice(0, 7);
+                            const alreadyLogged = (p.payments || []).some(
+                              (r: any) => r.month === currMonth
+                            );
+                            if (alreadyLogged) return null;
+                            return (
+                              <button
+                                onClick={() => setShowLogModal({ type: "payment", property: p })}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "4px 10px",
+                                  borderRadius: 6,
+                                  border: `1px solid ${THEME.rust}44`,
+                                  background: `${THEME.rust}10`,
+                                  color: THEME.rust,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}
+                                title={`Quick log rent for ${currMonth}`}
+                              >
+                                <Plus size={11} /> {currMonth}
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {/* Expanded Ledger Section */}
