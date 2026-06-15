@@ -26,6 +26,185 @@ import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
+// ─── Builder Logo ─────────────────────────────────────────────────────────────
+
+const BUILDER_LOGO_DOMAINS: Record<string, string> = {
+  lodha: "lodhagroup.com",
+  macrotech: "lodhagroup.com",
+  dlf: "dlf.in",
+  godrej: "godrejproperties.com",
+  prestige: "prestigeconstructions.com",
+  brigade: "brigadegroup.com",
+  sobha: "sobha.com",
+  puravankara: "puravankara.com",
+  provident: "providenthousing.com",
+  mahindra: "mahindralifespaces.com",
+  tata: "tatahousing.com",
+  oberoi: "oberoirealty.com",
+  kolte: "koltepatil.com",
+  shapoorji: "shapoorji.com",
+  phoenix: "thephoenixmills.com",
+  embassy: "embassyindia.com",
+  raymond: "raymond.in",
+  runwal: "runwalgroupindia.com",
+  hiranandani: "hiranandanigroup.com",
+  "l&t": "ltrealty.com",
+  lnt: "ltrealty.com",
+  piramal: "piramalrealty.com",
+  omkar: "omkarrealtors.com",
+  rustomjee: "rustomjee.com",
+  sunteck: "sunteckrealty.com",
+  wadhwa: "wadhwagroup.com",
+  kanakia: "kanakiaspaces.com",
+  kalpataru: "kalpatarugroup.com",
+  vtp: "vtprealty.com",
+  sumadhura: "sumadhura.com",
+  century: "centuryrealestate.in",
+  shriram: "shriramproperties.com",
+  rohan: "rohanbuilders.com",
+  ekta: "ektaworld.com",
+  casagrande: "casagrande.in",
+  "casa grande": "casagrande.in",
+  radiance: "radiancerealty.in",
+  chandak: "chandakgroup.com",
+};
+
+const BUILDER_THEMES: Record<string, { gradient: string; color: string }> = {
+  lodha: { gradient: "linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)", color: "#1e40af" },
+  dlf: { gradient: "linear-gradient(135deg,#7c2d12 0%,#ea580c 100%)", color: "#ea580c" },
+  godrej: { gradient: "linear-gradient(135deg,#14532d 0%,#22c55e 100%)", color: "#15803d" },
+  prestige: { gradient: "linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)", color: "#7c3aed" },
+  brigade: { gradient: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)", color: "#0891b2" },
+  sobha: { gradient: "linear-gradient(135deg,#b45309 0%,#f59e0b 100%)", color: "#b45309" },
+  puravankara: { gradient: "linear-gradient(135deg,#dc2626 0%,#f87171 100%)", color: "#dc2626" },
+  mahindra: { gradient: "linear-gradient(135deg,#dc2626 0%,#f87171 100%)", color: "#dc2626" },
+  tata: { gradient: "linear-gradient(135deg,#1d4ed8 0%,#60a5fa 100%)", color: "#1d4ed8" },
+  oberoi: { gradient: "linear-gradient(135deg,#0f172a 0%,#334155 100%)", color: "#334155" },
+  kolte: { gradient: "linear-gradient(135deg,#059669 0%,#34d399 100%)", color: "#059669" },
+  shapoorji: { gradient: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)", color: "#d97706" },
+  hiranandani: { gradient: "linear-gradient(135deg,#6d28d9 0%,#c084fc 100%)", color: "#7c3aed" },
+  kalpataru: { gradient: "linear-gradient(135deg,#b45309 0%,#fbbf24 100%)", color: "#b45309" },
+  piramal: { gradient: "linear-gradient(135deg,#0f766e 0%,#2dd4bf 100%)", color: "#0f766e" },
+  runwal: { gradient: "linear-gradient(135deg,#1e40af 0%,#60a5fa 100%)", color: "#1e40af" },
+  sunteck: { gradient: "linear-gradient(135deg,#7c2d12 0%,#fb923c 100%)", color: "#c2410c" },
+  chandak: { gradient: "linear-gradient(135deg,#1e3a8a 0%,#f59e0b 100%)", color: "#1d4ed8" },
+};
+
+function getBuilderTheme(name: string) {
+  const key = (name || "").toLowerCase().replace(/[\s\-_.&]+/g, "");
+  for (const [k, v] of Object.entries(BUILDER_THEMES)) {
+    if (key.includes(k.replace(/[\s\-_.&]+/g, ""))) return v;
+  }
+  const hue =
+    Array.from(name || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  const color = `hsl(${hue},55%,42%)`;
+  return {
+    gradient: `linear-gradient(135deg,hsl(${hue},55%,42%) 0%,hsl(${hue},70%,62%) 100%)`,
+    color,
+  };
+}
+
+function builderInitials(name: string): string {
+  const words = (name || "?").trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+const BuilderLogo = ({
+  name,
+  size = 46,
+  borderRadius = 13,
+}: {
+  name: string;
+  size?: number;
+  borderRadius?: number;
+}) => {
+  const theme = getBuilderTheme(name);
+  const key = (name || "").toLowerCase().replace(/[\s\-_.&]+/g, "");
+  let domain = "";
+  for (const [k, d] of Object.entries(BUILDER_LOGO_DOMAINS)) {
+    if (key.includes(k.replace(/[\s\-_.&]+/g, ""))) {
+      domain = d;
+      break;
+    }
+  }
+
+  const [imgSrc, setImgSrc] = React.useState<string | null>(
+    domain ? `https://logos.hunter.io/${domain}` : null
+  );
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(domain ? 0 : 2);
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  const initials = builderInitials(name || "?");
+  const fontSize = Math.round(size * 0.38);
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius,
+          background: "#fff",
+          border: `1.5px solid ${theme.color}30`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          boxShadow: `0 4px 14px ${theme.color}30`,
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src={imgSrc}
+          alt={name}
+          onError={handleError}
+          style={{ width: Math.round(size * 0.8), height: Math.round(size * 0.8), objectFit: "contain" }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius,
+        background: theme.gradient,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        boxShadow: `0 4px 14px ${theme.color}40`,
+      }}
+    >
+      <span style={{ fontSize, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em", lineHeight: 1 }}>
+        {initials}
+      </span>
+    </div>
+  );
+};
+
 const input: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
@@ -405,6 +584,12 @@ function PropertyCard({
     <div style={cardShell}>
       {/* Header */}
       <div style={{ padding: "16px 20px", borderBottom: divider, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        {/* Builder logo */}
+        {property.developerName && (
+          <div style={{ flexShrink: 0, marginTop: 2 }}>
+            <BuilderLogo name={property.developerName} size={46} borderRadius={13} />
+          </div>
+        )}
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>{property.name}</span>
