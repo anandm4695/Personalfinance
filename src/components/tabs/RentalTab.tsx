@@ -418,7 +418,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
 
       {sub === "out" ? (
         <div className="animate-fade-in-up">
-          <div
+          {propertiesOut.length > 0 && <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -524,7 +524,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
-          </div>
+          </div>}
 
           {propertiesOut.length === 0 ? (
             <EmptyState
@@ -697,7 +697,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginLeft: 6,
                                 }}
                               >
-                                Y{getCurrentTierIndex(p) + 1} of {p.escalationTiers.length}
+                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of {p.escalationTiers.length}
                               </span>
                             )}
                           </div>
@@ -1822,7 +1822,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
         </div>
       ) : (
         <div className="animate-fade-in-up">
-          <div
+          {propertiesIn.length > 0 && <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -1918,7 +1918,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                 {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
               </div>
             ))}
-          </div>
+          </div>}
 
           {propertiesIn.length === 0 ? (
             <EmptyState
@@ -2093,7 +2093,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                   marginLeft: 6,
                                 }}
                               >
-                                Y{getCurrentTierIndex(p) + 1} of {p.escalationTiers.length}
+                                Y{Math.max(1, getCurrentTierIndex(p) + 1)} of {p.escalationTiers.length}
                               </span>
                             )}
                             {" · "}
@@ -3167,7 +3167,9 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                   {label}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 800, color }}>
-                  {label === "Net Cashflow" ? (outThisFY >= inThisFY ? "+" : "-") : sign}
+                  {label === "Net Cashflow"
+                    ? (outThisFY >= inThisFY ? "+" : "-")
+                    : (value !== 0 ? sign : "")}
                   {fmtINRFull(Math.abs(value))}
                 </div>
               </div>
