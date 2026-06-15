@@ -879,45 +879,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         >
                           <div
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
+                              fontSize: 9,
+                              fontWeight: 800,
+                              color: THEME.muted,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
                               marginBottom: 2,
                             }}
                           >
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 800,
-                                color: THEME.muted,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                              }}
-                            >
-                              Deposit Held
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowLogModal({ type: "deposit_out", property: p });
-                              }}
-                              style={{
-                                border: "none",
-                                cursor: "pointer",
-                                color: THEME.gold,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                background: `${THEME.gold}15`,
-                                fontSize: 9,
-                                fontWeight: 800,
-                              }}
-                              title="Log Partial Deposit Receipt"
-                            >
-                              <Plus size={8} style={{ marginRight: 2 }} /> Log
-                            </button>
+                            Deposit Held
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.gold }}>
                             {fmtINRFull(
@@ -963,6 +933,29 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               </span>
                             </div>
                           ) : null}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowLogModal({ type: "deposit_out", property: p });
+                            }}
+                            style={{
+                              marginTop: 6,
+                              border: "none",
+                              cursor: "pointer",
+                              color: THEME.gold,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              padding: "3px 8px",
+                              borderRadius: 4,
+                              background: `${THEME.gold}15`,
+                              fontSize: 9,
+                              fontWeight: 800,
+                            }}
+                            title="Log Partial Deposit Receipt"
+                          >
+                            <Plus size={8} /> Log Deposit
+                          </button>
                         </div>
                       </div>
 
@@ -2259,45 +2252,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                         >
                           <div
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
+                              fontSize: 9,
+                              fontWeight: 800,
+                              color: THEME.muted,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
                               marginBottom: 2,
                             }}
                           >
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 800,
-                                color: THEME.muted,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                              }}
-                            >
-                              Deposit Paid
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowLogModal({ type: "deposit_in", property: p });
-                              }}
-                              style={{
-                                border: "none",
-                                cursor: "pointer",
-                                color: THEME.sage,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                background: `${THEME.sage}15`,
-                                fontSize: 9,
-                                fontWeight: 800,
-                              }}
-                              title="Log Partial Deposit Payment"
-                            >
-                              <Plus size={8} style={{ marginRight: 2 }} /> Log
-                            </button>
+                            Deposit Paid
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: THEME.sage }}>
                             {fmtINRFull(
@@ -2335,6 +2298,29 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                               </span>
                             </div>
                           ) : null}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowLogModal({ type: "deposit_in", property: p });
+                            }}
+                            style={{
+                              marginTop: 6,
+                              border: "none",
+                              cursor: "pointer",
+                              color: THEME.sage,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              padding: "3px 8px",
+                              borderRadius: 4,
+                              background: `${THEME.sage}15`,
+                              fontSize: 9,
+                              fontWeight: 800,
+                            }}
+                            title="Log Partial Deposit Payment"
+                          >
+                            <Plus size={8} /> Log Deposit
+                          </button>
                         </div>
                       </div>
 
