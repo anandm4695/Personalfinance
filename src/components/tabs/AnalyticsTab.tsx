@@ -2138,7 +2138,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       insights.push({
         icon: AlertTriangle,
         title: "Insurance Gap",
-        value: `${fmtINR(annualIncome * 15 - totalTermCover)} short of 15× cover`,
+        value: `${fmtINRFull(annualIncome * 15 - totalTermCover)} short of 15× cover`,
         color: THEME.gold,
         bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
       });
@@ -2246,7 +2246,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         insights.push({
           icon: CheckCircle2,
           title: `${soonest.name} payoff in ${timeStr}`,
-          value: `${fmtINR(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`,
+          value: `${fmtINRFull(soonest.outstanding)} remaining · ${withMonths.length} active loan${withMonths.length > 1 ? "s" : ""}`,
           color: THEME.accent,
           bg: `color-mix(in srgb, var(--t-accent) 7%, transparent)`,
         });
@@ -2296,7 +2296,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         insights.push({
           icon: AlertTriangle,
           title: `${topCat} Spike`,
-          value: `${fmtINR(topVal)} this month vs ${fmtINR(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`,
+          value: `${fmtINRFull(topVal)} this month vs ${fmtINRFull(avg3)} avg — ${Math.round((topVal / avg3 - 1) * 100)}% above normal`,
           color: THEME.gold,
           bg: `color-mix(in srgb, var(--t-gold) 7%, transparent)`,
         });
@@ -2314,7 +2314,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         insights.push({
           icon: AlertTriangle,
           title: "SIP Exceeds Savings",
-          value: `SIPs ${fmtINR(totalSIPAmt)}/mo · only ${fmtINR(Math.max(0, monthlySavings))} available`,
+          value: `SIPs ${fmtINRFull(totalSIPAmt)}/mo · only ${fmtINRFull(Math.max(0, monthlySavings))} available`,
           color: THEME.rust,
           bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
         });
@@ -2334,7 +2334,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       insights.push({
         icon: CreditCard,
         title: "CC Interest Risk",
-        value: `${fmtINR(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`,
+        value: `${fmtINRFull(Math.round(ccInterestMonthly))}/mo in charges if balances not cleared`,
         color: THEME.rust,
         bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
       });
@@ -2351,8 +2351,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const pctOfIncome =
         annualIncome > 0 ? ((totalAnnualFees / annualIncome) * 100).toFixed(1) : null;
       const sub = pctOfIncome
-        ? `${fmtINR(Math.round(totalAnnualFees / 12))}/mo · ${pctOfIncome}% of annual income`
-        : `${fmtINR(Math.round(totalAnnualFees / 12))}/mo across ${feeCardCount} card${feeCardCount !== 1 ? "s" : ""}`;
+        ? `${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo · ${pctOfIncome}% of annual income`
+        : `${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo across ${feeCardCount} card${feeCardCount !== 1 ? "s" : ""}`;
       insights.push({
         icon: CreditCard,
         title: "CC Annual Fees",
@@ -3732,7 +3732,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               color: d.isFdMaturity ? THEME.sage : THEME.ink,
                             }}
                           >
-                            {fmtINR(d.amount)}
+                            {fmtINRFull(d.amount)}
                           </div>
                           {d.isFdMaturity ? (
                             <Badge variant="sage" style={{ fontSize: 10, marginTop: 4 }}>
@@ -3890,7 +3890,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         >
                           {wealthVelocity.latest >= 0 ? "+" : ""}
-                          {fmtINR(wealthVelocity.latest)}
+                          {fmtINRFull(wealthVelocity.latest)}
                         </span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -3918,7 +3918,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <span style={{ fontSize: 12, color: THEME.muted }}>At this pace</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
                           {wealthVelocity.avg >= 0 ? "+" : ""}
-                          {fmtINR(wealthVelocity.avg * 12)}/yr
+                          {fmtINRFull(wealthVelocity.avg * 12)}/yr
                         </span>
                       </div>
                     </div>
@@ -4022,11 +4022,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     {l.loanName || l.bank || "Loan"}
                                   </div>
                                   <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                                    Payoff: {timeStr} · {fmtINR(outstanding)} left
+                                    Payoff: {timeStr} · {fmtINRFull(outstanding)} left
                                   </div>
                                 </div>
                                 <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>
-                                  {fmtINR(emi)}/mo
+                                  {fmtINRFull(emi)}/mo
                                 </span>
                               </div>
                             );
@@ -4197,7 +4197,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             }}
                           >
                             {t.type === "credit" ? "+" : "-"}
-                            {fmtINR(t.amount)}
+                            {fmtINRFull(t.amount)}
                           </div>
                           <span
                             style={{
