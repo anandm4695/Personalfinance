@@ -26,6 +26,7 @@ import {
   PiggyBank,
   Target,
   RefreshCw,
+  ArrowDownRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -1100,6 +1101,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         return (
           <MFSection
             items={state.mutualFunds}
+            addItem={addItem}
             removeItem={removeItem}
             updateItem={updateItem}
             onAdd={onAdd}
@@ -7247,7 +7249,7 @@ const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: number }) =>
 };
 
 /* ── MF Section ─────────────────────────────────────────────────────── */
-function MFSection({ items, removeItem, updateItem, onAdd }: any) {
+function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
@@ -7255,6 +7257,8 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
   const [mfMeta, setMfMeta] = useState<Record<string, any>>({});
   const [mfChartData, setMfChartData] = useState<Record<string, any[]>>({});
   const [expandedMF, setExpandedMF] = useState<Set<string>>(new Set());
+  const [sellMF, setSellMF] = useState<any>(null);
+  const [fifoSellMFGroup, setFifoSellMFGroup] = useState<any>(null);
 
   const toggleExpandMF = (id: string, mfCode: string) => {
     setExpandedMF((prev) => {
@@ -7452,9 +7456,33 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
             ))}
           </div>
 
-          {/* Refresh All NAVs button */}
-          {items.some((m: any) => m.mfCode) && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          {/* Action buttons row */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            {/* Bulk sell (FIFO) — group same-scheme funds */}
+            {(() => {
+              const schemeGroups: Record<string, any[]> = {};
+              items.forEach((m: any) => {
+                const key = (m.name || m.scheme || "").trim();
+                if (!key) return;
+                if (!schemeGroups[key]) schemeGroups[key] = [];
+                schemeGroups[key].push(m);
+              });
+              const multiLotSchemes = Object.entries(schemeGroups).filter(([, lots]) => lots.length > 1);
+              if (!multiLotSchemes.length) return null;
+              return multiLotSchemes.map(([schemeName, lots]) => (
+                <Button
+                  key={schemeName}
+                  variant="secondary"
+                  size="sm"
+                  icon={<ArrowDownRight size={13} />}
+                  onClick={() => setFifoSellMFGroup({ schemeName, lots })}
+                  style={{ color: THEME.gold }}
+                >
+                  Sell {schemeName.length > 20 ? schemeName.slice(0, 20) + "…" : schemeName} (FIFO)
+                </Button>
+              ));
+            })()}
+            {items.some((m: any) => m.mfCode) && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -7464,8 +7492,8 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
               >
                 {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           <div
             style={{
@@ -7516,6 +7544,7 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                           title="Refresh live NAV"
                         />
                       )}
+                      <Button variant="ghost" size="sm" icon={<ArrowDownRight size={12} />} style={{ color: THEME.gold }} onClick={() => setSellMF(m)} title="Sell units" />
                       <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => setEditMF(m)} />
                       <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} style={{ color: THEME.rust }} onClick={() => removeItem("mutualFunds", m.id)} />
                     </div>
@@ -7763,7 +7792,402 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
           }}
         />
       )}
+      {sellMF && (
+        <SellMFModal
+          mf={sellMF}
+          onClose={() => setSellMF(null)}
+          onSave={(sellRecord: any, remainingUnits: number) => {
+            addItem("mfSells", sellRecord);
+            if (remainingUnits <= 0) removeItem("mutualFunds", sellMF.id);
+            else {
+              const newInvested = Number(sellMF.buyNav || 0) * remainingUnits;
+              updateItem("mutualFunds", sellMF.id, {
+                units: String(remainingUnits),
+                invested: String(newInvested || (Number(sellMF.invested || 0) * remainingUnits / Number(sellMF.units))),
+              });
+            }
+            setSellMF(null);
+          }}
+        />
+      )}
+      {fifoSellMFGroup && (
+        <FifoSellMFModal
+          group={fifoSellMFGroup}
+          onClose={() => setFifoSellMFGroup(null)}
+          onSave={(allocs: any[], sellNav: number, sellDate: string) => {
+            allocs.forEach((alloc: any, i: number) => {
+              addItem("mfSells", {
+                id: `mfs-${Date.now()}-${i}`,
+                owner: alloc.lot.owner || "self",
+                scheme: fifoSellMFGroup.schemeName,
+                units: alloc.consume,
+                buyNav: alloc.buyNav,
+                buyDate: alloc.lot.buyDate || "",
+                sellNav,
+                sellDate,
+                profit: Number(alloc.pnl.toFixed(2)),
+              });
+              if (alloc.fullyConsumed) removeItem("mutualFunds", alloc.lot.id);
+              else {
+                const remaining = Number(alloc.lot.units) - alloc.consume;
+                const newInvested = Number(alloc.lot.buyNav || 0) * remaining;
+                updateItem("mutualFunds", alloc.lot.id, {
+                  units: String(remaining),
+                  invested: String(newInvested || (Number(alloc.lot.invested || 0) * remaining / Number(alloc.lot.units))),
+                });
+              }
+            });
+            setFifoSellMFGroup(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/* ── Sell MF Modal ─────────────────────────────────────────────────── */
+function SellMFModal({ mf, onClose, onSave }: any) {
+  const totalUnits = Number(mf.units) || 0;
+  const buyNav = Number(mf.buyNav) || 0;
+  const currentNav = Number(mf.currentNav) || 0;
+  const [f, setF] = useState({
+    sellUnits: String(totalUnits),
+    sellNav: currentNav ? String(currentNav.toFixed(4)) : "",
+    sellDate: today(),
+  });
+  const sellUnitsNum = Number(f.sellUnits) || 0;
+  const sellNavNum = Number(f.sellNav) || 0;
+  const profit = buyNav > 0 ? (sellNavNum - buyNav) * sellUnitsNum : 0;
+  const remainingUnits = totalUnits - sellUnitsNum;
+  const proceeds = sellUnitsNum * sellNavNum;
+  const isLTCG = mf.buyDate ? Date.now() - new Date(mf.buyDate).getTime() > 365 * 86400 * 1000 : false;
+
+  const handleSave = () => {
+    if (!sellUnitsNum || !sellNavNum || sellUnitsNum > totalUnits) return;
+    const record = {
+      id: `mfs-${Date.now()}`,
+      owner: mf.owner || "self",
+      scheme: mf.name || mf.scheme || "",
+      units: sellUnitsNum,
+      buyNav,
+      buyDate: mf.buyDate || "",
+      sellNav: sellNavNum,
+      sellDate: f.sellDate,
+      profit: Number(profit.toFixed(2)),
+    };
+    onSave(record, remainingUnits);
+  };
+
+  return (
+    <Modal title={`Sell — ${(mf.name || mf.scheme || "Mutual Fund").slice(0, 40)}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
+        Holding: <b>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</b> units
+        {buyNav > 0 && <> @ buy NAV ₹{buyNav.toFixed(4)}</>}
+        {mf.buyDate && <> · Bought {new Date(mf.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Units to Sell">
+          <input
+            style={inp}
+            type="number"
+            min="0.001"
+            max={totalUnits}
+            step="0.001"
+            value={f.sellUnits}
+            onChange={(e) => setF({ ...f, sellUnits: e.target.value })}
+          />
+        </Field>
+        <Field label="Sell NAV (₹)">
+          <input
+            style={inp}
+            type="number"
+            step="0.0001"
+            value={f.sellNav}
+            onChange={(e) => setF({ ...f, sellNav: e.target.value })}
+          />
+        </Field>
+      </div>
+      <Field label="Sell Date">
+        <input
+          style={inp}
+          type="date"
+          value={f.sellDate}
+          onChange={(e) => setF({ ...f, sellDate: e.target.value })}
+        />
+      </Field>
+      {sellUnitsNum > totalUnits && (
+        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 4 }}>
+          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units available
+        </div>
+      )}
+      {sellUnitsNum > 0 && sellNavNum > 0 && sellUnitsNum <= totalUnits && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: profit >= 0 ? `${THEME.sage}1a` : `${THEME.rust}1a`,
+            marginTop: 8,
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
+              Proceeds: <b>₹{proceeds.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+            </span>
+            <span style={{ fontSize: 13, color: "var(--t-muted)" }}>
+              P&L:{" "}
+              <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
+                {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </b>
+            </span>
+            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`, color: isLTCG ? THEME.sage : THEME.gold }}>
+              {isLTCG ? "LTCG" : "STCG"}
+            </span>
+          </div>
+          {remainingUnits > 0 && (
+            <div style={{ fontSize: 12, color: "var(--t-muted)", marginTop: 6 }}>
+              {remainingUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units remaining after sell
+            </div>
+          )}
+        </div>
+      )}
+      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Confirm Sell" />
+    </Modal>
+  );
+}
+
+/* ── FIFO MF Sell Modal ────────────────────────────────────────────── */
+function FifoSellMFModal({ group, onClose, onSave }: any) {
+  const lots = group.lots;
+  const totalUnits = lots.reduce((s: number, l: any) => s + (Number(l.units) || 0), 0);
+
+  const sortedLots = [...lots].sort((a: any, b: any) => {
+    if (!a.buyDate && !b.buyDate) return 0;
+    if (!a.buyDate) return 1;
+    if (!b.buyDate) return -1;
+    return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
+  });
+
+  const defaultNav = (() => {
+    const navVals = lots.map((l: any) => Number(l.currentNav)).filter((n: number) => n > 0);
+    return navVals.length ? Math.max(...navVals) : 0;
+  })();
+
+  const [f, setF] = useState({
+    sellUnits: String(totalUnits),
+    sellNav: defaultNav ? String(defaultNav.toFixed(4)) : "",
+    sellDate: today(),
+  });
+
+  const sellUnitsNum = Number(f.sellUnits) || 0;
+  const sellNavNum = Number(f.sellNav) || 0;
+  const qtyOver = sellUnitsNum > totalUnits;
+
+  type MFAlloc = { lot: any; consume: number; buyNav: number; pnl: number; isLTCG: boolean; fullyConsumed: boolean };
+  const allocs: MFAlloc[] = (() => {
+    if (sellUnitsNum <= 0 || sellNavNum <= 0 || qtyOver) return [];
+    const result: MFAlloc[] = [];
+    let remaining = sellUnitsNum;
+    const now = Date.now();
+    for (const lot of sortedLots) {
+      if (remaining <= 0) break;
+      const available = Number(lot.units) || 0;
+      const consume = Math.min(available, remaining);
+      const lotBuyNav = Number(lot.buyNav) || 0;
+      const isLTCG = lot.buyDate ? now - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000 : false;
+      result.push({
+        lot,
+        consume,
+        buyNav: lotBuyNav,
+        pnl: (sellNavNum - lotBuyNav) * consume,
+        isLTCG,
+        fullyConsumed: consume >= available,
+      });
+      remaining -= consume;
+    }
+    return result;
+  })();
+
+  const totalProceeds = sellUnitsNum * sellNavNum;
+  const totalCost = allocs.reduce((s, a) => s + a.consume * a.buyNav, 0);
+  const totalPnl = totalProceeds - totalCost;
+  const stcgPnl = allocs.filter((a) => !a.isLTCG).reduce((s, a) => s + a.pnl, 0);
+  const ltcgPnl = allocs.filter((a) => a.isLTCG).reduce((s, a) => s + a.pnl, 0);
+  const remainingAfter = totalUnits - sellUnitsNum;
+  const isValid = sellUnitsNum > 0 && sellNavNum > 0 && !qtyOver && !!f.sellDate;
+
+  const fmt2 = (n: number) => Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt4 = (n: number) => Number(n).toFixed(4);
+
+  return (
+    <Modal title={`Sell ${group.schemeName.length > 35 ? group.schemeName.slice(0, 35) + "…" : group.schemeName} — FIFO`} onClose={onClose} maxWidth={720}>
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 8,
+          background: "var(--surface-0)",
+          border: `1px solid ${THEME.line}`,
+          marginBottom: 16,
+          fontSize: 13,
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <span>
+          <span style={{ color: THEME.muted }}>Available: </span>
+          <b>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units</b>
+        </span>
+        <span>
+          <span style={{ color: THEME.muted }}>Lots: </span>
+          <b>{lots.length}</b>
+        </span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.muted }}>
+          Oldest lot consumed first (FIFO)
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <Field label="Units to Sell">
+          <input
+            style={{ ...inp, borderColor: qtyOver ? THEME.rust : undefined }}
+            type="number"
+            min="0.001"
+            max={totalUnits}
+            step="0.001"
+            value={f.sellUnits}
+            onChange={(e) => setF({ ...f, sellUnits: e.target.value })}
+          />
+        </Field>
+        <Field label="Sell NAV (₹)">
+          <input
+            style={inp}
+            type="number"
+            step="0.0001"
+            value={f.sellNav}
+            onChange={(e) => setF({ ...f, sellNav: e.target.value })}
+          />
+        </Field>
+        <Field label="Sell Date">
+          <input
+            style={inp}
+            type="date"
+            value={f.sellDate}
+            onChange={(e) => setF({ ...f, sellDate: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      {qtyOver && (
+        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginBottom: 10 }}>
+          Cannot sell more than {totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units available
+        </div>
+      )}
+
+      {allocs.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+            FIFO Allocation
+          </div>
+          <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "hidden", marginBottom: 14 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-0)" }}>
+                  {["Buy Date", "Buy NAV", "Available", "Selling", "Cost Basis", "P&L", "Type"].map((h, i) => (
+                    <th key={h} style={{ padding: "8px 12px", fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", textAlign: i === 0 ? "left" : (i === 6 ? "center" : "right"), borderBottom: `1px solid ${THEME.line}` }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {allocs.map((a, i) => (
+                  <tr key={a.lot.id} style={{ borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined, background: i % 2 === 0 ? "transparent" : `${THEME.accent}08` }}>
+                    <td style={{ padding: "9px 12px" }}>
+                      {a.lot.buyDate
+                        ? new Date(a.lot.buyDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
+                        : <span style={{ color: THEME.muted }}>—</span>}
+                    </td>
+                    <td style={{ padding: "9px 12px", textAlign: "right" }}>₹{fmt4(a.buyNav)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>{Number(a.lot.units).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 800 }}>
+                      {a.consume.toLocaleString("en-IN", { maximumFractionDigits: 3 })}
+                      <span style={{ display: "block", fontSize: 8, color: a.fullyConsumed ? THEME.rust : THEME.gold, fontWeight: 700, lineHeight: 1.2 }}>
+                        {a.fullyConsumed ? "full lot" : "partial"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", color: THEME.muted }}>₹{fmt2(a.consume * a.buyNav)}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700, color: a.pnl >= 0 ? THEME.sage : THEME.rust }}>
+                      {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
+                    </td>
+                    <td style={{ padding: "9px 12px", textAlign: "center" }}>
+                      <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 800, background: a.isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1f`, color: a.isLTCG ? THEME.sage : THEME.gold }}>
+                        {a.isLTCG ? "LTCG" : "STCG"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Summary card */}
+          <div
+            style={{
+              padding: "14px 16px",
+              borderRadius: 10,
+              background: totalPnl >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
+              border: `1px solid ${totalPnl >= 0 ? `${THEME.sage}55` : `${THEME.rust}55`}`,
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Total Proceeds</div>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis (FIFO)</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>₹{fmt2(totalCost)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Net P&L</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+                  {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 16, paddingTop: 10, borderTop: `1px solid ${THEME.line}40`, flexWrap: "wrap" }}>
+              {stcgPnl !== 0 && (
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.gold}1f`, color: THEME.gold, marginRight: 6 }}>STCG</span>
+                  <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>{stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}</b>
+                </span>
+              )}
+              {ltcgPnl !== 0 && (
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, background: `${THEME.sage}1f`, color: THEME.sage, marginRight: 6 }}>LTCG</span>
+                  <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>{ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}</b>
+                </span>
+              )}
+              {remainingAfter > 0 && (
+                <span style={{ fontSize: 12, marginLeft: "auto" }}>
+                  <span style={{ color: THEME.muted }}>Remaining: </span>
+                  <b>{remainingAfter.toLocaleString("en-IN", { maximumFractionDigits: 3 })} units</b>
+                </span>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <ModalActions
+        onSave={() => isValid && onSave(allocs, sellNavNum, f.sellDate)}
+        onClose={onClose}
+        saveLabel="Confirm Sell"
+        disabled={!isValid || allocs.length === 0}
+      />
+    </Modal>
   );
 }
 
