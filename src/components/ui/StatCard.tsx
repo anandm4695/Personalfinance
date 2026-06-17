@@ -44,7 +44,7 @@ export const StatCard = ({
           width: 36,
           height: 36,
           borderRadius: 10,
-          background: iconBg || `${color}1f`,
+          background: iconBg || `color-mix(in srgb, ${color} 12%, transparent)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
