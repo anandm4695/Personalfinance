@@ -7260,6 +7260,7 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
   const [expandedMF, setExpandedMF] = useState<Set<string>>(new Set());
   const [sellMF, setSellMF] = useState<any>(null);
   const [fifoSellMFGroup, setFifoSellMFGroup] = useState<any>(null);
+  const [addLotGroup, setAddLotGroup] = useState<any>(null);
   const [mfSortBy, setMfSortBy] = useState<"name" | "value" | "pnl" | "units">(() => {
     return (localStorage.getItem("finance_mf_sort") as any) || "value";
   });
@@ -7712,17 +7713,27 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                             {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
                           </span>
                         </div>
-                        {hasMultiple && (
+                        <div style={{ display: "flex", gap: 6 }}>
                           <Button
                             variant="secondary"
                             size="sm"
-                            icon={<ArrowDownRight size={13} />}
-                            onClick={(e: any) => { e.stopPropagation(); setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems }); }}
-                            style={{ color: THEME.gold }}
+                            icon={<Plus size={13} />}
+                            onClick={(e: any) => { e.stopPropagation(); setAddLotGroup({ fundName: displayName, folio: displayFolio, refLot: groupItems[0] }); }}
                           >
-                            Bulk Sell
+                            Add Lot
                           </Button>
-                        )}
+                          {hasMultiple && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<ArrowDownRight size={13} />}
+                              onClick={(e: any) => { e.stopPropagation(); setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems }); }}
+                              style={{ color: THEME.gold }}
+                            >
+                              Bulk Sell
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Lot table */}
@@ -7917,7 +7928,160 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
           }}
         />
       )}
+      {addLotGroup && (
+        <AddLotMFModal
+          group={addLotGroup}
+          onClose={() => setAddLotGroup(null)}
+          onSave={(data: any) => {
+            addItem("mutualFunds", data);
+            setAddLotGroup(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/* ── Add Lot MF Modal ──────────────────────────────────────────────── */
+function AddLotMFModal({ group, onClose, onSave }: any) {
+  const ref = group.refLot || {};
+  const [f, setF] = useState({
+    buyDate: today(),
+    buyNav: "",
+    units: "",
+    invested: "",
+  });
+
+  const autoInvested = f.units && f.buyNav ? Number(f.units) * Number(f.buyNav) : null;
+  const currentNav = Number(ref.currentNav) || 0;
+  const currentValue = f.units && currentNav ? Number(f.units) * currentNav : null;
+  const costBasis = f.invested ? Number(f.invested) : autoInvested;
+  const pnl = currentValue !== null && costBasis ? currentValue - costBasis : null;
+  const pnlPct = pnl !== null && costBasis ? (pnl / costBasis) * 100 : null;
+
+  const handleSave = () => {
+    if (!f.units) return;
+    const invested = f.invested || (autoInvested ? String(autoInvested) : "");
+    if (!invested) return;
+    onSave({
+      name: group.fundName || ref.name || ref.scheme || "",
+      category: ref.category || "Equity",
+      mfType: ref.mfType || "Direct Growth",
+      folioNumber: group.folio || ref.folioNumber || "",
+      mfCode: ref.mfCode || "",
+      currentNav: ref.currentNav || "",
+      buyDate: f.buyDate,
+      buyNav: f.buyNav,
+      units: f.units,
+      invested,
+    });
+  };
+
+  const fundLabel = group.fundName || "Mutual Fund";
+
+  return (
+    <Modal title={`Add Lot — ${fundLabel.length > 40 ? fundLabel.slice(0, 40) + "…" : fundLabel}`} onClose={onClose}>
+      {/* Auto-filled info */}
+      <div
+        style={{
+          padding: "10px 14px",
+          borderRadius: 8,
+          background: `${THEME.accent}08`,
+          border: `1px solid ${THEME.accent}20`,
+          marginBottom: 16,
+          fontSize: 12,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px 16px",
+        }}
+      >
+        <span><span style={{ color: THEME.muted }}>Fund: </span><b>{group.fundName}</b></span>
+        {group.folio && <span><span style={{ color: THEME.muted }}>Folio: </span><b>{group.folio}</b></span>}
+        {ref.category && <span><span style={{ color: THEME.muted }}>Category: </span><b>{ref.category}</b></span>}
+        {ref.mfType && <span><span style={{ color: THEME.muted }}>Type: </span><b>{ref.mfType}</b></span>}
+        {ref.mfCode && <span><span style={{ color: THEME.muted }}>AMFI: </span><b>{ref.mfCode}</b></span>}
+        {currentNav > 0 && <span><span style={{ color: THEME.muted }}>Current NAV: </span><b>₹{currentNav.toFixed(4)}</b></span>}
+      </div>
+
+      {/* Lot-specific fields */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Purchase Date">
+          <input
+            style={inp}
+            type="date"
+            value={f.buyDate}
+            onChange={(e) => setF({ ...f, buyDate: e.target.value })}
+          />
+        </Field>
+        <Field label="Buy NAV (₹ per unit)">
+          <input
+            style={inp}
+            type="number"
+            step="0.0001"
+            value={f.buyNav}
+            onChange={(e) => setF({ ...f, buyNav: e.target.value })}
+            placeholder="e.g. 85.5000"
+          />
+        </Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Units *">
+          <input
+            style={inp}
+            type="number"
+            step="0.001"
+            value={f.units}
+            onChange={(e) => setF({ ...f, units: e.target.value })}
+            placeholder="e.g. 500.123"
+          />
+        </Field>
+        <Field label="Amount Invested (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.invested}
+            onChange={(e) => setF({ ...f, invested: e.target.value })}
+            placeholder={autoInvested ? autoInvested.toFixed(2) : "e.g. 50000"}
+          />
+        </Field>
+      </div>
+
+      {/* Preview */}
+      {f.units && (autoInvested || f.invested) && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: pnl !== null && pnl >= 0 ? `${THEME.sage}1a` : pnl !== null ? `${THEME.rust}1a` : `${THEME.accent}08`,
+            marginTop: 8,
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12 }}>
+            <span>
+              <span style={{ color: THEME.muted }}>Invested: </span>
+              <b>₹{(Number(f.invested) || autoInvested || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+            </span>
+            {currentValue !== null && (
+              <span>
+                <span style={{ color: THEME.muted }}>Current: </span>
+                <b style={{ color: THEME.accent }}>₹{currentValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+              </span>
+            )}
+            {pnl !== null && (
+              <span>
+                <span style={{ color: THEME.muted }}>P&L: </span>
+                <b style={{ color: pnl >= 0 ? THEME.sage : THEME.rust }}>
+                  {pnl >= 0 ? "+" : ""}₹{Math.abs(pnl).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {pnlPct !== null && ` (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)`}
+                </b>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <ModalActions onSave={handleSave} onClose={onClose} saveLabel="Add Lot" />
+    </Modal>
   );
 }
 
