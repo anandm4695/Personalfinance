@@ -1283,29 +1283,16 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   };
 
   return (
-    <div style={{ padding: "20px 24px", maxWidth: 820, margin: "0 auto" }}>
+    <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 900,
-              letterSpacing: "-0.03em",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <Car size={22} style={{ color: THEME.accent }} />
-            Vehicles
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--t-muted, var(--text-muted))" }}>
-            Track ownership, service history, insurance and current value
-          </p>
+          <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>Vehicles</div>
+          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+            {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} · Track ownership, service history, insurance and current value
+          </div>
         </div>
-        <Button variant="accent" icon={<Plus size={15} />} onClick={() => setVehicleModal({ open: true })}>
+        <Button variant="accent" icon={<Plus size={14} />} onClick={() => setVehicleModal({ open: true })}>
           Add Vehicle
         </Button>
       </div>
@@ -1339,9 +1326,9 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(3, 1fr)",
             gap: 14,
-            marginBottom: 20,
+            marginBottom: 24,
           }}
         >
           <StatCard
