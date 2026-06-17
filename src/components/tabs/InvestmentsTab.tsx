@@ -7511,8 +7511,11 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
             )}
           </div>
 
-          {/* Grouped by fund name + folio number */}
+          {/* Grouped by fund name + folio — table layout like stocks */}
           {(() => {
+            const mfTh: React.CSSProperties = { textAlign: "left", padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted, fontWeight: 700, borderBottom: `1.5px solid ${THEME.line}`, whiteSpace: "nowrap" };
+            const mfTd: React.CSSProperties = { padding: "12px 10px", verticalAlign: "middle", fontSize: 13, borderBottom: `1px solid ${THEME.line}`, fontVariantNumeric: "tabular-nums" };
+
             const folioGroups: Record<string, { fundName: string; folio: string; items: any[] }> = {};
             items.forEach((m: any) => {
               const name = (m.name || m.scheme || "").trim();
@@ -7522,350 +7525,250 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
               folioGroups[key].items.push(m);
             });
             const grpVal = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
-            const grpInv = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
+            const grpInvFn = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
             const grpUnits = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
 
             const sortedKeys = Object.keys(folioGroups).sort((a, b) => {
               const ga = folioGroups[a];
               const gb = folioGroups[b];
-
-              if (mfSortBy === "name") {
-                const nc = ga.fundName.localeCompare(gb.fundName);
-                return nc !== 0 ? nc : ga.folio.localeCompare(gb.folio);
-              }
+              if (mfSortBy === "name") { const nc = ga.fundName.localeCompare(gb.fundName); return nc !== 0 ? nc : ga.folio.localeCompare(gb.folio); }
               if (mfSortBy === "value") return grpVal(gb) - grpVal(ga);
-              if (mfSortBy === "pnl") {
-                const invA = grpInv(ga);
-                const invB = grpInv(gb);
-                const pctA = invA > 0 ? ((grpVal(ga) - invA) / invA) * 100 : 0;
-                const pctB = invB > 0 ? ((grpVal(gb) - invB) / invB) * 100 : 0;
-                return pctB - pctA;
-              }
+              if (mfSortBy === "pnl") { const invA = grpInvFn(ga); const invB = grpInvFn(gb); return (invB > 0 ? ((grpVal(gb) - invB) / invB) * 100 : 0) - (invA > 0 ? ((grpVal(ga) - invA) / invA) * 100 : 0); }
               if (mfSortBy === "units") return grpUnits(gb) - grpUnits(ga);
               return 0;
             });
 
-            return sortedKeys.map((gKey) => {
-              const grp = folioGroups[gKey];
-              const groupItems = grp.items;
-              const hasMultiple = groupItems.length > 1;
-              const totalUnits = groupItems.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
-              const grpInvested = groupItems.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
-              const grpCurrent = groupItems.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
-              const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
-              const grpPnlPct = grpInvested > 0 && grpCurrent > 0 ? (grpPnl / grpInvested) * 100 : 0;
-              const displayName = grp.fundName || "Unnamed Fund";
-              const displayFolio = grp.folio;
-              const isExpanded = lotExpandedGroups.has(gKey);
-              const firstWithCode = groupItems.find((m: any) => m.mfCode);
+            return (
+              <div style={{ background: "var(--t-card-bg)", borderRadius: 16, border: `1px solid ${THEME.line}`, overflowX: "auto", boxShadow: "var(--t-card-shadow)", marginBottom: 20 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "var(--surface-0)" }}>
+                      <th style={{ ...mfTh, paddingLeft: 20 }}>Fund / Scheme</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Units</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Avg NAV</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Current NAV</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Invested</th>
+                      <th style={{ ...mfTh, textAlign: "right" }}>Current Value</th>
+                      <th style={{ ...mfTh, textAlign: "right", paddingRight: 20 }}>Total Return</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedKeys.map((gKey) => {
+                      const grp = folioGroups[gKey];
+                      const groupItems = grp.items;
+                      const hasMultiple = groupItems.length > 1;
+                      const totalUnits = groupItems.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
+                      const grpInvested = groupItems.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
+                      const grpCurrent = groupItems.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
+                      const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
+                      const grpPnlPct = grpInvested > 0 && grpCurrent > 0 ? (grpPnl / grpInvested) * 100 : 0;
+                      const displayName = grp.fundName || "Unnamed Fund";
+                      const displayFolio = grp.folio;
+                      const isExpanded = lotExpandedGroups.has(gKey);
+                      const firstWithCode = groupItems.find((m: any) => m.mfCode);
+                      const avgNav = totalUnits > 0 ? grpInvested / totalUnits : 0;
+                      const currentNav = Number(groupItems[0]?.currentNav) || 0;
 
-              return (
-                <div key={gKey} style={{ marginBottom: 16 }}>
-                  {/* Group header — clickable to expand */}
-                  <div
-                    onClick={() => toggleLotExpand(gKey)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "12px 16px",
-                      borderRadius: isExpanded ? "12px 12px 0 0" : 12,
-                      background: "var(--surface-0)",
-                      border: `1.5px solid ${THEME.line}`,
-                      borderBottom: isExpanded ? `1px solid ${THEME.line}` : undefined,
-                      cursor: "pointer",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      transition: "border-radius 0.15s",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                      <ChevronDown
-                        size={14}
-                        style={{
-                          color: THEME.accent,
-                          transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                          transition: "transform 0.2s",
-                          flexShrink: 0,
-                        }}
-                      />
-                      <MFLogo fundName={displayName} size={28} />
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 280 }} title={displayName}>
-                        {displayName}
-                      </span>
-                      {displayFolio && (
-                        <span style={{ fontSize: 10, color: THEME.muted, padding: "2px 7px", borderRadius: 6, background: "rgba(128,128,128,0.08)", border: `1px solid ${THEME.line}`, whiteSpace: "nowrap" }}>
-                          Folio: {displayFolio}
-                        </span>
-                      )}
-                      <span style={{ fontSize: 10, fontWeight: 800, background: `${THEME.accent}15`, color: THEME.accent, padding: "1px 8px", borderRadius: 20, border: `1px solid ${THEME.accent}25` }}>
-                        {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Units</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted }}>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Invested</div>
-                        <div style={{ fontSize: 13, fontWeight: 800 }}><Prv>{fmtINRFull(grpInvested)}</Prv></div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Current</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv></div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>P&L</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: grpPnl >= 0 ? THEME.sage : THEME.rust }}>
-                          {grpCurrent > 0 ? `${grpPnl >= 0 ? "+" : ""}${fmtINRFull(grpPnl)}` : "—"}
-                        </div>
-                        {grpCurrent > 0 && (
-                          <div style={{ fontSize: 10, color: grpPnlPct >= 0 ? THEME.sage : THEME.rust }}>
-                            {grpPnlPct >= 0 ? "+" : ""}{grpPnlPct.toFixed(2)}%
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Expanded: Lot breakdown table + chart */}
-                  {isExpanded && (
-                    <div
-                      style={{
-                        border: `1.5px solid ${THEME.line}`,
-                        borderTop: "none",
-                        borderRadius: "0 0 12px 12px",
-                        padding: "16px",
-                        background: "var(--surface-0)",
-                      }}
-                    >
-                      {/* Chart section — use first lot's mfCode */}
-                      {firstWithCode && (() => {
-                        const cId = firstWithCode.id;
-                        const meta = mfMeta[cId];
-                        const chart = mfChartData[cId];
-                        const navUp = meta?.navChange != null ? meta.navChange >= 0 : true;
-                        const chartLoaded = chart?.length || meta;
-                        if (!chartLoaded && !mfMeta[cId]) {
-                          fetchMFData(cId, firstWithCode.mfCode);
-                        }
-                        return (
-                          <div style={{ marginBottom: 16 }}>
-                            {chart?.length ? (
-                              <ResponsiveContainer width="100%" height={140}>
-                                <AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                                  <defs>
-                                    <linearGradient id={`mf-g-${cId}`} x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="5%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.35} />
-                                      <stop offset="95%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.02} />
-                                    </linearGradient>
-                                  </defs>
-                                  <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
-                                  <YAxis hide domain={["auto", "auto"]} />
-                                  <Tooltip
-                                    contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }}
-                                    formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]}
-                                  />
-                                  <Area type="monotone" dataKey="p" stroke={navUp ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#mf-g-${cId})`} dot={false} />
-                                </AreaChart>
-                              </ResponsiveContainer>
-                            ) : (
-                              <div style={{ textAlign: "center", padding: "16px 0", fontSize: 11, color: THEME.muted }}>Loading chart…</div>
-                            )}
-                            {meta && (
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", marginTop: 10, fontSize: 12 }}>
-                                {meta.prevNav != null && (
-                                  <span><span style={{ color: THEME.muted }}>Prev NAV: </span><b>₹{Number(meta.prevNav).toFixed(4)}</b></span>
-                                )}
-                                {meta.navChange != null && (
-                                  <span>
-                                    <span style={{ color: THEME.muted }}>Change: </span>
-                                    <b style={{ color: meta.navChange >= 0 ? THEME.sage : THEME.rust }}>
-                                      {meta.navChange >= 0 ? "+" : ""}{Number(meta.navChange).toFixed(4)}
-                                      {meta.navChangePct != null && ` (${meta.navChangePct >= 0 ? "+" : ""}${Number(meta.navChangePct).toFixed(2)}%)`}
-                                    </b>
-                                  </span>
-                                )}
-                                {meta.high52 != null && (
-                                  <span>
-                                    <span style={{ color: THEME.muted }}>52W H/L: </span>
-                                    <b style={{ color: THEME.sage }}>₹{Number(meta.high52).toFixed(4)}</b>{" / "}
-                                    <b style={{ color: THEME.rust }}>₹{meta.low52 != null ? Number(meta.low52).toFixed(4) : "—"}</b>
-                                  </span>
-                                )}
-                                {meta.navDate && (
-                                  <span><span style={{ color: THEME.muted }}>NAV Date: </span><b>{meta.navDate}</b></span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* Lot Breakdown header */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                            Lot Breakdown
-                          </span>
-                          <span style={{ fontSize: 10, fontWeight: 800, background: `${THEME.accent}15`, color: THEME.accent, padding: "1px 8px", borderRadius: 20, border: `1px solid ${THEME.accent}25` }}>
-                            {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<Plus size={13} />}
-                            onClick={(e: any) => { e.stopPropagation(); setAddLotGroup({ fundName: displayName, folio: displayFolio, refLot: groupItems[0] }); }}
+                      return (
+                        <React.Fragment key={gKey}>
+                          {/* Main row */}
+                          <tr
+                            onClick={() => toggleLotExpand(gKey)}
+                            style={{ cursor: "pointer", background: isExpanded ? `${THEME.accent}09` : "transparent", transition: "background 0.15s ease", borderBottom: `1px solid ${THEME.line}` }}
                           >
-                            Add Lot
-                          </Button>
-                          {hasMultiple && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<ArrowDownRight size={13} />}
-                              onClick={(e: any) => { e.stopPropagation(); setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems }); }}
-                              style={{ color: THEME.gold }}
-                            >
-                              Bulk Sell
-                            </Button>
-                          )}
-                        </div>
-                      </div>
+                            <td style={{ ...mfTd, paddingLeft: 20 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <span style={{ color: isExpanded ? THEME.accent : THEME.muted, display: "inline-flex", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1)" }}>
+                                  <ChevronDown size={16} />
+                                </span>
+                                <MFLogo fundName={displayName} size={36} />
+                                <div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{displayName}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                                    {displayFolio && (
+                                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Folio: {displayFolio}</span>
+                                    )}
+                                    <span style={{ fontSize: 9, background: `${THEME.line}40`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>
+                                      {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 700 }}>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}</td>
+                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}>₹{avgNav.toFixed(2)}</td>
+                            <td style={{ ...mfTd, textAlign: "right" }}>
+                              <div style={{ fontWeight: 700, color: THEME.ink }}>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "—"}</div>
+                            </td>
+                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 600 }}><Prv>{fmtINRFull(grpInvested)}</Prv></td>
+                            <td style={{ ...mfTd, textAlign: "right", fontWeight: 800 }}><Prv>{fmtINRFull(grpCurrent || grpInvested)}</Prv></td>
+                            <td style={{ ...mfTd, textAlign: "right", paddingRight: 20 }}>
+                              {grpCurrent > 0 ? (
+                                <>
+                                  <div style={{ fontWeight: 800, color: grpPnl >= 0 ? THEME.sage : THEME.rust }}>
+                                    {grpPnl >= 0 ? "+" : ""}{fmtINRFull(grpPnl)}
+                                  </div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: grpPnlPct >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
+                                    {grpPnlPct >= 0 ? "▲" : "▼"}{Math.abs(grpPnlPct).toFixed(2)}%
+                                  </div>
+                                </>
+                              ) : (
+                                <span style={{ color: THEME.muted }}>—</span>
+                              )}
+                            </td>
+                          </tr>
 
-                      {/* Lot table */}
-                      <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 0", fontSize: 12, minWidth: 700 }}>
-                          <thead>
+                          {/* Expanded detail drawer */}
+                          {isExpanded && (
                             <tr style={{ background: `${THEME.accent}08` }}>
-                              {["Buy Date", "Buy NAV", "Units", "Invested", "Current Value", "Return", "Period", ""].map((h, i) => (
-                                <th key={h || "actions"} style={{
-                                  padding: "8px 10px",
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  color: THEME.muted,
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.06em",
-                                  textAlign: i === 0 ? "left" : "right",
-                                  borderBottom: `1.5px solid ${THEME.line}`,
-                                  whiteSpace: "nowrap",
-                                }}>
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[...groupItems]
-                              .sort((a: any, b: any) => {
-                                const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
-                                const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
-                                return da - db;
-                              })
-                              .map((lot: any, idx: number) => {
-                                const lotUnits = Number(lot.units) || 0;
-                                const lotBuyNav = Number(lot.buyNav) || 0;
-                                const lotCurrentNav = Number(lot.currentNav) || 0;
-                                const lotInvested = Number(lot.invested || lot.investedValue) || (lotBuyNav * lotUnits);
-                                const lotCurrent = lotUnits * lotCurrentNav;
-                                const lotPnl = lotCurrent > 0 ? lotCurrent - lotInvested : 0;
-                                const lotPnlPct = lotInvested > 0 && lotCurrent > 0 ? (lotPnl / lotInvested) * 100 : 0;
-                                const days = lot.buyDate ? Math.floor((Date.now() - new Date(lot.buyDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
-                                const isLTCG = days !== null && days > 365;
-                                const nearLTCG = days !== null && !isLTCG && days > 300;
-                                const cagr = lot.buyDate && lotInvested > 0 && lotCurrent > 0 ? calcCAGR(lotInvested, lotCurrent, lot.buyDate) : null;
-
-                                return (
-                                  <tr key={lot.id} style={{ borderTop: idx > 0 ? `1px solid ${THEME.line}` : undefined, background: idx % 2 === 0 ? "transparent" : `${THEME.accent}06` }}>
-                                    {/* Buy Date */}
-                                    <td style={{ padding: "10px 10px", borderBottom: "none" }}>
-                                      <div style={{ fontWeight: 600 }}>
-                                        {lot.buyDate
-                                          ? new Date(lot.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                                          : <span style={{ color: THEME.muted }}>—</span>}
-                                      </div>
-                                      {lot.category && (
-                                        <div style={{ fontSize: 9, color: THEME.muted, marginTop: 2 }}>{lot.category}{lot.mfType ? ` · ${lot.mfType}` : ""}</div>
-                                      )}
-                                    </td>
-                                    {/* Buy NAV */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 600, borderBottom: "none" }}>
-                                      {lotBuyNav > 0 ? `₹${lotBuyNav.toFixed(4)}` : <span style={{ color: THEME.muted }}>—</span>}
-                                    </td>
-                                    {/* Units */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, borderBottom: "none" }}>
-                                      {lotUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}
-                                    </td>
-                                    {/* Invested */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 600, color: THEME.muted, borderBottom: "none" }}>
-                                      <Prv>{fmtINRFull(lotInvested)}</Prv>
-                                    </td>
-                                    {/* Current Value */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 800, borderBottom: "none" }}>
-                                      {lotCurrent > 0 ? <Prv>{fmtINRFull(lotCurrent)}</Prv> : <span style={{ color: THEME.muted }}>—</span>}
-                                    </td>
-                                    {/* Return */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", borderBottom: "none" }}>
-                                      {lotCurrent > 0 ? (
-                                        <>
-                                          <div style={{ color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>
-                                            {lotPnl >= 0 ? "+" : ""}{Math.round(lotPnlPct)}%
-                                          </div>
-                                          <div style={{ fontSize: 10, color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 600 }}>
-                                            {lotPnl >= 0 ? "+" : ""}{fmtINRFull(lotPnl)}
-                                          </div>
-                                          {cagr !== null && (
-                                            <div style={{ fontSize: 9, fontWeight: 800, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust }}>
-                                              {cagr.toFixed(0)}% CAGR
+                              <td colSpan={7} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
+                                <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+                                  {/* Left: Chart */}
+                                  {firstWithCode && (() => {
+                                    const cId = firstWithCode.id;
+                                    const meta = mfMeta[cId];
+                                    const chart = mfChartData[cId];
+                                    const navUp = meta?.navChange != null ? meta.navChange >= 0 : true;
+                                    if (!chart?.length && !meta) fetchMFData(cId, firstWithCode.mfCode);
+                                    return (
+                                      <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+                                        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                          30-Day NAV Trend
+                                        </div>
+                                        <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px" }}>
+                                          {chart?.length ? (
+                                            <ResponsiveContainer width="100%" height={150}>
+                                              <AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                                                <defs>
+                                                  <linearGradient id={`mf-g-${cId}`} x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                                    <stop offset="95%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                                                  </linearGradient>
+                                                </defs>
+                                                <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                                                <YAxis hide domain={["auto", "auto"]} />
+                                                <Tooltip contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]} />
+                                                <Area type="monotone" dataKey="p" stroke={navUp ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#mf-g-${cId})`} dot={false} />
+                                              </AreaChart>
+                                            </ResponsiveContainer>
+                                          ) : (
+                                            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 11, color: THEME.muted }}>Loading chart…</div>
+                                          )}
+                                          {meta && (
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                                              {meta.prevNav != null && <span><span style={{ color: THEME.muted }}>Prev NAV: </span><b>₹{Number(meta.prevNav).toFixed(4)}</b></span>}
+                                              {meta.navChange != null && <span><span style={{ color: THEME.muted }}>Change: </span><b style={{ color: meta.navChange >= 0 ? THEME.sage : THEME.rust }}>{meta.navChange >= 0 ? "+" : ""}{Number(meta.navChange).toFixed(4)}{meta.navChangePct != null && ` (${meta.navChangePct >= 0 ? "+" : ""}${Number(meta.navChangePct).toFixed(2)}%)`}</b></span>}
+                                              {meta.high52 != null && <span><span style={{ color: THEME.muted }}>52W H/L: </span><b style={{ color: THEME.sage }}>₹{Number(meta.high52).toFixed(4)}</b>{" / "}<b style={{ color: THEME.rust }}>₹{meta.low52 != null ? Number(meta.low52).toFixed(4) : "—"}</b></span>}
+                                              {meta.navDate && <span><span style={{ color: THEME.muted }}>NAV Date: </span><b>{meta.navDate}</b></span>}
                                             </div>
                                           )}
-                                        </>
-                                      ) : (
-                                        <span style={{ color: THEME.muted }}>—</span>
-                                      )}
-                                    </td>
-                                    {/* Period / LTCG-STCG */}
-                                    <td style={{ padding: "10px 10px", textAlign: "right", borderBottom: "none" }}>
-                                      {days !== null ? (
-                                        <>
-                                          <span style={{
-                                            display: "inline-block",
-                                            fontSize: 9,
-                                            fontWeight: 800,
-                                            padding: "1px 6px",
-                                            borderRadius: 4,
-                                            background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1a`,
-                                            color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold,
-                                          }}>
-                                            {isLTCG ? `LTCG · ${(days / 365).toFixed(1)}y` : `STCG · ${days}d`}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span style={{ color: THEME.muted }}>—</span>
-                                      )}
-                                    </td>
-                                    {/* Actions */}
-                                    <td style={{ padding: "10px 6px", textAlign: "right", borderBottom: "none", whiteSpace: "nowrap" }}>
-                                      <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-                                        <Button variant="ghost" size="sm" icon={<ArrowDownRight size={11} />} style={{ color: THEME.gold }} onClick={(e: any) => { e.stopPropagation(); setSellMF(lot); }} title="Sell" />
-                                        <Button variant="ghost" size="sm" icon={<Pencil size={11} />} onClick={(e: any) => { e.stopPropagation(); setEditMF(lot); }} title="Edit" />
-                                        <Button variant="ghost" size="sm" icon={<Trash2 size={11} />} style={{ color: THEME.rust }} onClick={(e: any) => { e.stopPropagation(); removeItem("mutualFunds", lot.id); }} title="Delete" />
+                                        </div>
                                       </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            });
+                                    );
+                                  })()}
+
+                                  {/* Right: Lot breakdown */}
+                                  <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                        Lot Breakdown
+                                      </span>
+                                      <span style={{ fontSize: 10, fontWeight: 800, background: `${THEME.accent}15`, color: THEME.accent, padding: "1px 8px", borderRadius: 20, border: `1px solid ${THEME.accent}25` }}>
+                                        {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
+                                      </span>
+                                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                                        <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={(e: any) => { e.stopPropagation(); setAddLotGroup({ fundName: displayName, folio: displayFolio, refLot: groupItems[0] }); }}>
+                                          Add Lot
+                                        </Button>
+                                        {hasMultiple && (
+                                          <Button variant="secondary" size="sm" icon={<ArrowDownRight size={12} />} onClick={(e: any) => { e.stopPropagation(); setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems }); }} style={{ color: THEME.gold }}>
+                                            Bulk Sell
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 6px", fontSize: 12 }}>
+                                      <thead>
+                                        <tr>
+                                          {["Buy Date", "Buy NAV", "Units", "Return", "Value", ""].map((h, i) => (
+                                            <th key={h || "act"} style={{ ...mfTh, background: "transparent", borderBottom: `1.5px solid ${THEME.line}`, padding: "4px 8px", textAlign: i === 0 ? "left" : "right" }}>{h}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {[...groupItems].sort((a: any, b: any) => {
+                                          const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
+                                          const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
+                                          return da - db;
+                                        }).map((lot: any) => {
+                                          const lotUnits = Number(lot.units) || 0;
+                                          const lotBuyNav = Number(lot.buyNav) || 0;
+                                          const lotCurrentNav = Number(lot.currentNav) || 0;
+                                          const lotInv = Number(lot.invested || lot.investedValue) || (lotBuyNav * lotUnits);
+                                          const lotCurr = lotUnits * lotCurrentNav;
+                                          const lotPnl = lotCurr > 0 ? lotCurr - lotInv : 0;
+                                          const lotPnlPct = lotInv > 0 && lotCurr > 0 ? (lotPnl / lotInv) * 100 : 0;
+                                          const days = lot.buyDate ? Math.floor((Date.now() - new Date(lot.buyDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
+                                          const isLTCG = days !== null && days > 365;
+                                          const nearLTCG = days !== null && !isLTCG && days > 300;
+                                          const cagr = lot.buyDate && lotInv > 0 && lotCurr > 0 ? calcCAGR(lotInv, lotCurr, lot.buyDate) : null;
+
+                                          return (
+                                            <tr key={lot.id} style={{ background: `${THEME.accent}08` }}>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }}>
+                                                <div style={{ fontWeight: 600 }}>
+                                                  {lot.buyDate ? new Date(lot.buyDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : <span style={{ color: THEME.muted }}>—</span>}
+                                                </div>
+                                                {days !== null && (
+                                                  <span style={{ marginTop: 3, display: "inline-block", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 4, background: isLTCG ? `${THEME.sage}1f` : `${THEME.gold}1a`, color: isLTCG ? THEME.sage : nearLTCG ? "#d97706" : THEME.gold }}>
+                                                    {isLTCG ? `LTCG · ${(days / 365).toFixed(1)}y` : `STCG · ${days}d`}
+                                                  </span>
+                                                )}
+                                              </td>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 600 }}>
+                                                {lotBuyNav > 0 ? `₹${lotBuyNav.toFixed(4)}` : "—"}
+                                              </td>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 700 }}>
+                                                {lotUnits.toLocaleString("en-IN", { maximumFractionDigits: 3 })}
+                                              </td>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right" }}>
+                                                {lotCurr > 0 ? (
+                                                  <>
+                                                    <div style={{ color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 800 }}>{lotPnl >= 0 ? "+" : ""}{Math.round(lotPnlPct)}%</div>
+                                                    <div style={{ fontSize: 10, color: lotPnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 600 }}>{lotPnl >= 0 ? "+" : ""}{fmtINRFull(lotPnl)}</div>
+                                                    {cagr !== null && <div style={{ fontSize: 9, fontWeight: 800, color: cagr >= 15 ? THEME.sage : cagr >= 8 ? THEME.gold : THEME.rust }}>{cagr.toFixed(0)}% CAGR</div>}
+                                                  </>
+                                                ) : <span style={{ color: THEME.muted }}>—</span>}
+                                              </td>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", textAlign: "right", fontWeight: 800 }}>
+                                                {lotCurr > 0 ? fmtINRFull(lotCurr) : "—"}
+                                              </td>
+                                              <td style={{ ...mfTd, borderBottom: "none", padding: "8px", borderTopRightRadius: 8, borderBottomRightRadius: 8 }}>
+                                                <div style={{ display: "flex", gap: 3, justifyContent: "flex-end" }}>
+                                                  <Button variant="ghost" size="sm" icon={<ArrowDownRight size={11} />} style={{ color: THEME.gold }} onClick={(e: any) => { e.stopPropagation(); setSellMF(lot); }} title="Sell" />
+                                                  <Button variant="ghost" size="sm" icon={<Pencil size={11} />} onClick={(e: any) => { e.stopPropagation(); setEditMF(lot); }} title="Edit" />
+                                                  <Button variant="ghost" size="sm" icon={<Trash2 size={11} />} style={{ color: THEME.rust }} onClick={(e: any) => { e.stopPropagation(); removeItem("mutualFunds", lot.id); }} title="Delete" />
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
           })()}
         </>
       )}
