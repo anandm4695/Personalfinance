@@ -7456,33 +7456,9 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
             ))}
           </div>
 
-          {/* Action buttons row */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            {/* Bulk sell — group same-scheme funds */}
-            {(() => {
-              const schemeGroups: Record<string, any[]> = {};
-              items.forEach((m: any) => {
-                const key = (m.name || m.scheme || "").trim();
-                if (!key) return;
-                if (!schemeGroups[key]) schemeGroups[key] = [];
-                schemeGroups[key].push(m);
-              });
-              const multiLotSchemes = Object.entries(schemeGroups).filter(([, lots]) => lots.length > 1);
-              if (!multiLotSchemes.length) return null;
-              return multiLotSchemes.map(([schemeName, lots]) => (
-                <Button
-                  key={schemeName}
-                  variant="secondary"
-                  size="sm"
-                  icon={<ArrowDownRight size={13} />}
-                  onClick={() => setFifoSellMFGroup({ schemeName, lots })}
-                  style={{ color: THEME.gold }}
-                >
-                  Sell {schemeName.length > 20 ? schemeName.slice(0, 20) + "…" : schemeName}
-                </Button>
-              ));
-            })()}
-            {items.some((m: any) => m.mfCode) && (
+          {/* Refresh All NAVs button */}
+          {items.some((m: any) => m.mfCode) && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
               <Button
                 variant="secondary"
                 size="sm"
@@ -7492,17 +7468,24 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
               >
                 {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {items.map((m: any) => {
+          {/* Folio-grouped MF cards */}
+          {(() => {
+            const folioGroups: Record<string, any[]> = {};
+            items.forEach((m: any) => {
+              const key = (m.folioNumber || "").trim() || "__ungrouped__";
+              if (!folioGroups[key]) folioGroups[key] = [];
+              folioGroups[key].push(m);
+            });
+            const sortedKeys = Object.keys(folioGroups).sort((a, b) => {
+              if (a === "__ungrouped__") return 1;
+              if (b === "__ungrouped__") return -1;
+              return a.localeCompare(b);
+            });
+
+            const renderMFCard = (m: any) => {
               const current = Number(m.units || 0) * Number(m.currentNav || 0) || 0;
               const costBasis = Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0);
               const pnl = current > 0 ? current - costBasis : 0;
@@ -7525,11 +7508,6 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                       {m.mfType && (
                         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: `${THEME.sage}18`, border: `1px solid ${THEME.sage}44`, color: THEME.sage }}>
                           {m.mfType}
-                        </span>
-                      )}
-                      {m.folioNumber && (
-                        <span style={{ fontSize: 10, color: THEME.muted, padding: "2px 7px", borderRadius: 6, background: "rgba(128,128,128,0.08)", border: `1px solid ${THEME.line}` }}>
-                          Folio: {m.folioNumber}
                         </span>
                       )}
                     </div>
@@ -7778,8 +7756,80 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                   </div>
                 </Card>
               );
-            })}
-          </div>
+            };
+
+            return sortedKeys.map((folioKey) => {
+              const groupItems = folioGroups[folioKey];
+              const isUngrouped = folioKey === "__ungrouped__";
+              const grpInvested = groupItems.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
+              const grpCurrent = groupItems.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
+              const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
+
+              return (
+                <div key={folioKey} style={{ marginBottom: 24 }}>
+                  {/* Folio group header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 16px",
+                      marginBottom: 12,
+                      borderRadius: 10,
+                      background: isUngrouped ? `${THEME.muted}0c` : `${THEME.accent}0c`,
+                      border: `1px solid ${isUngrouped ? THEME.line : `${THEME.accent}30`}`,
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        {isUngrouped ? "No Folio" : `Folio: ${folioKey}`}
+                      </span>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>
+                        {groupItems.length} fund{groupItems.length > 1 ? "s" : ""}
+                      </span>
+                      {grpCurrent > 0 && (
+                        <>
+                          <span style={{ fontSize: 11, color: THEME.muted }}>
+                            Invested: <b style={{ color: THEME.ink }}>{fmtINRFull(grpInvested)}</b>
+                          </span>
+                          <span style={{ fontSize: 11, color: THEME.muted }}>
+                            Current: <b style={{ color: THEME.accent }}>{fmtINRFull(grpCurrent)}</b>
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: grpPnl >= 0 ? THEME.sage : THEME.rust }}>
+                            {grpPnl >= 0 ? "+" : ""}{fmtINRFull(grpPnl)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {groupItems.length > 1 && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<ArrowDownRight size={13} />}
+                        onClick={() => setFifoSellMFGroup({ schemeName: isUngrouped ? "No Folio" : `Folio ${folioKey}`, lots: groupItems })}
+                        style={{ color: THEME.gold }}
+                      >
+                        Bulk Sell
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Fund cards in this folio group */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    {groupItems.map(renderMFCard)}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </>
       )}
       {editMF && (
