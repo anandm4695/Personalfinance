@@ -7259,6 +7259,10 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
   const [expandedMF, setExpandedMF] = useState<Set<string>>(new Set());
   const [sellMF, setSellMF] = useState<any>(null);
   const [fifoSellMFGroup, setFifoSellMFGroup] = useState<any>(null);
+  const [mfSortBy, setMfSortBy] = useState<"name" | "value" | "pnl" | "units">(() => {
+    return (localStorage.getItem("finance_mf_sort") as any) || "value";
+  });
+  useEffect(() => { localStorage.setItem("finance_mf_sort", mfSortBy); }, [mfSortBy]);
 
   const toggleExpandMF = (id: string, mfCode: string) => {
     setExpandedMF((prev) => {
@@ -7456,9 +7460,35 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
             ))}
           </div>
 
-          {/* Refresh All NAVs button */}
-          {items.some((m: any) => m.mfCode) && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          {/* Sort + Refresh toolbar */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--surface-0)",
+                border: `1px solid ${THEME.line}`,
+                borderRadius: 10,
+                padding: "6px 12px",
+                height: 36,
+              }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Sort by:
+              </span>
+              <select
+                value={mfSortBy}
+                onChange={(e) => setMfSortBy(e.target.value as any)}
+                style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+              >
+                <option value="value">Highest Value</option>
+                <option value="pnl">Best Returns (%)</option>
+                <option value="name">Fund Name (A-Z)</option>
+                <option value="units">Most Units</option>
+              </select>
+            </div>
+            {items.some((m: any) => m.mfCode) && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -7468,8 +7498,8 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
               >
                 {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Grouped by fund name + folio number */}
           {(() => {
@@ -7481,14 +7511,28 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
               if (!folioGroups[key]) folioGroups[key] = { fundName: name, folio, items: [] };
               folioGroups[key].items.push(m);
             });
+            const grpVal = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
+            const grpInv = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
+            const grpUnits = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units) || 0), 0);
+
             const sortedKeys = Object.keys(folioGroups).sort((a, b) => {
               const ga = folioGroups[a];
               const gb = folioGroups[b];
-              const nameComp = ga.fundName.localeCompare(gb.fundName);
-              if (nameComp !== 0) return nameComp;
-              if (!ga.folio && gb.folio) return 1;
-              if (ga.folio && !gb.folio) return -1;
-              return ga.folio.localeCompare(gb.folio);
+
+              if (mfSortBy === "name") {
+                const nc = ga.fundName.localeCompare(gb.fundName);
+                return nc !== 0 ? nc : ga.folio.localeCompare(gb.folio);
+              }
+              if (mfSortBy === "value") return grpVal(gb) - grpVal(ga);
+              if (mfSortBy === "pnl") {
+                const invA = grpInv(ga);
+                const invB = grpInv(gb);
+                const pctA = invA > 0 ? ((grpVal(ga) - invA) / invA) * 100 : 0;
+                const pctB = invB > 0 ? ((grpVal(gb) - invB) / invB) * 100 : 0;
+                return pctB - pctA;
+              }
+              if (mfSortBy === "units") return grpUnits(gb) - grpUnits(ga);
+              return 0;
             });
 
             const renderMFCard = (m: any) => {
