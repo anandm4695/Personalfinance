@@ -32,7 +32,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
+import { fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 
@@ -755,8 +755,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         isInvestBetter,
         netBenefit,
         recommendation: isInvestBetter
-          ? `Invest your surplus ₹${fmtINR(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.`
-          : `Prepay your loan with the surplus ₹${fmtINR(surplus)}/mo. Paying off the debt saves interest and frees up ₹${fmtINR(Math.round(emi + surplus))}/mo earlier to reinvest.`,
+          ? `Invest your surplus ₹${fmtINRFull(surplus)}/mo. The compounding return of ${invReturn}% outweighs the ${loanRate}% loan interest rate.`
+          : `Prepay your loan with the surplus ₹${fmtINRFull(surplus)}/mo. Paying off the debt saves interest and frees up ₹${fmtINRFull(Math.round(emi + surplus))}/mo earlier to reinvest.`,
         tip: isInvestBetter
           ? "Ensure your investment vehicle matches your target risk profile, as equity returns are variable compared to guaranteed debt savings."
           : "Prepaying a loan acts as a risk-free investment offering a guaranteed post-tax yield equal to the loan interest rate.",
@@ -808,8 +808,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         isInvestBetter,
         netBenefit,
         recommendation: isInvestBetter
-          ? `Invest the lump sum ₹${fmtINR(lumpsum)}. Growth at ${invReturn}% CAGR beats prepaying the ${loanRate}% loan.`
-          : `Prepay the loan by ₹${fmtINR(lumpsum)} immediately. Eliminating debt early at ${loanRate}% guaranteed return is safer and yields higher value.`,
+          ? `Invest the lump sum ₹${fmtINRFull(lumpsum)}. Growth at ${invReturn}% CAGR beats prepaying the ${loanRate}% loan.`
+          : `Prepay the loan by ₹${fmtINRFull(lumpsum)} immediately. Eliminating debt early at ${loanRate}% guaranteed return is safer and yields higher value.`,
         tip: isInvestBetter
           ? "Ideal if surplus is placed in long-term index funds or high-yielding mutual funds."
           : "Prepaying saves interest immediately and provides secure, risk-free compounding value.",
@@ -1537,7 +1537,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tickFormatter={(v) => `Y${v}`}
                       />
                       <YAxis
-                        tickFormatter={fmtINR}
+                        tickFormatter={fmtINRFull}
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
@@ -1927,7 +1927,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tick={{ fontSize: 10, fill: "var(--t-muted)" }}
                         tickFormatter={(v) => `Y${v}`}
                       />
-                      <YAxis tickFormatter={fmtINR} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
+                      <YAxis tickFormatter={fmtINRFull} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
                         contentStyle={{
@@ -2778,7 +2778,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
                       <XAxis dataKey="year" tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
                       <YAxis
-                        tickFormatter={fmtINR}
+                        tickFormatter={fmtINRFull}
                         tick={{ fontSize: 11, fill: "var(--t-muted)" }}
                       />
                       <Tooltip
@@ -3331,8 +3331,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                   <div
                     style={{ fontSize: 11, color: THEME.muted, textAlign: "right", marginTop: -6 }}
                   >
-                    Expense ({fmtINR(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs (
-                    {fmtINR(stressResult.activeEMIs)}/mo)
+                    Expense ({fmtINRFull(stressResult.monthlyExpense)} × {burnMultiplier}x) + EMIs (
+                    {fmtINRFull(stressResult.activeEMIs)}/mo)
                   </div>
                 </div>
               </Card>

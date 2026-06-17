@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINR, fmtINRFull, calcCAGR, today } from "../../utils/finance";
+import { fmtINRFull, calcCAGR, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -1582,11 +1582,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </td>
 
                         <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                          {fmtINR(totalInv)}
+                          {fmtINRFull(totalInv)}
                         </td>
 
                         <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
-                          {fmtINR(totalCurr)}
+                          {fmtINRFull(totalCurr)}
                         </td>
 
                         <td style={{ ...td, textAlign: "right" }}>
@@ -1599,7 +1599,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 }}
                               >
                                 {totalQty * changeAmt >= 0 ? "+" : ""}
-                                {fmtINR(totalQty * changeAmt)}
+                                {fmtINRFull(totalQty * changeAmt)}
                               </div>
                               <div
                                 style={{
@@ -1626,7 +1626,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             }}
                           >
                             {totalPnl >= 0 ? "+" : ""}
-                            {fmtINR(totalPnl)}
+                            {fmtINRFull(totalPnl)}
                           </div>
                           <div
                             style={{
@@ -2094,7 +2094,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 }}
                                               >
                                                 {lPnl >= 0 ? "+" : ""}
-                                                {fmtINR(lPnl)}
+                                                {fmtINRFull(lPnl)}
                                               </div>
                                               {lot.buyDate &&
                                                 (() => {
@@ -2126,7 +2126,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 fontWeight: 800,
                                               }}
                                             >
-                                              {fmtINR(lCurr)}
+                                              {fmtINRFull(lCurr)}
                                             </td>
                                             <td
                                               style={{
@@ -2248,7 +2248,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           }}
                                         >
                                           {totalPnl >= 0 ? "+" : ""}
-                                          {fmtINR(totalPnl)}
+                                          {fmtINRFull(totalPnl)}
                                         </div>
                                       </td>
                                       <td
@@ -2261,7 +2261,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           color: THEME.ink,
                                         }}
                                       >
-                                        {fmtINR(totalCurr)}
+                                        {fmtINRFull(totalCurr)}
                                       </td>
                                       <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
                                     </tr>

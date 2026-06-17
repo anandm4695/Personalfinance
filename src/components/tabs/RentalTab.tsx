@@ -20,7 +20,6 @@ import {
 import { THEME } from "../../utils/constants";
 import {
   fmtINRFull,
-  fmtINR,
   today,
   getEffectiveRent,
   getCurrentTierIndex,
@@ -733,7 +732,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       border: isCurrent ? `1px solid ${col}44` : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINR(tier.amount)}
+                                    Y{ti + 1}: {fmtINRFull(tier.amount)}
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -2106,7 +2105,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       border: isCurrent ? `1px solid ${col}44` : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINR(tier.amount)}
+                                    Y{ti + 1}: {fmtINRFull(tier.amount)}
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo

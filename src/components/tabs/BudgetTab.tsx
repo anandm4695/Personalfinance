@@ -37,7 +37,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, getEffectiveRent } from "../../utils/finance";
+import { fmtINRFull, today, getEffectiveRent } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -716,7 +716,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                     value: String(budgetsToUse.length),
                     sub:
                       totalUnbudgetedSpent > 0
-                        ? `+${fmtINR(totalUnbudgetedSpent)} unbudgeted`
+                        ? `+${fmtINRFull(totalUnbudgetedSpent)} unbudgeted`
                         : "Budgeted categories",
                     color: THEME.muted,
                     Icon: BarChart2,
@@ -912,7 +912,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           { label: "Spent so far", val: fmtINRFull(totalSpent), color: THEME.ink },
                           {
                             label: "Daily average",
-                            val: fmtINR(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
+                            val: fmtINRFull(daysPassed > 0 ? totalSpent / daysPassed : 0) + " / day",
                             color: THEME.muted,
                           },
                           {
@@ -1078,8 +1078,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                           {fmtINRFull(budget)}
                           <span style={{ marginLeft: 8, color: over ? THEME.rust : THEME.sage }}>
                             {over
-                              ? `(${fmtINR(spent - budget)} over)`
-                              : `(${fmtINR(budget - spent)} left)`}
+                              ? `(${fmtINRFull(spent - budget)} over)`
+                              : `(${fmtINRFull(budget - spent)} left)`}
                           </span>
                         </div>
                       </div>
@@ -1125,7 +1125,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         }}
                       >
                         <span>
-                          Day {daysPassed}/{daysInMonth} · Projected {fmtINR(projected)}
+                          Day {daysPassed}/{daysInMonth} · Projected {fmtINRFull(projected)}
                         </span>
                         <span style={{ color: projectedPct > 105 ? THEME.rust : THEME.sage }}>
                           {projectedPct.toFixed(0)}% expected
@@ -1151,10 +1151,10 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                             <span>
                               {isUp ? "+" : ""}
-                              {fmtINR(Math.abs(delta))} vs last month
+                              {fmtINRFull(Math.abs(delta))} vs last month
                             </span>
                             <span style={{ color: THEME.muted, fontWeight: 400, marginLeft: 2 }}>
-                              ({fmtINR(prevSpent)} last month)
+                              ({fmtINRFull(prevSpent)} last month)
                             </span>
                           </div>
                         );
@@ -1220,7 +1220,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       >
                         <Icon size={13} color={THEME.gold} />
                         <span>{cat}</span>
-                        <span style={{ color: THEME.gold }}>{fmtINR(amt as number)}</span>
+                        <span style={{ color: THEME.gold }}>{fmtINRFull(amt as number)}</span>
                       </div>
                     );
                   })}
@@ -1578,7 +1578,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                               style={{ textDecoration: "underline", cursor: "pointer" }}
                               title={`Recorded on ${match.date}: ${match.note}`}
                             >
-                              {fmtINR(match.amount)} on {fmtDate(match.date)}
+                              {fmtINRFull(match.amount)} on {fmtDate(match.date)}
                             </span>
                           </div>
                         )}

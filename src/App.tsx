@@ -74,7 +74,6 @@ import {
 } from "./utils/constants";
 import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
 import {
-  fmtINR,
   fmtINRFull,
   uid,
   today,
@@ -2038,7 +2037,7 @@ function FinanceDashboard() {
       else if (currentWeek > prevWeek + 500)
         spendInsight = `Your spending is up ${pct.toFixed(0)}% this week.`;
     } else if (currentWeek > 0) {
-      spendInsight = `You've spent ${fmtINR(currentWeek)} this week.`;
+      spendInsight = `You've spent ${fmtINRFull(currentWeek)} this week.`;
     }
 
     return { title: `Good ${timeOfDay}, ${name}.`, subtitle: spendInsight };
@@ -3423,7 +3422,7 @@ function FinanceDashboard() {
         results.push({
           type: "Transaction",
           name: t.note || t.category,
-          detail: `${t.date} · ${fmtINR(t.amount)}`,
+          detail: `${t.date} · ${fmtINRFull(t.amount)}`,
           tab: "banks",
         });
       }

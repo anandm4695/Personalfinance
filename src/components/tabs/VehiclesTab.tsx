@@ -16,7 +16,7 @@ import {
   FileText,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR } from "../../utils/finance";
+import { fmtINRFull } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -1042,7 +1042,7 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
 
           <div style={{ textAlign: "right" }}>
             <div style={{ fontWeight: 900, fontSize: 20, color: THEME.accent, letterSpacing: "-0.03em" }}>
-              {fmtINR(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}
+              {fmtINRFull(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}
             </div>
             {deprPct !== null && (
               <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
@@ -1092,8 +1092,8 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
             {[
               ["Owner", vehicle.owner || "self"],
               ["Purchase Date", fmtDate(vehicle.purchaseDate)],
-              ["Purchase Price", vehicle.purchasePrice ? fmtINR(vehicle.purchasePrice) : "—"],
-              ["Current Value", vehicle.currentValue ? fmtINR(vehicle.currentValue) : "—"],
+              ["Purchase Price", vehicle.purchasePrice ? fmtINRFull(vehicle.purchasePrice) : "—"],
+              ["Current Value", vehicle.currentValue ? fmtINRFull(vehicle.currentValue) : "—"],
               ["Insurance Expiry", fmtDate(vehicle.insuranceExpiry)],
               ["PUC Expiry", fmtDate(vehicle.pucExpiry)],
               ["Chassis No.", vehicle.chassisNumber || "—"],
@@ -1131,7 +1131,7 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
               <Wrench size={14} style={{ color: THEME.accent }} />
               Service History
               <span style={{ fontSize: 12, color: "var(--t-muted, var(--text-muted))", fontWeight: 400 }}>
-                ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total {fmtINR(totalServiceCost)})
+                ({sh.length} record{sh.length !== 1 ? "s" : ""} · Total {fmtINRFull(totalServiceCost)})
               </span>
             </h4>
             {lastService && (
@@ -1353,15 +1353,15 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           />
           <StatCard
             label="Current Value"
-            value={fmtINR(totalCurrentValue)}
-            sub={totalPurchasePrice ? `Bought for ${fmtINR(totalPurchasePrice)}` : undefined}
+            value={fmtINRFull(totalCurrentValue)}
+            sub={totalPurchasePrice ? `Bought for ${fmtINRFull(totalPurchasePrice)}` : undefined}
             subColor={totalPurchasePrice && totalCurrentValue < totalPurchasePrice ? "#ef4444" : undefined}
             icon={<IndianRupee />}
             color="#10b981"
           />
           <StatCard
             label="Total Service Spend"
-            value={fmtINR(totalServiceSpend)}
+            value={fmtINRFull(totalServiceSpend)}
             sub="across all vehicles"
             icon={<Wrench />}
             color="#f59e0b"

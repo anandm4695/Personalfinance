@@ -12,7 +12,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { GoalModal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -896,7 +896,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                                     <div
                                       style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}
                                     >
-                                      {fmtINR(sip)}/mo
+                                      {fmtINRFull(sip)}/mo
                                     </div>
                                   </div>
                                 );

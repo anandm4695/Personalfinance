@@ -18,7 +18,7 @@ import {
   Building2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINR, today } from "../../utils/finance";
+import { fmtINRFull, today } from "../../utils/finance";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -656,7 +656,7 @@ function PropertyCard({
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: value ? color : THEME.muted }}>
-              <Prv>{value ? fmtINR(Number(value)) : "—"}</Prv>
+              <Prv>{value ? fmtINRFull(Number(value)) : "—"}</Prv>
             </div>
           </div>
         ))}
@@ -687,7 +687,7 @@ function PropertyCard({
               Payment Progress — {demands.length} demand{demands.length !== 1 ? "s" : ""}
             </span>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e" }}>
-              <Prv>{fmtINR(totalPaid)}</Prv> paid of <Prv>{fmtINR(totalDemanded)}</Prv>
+              <Prv>{fmtINRFull(totalPaid)}</Prv> paid of <Prv>{fmtINRFull(totalDemanded)}</Prv>
             </span>
           </div>
           <div style={{ height: 6, background: "var(--surface-1)", borderRadius: 3, overflow: "hidden" }}>
@@ -768,13 +768,13 @@ function PropertyCard({
                             <td style={td}>{fmtDate(d.dueDate)}</td>
                             <td style={{ ...td, fontWeight: 600 }}>{d.milestone || "—"}</td>
                             <td style={{ ...td, textAlign: "right" }}>
-                              <Prv>{d.amount ? fmtINR(Number(d.amount)) : "—"}</Prv>
+                              <Prv>{d.amount ? fmtINRFull(Number(d.amount)) : "—"}</Prv>
                             </td>
                             <td style={{ ...td, textAlign: "right" }}>
-                              <Prv>{d.gstAmount ? fmtINR(Number(d.gstAmount)) : "—"}</Prv>
+                              <Prv>{d.gstAmount ? fmtINRFull(Number(d.gstAmount)) : "—"}</Prv>
                             </td>
                             <td style={{ ...td, textAlign: "right", fontWeight: 700, color: THEME.accent }}>
-                              <Prv>{d.totalAmount ? fmtINR(Number(d.totalAmount)) : "—"}</Prv>
+                              <Prv>{d.totalAmount ? fmtINRFull(Number(d.totalAmount)) : "—"}</Prv>
                             </td>
                             <td style={td}>
                               {/* Use literal hex so + "22" gives a valid 8-digit hex color */}
@@ -837,7 +837,7 @@ function PropertyCard({
                           <tr key={p.id} style={{ background: "var(--surface-0)" }}>
                             <td style={td}>{fmtDate(p.paymentDate)}</td>
                             <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#22c55e" }}>
-                              <Prv>+{fmtINR(Number(p.amount))}</Prv>
+                              <Prv>+{fmtINRFull(Number(p.amount))}</Prv>
                             </td>
                             <td style={td}>
                               <span style={{
@@ -964,10 +964,10 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
       {/* Stats */}
       {properties.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
-          <StatCard label="Portfolio Value" value={fmtINR(stats.portfolioValue)} icon={<TrendingUp />} color="#22c55e" />
-          <StatCard label="Total Invested" value={fmtINR(stats.totalInvested)} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
-          <StatCard label="Total Paid" value={fmtINR(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color="#6366f1" />
-          <StatCard label="Outstanding" value={fmtINR(stats.outstanding)} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
+          <StatCard label="Portfolio Value" value={fmtINRFull(stats.portfolioValue)} icon={<TrendingUp />} color="#22c55e" />
+          <StatCard label="Total Invested" value={fmtINRFull(stats.totalInvested)} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
+          <StatCard label="Total Paid" value={fmtINRFull(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color="#6366f1" />
+          <StatCard label="Outstanding" value={fmtINRFull(stats.outstanding)} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
         </div>
       )}
 
