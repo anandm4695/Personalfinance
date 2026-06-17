@@ -1171,7 +1171,7 @@ function FinanceDashboard() {
 
   // Fire browser push notifications for upcoming reminders (runs once per tab session)
   useEffect(() => {
-    if (!loaded || typeof Notification === "undefined" || Notification.permission !== "granted")
+    if (!loaded || !session || typeof Notification === "undefined" || Notification.permission !== "granted")
       return;
     // Guard: sessionStorage persists across page refreshes within the same tab,
     // so notifications fire at most once per tab open — not on every refresh.
@@ -1349,7 +1349,7 @@ function FinanceDashboard() {
       } catch {}
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]); // intentionally omit other deps — runs once after initial load
+  }, [loaded, session]); // intentionally omit other deps — runs once after login + load
 
   // Request browser notification permission once after first successful login
   useEffect(() => {
