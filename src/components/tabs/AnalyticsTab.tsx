@@ -2961,7 +2961,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <ArrowDownRight size={13} />
                       )}
                       {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      {fmtINR(momNetWorthDelta.delta)} MoM ({momNetWorthDelta.pct >= 0 ? "+" : ""}
+                      {fmtINRFull(momNetWorthDelta.delta)} MoM ({momNetWorthDelta.pct >= 0 ? "+" : ""}
                       {momNetWorthDelta.pct.toFixed(1)}%)
                     </div>
                   )}
