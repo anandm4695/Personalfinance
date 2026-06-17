@@ -7471,18 +7471,24 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
             </div>
           )}
 
-          {/* Folio-grouped MF cards */}
+          {/* Grouped by fund name + folio number */}
           {(() => {
-            const folioGroups: Record<string, any[]> = {};
+            const folioGroups: Record<string, { fundName: string; folio: string; items: any[] }> = {};
             items.forEach((m: any) => {
-              const key = (m.folioNumber || "").trim() || "__ungrouped__";
-              if (!folioGroups[key]) folioGroups[key] = [];
-              folioGroups[key].push(m);
+              const name = (m.name || m.scheme || "").trim();
+              const folio = (m.folioNumber || "").trim();
+              const key = `${name}|||${folio}`;
+              if (!folioGroups[key]) folioGroups[key] = { fundName: name, folio, items: [] };
+              folioGroups[key].items.push(m);
             });
             const sortedKeys = Object.keys(folioGroups).sort((a, b) => {
-              if (a === "__ungrouped__") return 1;
-              if (b === "__ungrouped__") return -1;
-              return a.localeCompare(b);
+              const ga = folioGroups[a];
+              const gb = folioGroups[b];
+              const nameComp = ga.fundName.localeCompare(gb.fundName);
+              if (nameComp !== 0) return nameComp;
+              if (!ga.folio && gb.folio) return 1;
+              if (ga.folio && !gb.folio) return -1;
+              return ga.folio.localeCompare(gb.folio);
             });
 
             const renderMFCard = (m: any) => {
@@ -7758,16 +7764,19 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
               );
             };
 
-            return sortedKeys.map((folioKey) => {
-              const groupItems = folioGroups[folioKey];
-              const isUngrouped = folioKey === "__ungrouped__";
+            return sortedKeys.map((gKey) => {
+              const grp = folioGroups[gKey];
+              const groupItems = grp.items;
+              const hasMultiple = groupItems.length > 1;
               const grpInvested = groupItems.reduce((s: number, m: any) => s + (Number(m.invested || m.investedValue) || (m.buyNav ? Number(m.units || 0) * Number(m.buyNav) : 0)), 0);
               const grpCurrent = groupItems.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
               const grpPnl = grpCurrent > 0 ? grpCurrent - grpInvested : 0;
+              const displayName = grp.fundName || "Unnamed Fund";
+              const displayFolio = grp.folio;
 
               return (
-                <div key={folioKey} style={{ marginBottom: 24 }}>
-                  {/* Folio group header */}
+                <div key={gKey} style={{ marginBottom: 24 }}>
+                  {/* Group header */}
                   <div
                     style={{
                       display: "flex",
@@ -7776,19 +7785,26 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                       padding: "10px 16px",
                       marginBottom: 12,
                       borderRadius: 10,
-                      background: isUngrouped ? `${THEME.muted}0c` : `${THEME.accent}0c`,
-                      border: `1px solid ${isUngrouped ? THEME.line : `${THEME.accent}30`}`,
+                      background: `${THEME.accent}0c`,
+                      border: `1px solid ${THEME.accent}30`,
                       flexWrap: "wrap",
                       gap: 8,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                        {isUngrouped ? "No Folio" : `Folio: ${folioKey}`}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 320 }} title={displayName}>
+                        {displayName}
                       </span>
-                      <span style={{ fontSize: 11, color: THEME.muted }}>
-                        {groupItems.length} fund{groupItems.length > 1 ? "s" : ""}
-                      </span>
+                      {displayFolio && (
+                        <span style={{ fontSize: 10, color: THEME.muted, padding: "2px 7px", borderRadius: 6, background: "rgba(128,128,128,0.08)", border: `1px solid ${THEME.line}`, whiteSpace: "nowrap" }}>
+                          Folio: {displayFolio}
+                        </span>
+                      )}
+                      {hasMultiple && (
+                        <span style={{ fontSize: 11, color: THEME.muted }}>
+                          {groupItems.length} lots
+                        </span>
+                      )}
                       {grpCurrent > 0 && (
                         <>
                           <span style={{ fontSize: 11, color: THEME.muted }}>
@@ -7803,12 +7819,12 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                         </>
                       )}
                     </div>
-                    {groupItems.length > 1 && (
+                    {hasMultiple && (
                       <Button
                         variant="secondary"
                         size="sm"
                         icon={<ArrowDownRight size={13} />}
-                        onClick={() => setFifoSellMFGroup({ schemeName: isUngrouped ? "No Folio" : `Folio ${folioKey}`, lots: groupItems })}
+                        onClick={() => setFifoSellMFGroup({ schemeName: displayName + (displayFolio ? ` (${displayFolio})` : ""), lots: groupItems })}
                         style={{ color: THEME.gold }}
                       >
                         Bulk Sell
@@ -7816,7 +7832,7 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                     )}
                   </div>
 
-                  {/* Fund cards in this folio group */}
+                  {/* Fund cards in this group */}
                   <div
                     style={{
                       display: "grid",
