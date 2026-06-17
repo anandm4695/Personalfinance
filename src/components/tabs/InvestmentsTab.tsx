@@ -43,6 +43,7 @@ import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 
 interface InvestmentsTabProps {
   state: any;
@@ -2873,88 +2874,14 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-              marginBottom: 20,
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 14,
+              marginBottom: 24,
             }}
           >
-            {[
-              {
-                label: "Total Invested",
-                value: fmtINRFull(totalInvested),
-                color: BOND_AMBER,
-                Icon: IndianRupee,
-              },
-              {
-                label: "Annual Coupon",
-                value: fmtINRFull(annualIncome),
-                color: THEME.sage,
-                Icon: Coins,
-              },
-              {
-                label: "Bonds Held",
-                value: String(items.length),
-                color: THEME.accent,
-                Icon: BarChart3,
-              },
-            ].map(({ label, value, color, Icon }) => (
-              <div
-                key={label}
-                className="card-lift"
-                style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "16px 18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 9,
-                      background: `${color}1f`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {value}
-                </div>
-              </div>
-            ))}
+            <StatCard label="Total Invested" value={fmtINRFull(totalInvested)} icon={<IndianRupee />} color={BOND_AMBER} />
+            <StatCard label="Annual Coupon" value={fmtINRFull(annualIncome)} icon={<Coins />} color="#059669" />
+            <StatCard label="Bonds Held" value={String(items.length)} icon={<BarChart3 />} color="#4F46E5" />
           </div>
 
           {/* Bond cards */}
@@ -3126,8 +3053,8 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       gap: 12,
                       padding: "12px 0",
                       borderTop: `1px solid ${THEME.line}`,
-                      borderBottom: `1px solid ${THEME.line}`,
-                      marginBottom: 14,
+                      borderBottom: bondProgress > 0 ? "none" : `1px solid ${THEME.line}`,
+                      marginBottom: bondProgress > 0 ? 0 : 14,
                     }}
                   >
                     <div>
@@ -3142,38 +3069,9 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                             fontWeight: 700,
                             color: ml.color,
                             marginTop: 2,
-                            marginBottom: 6,
                           }}
                         >
                           {ml.text}
-                        </div>
-                      )}
-                      {bondProgress > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              fontSize: 9,
-                              color: THEME.muted,
-                              marginBottom: 3,
-                              fontWeight: 600,
-                            }}
-                          >
-                            <span>ELAPSED</span>
-                            <span style={{ color: ml?.matured ? THEME.sage : BOND_AMBER }}>
-                              {bondProgress.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="progress-track">
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${bondProgress}%`,
-                                background: ml?.matured ? THEME.muted : BOND_AMBER,
-                              }}
-                            />
-                          </div>
                         </div>
                       )}
                     </div>
@@ -3189,6 +3087,42 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
                       )}
                     </div>
                   </div>
+
+                  {/* Elapsed progress bar — full width */}
+                  {bondProgress > 0 && (
+                    <div
+                      style={{
+                        padding: "10px 0 14px",
+                        borderBottom: `1px solid ${THEME.line}`,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: 9,
+                          color: THEME.muted,
+                          marginBottom: 4,
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>ELAPSED</span>
+                        <span style={{ color: ml?.matured ? THEME.sage : BOND_AMBER, fontWeight: 700 }}>
+                          {bondProgress.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="progress-track">
+                        <div
+                          className="progress-fill"
+                          style={{
+                            width: `${bondProgress}%`,
+                            background: ml?.matured ? THEME.muted : BOND_AMBER,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Investment breakdown — 3 col */}
                   <div
