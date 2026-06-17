@@ -777,7 +777,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
         return {
           name: base,
-          sub: `${s.qty} shares · CMP ₹${price.toFixed(2)}`,
+          sub: `${s.qty} shares · CMP ${fmtINRFull(price)}`,
           value: val,
           classification,
         };
@@ -845,7 +845,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         return (state.mutualFunds || [])
           .map((m: any) => ({
             name: m.name || "Mutual Fund",
-            sub: `${Number(m.units || 0).toFixed(3)} units @ Nav ₹${Number(m.currentNav || 0).toFixed(2)}`,
+            sub: `${Number(m.units || 0).toFixed(3)} units @ Nav ${fmtINRFull(Number(m.currentNav || 0))}`,
             value: Number(m.units || 0) * Number(m.currentNav || 0),
           }))
           .sort((a: any, b: any) => b.value - a.value);
@@ -861,7 +861,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             const val = Number(s.qty || 0) * price;
             return {
               name: base,
-              sub: `${s.qty} shares · CMP ₹${price.toFixed(2)}`,
+              sub: `${s.qty} shares · CMP ${fmtINRFull(price)}`,
               value: val,
             };
           })
@@ -5147,12 +5147,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                    ₹
                     {lastTradingDayPerformance.topGainer
-                      ? Number(lastTradingDayPerformance.topGainer.price.toFixed(1)).toLocaleString(
-                          "en-IN"
-                        )
-                      : "0"}
+                      ? fmtINRFull(lastTradingDayPerformance.topGainer.price)
+                      : "₹0"}
                   </span>
                   {lastTradingDayPerformance.topGainer && (
                     <span style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
@@ -5186,12 +5183,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                    ₹
                     {lastTradingDayPerformance.topLoser
-                      ? Number(lastTradingDayPerformance.topLoser.price.toFixed(1)).toLocaleString(
-                          "en-IN"
-                        )
-                      : "0"}
+                      ? fmtINRFull(lastTradingDayPerformance.topLoser.price)
+                      : "₹0"}
                   </span>
                   {lastTradingDayPerformance.topLoser && (
                     <span style={{ fontSize: 12, fontWeight: 700, color: THEME.rust }}>
@@ -5230,7 +5224,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.muted }}>
                     {lastTradingDayPerformance.noChangeStocks &&
                     lastTradingDayPerformance.noChangeStocks.length > 0
-                      ? `₹${Number(lastTradingDayPerformance.noChangeStocks.reduce((sum: number, x: any) => sum + x.price, 0).toFixed(0)).toLocaleString("en-IN")}`
+                      ? fmtINRFull(lastTradingDayPerformance.noChangeStocks.reduce((sum: number, x: any) => sum + x.price, 0))
                       : "₹0"}
                   </span>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
@@ -7108,11 +7102,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           fontSize={10}
                           tickLine={false}
                           axisLine={false}
-                          tickFormatter={(val) => {
-                            if (val >= 1e7) return `${(val / 1e7).toFixed(1)}Cr`;
-                            if (val >= 1e5) return `${(val / 1e5).toFixed(0)}L`;
-                            return `${val / 1000}K`;
-                          }}
+                          tickFormatter={fmtINR}
                         />
                         <Tooltip
                           contentStyle={{
