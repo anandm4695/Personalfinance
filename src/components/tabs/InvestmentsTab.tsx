@@ -1,8 +1,10 @@
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
+import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
 import {
   Coins,
   Repeat,
+  ChevronDown,
   FileText,
   Shield,
   Briefcase,
@@ -7250,6 +7252,42 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [navError, setNavError] = useState<Record<string, string>>({});
+  const [mfMeta, setMfMeta] = useState<Record<string, any>>({});
+  const [mfChartData, setMfChartData] = useState<Record<string, any[]>>({});
+  const [expandedMF, setExpandedMF] = useState<Set<string>>(new Set());
+
+  const toggleExpandMF = (id: string, mfCode: string) => {
+    setExpandedMF((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        if (mfCode && !mfMeta[id]) fetchMFData(id, mfCode);
+      }
+      return next;
+    });
+  };
+
+  const fetchMFData = async (id: string, mfCode: string) => {
+    try {
+      const res = await fetch(`/api/mf-nav?code=${encodeURIComponent(mfCode)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setMfMeta((prev) => ({
+        ...prev,
+        [id]: {
+          prevNav: data.prevNav,
+          navChange: data.navChange,
+          navChangePct: data.navChangePct,
+          high52: data.high52,
+          low52: data.low52,
+          navDate: data.date,
+        },
+      }));
+      if (data.chart?.length) setMfChartData((prev) => ({ ...prev, [id]: data.chart }));
+    } catch (_) {}
+  };
 
   const refreshNav = async (m: any) => {
     if (!m.mfCode) return;
@@ -7261,6 +7299,18 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
       const data = await res.json();
       if (!data.nav) throw new Error("No NAV in response");
       await updateItem("mutualFunds", m.id, { currentNav: String(data.nav) });
+      setMfMeta((prev) => ({
+        ...prev,
+        [m.id]: {
+          prevNav: data.prevNav,
+          navChange: data.navChange,
+          navChangePct: data.navChangePct,
+          high52: data.high52,
+          low52: data.low52,
+          navDate: data.date,
+        },
+      }));
+      if (data.chart?.length) setMfChartData((prev) => ({ ...prev, [m.id]: data.chart }));
     } catch (e: any) {
       setNavError((prev) => ({ ...prev, [m.id]: e.message || "Refresh failed" }));
     } finally {
@@ -7543,6 +7593,143 @@ function MFSection({ items, removeItem, updateItem, onAdd }: any) {
                       Edit fund and add AMFI code to enable live NAV
                     </div>
                   )}
+
+                  {/* Expand toggle for chart */}
+                  {m.mfCode && (
+                    <div
+                      onClick={() => toggleExpandMF(m.id, m.mfCode)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                        cursor: "pointer",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: THEME.accent,
+                        padding: "6px 0",
+                        marginBottom: 8,
+                        borderRadius: 8,
+                        background: `${THEME.accent}0a`,
+                        transition: "background 0.15s",
+                        userSelect: "none",
+                      }}
+                    >
+                      <ChevronDown
+                        size={13}
+                        style={{
+                          transform: expandedMF.has(m.id) ? "rotate(180deg)" : "rotate(0deg)",
+                          transition: "transform 0.2s",
+                        }}
+                      />
+                      {expandedMF.has(m.id) ? "Hide Chart & Details" : "NAV Chart & 52W Data"}
+                    </div>
+                  )}
+
+                  {/* Expanded: Chart + Prev NAV + 52W H/L */}
+                  {expandedMF.has(m.id) && (() => {
+                    const meta = mfMeta[m.id];
+                    const chart = mfChartData[m.id];
+                    const navUp = meta?.navChange != null ? meta.navChange >= 0 : true;
+                    return (
+                      <div
+                        style={{
+                          background: "var(--surface-0)",
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          marginBottom: 12,
+                        }}
+                      >
+                        {chart?.length ? (
+                          <ResponsiveContainer width="100%" height={150}>
+                            <AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                              <defs>
+                                <linearGradient id={`mf-g-${m.id}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                  <stop offset="95%" stopColor={navUp ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                                </linearGradient>
+                              </defs>
+                              <XAxis
+                                dataKey="t"
+                                tick={{ fontSize: 9, fill: "var(--t-muted)" }}
+                                interval="preserveStartEnd"
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <YAxis hide domain={["auto", "auto"]} />
+                              <Tooltip
+                                contentStyle={{
+                                  fontSize: 12,
+                                  background: "var(--surface-0)",
+                                  border: `1px solid ${THEME.line}`,
+                                  borderRadius: 6,
+                                }}
+                                formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="p"
+                                stroke={navUp ? THEME.sage : THEME.rust}
+                                strokeWidth={1.5}
+                                fill={`url(#mf-g-${m.id})`}
+                                dot={false}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: "20px 0", fontSize: 11, color: THEME.muted }}>
+                            Loading chart…
+                          </div>
+                        )}
+
+                        {/* Prev NAV + NAV Change + 52W H/L pills */}
+                        {meta && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "10px 16px",
+                              marginTop: 12,
+                              fontSize: 12,
+                              borderTop: `1px solid ${THEME.line}`,
+                              paddingTop: 10,
+                            }}
+                          >
+                            {meta.prevNav != null && (
+                              <span>
+                                <span style={{ color: THEME.muted }}>Prev NAV: </span>
+                                <b>₹{Number(meta.prevNav).toFixed(4)}</b>
+                              </span>
+                            )}
+                            {meta.navChange != null && (
+                              <span>
+                                <span style={{ color: THEME.muted }}>Change: </span>
+                                <b style={{ color: meta.navChange >= 0 ? THEME.sage : THEME.rust }}>
+                                  {meta.navChange >= 0 ? "+" : ""}{Number(meta.navChange).toFixed(4)}
+                                  {meta.navChangePct != null && ` (${meta.navChangePct >= 0 ? "+" : ""}${Number(meta.navChangePct).toFixed(2)}%)`}
+                                </b>
+                              </span>
+                            )}
+                            {meta.high52 != null && (
+                              <span>
+                                <span style={{ color: THEME.muted }}>52W H/L: </span>
+                                <b style={{ color: THEME.sage }}>₹{Number(meta.high52).toFixed(4)}</b>
+                                {" / "}
+                                <b style={{ color: THEME.rust }}>₹{meta.low52 != null ? Number(meta.low52).toFixed(4) : "—"}</b>
+                              </span>
+                            )}
+                            {meta.navDate && (
+                              <span>
+                                <span style={{ color: THEME.muted }}>NAV Date: </span>
+                                <b>{meta.navDate}</b>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* P&L footer */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${THEME.line}` }}>
