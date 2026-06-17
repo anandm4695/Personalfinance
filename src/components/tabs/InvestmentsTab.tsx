@@ -7458,7 +7458,7 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
 
           {/* Action buttons row */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            {/* Bulk sell (FIFO) — group same-scheme funds */}
+            {/* Bulk sell — group same-scheme funds */}
             {(() => {
               const schemeGroups: Record<string, any[]> = {};
               items.forEach((m: any) => {
@@ -7478,7 +7478,7 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                   onClick={() => setFifoSellMFGroup({ schemeName, lots })}
                   style={{ color: THEME.gold }}
                 >
-                  Sell {schemeName.length > 20 ? schemeName.slice(0, 20) + "…" : schemeName} (FIFO)
+                  Sell {schemeName.length > 20 ? schemeName.slice(0, 20) + "…" : schemeName}
                 </Button>
               ));
             })()}
@@ -7955,7 +7955,7 @@ function SellMFModal({ mf, onClose, onSave }: any) {
   );
 }
 
-/* ── FIFO MF Sell Modal ────────────────────────────────────────────── */
+/* ── Bulk Sell MF Modal ─────────────────────────────────────────────── */
 function FifoSellMFModal({ group, onClose, onSave }: any) {
   const lots = group.lots;
   const totalUnits = lots.reduce((s: number, l: any) => s + (Number(l.units) || 0), 0);
@@ -8019,7 +8019,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
   const fmt4 = (n: number) => Number(n).toFixed(4);
 
   return (
-    <Modal title={`Sell ${group.schemeName.length > 35 ? group.schemeName.slice(0, 35) + "…" : group.schemeName} — FIFO`} onClose={onClose} maxWidth={720}>
+    <Modal title={`Sell ${group.schemeName.length > 35 ? group.schemeName.slice(0, 35) + "…" : group.schemeName}`} onClose={onClose} maxWidth={720}>
       <div
         style={{
           padding: "10px 14px",
@@ -8043,7 +8043,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
           <b>{lots.length}</b>
         </span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.muted }}>
-          Oldest lot consumed first (FIFO)
+          Oldest lot consumed first
         </span>
       </div>
 
@@ -8087,7 +8087,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
       {allocs.length > 0 && (
         <>
           <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
-            FIFO Allocation
+            Lot-wise Allocation
           </div>
           <div style={{ borderRadius: 10, border: `1px solid ${THEME.line}`, overflow: "hidden", marginBottom: 14 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -8147,7 +8147,7 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
                 <div style={{ fontSize: 15, fontWeight: 800 }}>₹{fmt2(totalProceeds)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis (FIFO)</div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Cost Basis</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>₹{fmt2(totalCost)}</div>
               </div>
               <div>
