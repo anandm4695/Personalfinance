@@ -1941,7 +1941,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >
@@ -2256,7 +2256,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >
@@ -2577,7 +2577,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >
