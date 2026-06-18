@@ -546,7 +546,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               placeholder="Policy number"
             />
           </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-2">
             <Field label="Sum Assured (₹)">
               <input
                 className={inp}
@@ -567,7 +567,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
             </Field>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-3">
             <Field label="Policy Term (Years)">
               <input
                 className={inp}
@@ -821,7 +821,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               ))}
             </select>
           </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-2">
             <Field label="Insurer / Company">
               <input
                 className={inp}
@@ -839,7 +839,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               />
             </Field>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-2">
             <Field label="Policy Number">
               <input
                 className={inp}
@@ -858,7 +858,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               />
             </Field>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-2">
             <Field label="Annual Premium (₹)">
               <input
                 className={inp}
@@ -879,7 +879,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
             </Field>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+          <div className="ins-form-row-4">
             <Field label="Policy Term (Yrs)">
               <input
                 className={inp}
@@ -1163,7 +1163,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               placeholder="e.g. Click 2 Protect, iProtect Smart"
             />
           </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ins-form-row-2">
             <Field label="Cover Amount (₹)">
               <input
                 className={inp}
@@ -1183,7 +1183,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               />
             </Field>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+          <div className="ins-form-row-4">
             <Field label="Plan Cover (Yrs)">
               <input
                 className={inp}
@@ -1655,7 +1655,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       <SectionTitle
         sub="Manage your life insurance, term protection cover, and endowment/investment schemes in one place"
         rightElement={
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div className="ins-header-actions">
             {hasPolicies && (
               <Button
                 onClick={downloadCSV}
@@ -1696,14 +1696,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         Insurance Portfolio
       </SectionTitle>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 28,
-        }}
-      >
+      <div className="ins-stats-grid">
         {[
           {
             label: "LIC Sum Assured",
@@ -1753,7 +1746,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="card-lift"
+            className="card-lift ins-stat-card"
             style={{
               background: "var(--surface-0)",
               border: `1px solid ${THEME.line}`,
@@ -1795,8 +1788,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               </div>
             </div>
             <div
+              className="ins-stat-value"
               style={{
-                fontSize: 26,
                 fontWeight: 900,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
@@ -1918,17 +1911,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
 
       {/* LIC SECTION */}
       <div style={{ marginBottom: 32 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}
-          >
+        <div className="ins-section-header">
+          <div className="ins-section-title">
             Life Insurance (LIC)
           </div>
           <Button
@@ -1957,7 +1941,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >
@@ -2242,17 +2226,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
 
       {/* TERM PLANS SECTION */}
       <div style={{ marginBottom: 32 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}
-          >
+        <div className="ins-section-header">
+          <div className="ins-section-title">
             Term Insurance Plans
           </div>
           <Button
@@ -2281,7 +2256,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >
@@ -2572,17 +2547,8 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
 
       {/* INVESTMENT PLANS SECTION */}
       <div style={{ marginBottom: 32 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: THEME.ink }}
-          >
+        <div className="ins-section-header">
+          <div className="ins-section-title">
             Investment Plans (Endowment / ULIP)
           </div>
           <Button
@@ -2611,7 +2577,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))",
               gap: 16,
             }}
           >

@@ -1665,3 +1665,131 @@ input[type="range"].cxo-slider::-moz-range-thumb {
 input[type="range"].cxo-slider::-moz-range-thumb:hover {
   transform: scale(1.25);
 }
+
+/* ── Insurance Tab Responsive ─────────────────────────────────── */
+.ins-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.ins-stat-value {
+  font-size: 26px;
+}
+
+.ins-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ins-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ins-section-title {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--t-ink);
+}
+
+.ins-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ins-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.ins-form-row-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .ins-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .ins-stat-value {
+    font-size: 18px;
+  }
+
+  .ins-stat-card {
+    padding: 14px !important;
+    gap: 8px !important;
+  }
+
+  .ins-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .ins-section-title {
+    font-size: 17px;
+  }
+
+  .ins-form-row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ins-form-row-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ins-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .ins-stat-value {
+    font-size: 15px;
+  }
+
+  .ins-stat-card {
+    padding: 12px !important;
+    gap: 6px !important;
+    border-radius: 10px !important;
+  }
+
+  .ins-header-actions {
+    gap: 6px;
+  }
+
+  .ins-header-actions button {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
+
+  .ins-section-title {
+    font-size: 15px;
+  }
+
+  .ins-form-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .ins-form-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .ins-form-row-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
