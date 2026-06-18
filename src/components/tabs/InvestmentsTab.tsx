@@ -8349,8 +8349,12 @@ const YieldTracker = ({ state }: any) => {
     return s + (Number(f.principal) * Number(f.rate || 0)) / 100;
   }, 0);
 
-  // Bond coupon
+  // Bond coupon — only active (non-matured) bonds
   const bondInterest = (state.bonds || []).reduce((s: number, b: any) => {
+    if (b.maturityDate) {
+      const [y, m, d] = String(b.maturityDate).split("-").map(Number);
+      if (new Date(y, m - 1, d) < new Date()) return s;
+    }
     const principal =
       Number(b.totalPrincipalAmount || 0) ||
       Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
@@ -8358,10 +8362,15 @@ const YieldTracker = ({ state }: any) => {
     return s + (principal * Number(b.coupon || 0)) / 100;
   }, 0);
 
-  // RD: interest = maturityValue - deposited (annualised)
+  // RD: interest = maturityValue - deposited (annualised) — only active (non-matured) RDs
   const rdInterest = (state.recurringDeposits || []).reduce((s: number, r: any) => {
     const tenureMonths = Number(r.tenureMonths) || 0;
     if (!tenureMonths) return s;
+    if (r.startDate && tenureMonths) {
+      const start = new Date(r.startDate);
+      start.setMonth(start.getMonth() + tenureMonths);
+      if (start < new Date()) return s;
+    }
     const fullMaturity = rdMaturity(Number(r.monthly), Number(r.rate), tenureMonths);
     const fullDeposited = (Number(r.monthly) || 0) * tenureMonths;
     const annualisedInterest = (fullMaturity - fullDeposited) / (tenureMonths / 12);
