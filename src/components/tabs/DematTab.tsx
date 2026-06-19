@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
+import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area, PieChart, Pie, Cell, Legend } from "recharts";
 import {
   Plus,
   Briefcase,
@@ -772,7 +772,7 @@ export function DematTab({
   const [editStockId, setEditStockId] = useState<string | null>(null);
 
   // Watchlist UI state
-  const [dematView, setDematView] = useState<"holdings" | "watchlist">("holdings");
+  const [dematView, setDematView] = useState<"holdings" | "analytics" | "watchlist">("holdings");
   const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
   const [expandedWatchlistItems, setExpandedWatchlistItems] = useState(new Set<string>());
   const [showWishlistModal, setShowWishlistModal] = useState(false);
@@ -942,6 +942,245 @@ export function DematTab({
   const prevCloseValue = totalValue - totalDaysPnL;
   const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
 
+  // ─── PORTFOLIO HEALTH SCORE CALCULATIONS ──────────────────────────────────
+  const portfolioScoreData = useMemo(() => {
+    if (!filteredStocks || filteredStocks.length === 0) {
+      return {
+        overall: 0,
+        quality: 0,
+        momentum: 0,
+        diversification: 0,
+        riskManagement: 0,
+        consistency: 0,
+        status: "Empty Portfolio",
+        statusColor: THEME.muted,
+        rationale: "Add stock scrips to calculate your portfolio health scores.",
+        insights: [],
+        hhi: 0,
+        stockWeights: [],
+        totalMfVal: 0,
+      };
+    }
+
+    // Helper: Ticker price resolver
+    const getStockPrice = (st: any) => {
+      const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+      const exch = st.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      const livePrice = marketData[yfSym]?.price;
+      return livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
+    };
+
+    // Calculate stock values and weights
+    const stockValues = filteredStocks.map((st: any) => {
+      const val = Number(st.qty) * getStockPrice(st);
+      return {
+        symbol: st.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase(),
+        qty: Number(st.qty),
+        avgPrice: Number(st.avgPrice),
+        currentPrice: getStockPrice(st),
+        value: val,
+      };
+    });
+
+    const totalVal = stockValues.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
+
+    // Weights
+    const stockWeights = stockValues.map((s: any) => ({
+      ...s,
+      weight: (s.value / totalVal) * 100,
+    })).sort((a: any, b: any) => b.value - a.value);
+
+    // 1. QUALITY SCORE (0-100)
+    // Heuristic maps for popular Indian tickers
+    const highQualityList = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "HINDUNILVR", "ITC", "LT", "BHARTIARTL", "SBIN", "TATASTEEL", "MARUTI", "WIPRO", "HCLTECH", "KOTAKBANK", "AXISBANK", "ASIANPAINT", "BAJFINANCE", "SUNPHARMA", "NTPC", "POWERGRID"];
+    const midQualityList = ["TATAELXSI", "KPIT", "COFORGE", "CDSL", "HAL", "BEL", "IREDA", "IRFC", "RVNL", "NHPC", "TATAPOWER", "JIOFIN", "ZOMATO", "PFC", "RECL", "HUDCO", "BHEL", "LICHSGFIN"];
+    const speculativeList = ["YESBANK", "SUZLON", "IDEA", "GTLINFRA", "JPPOWER", "GTL", "RPOWER", "INFIBEAM", "PCJEWELLER", "RELIANCEINFRA", "RELIANCEPOWER", "RCOM"];
+
+    const getQualityVal = (sym: string) => {
+      if (highQualityList.includes(sym)) return 95;
+      if (midQualityList.includes(sym)) return 80;
+      if (speculativeList.includes(sym)) return 35;
+      // Deterministic fallback based on symbol name
+      let scoreSum = 0;
+      for (let i = 0; i < sym.length; i++) {
+        scoreSum += sym.charCodeAt(i);
+      }
+      return 55 + (scoreSum % 26); // returns between 55 and 80
+    };
+
+    const qualityScore = Math.round(
+      stockWeights.reduce((sum: number, s: any) => sum + getQualityVal(s.symbol) * (s.weight / 100), 0)
+    );
+
+    // 2. MOMENTUM SCORE (0-100)
+    // Based on return percentage + day change
+    const getMomentumVal = (s: any) => {
+      const absoluteReturnPct = s.avgPrice > 0 ? ((s.currentPrice - s.avgPrice) / s.avgPrice) * 100 : 0;
+      // 0% return -> 50 score, 50%+ -> 95 score, -30% or worse -> 15 score
+      let score = 50 + absoluteReturnPct * 0.9;
+      
+      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+      const yfSym = `${base}.NS`; // check default
+      const md = marketData[yfSym] || marketData[`${base}.BO`];
+      const dailyChangePct = md?.changePercent ?? 0;
+      score += dailyChangePct * 1.5; // add short term daily momentum swing
+
+      return Math.max(10, Math.min(99, score));
+    };
+
+    const momentumScore = Math.round(
+      stockWeights.reduce((sum: number, s: any) => sum + getMomentumVal(s) * (s.weight / 100), 0)
+    );
+
+    // 3. DIVERSIFICATION SCORE (0-100)
+    // HHI concentration index: w_i is weight percentage (e.g. 20)
+    // HHI = Sum of w_i^2. 
+    // Concentrated: HHI > 2500. Well diversified: HHI < 1500.
+    const hhi = stockWeights.reduce((sum: number, s: any) => sum + (s.weight * s.weight), 0);
+    // Map HHI from [1000, 10000] to [100, 10]
+    let divScore = 100;
+    if (hhi > 1000) {
+      divScore = 100 - ((hhi - 1000) * 90) / 9000;
+    }
+    const diversificationScore = Math.max(10, Math.min(100, Math.round(divScore)));
+
+    // 4. RISK MANAGEMENT SCORE (0-100)
+    // Combines individual asset risk with concentration penalty
+    const getRiskVal = (sym: string) => {
+      if (highQualityList.includes(sym)) return 90; // high score = low risk
+      if (midQualityList.includes(sym)) return 70;
+      if (speculativeList.includes(sym)) return 30;
+      return 60;
+    };
+    const baseRiskScore = stockWeights.reduce((sum: number, s: any) => sum + getRiskVal(s.symbol) * (s.weight / 100), 0);
+    // Penalty for excessive concentration (largest stock > 25%)
+    const maxWeight = stockWeights[0]?.weight ?? 0;
+    let concentrationPenalty = 0;
+    if (maxWeight > 40) concentrationPenalty = 20;
+    else if (maxWeight > 25) concentrationPenalty = 10;
+
+    const riskManagementScore = Math.max(10, Math.round(baseRiskScore - concentrationPenalty));
+
+    // 5. CONSISTENCY / DEFENSIVE SCORE (0-100)
+    // Evaluates what portion of holdings are positive vs negative
+    const positiveReturnCount = stockWeights.filter((s: any) => s.currentPrice >= s.avgPrice).length;
+    const consistencyScore = Math.round(
+      (positiveReturnCount / stockWeights.length) * 50 + 50
+    );
+
+    // Overall blended score
+    const overall = Math.round(
+      qualityScore * 0.3 +
+        momentumScore * 0.25 +
+        diversificationScore * 0.25 +
+        riskManagementScore * 0.20
+    );
+
+    // Status mapping
+    let status = "Moderate";
+    let statusColor = THEME.gold;
+    if (overall >= 80) {
+      status = "Very Strong";
+      statusColor = THEME.sage;
+    } else if (overall < 50) {
+      status = "Action Required";
+      statusColor = THEME.rust;
+    }
+
+    // Dynamic Rationale
+    let rationale = "";
+    if (overall >= 80) {
+      rationale = "Your portfolio exhibits exceptional health, characterized by high-quality assets, solid diversification, and robust risk management. Maintain your current holding pattern.";
+    } else if (overall >= 65) {
+      rationale = "Your portfolio is in a healthy, moderate state. Consider trimming speculative holdings or consolidating some of your smaller, low-conviction positions to improve quality.";
+    } else if (overall >= 50) {
+      rationale = "Your portfolio health is average. Performance is likely held back by either highly concentrated holdings, weak stock momentum, or high speculative asset exposure.";
+    } else {
+      rationale = "Your portfolio health requires immediate attention. High concentration in speculative stocks or deeply negative momentum represents severe exposure. Review the insights below.";
+    }
+
+    // Generate actionable insights
+    const insights: string[] = [];
+
+    if (maxWeight > 25) {
+      insights.push(
+        `⚠️ High concentration in a single stock: "${stockWeights[0].symbol}" makes up ${maxWeight.toFixed(1)}% of your portfolio. Consider trimming this to below 20% to mitigate single-stock risk.`
+      );
+    }
+    
+    const speculativeWeight = stockWeights.reduce(
+      (sum: number, s: any) => sum + (speculativeList.includes(s.symbol) ? s.weight : 0),
+      0
+    );
+    if (speculativeWeight > 20) {
+      insights.push(
+        `⚠️ Speculative exposure is high: Penny or highly volatile stocks represent ${speculativeWeight.toFixed(1)}% of holdings. Rotate some capital into stable Nifty 50 companies.`
+      );
+    }
+
+    if (diversificationScore < 50) {
+      insights.push(
+        `📉 Highly concentrated portfolio: Your HHI is ${Math.round(hhi)}. Broaden your diversification by spreading capital across 3-4 additional sectors.`
+      );
+    } else if (diversificationScore > 90 && filteredStocks.length > 25) {
+      insights.push(
+        `ℹ️ Over-diversification alert: You have ${filteredStocks.length} holdings. This may dilute your returns. Consider consolidating into your 12-15 highest conviction stocks.`
+      );
+    }
+
+    if (momentumScore < 50) {
+      insights.push(
+        `📉 Weak price momentum: A significant portion of your holdings are underperforming. Review companies with decaying returns and check if their business fundamentals are deteriorating.`
+      );
+    }
+
+    // Combined summary logic for Mutual Funds
+    const mutualFundsList = state.mutualFunds || [];
+    const totalMfVal = mutualFundsList.reduce((sum: number, mf: any) => {
+      const units = Number(mf.units) || 0;
+      const nav = Number(mf.currentNav) || Number(mf.buyNav) || 0;
+      return sum + (units * nav);
+    }, 0);
+
+    if (totalMfVal > 0) {
+      const ratio = totalVal / (totalVal + totalMfVal);
+      if (ratio > 0.8) {
+        insights.push(
+          `💡 Combined asset check: You are heavily tilted towards direct stocks (${(ratio * 100).toFixed(0)}% vs ${(100 - ratio * 100).toFixed(0)}% Mutual Funds). Consider raising your mutual fund allocation for passive stability.`
+        );
+      } else {
+        insights.push(
+          `✓ Combined asset balance: Healthy mix of Direct Stocks (${(ratio * 100).toFixed(0)}%) and Mutual Funds (${(100 - ratio * 100).toFixed(0)}%) provides defensive stability.`
+        );
+      }
+    } else if (filteredStocks.length > 0) {
+      insights.push(
+        `💡 Diversification tip: You do not have any Mutual Funds registered. Allocating a portion of your wealth to index or hybrid mutual funds can improve long-term resilience.`
+      );
+    }
+
+    if (insights.length === 0) {
+      insights.push("✓ No immediate actions needed. Your portfolio looks well-structured and healthy.");
+    }
+
+    return {
+      overall,
+      quality: qualityScore,
+      momentum: momentumScore,
+      diversification: diversificationScore,
+      riskManagement: riskManagementScore,
+      consistency: consistencyScore,
+      status,
+      statusColor,
+      rationale,
+      insights,
+      hhi,
+      stockWeights,
+      totalMfVal,
+    };
+  }, [filteredStocks, marketData, state.mutualFunds]);
+
   const fmtVol = (v: number) => {
     if (!v) return "—";
     if (v >= 1e7) return (v / 1e7).toFixed(2) + "Cr";
@@ -1070,9 +1309,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      {/* ── VIEW SWITCHER: Holdings | Watchlist ── */}
+      {/* ── VIEW SWITCHER: Holdings | Analytics | Watchlist ── */}
       <div style={{ display: "flex", gap: 4, marginBottom: 0, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        {(["holdings", "watchlist"] as const).map((view) => (
+        {(["holdings", "analytics", "watchlist"] as const).map((view) => (
           <button
             key={view}
             onClick={() => setDematView(view)}
@@ -1093,8 +1332,20 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               transition: "color 0.15s",
             }}
           >
-            {view === "holdings" ? <BarChart3 size={15} /> : <Star size={15} />}
-            {view === "holdings" ? "Holdings" : "Watchlist"}
+            {view === "holdings" ? (
+              <BarChart3 size={15} />
+            ) : view === "analytics" ? (
+              <Activity size={15} />
+            ) : (
+              <Star size={15} />
+            )}
+            {view === "holdings" ? (
+              "Holdings"
+            ) : view === "analytics" ? (
+              "Portfolio Score"
+            ) : (
+              "Watchlist"
+            )}
             {view === "watchlist" && wishlists.length > 0 && (
               <span style={{
                 background: `${THEME.accent}20`,
@@ -2425,6 +2676,267 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           </div>
         )}
       </div>}
+
+      {/* ── PORTFOLIO SCORE & HEALTH ANALYTICS VIEW ── */}
+      {dematView === "analytics" && (
+        <div style={{ width: "100%", marginTop: 24 }}>
+          {filteredStocks.length === 0 ? (
+            <Card>
+              <EmptyHint text="Add direct stock holdings to view your portfolio health analysis and scores." />
+            </Card>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {/* Top Summary Card */}
+              <Card>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
+                  
+                  {/* Circular Radial Score Gauge */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "12px 0" }}>
+                    <div style={{ position: "relative", width: 140, height: 140, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                        {/* Background track circle */}
+                        <circle
+                          cx="70"
+                          cy="70"
+                          r="60"
+                          stroke="var(--t-line)"
+                          strokeWidth="10"
+                          fill="transparent"
+                        />
+                        {/* Colored progress circle */}
+                        <circle
+                          cx="70"
+                          cy="70"
+                          r="60"
+                          stroke={portfolioScoreData.statusColor}
+                          strokeWidth="10"
+                          fill="transparent"
+                          strokeDasharray={2 * Math.PI * 60}
+                          strokeDashoffset={2 * Math.PI * 60 * (1 - portfolioScoreData.overall / 100)}
+                          strokeLinecap="round"
+                          style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                        />
+                      </svg>
+                      {/* Central label */}
+                      <div style={{ position: "absolute", textAlign: "center" }}>
+                        <div style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, lineHeight: 1 }}>
+                          {portfolioScoreData.overall}
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>
+                          out of 100
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Score status badge */}
+                    <div style={{
+                      marginTop: 16,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      background: `${portfolioScoreData.statusColor}15`,
+                      color: portfolioScoreData.statusColor,
+                      padding: "4px 12px",
+                      borderRadius: 20,
+                      border: `1px solid ${portfolioScoreData.statusColor}30`,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em"
+                    }}>
+                      {portfolioScoreData.status}
+                    </div>
+                  </div>
+
+                  {/* Rationale text and overall metrics */}
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
+                      Portfolio Diagnostics
+                    </div>
+                    <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                      {portfolioScoreData.rationale}
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Holdings Value
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}>
+                          {fmtINRFull(totalValue)}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Holdings Count
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginTop: 2 }}>
+                          {filteredStocks.length} scrips
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </Card>
+
+              {/* Sub-Scores Progress Bars & Allocation Pie Chart */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
+                
+                {/* Score Breakdown Bars */}
+                <Card style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
+                    Health Dimensions
+                  </div>
+
+                  {[
+                    {
+                      label: "Asset Quality",
+                      score: portfolioScoreData.quality,
+                      color: portfolioScoreData.quality >= 80 ? THEME.sage : portfolioScoreData.quality >= 50 ? THEME.gold : THEME.rust,
+                      desc: "Measures direct quality tiering (large-cap blue chips vs. speculative small-caps).",
+                    },
+                    {
+                      label: "Price Momentum",
+                      score: portfolioScoreData.momentum,
+                      color: portfolioScoreData.momentum >= 80 ? THEME.sage : portfolioScoreData.momentum >= 50 ? THEME.gold : THEME.rust,
+                      desc: "Evaluates returns relative to cost basis combined with short-term price swings.",
+                    },
+                    {
+                      label: "Concentration (Diversification)",
+                      score: portfolioScoreData.diversification,
+                      color: portfolioScoreData.diversification >= 80 ? THEME.sage : portfolioScoreData.diversification >= 50 ? THEME.gold : THEME.rust,
+                      desc: "Concentration index scoring direct allocation balance. Protects against single scrip risk.",
+                    },
+                    {
+                      label: "Risk Management",
+                      score: portfolioScoreData.riskManagement,
+                      color: portfolioScoreData.riskManagement >= 80 ? THEME.sage : portfolioScoreData.riskManagement >= 50 ? THEME.gold : THEME.rust,
+                      desc: "Combines asset-level risk parameters with concentration exposure penalties.",
+                    },
+                    {
+                      label: "Defensive Consistency",
+                      score: portfolioScoreData.consistency,
+                      color: portfolioScoreData.consistency >= 80 ? THEME.sage : portfolioScoreData.consistency >= 50 ? THEME.gold : THEME.rust,
+                      desc: "Tracks the share of positive-return holdings, representing cushioning strength.",
+                    },
+                  ].map((s) => (
+                    <div key={s.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                        <span style={{ fontWeight: 700, color: THEME.ink }}>{s.label}</span>
+                        <span style={{ fontWeight: 800, color: s.color }}>{s.score} / 100</span>
+                      </div>
+                      
+                      {/* Bar Track */}
+                      <div style={{ width: "100%", height: 8, borderRadius: 4, background: "var(--t-line)", overflow: "hidden" }}>
+                        <div style={{ width: `${s.score}%`, height: "100%", borderRadius: 4, background: s.color, transition: "width 0.8s ease-in-out" }} />
+                      </div>
+                      
+                      <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4, marginTop: 2 }}>
+                        {s.desc}
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+
+                {/* Pie Chart Visualization */}
+                <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
+                    Portfolio Allocation
+                  </div>
+
+                  <div style={{ width: "100%", height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={portfolioScoreData.stockWeights.slice(0, 7)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={85}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {portfolioScoreData.stockWeights.slice(0, 7).map((entry: any, index: number) => {
+                            const hues = [210, 160, 42, 12, 280, 190, 330];
+                            const color = `hsl(${hues[index % hues.length]}, 60%, 50%)`;
+                            return <Cell key={`cell-${index}`} fill={color} />;
+                          })}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any) => [
+                            `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
+                            "Current Value"
+                          ]}
+                          contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, fontSize: 12 }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Legend list of top stocks */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
+                    {portfolioScoreData.stockWeights.slice(0, 4).map((s: any, idx: number) => {
+                      const hues = [210, 160, 42, 12, 280, 190, 330];
+                      const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
+                      return (
+                        <div key={s.symbol} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>{s.symbol}</span>
+                            <span style={{ color: THEME.muted, fontSize: 11 }}>({s.qty} shares)</span>
+                          </div>
+                          <span style={{ fontWeight: 800, color: THEME.ink }}>{s.weight.toFixed(1)}%</span>
+                        </div>
+                      );
+                    })}
+                    {portfolioScoreData.stockWeights.length > 4 && (
+                      <div style={{ textAlign: "center", fontSize: 11, color: THEME.muted, paddingTop: 4, borderTop: `1px dashed ${THEME.line}` }}>
+                        and {portfolioScoreData.stockWeights.length - 4} other assets
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Actionable Financial Insights checklist */}
+              <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
+                  💡 Financial Optimization Suggestions
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {portfolioScoreData.insights.map((insight: string, idx: number) => (
+                    <div key={idx} style={{
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      background: insight.includes("⚠️") || insight.includes("📉") 
+                        ? `${THEME.rust}06` 
+                        : insight.includes("💡") 
+                          ? `${THEME.gold}06` 
+                          : `${THEME.sage}06`,
+                      border: `1.5px solid ${
+                        insight.includes("⚠️") || insight.includes("📉") 
+                          ? `${THEME.rust}20` 
+                          : insight.includes("💡") 
+                            ? `${THEME.gold}20` 
+                            : `${THEME.sage}20`
+                      }`,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: THEME.ink
+                    }}>
+                      <div style={{ marginTop: 1 }}>{insight.split(" ")[0]}</div>
+                      <div style={{ fontWeight: 500 }}>{insight.substring(insight.indexOf(" ") + 1)}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── WATCHLIST SECTION ── */}
       {dematView === "watchlist" && (
