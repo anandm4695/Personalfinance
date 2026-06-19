@@ -3734,13 +3734,14 @@ function FinanceDashboard() {
       <div
         className={darkMode ? "dark-theme" : ""}
         style={{
-          minHeight: "100vh",
+          height: "100vh",
           background: "var(--t-paper)",
           fontFamily: "var(--t-font, 'Inter', sans-serif)",
           color: THEME.ink,
           position: "relative",
           display: "flex",
           fontSize: d.fontSize,
+          overflow: "hidden",
         }}
       >
         {/* ── SIDEBAR NAVIGATION ── */}
@@ -4058,7 +4059,16 @@ function FinanceDashboard() {
           </nav>
         </aside>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            height: "100vh",
+            overflow: "hidden",
+          }}
+        >
           {/* HEADER */}
           <header
             className="glass"
@@ -4830,6 +4840,9 @@ function FinanceDashboard() {
 
           <main
             style={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
               padding: "40px",
               position: "relative",
               zIndex: 1,
