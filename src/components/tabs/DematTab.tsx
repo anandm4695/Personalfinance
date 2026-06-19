@@ -2699,22 +2699,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           cx="70"
                           cy="70"
                           r="60"
-                          stroke="var(--t-line)"
                           strokeWidth="10"
                           fill="transparent"
+                          style={{ stroke: "var(--t-line)" }}
                         />
                         {/* Colored progress circle */}
                         <circle
                           cx="70"
                           cy="70"
                           r="60"
-                          stroke={portfolioScoreData.statusColor}
                           strokeWidth="10"
                           fill="transparent"
-                          strokeDasharray={2 * Math.PI * 60}
-                          strokeDashoffset={2 * Math.PI * 60 * (1 - portfolioScoreData.overall / 100)}
+                          strokeDasharray={Math.round(2 * Math.PI * 60)}
+                          strokeDashoffset={Math.round(2 * Math.PI * 60 * (1 - portfolioScoreData.overall / 100))}
                           strokeLinecap="round"
-                          style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                          style={{ stroke: portfolioScoreData.statusColor, transition: "stroke-dashoffset 0.8s ease-in-out" }}
                         />
                       </svg>
                       {/* Central label */}
@@ -2733,11 +2732,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       marginTop: 16,
                       fontSize: 12,
                       fontWeight: 800,
-                      background: `${portfolioScoreData.statusColor}15`,
+                      background: `color-mix(in srgb, ${portfolioScoreData.statusColor} 15%, transparent)`,
                       color: portfolioScoreData.statusColor,
                       padding: "4px 12px",
                       borderRadius: 20,
-                      border: `1px solid ${portfolioScoreData.statusColor}30`,
+                      border: `1px solid color-mix(in srgb, ${portfolioScoreData.statusColor} 30%, transparent)`,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em"
                     }}>
@@ -2842,8 +2841,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                     Portfolio Allocation
                   </div>
 
-                  <div style={{ width: "100%", height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ width: "100%", height: 220, position: "relative" }}>
+                    <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
                         <Pie
                           data={portfolioScoreData.stockWeights.slice(0, 7)}
@@ -2911,16 +2910,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       padding: "10px 14px",
                       borderRadius: 10,
                       background: insight.includes("⚠️") || insight.includes("📉") 
-                        ? `${THEME.rust}06` 
+                        ? `color-mix(in srgb, ${THEME.rust} 6%, transparent)` 
                         : insight.includes("💡") 
-                          ? `${THEME.gold}06` 
-                          : `${THEME.sage}06`,
+                          ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)` 
+                          : `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
                       border: `1.5px solid ${
                         insight.includes("⚠️") || insight.includes("📉") 
-                          ? `${THEME.rust}20` 
+                          ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` 
                           : insight.includes("💡") 
-                            ? `${THEME.gold}20` 
-                            : `${THEME.sage}20`
+                            ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)` 
+                            : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
                       }`,
                       fontSize: 13,
                       lineHeight: 1.5,
