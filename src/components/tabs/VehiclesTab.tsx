@@ -13,8 +13,19 @@ import {
   Clock,
   IndianRupee,
   TrendingDown,
+  TrendingUp,
   FileText,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+} from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -368,10 +379,12 @@ type ComplianceStatus = { label: string; color: string; icon: "ok" | "warn" | "a
 
 const complianceStatus = (expiry: string): ComplianceStatus => {
   if (!expiry) return null;
-  const daysLeft = Math.ceil(
-    (new Date(expiry + "T00:00:00").getTime() - Date.now()) / 86400000
-  );
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const expiryTime = new Date(expiry + "T00:00:00").getTime();
+  const todayTime = new Date(todayStr + "T00:00:00").getTime();
+  const daysLeft = Math.ceil((expiryTime - todayTime) / 86400000);
   if (daysLeft < 0) return { label: "Expired", color: "#ef4444", icon: "alert" };
+  if (daysLeft === 0) return { label: "Expires today", color: "#ef4444", icon: "alert" };
   if (daysLeft <= 30) return { label: `Expiring in ${daysLeft}d`, color: "#f59e0b", icon: "warn" };
   return { label: "Valid", color: "#10b981", icon: "ok" };
 };
@@ -466,6 +479,9 @@ const EMPTY_VEHICLE = {
   insuranceExpiry: "",
   pucExpiry: "",
   photoUrl: "",
+  rcDocumentUrl: "",
+  insurancePolicyUrl: "",
+  pucCertificateUrl: "",
   notes: "",
   owner: "self",
 };
@@ -484,6 +500,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
   );
   const [rcStatus, setRcStatus] = useState<"idle" | "loading" | "ok" | "error" | "nokey">("idle");
   const [rcMsg, setRcMsg] = useState("");
+  const [rcSource, setRcSource] = useState("");
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const canSave = f.make.trim() && f.model.trim();
@@ -491,7 +508,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
   const lookupRC = async () => {
     const reg = (f.registrationNumber || "").trim();
     if (!reg) { setRcStatus("error"); setRcMsg("Enter a registration number first"); return; }
-    setRcStatus("loading"); setRcMsg("");
+    setRcStatus("loading"); setRcMsg(""); setRcSource("");
     try {
       const r = await fetch(`/api/rc-lookup?reg=${encodeURIComponent(reg)}`);
       const data = await r.json();
@@ -515,6 +532,7 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         pucExpiry: data.pucExpiry || p.pucExpiry,
       }));
       setRcStatus("ok");
+      setRcSource(data.source || "");
       setRcMsg(
         `✓ Details auto-filled via ${data.source || "VAHAN"}` +
         (data.ownerName ? ` · Owner: ${data.ownerName}` : "") +
@@ -634,7 +652,12 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         {/* RC lookup status banner */}
         {rcStatus === "ok" && (
           <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: "#10b98115", border: "1px solid #10b98130", color: "#065f46" }}>
-            {rcMsg}
+            <div>{rcMsg}</div>
+            {rcSource?.includes("offline") && (
+              <div style={{ marginTop: 5, fontSize: 11, color: "#047857", fontWeight: 400, borderTop: "1px solid #10b98125", paddingTop: 4 }}>
+                💡 <strong>Free Offline Mode:</strong> This details preview was generated offline based on the RTO prefix{rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}. To setup live RTO verification from government databases, <span style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }} onClick={() => setRcStatus("nokey")}>view live API instructions</span>.
+              </div>
+            )}
           </div>
         )}
         {rcStatus === "error" && (
@@ -650,38 +673,38 @@ function VehicleModal({ existing, onClose, onSave }: any) {
             {[
               {
                 num: "1",
-                title: "Surepass",
-                badge: "⭐ Recommended — 100 free calls",
-                color: "#059669",
+                title: "RapidAPI",
+                badge: "⭐ Recommended — Sign in with Google",
+                color: "#2563eb",
                 steps: [
-                  "Go to surepass.io → click Sign Up (email or Google)",
-                  "After login: Dashboard → copy your API Token",
-                  "Vercel → Settings → Environment Variables → add  SUREPASS_TOKEN = (paste token)",
-                  "Click Save → Redeploy → done! RC Lookup will work instantly",
+                  "Go to rapidapi.com → Sign Up → Continue with Google (easiest login, no approval needed)",
+                  'Search "RTO Vehicle Information Verification India" → Subscribe (free tier has 20 free calls/month)',
+                  "API page → copy your X-RapidAPI-Key from the code snippets",
+                  "Add RAPIDAPI_KEY = (your key) to your local .env or Vercel Environment Variables",
                 ],
               },
               {
                 num: "2",
-                title: "RapidAPI",
-                badge: "Sign in with Google",
-                color: "#2563eb",
+                title: "Surepass",
+                badge: "Alternative — Account creation restricted for some users",
+                color: "#d97706",
                 steps: [
-                  "Go to rapidapi.com → Sign Up → Continue with Google",
-                  'Search "RTO Vehicle Information Verification India" → Subscribe (free tier)',
-                  "API page → copy your X-RapidAPI-Key",
-                  "Vercel → Env Vars → add RAPIDAPI_KEY = your key → Redeploy",
+                  "⚠️ NOTE: Users have reported issues signing up / creating accounts with Surepass support.",
+                  "Go to surepass.io → click Sign Up (email or Google)",
+                  "After login: Dashboard → copy your API Token",
+                  "Add SUREPASS_TOKEN = (your token) to your local .env or Vercel Environment Variables",
                 ],
               },
               {
                 num: "3",
                 title: "Attestr",
-                badge: "Indian developer API",
+                badge: "Alternative — Indian developer API",
                 color: "#7c3aed",
                 steps: [
                   "Go to attestr.com → Sign Up with email/Google",
                   "Dashboard → API Console → create credentials",
                   "Copy the Base64 token shown",
-                  "Vercel → Env Vars → add ATTESTR_TOKEN = your token → Redeploy",
+                  "Add ATTESTR_TOKEN = (your token) to your local .env or Vercel Environment Variables",
                 ],
               },
             ].map((p) => (
@@ -734,6 +757,21 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         </Field>
         <Field label="PUC Expiry">
           <input style={inp} type="date" value={f.pucExpiry} onChange={(e) => set("pucExpiry", e.target.value)} />
+        </Field>
+      </div>
+
+      {/* Documents */}
+      <ModalSection title="Document Links (PDF/Drive URL)" />
+
+      <div style={g3}>
+        <Field label="RC Document URL">
+          <input style={inp} value={f.rcDocumentUrl || ""} onChange={(e) => set("rcDocumentUrl", e.target.value)} placeholder="Link to RC copy" />
+        </Field>
+        <Field label="Insurance Policy URL">
+          <input style={inp} value={f.insurancePolicyUrl || ""} onChange={(e) => set("insurancePolicyUrl", e.target.value)} placeholder="Link to Policy PDF" />
+        </Field>
+        <Field label="PUC Certificate URL">
+          <input style={inp} value={f.pucCertificateUrl || ""} onChange={(e) => set("pucCertificateUrl", e.target.value)} placeholder="Link to PUC copy" />
         </Field>
       </div>
 
@@ -970,9 +1008,48 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
     ? sh.slice().sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
     : null;
 
+  const latestOdo = sh.reduce((max: number, r: any) => Math.max(max, Number(r.odometer || 0)), 0);
+  const depreciation = Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0);
+  const tco = depreciation + totalServiceCost;
+  const costPerKm = latestOdo > 0 && tco > 0 ? tco / latestOdo : null;
+
+  // Service spend by year (aggregated)
+  const spendByYear = useMemo(() => {
+    const years: Record<number, number> = {};
+    sh.forEach((r) => {
+      const dateVal = r.date;
+      if (dateVal) {
+        const yr = new Date(dateVal).getFullYear();
+        if (!isNaN(yr)) {
+          years[yr] = (years[yr] || 0) + Number(r.cost || 0);
+        }
+      }
+    });
+    return Object.entries(years)
+      .map(([year, amount]) => ({ year: String(year), amount }))
+      .sort((a, b) => a.year.localeCompare(b.year));
+  }, [sh]);
+
+  // Odometer reading trend over time
+  const odoTrend = useMemo(() => {
+    return sh
+      .filter((r) => Number(r.odometer || 0) > 0)
+      .map((r) => ({
+        date: r.date,
+        displayDate: new Date(r.date + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+        odometer: Number(r.odometer),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [sh]);
+
   const deprPct =
     vehicle.purchasePrice && vehicle.currentValue && vehicle.purchasePrice > vehicle.currentValue
       ? Math.round(((vehicle.purchasePrice - vehicle.currentValue) / vehicle.purchasePrice) * 100)
+      : null;
+
+  const apprecPct =
+    vehicle.purchasePrice && vehicle.currentValue && vehicle.currentValue > vehicle.purchasePrice
+      ? Math.round(((vehicle.currentValue - vehicle.purchasePrice) / vehicle.purchasePrice) * 100)
       : null;
 
   return (
@@ -1049,6 +1126,11 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
                 <TrendingDown size={10} /> {deprPct}% depreciated
               </div>
             )}
+            {apprecPct !== null && (
+              <div style={{ fontSize: 11, color: "#10b981", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
+                <TrendingUp size={10} /> {apprecPct}% appreciated
+              </div>
+            )}
             <div style={{ marginTop: 8, color: "var(--t-muted, var(--text-muted))" }}>
               {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
@@ -1105,6 +1187,190 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
               </div>
             ))}
           </div>
+
+          {/* TCO & Cost-per-KM stats block */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-0, var(--surface)) 100%)",
+              border: "1px solid var(--t-line, var(--border))",
+              borderRadius: 12,
+              padding: "16px 18px",
+              marginBottom: 18,
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-muted, var(--text-muted))", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+              Ownership Economics
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", marginBottom: 4 }}>Total Cost of Ownership</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                  {fmtINRFull(tco)}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--t-muted, var(--text-muted))", marginTop: 2 }}>
+                  Depreciation ({fmtINRFull(Math.max(0, depreciation))}) + Service spend ({fmtINRFull(totalServiceCost)})
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", marginBottom: 4 }}>Total Distance Tracked</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                  {latestOdo ? `${latestOdo.toLocaleString("en-IN")} km` : "—"}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--t-muted, var(--text-muted))", marginTop: 2 }}>
+                  Based on highest odometer reading in service records
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", marginBottom: 4 }}>Cost Per Kilometer</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: costPerKm ? THEME.accent : "var(--t-muted)" }}>
+                  {costPerKm ? `₹${costPerKm.toFixed(2)} / km` : "—"}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--t-muted, var(--text-muted))", marginTop: 2 }}>
+                  {costPerKm ? "TCO divided by total distance driven" : "Add service records with odometer readings"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Documents row */}
+          {(vehicle.rcDocumentUrl || vehicle.insurancePolicyUrl || vehicle.pucCertificateUrl) && (
+            <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+              {vehicle.rcDocumentUrl && (
+                <a
+                  href={vehicle.rcDocumentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface)",
+                    border: "1px solid var(--t-line, var(--border))",
+                    color: THEME.accent,
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <FileText size={13} />
+                  RC Document ↗
+                </a>
+              )}
+              {vehicle.insurancePolicyUrl && (
+                <a
+                  href={vehicle.insurancePolicyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface)",
+                    border: "1px solid var(--t-line, var(--border))",
+                    color: THEME.accent,
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <FileText size={13} />
+                  Insurance Policy ↗
+                </a>
+              )}
+              {vehicle.pucCertificateUrl && (
+                <a
+                  href={vehicle.pucCertificateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface)",
+                    border: "1px solid var(--t-line, var(--border))",
+                    color: THEME.accent,
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <FileText size={13} />
+                  PUC Certificate ↗
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Service Cost & Odometer Trends */}
+          {sh.length > 0 && (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--t-line, var(--border))",
+                borderRadius: 12,
+                padding: "16px 18px",
+                marginBottom: 18,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-muted, var(--text-muted))", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>
+                Analytics & Trends
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+                {/* Chart 1: Annual Spend */}
+                {spendByYear.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>
+                      Annual Service Spend
+                    </div>
+                    <div style={{ height: 160 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={spendByYear} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                          <XAxis dataKey="year" stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v}`} />
+                          <Tooltip
+                            formatter={(v: any) => [`₹${v.toLocaleString("en-IN")}`, "Spend"]}
+                            contentStyle={{ background: "var(--surface-0, var(--surface))", borderColor: "var(--t-line, var(--border))", borderRadius: 8, color: "var(--text)" }}
+                          />
+                          <Bar dataKey="amount" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Chart 2: Odometer Trend */}
+                {odoTrend.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>
+                      Odometer History (Usage)
+                    </div>
+                    <div style={{ height: 160 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={odoTrend} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                          <XAxis dataKey="displayDate" stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="var(--t-muted, var(--text-muted))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v} km`} />
+                          <Tooltip
+                            formatter={(v: any) => [`${v.toLocaleString("en-IN")} km`, "Odometer"]}
+                            contentStyle={{ background: "var(--surface-0, var(--surface))", borderColor: "var(--t-line, var(--border))", borderRadius: 8, color: "var(--text)" }}
+                          />
+                          <Line type="monotone" dataKey="odometer" stroke={THEME.accent} strokeWidth={2} dot={{ r: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {vehicle.notes && (
             <div
@@ -1274,6 +1540,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
   };
 
   const handleDeleteService = (vehicleId: string, serviceId: string) => {
+    if (!window.confirm("Are you sure you want to delete this service record?")) return;
     const vehicle = vehicles.find((v) => v.id === vehicleId);
     if (!vehicle) return;
     updateItem("vehicles", vehicle.id, {

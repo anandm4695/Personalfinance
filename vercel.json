@@ -6,6 +6,7 @@
     "api/stock-chart.js":  { "maxDuration": 15 },
     "api/stock-price.js":  { "maxDuration": 10 },
     "api/mf-nav.js":       { "maxDuration": 10 },
+    "api/rc-lookup.js":    { "maxDuration": 15 },
     "api/send-summary.js": { "maxDuration": 60 }
   },
   "crons": [

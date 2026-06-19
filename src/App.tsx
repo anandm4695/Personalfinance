@@ -269,6 +269,9 @@ const NUMERIC_COLS = new Set([
   "gst_amount",
   "total_amount",
   "area_sqft",
+  "purchase_price",
+  "current_value",
+  "year",
 ]);
 
 // ================== MAIN APP ==================
