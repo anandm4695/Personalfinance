@@ -8004,12 +8004,14 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
             const mfTh: React.CSSProperties = { textAlign: "left", padding: "11px 10px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted, fontWeight: 700, borderBottom: `1.5px solid ${THEME.line}`, whiteSpace: "nowrap" };
             const mfTd: React.CSSProperties = { padding: "12px 10px", verticalAlign: "middle", fontSize: 13, borderBottom: `1px solid ${THEME.line}`, fontVariantNumeric: "tabular-nums" };
 
-            const folioGroups: Record<string, { fundName: string; folio: string; items: any[] }> = {};
+            const folioGroups: Record<string, { fundName: string; folio: string; category: string; mfType: string; items: any[] }> = {};
             items.forEach((m: any) => {
               const name = (m.name || m.scheme || "").trim();
               const folio = (m.folioNumber || "").trim();
-              const key = `${name}|||${folio}`;
-              if (!folioGroups[key]) folioGroups[key] = { fundName: name, folio, items: [] };
+              const cat = (m.category || m.type || "Equity").trim();
+              const mft = (m.mfType || "Direct Growth").trim();
+              const key = `${name}|||${folio}|||${cat}|||${mft}`;
+              if (!folioGroups[key]) folioGroups[key] = { fundName: name, folio, category: cat, mfType: mft, items: [] };
               folioGroups[key].items.push(m);
             });
             const grpVal = (g: any) => g.items.reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || 0) || 0), 0);
@@ -8031,10 +8033,10 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               const buckets: Record<string, string[]> = {};
               const bucketOrder: string[] = [];
               sortedKeys.forEach((gKey) => {
-                const firstItem = folioGroups[gKey].items[0];
+                const fg = folioGroups[gKey];
                 const bucket = mfGroupBy === "category"
-                  ? (firstItem?.category || firstItem?.type || "Other")
-                  : (firstItem?.mfType || "Other");
+                  ? (fg.category || "Other")
+                  : (fg.mfType || "Other");
                 if (!buckets[bucket]) { buckets[bucket] = []; bucketOrder.push(bucket); }
                 buckets[bucket].push(gKey);
               });
@@ -8178,9 +8180,19 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{displayName}</span>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
                                     {displayFolio && (
                                       <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Folio: {displayFolio}</span>
+                                    )}
+                                    {grp.category && (
+                                      <span style={{ fontSize: 9, background: `${categoryColors[grp.category] || THEME.accent}15`, color: categoryColors[grp.category] || THEME.accent, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${categoryColors[grp.category] || THEME.accent}30` }}>
+                                        {grp.category}
+                                      </span>
+                                    )}
+                                    {grp.mfType && (
+                                      <span style={{ fontSize: 9, background: `${THEME.line}30`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>
+                                        {grp.mfType}
+                                      </span>
                                     )}
                                     <span style={{ fontSize: 9, background: `${THEME.line}40`, color: THEME.muted, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid ${THEME.line}` }}>
                                       {groupItems.length} {groupItems.length === 1 ? "lot" : "lots"}
