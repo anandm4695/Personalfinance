@@ -114,9 +114,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     const isComplete =
       Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount);
     if (isComplete || !g.targetDate) return s;
-    const monthsLeft = Math.max(0, monthsBetween(today(), g.targetDate));
+    const rawML = monthsBetween(today(), g.targetDate);
+    const ml = Math.max(0, rawML);
     const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
-    return s + (monthsLeft > 0 ? remaining / monthsLeft : 0);
+    const effM = ml > 0 ? ml : (rawML === 0 ? 1 : 0);
+    return s + (effM > 0 ? remaining / effM : 0);
   }, 0);
   const monthlySavings = metrics
     ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0))
@@ -221,13 +223,21 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               },
               {
                 label: "Monthly Required",
-                value: totalMonthlyRequired > 0 ? fmtINRFull(totalMonthlyRequired) : "On track",
+                value: totalMonthlyRequired > 0
+                  ? fmtINRFull(totalMonthlyRequired)
+                  : completedCount === state.goals.length
+                    ? "All done!"
+                    : state.goals.some((g: any) => g.targetDate)
+                      ? "On track"
+                      : "No deadlines",
                 color:
                   totalMonthlyRequired > 0 &&
                   monthlySavings > 0 &&
                   totalMonthlyRequired > monthlySavings
                     ? THEME.rust
-                    : THEME.gold,
+                    : completedCount === state.goals.length
+                      ? THEME.sage
+                      : THEME.gold,
                 Icon: Calendar,
               },
             ].map(({ label, value, color, Icon }) => (
@@ -476,9 +486,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
               : 0;
             const isComplete = progress >= 100;
-            const monthsLeft = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate)) : 0;
+            const rawMonthsLeft = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
+            const monthsLeft = Math.max(0, rawMonthsLeft);
             const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
-            const monthlyNeeded = monthsLeft > 0 ? remaining / monthsLeft : 0;
+            const effectiveMonths = monthsLeft > 0 ? monthsLeft : (rawMonthsLeft === 0 && g.targetDate ? 1 : 0);
+            const monthlyNeeded = effectiveMonths > 0 ? remaining / effectiveMonths : 0;
             const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
             const totalDuration = elapsed + monthsLeft;
             const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
@@ -867,7 +879,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                             >
                               {[10, 12, 15].map((rate) => {
                                 const r = rate / 100 / 12;
-                                const n = monthsLeft;
+                                const n = effectiveMonths;
                                 const sip =
                                   n > 0 && r > 0
                                     ? (remaining * r) / (Math.pow(1 + r, n) - 1)
