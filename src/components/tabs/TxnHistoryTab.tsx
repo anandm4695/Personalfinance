@@ -129,7 +129,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const mfBoughtInFY = useMemo(
     () =>
       (state.mutualFunds || [])
-        .filter((m: any) => inFY(m.buyDate) && matchesSearch(`${m.scheme} ${m.type}`))
+        .filter((m: any) => inFY(m.buyDate) && matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`))
         .sort((a: any, b: any) => new Date(b.buyDate).getTime() - new Date(a.buyDate).getTime()),
     [state.mutualFunds, inFY, matchesSearch]
   );
@@ -137,7 +137,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const mfSoldInFY = useMemo(
     () =>
       (state.mfSells || [])
-        .filter((m: any) => inFY(m.sellDate) && matchesSearch(`${m.scheme} ${m.type}`))
+        .filter((m: any) => inFY(m.sellDate) && matchesSearch(`${m.name || m.scheme} ${m.category || m.mfType || m.type}`))
         .sort((a: any, b: any) => new Date(b.sellDate).getTime() - new Date(a.sellDate).getTime()),
     [state.mfSells, inFY, matchesSearch]
   );
@@ -1083,8 +1083,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       "Unrealized P&L",
                     ],
                     (m) => [
-                      m.scheme,
-                      m.type || "Equity",
+                      m.name || m.scheme,
+                      m.category || m.mfType || m.type || "Equity",
                       m.units,
                       m.buyDate,
                       m.buyNav || 0,
@@ -1137,8 +1137,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           className="table-row-hover"
                         >
                           <td style={{ ...td, paddingLeft: 10 }}>
-                            <b>{m.scheme}</b>
-                            {m.type && (
+                            <b>{m.name || m.scheme}</b>
+                            {(m.category || m.mfType || m.type) && (
                               <span
                                 style={{
                                   fontSize: 10,
@@ -1150,7 +1150,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                                   fontWeight: 700,
                                 }}
                               >
-                                {m.type}
+                                {m.category || m.mfType || m.type}
                               </span>
                             )}
                           </td>
@@ -1261,7 +1261,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       "Broker",
                     ],
                     (m) => [
-                      m.scheme,
+                      m.name || m.scheme,
                       m.buyDate,
                       m.buyNav,
                       m.units,
