@@ -26,8 +26,8 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { THEME, PROFILES } from "../../utils/constants";
+import { fmtINRFull, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -373,7 +373,7 @@ const fmtDate = (d: string) => {
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayFn;
 
 type ComplianceStatus = { label: string; color: string; icon: "ok" | "warn" | "alert" } | null;
 
@@ -606,7 +606,11 @@ function VehicleModal({ existing, onClose, onSave }: any) {
           <input style={inp} value={f.color} onChange={(e) => set("color", e.target.value)} placeholder="Pearl White" />
         </Field>
         <Field label="Owner">
-          <input style={inp} value={f.owner} onChange={(e) => set("owner", e.target.value)} placeholder="self" />
+          <select style={inp} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
+            {PROFILES.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </Field>
       </div>
 
@@ -1009,7 +1013,7 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
     : null;
 
   const latestOdo = sh.reduce((max: number, r: any) => Math.max(max, Number(r.odometer || 0)), 0);
-  const depreciation = Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0);
+  const depreciation = Math.max(0, Number(vehicle.purchasePrice || 0) - Number(vehicle.currentValue || 0));
   const tco = depreciation + totalServiceCost;
   const costPerKm = latestOdo > 0 && tco > 0 ? tco / latestOdo : null;
 
