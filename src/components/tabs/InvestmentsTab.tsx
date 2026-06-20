@@ -3363,7 +3363,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
           currentNav: String(cNav),
           invested,
           owner: owner || "self",
-          id: `mf-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+          id: uid(),
         };
       });
       setCsvPreview(rows);

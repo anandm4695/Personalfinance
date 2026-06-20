@@ -2524,9 +2524,12 @@ function FinanceDashboard() {
       finalItem.property_type = key === "rentalProperties" ? "out" : "in";
     }
 
-    const newId = uid();
+    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const isTextIdTable = key === "stockSells" || key === "mfSells";
+    const newId = (itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable)) ? itemWithOwner.id : uid();
+
     setState((s) => {
-      const next: any = { ...s, [key]: [...((s[key] as any[]) || []), { id: newId, ...itemWithOwner }] };
+      const next: any = { ...s, [key]: [...((s[key] as any[]) || []), { ...itemWithOwner, id: newId }] };
       if (key === "transactions" && itemWithOwner.accountId) {
         const delta =
           itemWithOwner.type === "credit"
@@ -2560,7 +2563,7 @@ function FinanceDashboard() {
           delete finalItem.lender;
         }
 
-        const cleanItem = { id: newId, user_id: userId, ...finalItem };
+        const cleanItem = { ...finalItem, id: newId, user_id: userId };
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
           else if (
@@ -2718,7 +2721,7 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { id: newId, ...item });
+    logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { ...item, id: newId });
   };
 
   const removeItem = async (key, id) => {
