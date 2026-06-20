@@ -637,14 +637,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 4);
 
-    const totalAssetBal = state.bankAccounts.reduce(
+    const positiveAccounts = state.bankAccounts.filter((a: any) => getDisplayBalance(a) > 0);
+    const totalAssetBal = positiveAccounts.reduce(
       (s: number, a: any) => s + getDisplayBalance(a),
       0
     );
     const weights = state.bankAccounts
       .map((a: any) => {
         const bal = getDisplayBalance(a);
-        const share = totalAssetBal > 0 ? (bal / totalAssetBal) * 100 : 0;
+        const share = totalAssetBal > 0 && bal > 0 ? (bal / totalAssetBal) * 100 : 0;
         const theme = getAccountTheme(a.type);
         return {
           id: a.id,
@@ -1263,7 +1264,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 style={{ ...input, width: "auto" }}
                 title="From date"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                onChange={(e) => { setDateFrom(e.target.value); setActiveRange(null); }}
               />
               <span style={{ color: THEME.muted, fontSize: 12, flexShrink: 0 }}>to</span>
               <input
@@ -1271,7 +1272,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 style={{ ...input, width: "auto" }}
                 title="To date"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                onChange={(e) => { setDateTo(e.target.value); setActiveRange(null); }}
               />
             </div>
           </div>

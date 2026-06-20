@@ -19,6 +19,7 @@ const input = {
 export function BankEditModal({ account, onClose, onSave }: any) {
   const { bankAccountTypes } = useMasterData();
   const [f, setF] = useState({
+    owner: account?.owner || "self",
     bankName: account?.bankName || "",
     accountNumber: account?.accountNumber || "",
     type: account?.type || bankAccountTypes[0] || "Savings",

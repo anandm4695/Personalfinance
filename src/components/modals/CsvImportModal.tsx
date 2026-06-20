@@ -123,8 +123,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
         if (!["credit", "debit"].includes(type.toLowerCase()))
           throw new Error(`Row ${i + 1}: type must be "credit" or "debit" (got "${type}")`);
         const parsedAmount = Number(amount.replace(/,/g, ""));
-        if (isNaN(parsedAmount) || parsedAmount < 0)
-          throw new Error(`Row ${i + 1}: amount must be a number (got "${amount}")`);
+        if (isNaN(parsedAmount) || parsedAmount <= 0)
+          throw new Error(`Row ${i + 1}: amount must be a positive number (got "${amount}")`);
         return {
           date,
           amount: String(parsedAmount),
