@@ -18,6 +18,7 @@ import {
   IndianRupee,
   Receipt,
   Upload,
+  Download,
   CheckCircle2,
   AlertCircle,
   List,
@@ -3263,6 +3264,334 @@ function PPFTransactionModal({ onClose, onSave, initial }: any) {
         saveLabel={initial ? "Save Changes" : "Add Transaction"}
       />
     </Modal>
+  );
+}
+
+/* ── MF CSV Import Panel ────────────────────────────────────────────── */
+function MFCsvPanel({ onImport, onClose }: any) {
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
+  const [importDone, setImportDone] = useState(false);
+
+  const parseCsvText = (text: string) => {
+    setCsvError("");
+    setCsvPreview([]);
+    setImportDone(false);
+    try {
+      const lines = text
+        .trim()
+        .split("\n")
+        .filter((l) => l.trim() && !l.trim().startsWith("#"));
+      if (!lines.length) {
+        setCsvError("No data rows found.");
+        return;
+      }
+      const rows = lines.map((line, i) => {
+        const parts = [];
+        let current = "";
+        let inQuotes = false;
+        for (let charIndex = 0; charIndex < line.length; charIndex++) {
+          const char = line[charIndex];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            parts.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        parts.push(current.trim());
+        const cleanParts = parts.map((p) => p.replace(/^"|"$/g, "").trim());
+
+        if (cleanParts.length < 3)
+          throw new Error(`Row ${i + 1}: need at least Fund Name, Buy NAV, and Units.`);
+
+        const [
+          name,
+          category,
+          mfType,
+          folioNumber,
+          mfCode,
+          buyDate,
+          buyNav,
+          units,
+          currentNav,
+          owner
+        ] = cleanParts;
+
+        if (!name) throw new Error(`Row ${i + 1}: Fund Name is required`);
+        
+        const bNav = Number(buyNav);
+        if (isNaN(bNav) || bNav <= 0)
+          throw new Error(`Row ${i + 1}: Buy NAV must be a positive number (got "${buyNav}")`);
+        
+        const u = Number(units);
+        if (isNaN(u) || u <= 0)
+          throw new Error(`Row ${i + 1}: Units must be a positive number (got "${units}")`);
+
+        const cNav = currentNav ? Number(currentNav) : bNav;
+        if (isNaN(cNav) || cNav <= 0)
+          throw new Error(`Row ${i + 1}: Current NAV must be a positive number (got "${currentNav}")`);
+
+        let finalBuyDate = buyDate || "";
+        if (finalBuyDate && !finalBuyDate.match(/^\d{4}-\d{2}-\d{2}$/))
+          throw new Error(`Row ${i + 1}: date must be YYYY-MM-DD (got "${buyDate}")`);
+        if (!finalBuyDate) {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, "0");
+          const dd = String(today.getDate()).padStart(2, "0");
+          finalBuyDate = `${yyyy}-${mm}-${dd}`;
+        }
+
+        const invested = String(bNav * u);
+
+        return {
+          name,
+          category: category || "Equity",
+          mfType: mfType || "Direct Growth",
+          folioNumber: folioNumber || "",
+          mfCode: mfCode || "",
+          buyDate: finalBuyDate,
+          buyNav: String(bNav),
+          units: String(u),
+          currentNav: String(cNav),
+          invested,
+          owner: owner || "self",
+          id: `mf-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+        };
+      });
+      setCsvPreview(rows);
+    } catch (e: any) {
+      setCsvError(e.message);
+    }
+  };
+
+  const handleFile = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      setCsvText(text);
+      parseCsvText(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: any) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      setCsvText(text);
+      parseCsvText(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const downloadTemplate = () => {
+    const content =
+      "# Mutual Fund Import Template\n" +
+      "# Columns: Fund Name, Category, Type, Folio Number, Fund Code, Buy Date (YYYY-MM-DD), Buy NAV, Units, Current NAV, Owner\n" +
+      "# Category: Equity, Debt, Hybrid, ELSS, Gold, etc. (defaults to Equity)\n" +
+      "# Type: Direct Growth, Direct IDCW, Regular Growth, Regular IDCW (defaults to Direct Growth)\n" +
+      "Aditya Birla Sun Life Frontline Equity Fund,Equity,Direct Growth,12345678/90,,2025-04-10,385.50,150,392.20,self\n" +
+      "Parag Parikh Flexi Cap Fund,Equity,Direct Growth,98765432,,2025-05-15,82.40,500,85.10,spouse\n";
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mutual_funds_import_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const doImport = () => {
+    if (!csvPreview.length) return;
+    onImport(csvPreview);
+    setImportDone(true);
+    setCsvPreview([]);
+    setCsvText("");
+    setCsvFileName("");
+  };
+
+  const areaStyle = {
+    border: `2px dashed ${THEME.line}`,
+    borderRadius: 12,
+    padding: "24px 16px",
+    textAlign: "center" as const,
+    cursor: "pointer",
+    background: "var(--surface-0)",
+    marginBottom: 16,
+    transition: "border-color 0.2s",
+  };
+
+  const textareaStyle = {
+    width: "100%",
+    height: 100,
+    background: "var(--t-paper)",
+    border: `1.5px solid ${THEME.line}`,
+    borderRadius: 10,
+    padding: "10px 14px",
+    color: THEME.ink,
+    fontSize: 12,
+    outline: "none",
+    fontFamily: "monospace",
+    resize: "vertical" as const,
+    boxSizing: "border-box" as const,
+  };
+
+  const btnStyle = {
+    padding: "6px 14px",
+    fontSize: 12,
+    fontWeight: 600,
+    borderRadius: 8,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    border: "none",
+  };
+
+  return (
+    <Card style={{ padding: 20, border: `1px solid ${THEME.line}`, background: "var(--surface-0)", position: "relative" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          📥 Import Mutual Funds via CSV
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={{ ...btnStyle, background: `${THEME.accent}12`, color: THEME.accent }} onClick={downloadTemplate}>
+            <Download size={12} /> Download Template
+          </button>
+          <button style={{ ...btnStyle, background: "transparent", color: THEME.muted, border: `1px solid ${THEME.line}` }} onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={areaStyle}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        onClick={() => document.getElementById("mf-file-input")?.click()}
+      >
+        <Upload size={22} color={THEME.accent} style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+          {csvFileName || "Drop CSV file here or click to browse"}
+        </div>
+        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>Supports .csv and .txt files</div>
+        <input type="file" id="mf-file-input" accept=".csv,.txt" style={{ display: "none" }} onChange={handleFile} />
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 6, textTransform: "uppercase" }}>
+          Or Paste CSV Raw Text
+        </div>
+        <textarea
+          style={textareaStyle}
+          value={csvText}
+          onChange={(e) => setCsvText(e.target.value)}
+          placeholder="Fund Name,Category,Type,Folio Number,Fund Code,Buy Date,Buy NAV,Units,Current NAV,Owner"
+        />
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+          <button
+            style={{ ...btnStyle, background: "var(--t-paper)", color: THEME.ink, border: `1px solid ${THEME.line}` }}
+            onClick={() => parseCsvText(csvText)}
+          >
+            Parse Text
+          </button>
+        </div>
+      </div>
+
+      {csvError && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: `${THEME.rust}12`,
+            color: THEME.rust,
+            fontSize: 12,
+            marginBottom: 16,
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+          }}
+        >
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>{csvError}</span>
+        </div>
+      )}
+
+      {csvPreview.length > 0 && (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
+              ✓ {csvPreview.length} rows parsed and ready for import
+            </div>
+            <button style={{ ...btnStyle, background: THEME.sage, color: "#fff" }} onClick={doImport}>
+              Import {csvPreview.length} Lot{csvPreview.length !== 1 ? "s" : ""}
+            </button>
+          </div>
+
+          <div style={{ maxHeight: 200, overflowY: "auto", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>Fund Name</th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}` }}>Folio</th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Buy NAV</th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Units</th>
+                  <th style={{ padding: "6px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Invested</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvPreview.map((r, idx) => (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "6px 8px", fontWeight: 600 }}>{r.name}</td>
+                    <td style={{ padding: "6px 8px", color: THEME.muted }}>{r.folioNumber || "—"}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.buyNav}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.units}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700 }}>{fmtINRFull(Number(r.invested))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {importDone && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: `${THEME.sage}12`,
+            color: THEME.sage,
+            fontSize: 12,
+            fontWeight: 600,
+            textAlign: "center" as const,
+          }}
+        >
+          ✓ Import completed successfully!
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -7266,6 +7595,41 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
   });
   useEffect(() => { localStorage.setItem("finance_mf_sort", mfSortBy); }, [mfSortBy]);
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
+  const handleExport = () => {
+    if (!items || items.length === 0) return;
+    const header = "Fund Name,Category,Type,Folio Number,Fund Code,Buy Date,Buy NAV,Units,Current NAV,Invested,Owner\n";
+    const rows = items.map((m: any) => {
+      const name = `"${(m.name || m.scheme || "").replace(/"/g, '""')}"`;
+      const cat = `"${(m.category || m.type || "Equity").replace(/"/g, '""')}"`;
+      const type = `"${(m.mfType || "Direct Growth").replace(/"/g, '""')}"`;
+      const folio = `"${(m.folioNumber || "").replace(/"/g, '""')}"`;
+      const code = `"${(m.mfCode || "").replace(/"/g, '""')}"`;
+      const bDate = `"${m.buyDate || ""}"`;
+      const bNav = `"${m.buyNav || ""}"`;
+      const units = `"${m.units || ""}"`;
+      const cNav = `"${m.currentNav || ""}"`;
+      const inv = `"${m.invested || ""}"`;
+      const owner = `"${m.owner || "self"}"`;
+      return [name, cat, type, folio, code, bDate, bNav, units, cNav, inv, owner].join(",");
+    }).join("\n");
+
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mutual_funds_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async (rows: any[]) => {
+    for (const r of rows) {
+      await addItem("mutualFunds", r);
+    }
+  };
+
   const toggleLotExpand = (gKey: string) => {
     setLotExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -7498,18 +7862,50 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                 <option value="units">Most Units</option>
               </select>
             </div>
-            {items.some((m: any) => m.mfCode) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Button
                 variant="secondary"
                 size="sm"
-                icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
-                onClick={refreshAllNavs}
-                style={{ opacity: refreshingAll ? 0.6 : 1 }}
+                icon={<Download size={13} />}
+                onClick={handleExport}
+                title="Export mutual funds to CSV"
               >
-                {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
+                Export CSV
               </Button>
-            )}
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Upload size={13} />}
+                onClick={() => setShowCsvImport((v) => !v)}
+                title="Import mutual funds from CSV"
+              >
+                Import CSV
+              </Button>
+              {items.some((m: any) => m.mfCode) && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<RefreshCw size={13} className={refreshingAll ? "animate-spin" : ""} />}
+                  onClick={refreshAllNavs}
+                  style={{ opacity: refreshingAll ? 0.6 : 1 }}
+                >
+                  {refreshingAll ? "Refreshing NAVs…" : "Refresh All NAVs"}
+                </Button>
+              )}
+            </div>
           </div>
+
+          {showCsvImport && (
+            <div style={{ marginBottom: 16 }}>
+              <MFCsvPanel
+                onImport={(rows: any[]) => {
+                  handleImport(rows);
+                  setShowCsvImport(false);
+                }}
+                onClose={() => setShowCsvImport(false)}
+              />
+            </div>
+          )}
 
           {/* Grouped by fund name + folio — table layout like stocks */}
           {(() => {
