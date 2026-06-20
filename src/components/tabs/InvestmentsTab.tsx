@@ -6980,7 +6980,7 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   "government of india": "india.gov.in", "govt of india": "india.gov.in",
   "nabard": "nabard.org", "nhai": "nhai.gov.in",
   // NPS PFMs (use AMC domains)
-  "uti": "utimf.com", "aditya birla": "adityabirlasunlifeamc.com",
+  "uti": "utimf.com", "aditya birla": "adityabirlacapital.com",
   "dsp": "dspim.com", "tata": "tatamutualfund.com", "max life": "maxlifeinsurance.com",
   // EPFO
   "epfo": "epfindia.gov.in", "employees provident": "epfindia.gov.in",
@@ -7100,9 +7100,9 @@ const MF_LOGO_DOMAINS: Record<string, string> = {
   // DSP
   "dsp": "dspim.com",
   // Aditya Birla / ABSL
-  "aditya birla": "adityabirlasunlifeamc.com",
-  "absl": "adityabirlasunlifeamc.com",
-  "birla": "adityabirlasunlifeamc.com",
+  "aditya birla": "adityabirlacapital.com",
+  "absl": "adityabirlacapital.com",
+  "birla": "adityabirlacapital.com",
   // Parag Parikh / PPFAS
   "parag parikh": "ppfas.com",
   "ppfas": "ppfas.com",
