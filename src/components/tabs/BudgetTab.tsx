@@ -37,7 +37,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, today, getEffectiveRent } from "../../utils/finance";
+import { fmtINRFull, today, getEffectiveRent, getLocalDateString } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -84,7 +84,7 @@ const fmtDate = (dateStr: string) => {
 
 export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _metrics }: any) {
   const [activeSubTab, setActiveSubTab] = useState("budget"); // "budget" or "recurring"
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedMonth, setSelectedMonth] = useState(() => today().slice(0, 7)); // YYYY-MM
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [editBudget, setEditBudget] = useState<any>(null);
   const [showAddRecurring, setShowAddRecurring] = useState(false);
@@ -328,7 +328,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     let overdueTotal = 0;
 
     const now = new Date();
-    const curMonthStr = now.toISOString().slice(0, 7);
+    const curMonthStr = today().slice(0, 7);
     const todayDay = now.getDate();
 
     list.forEach((re: any) => {
@@ -368,7 +368,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
   // One-click Record Payment (Quick Post)
   const handleQuickPostTransaction = async (expense: any) => {
     const now = new Date();
-    const curMonthStr = now.toISOString().slice(0, 7);
+    const curMonthStr = today().slice(0, 7);
 
     // Clamp dueDay to actual days in the selected month (e.g. dueDay=31 in April → 30)
     const [selY, selM] = selectedMonth.split("-").map(Number);
@@ -377,7 +377,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
     let payDate = `${selectedMonth}-${String(clampedDay).padStart(2, "0")}`;
     if (selectedMonth === curMonthStr) {
-      payDate = now.toISOString().slice(0, 10); // use today's date for current month
+      payDate = today(); // use today's local date for current month
     }
 
     const defaultAccId = expense.accountId || state.bankAccounts[0]?.id || "";
@@ -503,11 +503,11 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           </div>
 
           {/* Today Shortcut Button */}
-          {selectedMonth !== new Date().toISOString().slice(0, 7) && (
+          {selectedMonth !== today().slice(0, 7) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
+              onClick={() => setSelectedMonth(today().slice(0, 7))}
               style={{
                 border: "1px solid var(--t-line)",
                 borderRadius: 10,
@@ -1879,8 +1879,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
               // Create an override for the currently selected month
               addItem("budgets", { ...v, budgetMonth: selectedMonth });
             } else {
-              // Update existing month specific record
-              updateItem("budgets", editBudget.id, v);
+              // Update existing month specific record — preserve budgetMonth
+              updateItem("budgets", editBudget.id, { ...v, budgetMonth: editBudget.budgetMonth || selectedMonth });
             }
             setEditBudget(null);
           }}
