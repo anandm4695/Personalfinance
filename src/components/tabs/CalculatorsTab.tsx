@@ -158,7 +158,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       // FV of this year's SIP tranche (annuity due) at the end of full tenure
       const trancheFV =
         r === 0
-          ? monthly * 12 * (monthsRemaining / 12) // simplified: flat growth fallback
+          ? monthly * 12 // zero-return: FV = invested amount only
           : monthly *
             ((Math.pow(1 + r, 12) - 1) / r) *
             (1 + r) *
@@ -718,9 +718,9 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         if (balance <= 0) break;
         const interest = balance * rLoan;
         cumulativeInterestPrepay += interest;
-        const principalRepaid = Math.min(balance, emi - interest);
-        const extraPrepay = Math.min(balance - principalRepaid, surplus);
-        balance = balance - (principalRepaid + extraPrepay);
+        const principalRepaid = Math.max(0, Math.min(balance, emi - interest));
+        const extraPrepay = Math.min(Math.max(0, balance - principalRepaid), surplus);
+        balance = Math.max(0, balance - (principalRepaid + extraPrepay));
         monthsTaken = m;
       }
 
@@ -775,8 +775,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
         if (balance <= 0) break;
         const interest = balance * rLoan;
         cumulativeInterestPrepay += interest;
-        const principalRepaid = Math.min(balance, emi - interest);
-        balance = balance - principalRepaid;
+        const principalRepaid = Math.max(0, Math.min(balance, emi - interest));
+        balance = Math.max(0, balance - principalRepaid);
         monthsTaken = m;
       }
 
