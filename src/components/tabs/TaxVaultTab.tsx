@@ -383,12 +383,10 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     );
     // 80C — EPF employee contributions in FY
     const epf = (state.epf || []).reduce((s: number, e: any) => {
-      return (
-        s +
-        (e.transactions || [])
-          .filter((t: any) => t.type === "employee" && t.date >= fyStartStr && t.date <= fyEndStr)
-          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
-      );
+      const txs = (e.transactions || []).filter((t: any) => t.date >= fyStartStr && t.date <= fyEndStr);
+      const simpleEmp = txs.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp = txs.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      return s + simpleEmp + passbookEmp;
     }, 0);
     const d80C_raw = elss + ppf + lic + epf;
     const d80C_sources =
@@ -795,7 +793,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           : 0;
       allSells.push({
         id: m.id,
-        name: m.name || m.symbol,
+        name: m.scheme || m.name || m.symbol,
         type: "Mutual Fund",
         qty,
         buyPrice: buyNav,
@@ -889,8 +887,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       actualNetLTCG = Math.max(0, actualNetLTCG + actualNetSTCG);
       actualNetSTCG = 0;
     }
-    const actualTaxSTCG = Math.max(0, actualNetSTCG) * 0.2;
-    const actualTaxLTCG = actualNetLTCG > 125_000 ? (actualNetLTCG - 125_000) * 0.125 : 0;
+    const stcgRate = fyStartYear >= 2024 ? 0.2 : 0.15;
+    const ltcgRate = fyStartYear >= 2024 ? 0.125 : 0.1;
+    const ltcgExemption = fyStartYear >= 2024 ? 125_000 : 100_000;
+    const actualTaxSTCG = Math.max(0, actualNetSTCG) * stcgRate;
+    const actualTaxLTCG = actualNetLTCG > ltcgExemption ? (actualNetLTCG - ltcgExemption) * ltcgRate : 0;
     const totalActualTax = actualTaxSTCG + actualTaxLTCG;
 
     let simulatedSTCLosses = 0,
@@ -906,8 +907,8 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       simNetLTCG = Math.max(0, simNetLTCG + simNetSTCG);
       simNetSTCG = 0;
     }
-    const simTaxSTCG = Math.max(0, simNetSTCG) * 0.2;
-    const simTaxLTCG = simNetLTCG > 125_000 ? (simNetLTCG - 125_000) * 0.125 : 0;
+    const simTaxSTCG = Math.max(0, simNetSTCG) * stcgRate;
+    const simTaxLTCG = simNetLTCG > ltcgExemption ? (simNetLTCG - ltcgExemption) * ltcgRate : 0;
     const totalSimTax = simTaxSTCG + simTaxLTCG;
 
     return {
