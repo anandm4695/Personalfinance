@@ -41,7 +41,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent } from "../../utils/finance";
+import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent, calculateEpfBalance } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -879,7 +879,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       case "PPF":
         return (state.ppf || [])
           .map((p: any) => ({
-            name: p.bank || "PPF",
+            name: p.institution || p.bank || "PPF",
             sub: p.accountNumber ? `Ac: ${p.accountNumber}` : "PPF Balance",
             value: Number(p.balance || 0),
           }))
@@ -888,8 +888,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       case "NPS":
         return (state.nps || [])
           .map((n: any) => ({
-            name: n.bank || "NPS",
-            sub: n.accountNumber ? `PRAN: ${n.accountNumber}` : "NPS Balance",
+            name: n.fundManager || n.bank || "NPS",
+            sub: n.pran || n.accountNumber ? `PRAN: ${n.pran || n.accountNumber}` : "NPS Balance",
             value: Number(n.balance || 0),
           }))
           .sort((a: any, b: any) => b.value - a.value);
@@ -897,9 +897,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       case "EPF":
         return (state.epf || [])
           .map((e: any) => ({
-            name: e.employer || "EPF",
-            sub: e.uan ? `UAN: ${e.uan}` : "EPF Balance",
-            value: Number(e.balance || 0),
+            name: e.employer || e.bank || "EPF",
+            sub: e.uan || e.accountNumber ? `UAN: ${e.uan || e.accountNumber}` : "EPF Balance",
+            value: calculateEpfBalance(e),
           }))
           .sort((a: any, b: any) => b.value - a.value);
 
@@ -907,8 +907,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         return (state.bonds || [])
           .map((b: any) => ({
             name: b.name || "Bond",
-            sub: `${b.coupon || 0}% Coupon`,
-            value: Number(b.faceValue || 0),
+            sub: `${b.coupon || 0}% Coupon${b.maturityDate ? ` · Due: ${b.maturityDate}` : ""}`,
+            value: Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
           }))
           .sort((a: any, b: any) => b.value - a.value);
 
@@ -1517,11 +1517,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const epfEmployee = (state.epf || []).reduce((s: number, e: any) => {
-      const ledgerTotal = (e.transactions || [])
-        .filter(
-          (t: any) => t.type === "employee" && t.date && t.date >= fyStartStr && t.date <= fyEndStr
-        )
-        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const txs = (e.transactions || []).filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr);
+      const simpleEmp = txs.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp = txs.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      const ledgerTotal = simpleEmp + passbookEmp;
       return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
     }, 0);
     // NPS employee contribution qualifies under 80CCD(1) within the ₹1.5L limit
@@ -1774,12 +1773,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const epf80C = (state.epf || []).reduce((s: number, e: any) => {
-      const lTotal = (e.transactions || [])
-        .filter(
-          (t: any) =>
-            t.type === "employee" && t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C
-        )
-        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const txs80 = (e.transactions || []).filter((t: any) => t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C);
+      const simpleEmp80 = txs80.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp80 = txs80.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      const lTotal = simpleEmp80 + passbookEmp80;
       return s + (lTotal > 0 ? lTotal : Number(e.yearlyContribution || 0));
     }, 0);
     const nps80C = (state.nps || []).reduce(
@@ -3000,7 +2997,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   >
                     {/* Assets */}
                     <HeroStat label="Bank Cash" value={metrics.cashInBanks} tabId="banks" setTab={setTab} />
-                    <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="banks" setTab={setTab} />
+                    <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="investments" setTab={setTab} />
                     <HeroStat label="Mutual Funds" value={metrics.mfValue} tabId="investments" setTab={setTab} />
                     <HeroStat label="Stocks" value={metrics.stockValue} tabId="demat" setTab={setTab} />
                     <HeroStat
@@ -3017,7 +3014,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     )}
                     {/* Liabilities */}
                     <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative tabId="credit" setTab={setTab} />
-                    <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative tabId="banks" setTab={setTab} />
+                    <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative tabId="credit" setTab={setTab} />
                     {otherDues > 0 && (
                       <HeroStat label="Other Dues" value={otherDues} negative tabId="realestate" setTab={setTab} />
                     )}
