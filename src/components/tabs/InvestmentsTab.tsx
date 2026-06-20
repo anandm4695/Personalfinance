@@ -7596,6 +7596,10 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
     return (localStorage.getItem("finance_mf_sort") as any) || "value";
   });
   useEffect(() => { localStorage.setItem("finance_mf_sort", mfSortBy); }, [mfSortBy]);
+  const [mfGroupBy, setMfGroupBy] = useState<"none" | "category" | "type">(() => {
+    return (localStorage.getItem("finance_mf_group") as any) || "none";
+  });
+  useEffect(() => { localStorage.setItem("finance_mf_group", mfGroupBy); }, [mfGroupBy]);
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
   const [showCsvImport, setShowCsvImport] = useState(false);
 
@@ -7897,31 +7901,58 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
 
           {/* Sort + Refresh toolbar */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "var(--surface-0)",
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 10,
-                padding: "6px 12px",
-                height: 36,
-              }}
-            >
-              <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Sort by:
-              </span>
-              <select
-                value={mfSortBy}
-                onChange={(e) => setMfSortBy(e.target.value as any)}
-                style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 10,
+                  padding: "6px 12px",
+                  height: 36,
+                }}
               >
-                <option value="value">Highest Value</option>
-                <option value="pnl">Best Returns (%)</option>
-                <option value="name">Fund Name (A-Z)</option>
-                <option value="units">Most Units</option>
-              </select>
+                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Group by:
+                </span>
+                <select
+                  value={mfGroupBy}
+                  onChange={(e) => setMfGroupBy(e.target.value as any)}
+                  style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+                >
+                  <option value="none">None</option>
+                  <option value="category">Category</option>
+                  <option value="type">Fund Type</option>
+                </select>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  borderRadius: 10,
+                  padding: "6px 12px",
+                  height: 36,
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Sort by:
+                </span>
+                <select
+                  value={mfSortBy}
+                  onChange={(e) => setMfSortBy(e.target.value as any)}
+                  style={{ background: "transparent", border: "none", fontSize: 13, fontWeight: 700, color: THEME.ink, outline: "none", cursor: "pointer" }}
+                >
+                  <option value="value">Highest Value</option>
+                  <option value="pnl">Best Returns (%)</option>
+                  <option value="name">Fund Name (A-Z)</option>
+                  <option value="units">Most Units</option>
+                </select>
+              </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Button
@@ -7995,6 +8026,33 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               return 0;
             });
 
+            const sectionGroups: { label: string; keys: string[] }[] = (() => {
+              if (mfGroupBy === "none") return [{ label: "", keys: sortedKeys }];
+              const buckets: Record<string, string[]> = {};
+              const bucketOrder: string[] = [];
+              sortedKeys.forEach((gKey) => {
+                const firstItem = folioGroups[gKey].items[0];
+                const bucket = mfGroupBy === "category"
+                  ? (firstItem?.category || firstItem?.type || "Other")
+                  : (firstItem?.mfType || "Other");
+                if (!buckets[bucket]) { buckets[bucket] = []; bucketOrder.push(bucket); }
+                buckets[bucket].push(gKey);
+              });
+              bucketOrder.sort((a, b) => {
+                const totalA = buckets[a].reduce((s, k) => s + grpVal(folioGroups[k]), 0);
+                const totalB = buckets[b].reduce((s, k) => s + grpVal(folioGroups[k]), 0);
+                return totalB - totalA;
+              });
+              return bucketOrder.map((label) => ({ label, keys: buckets[label] }));
+            })();
+
+            const categoryColors: Record<string, string> = {
+              Equity: "#6366f1", Debt: "#f59e0b", Hybrid: "#10b981", ELSS: "#8b5cf6",
+              Index: "#0ea5e9", Liquid: "#64748b", International: "#ec4899",
+              "Direct Growth": "#6366f1", "Direct IDCW": "#f59e0b",
+              "Regular Growth": "#10b981", "Regular IDCW": "#ec4899",
+            };
+
             return (
               <div style={{ background: "var(--t-card-bg)", borderRadius: 16, border: `1px solid ${THEME.line}`, overflowX: "auto", boxShadow: "var(--t-card-shadow)", marginBottom: 20 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -8010,7 +8068,49 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedKeys.map((gKey) => {
+                    {sectionGroups.map((section) => {
+                      const sectionInvested = section.keys.reduce((s, k) => s + grpInvFn(folioGroups[k]), 0);
+                      const sectionValue = section.keys.reduce((s, k) => s + grpVal(folioGroups[k]), 0);
+                      const sectionPnl = sectionValue - sectionInvested;
+                      const sectionPnlPct = sectionInvested > 0 ? (sectionPnl / sectionInvested) * 100 : 0;
+                      const dotColor = categoryColors[section.label] || THEME.accent;
+                      return (
+                        <React.Fragment key={section.label || "__flat__"}>
+                          {section.label && (
+                            <tr style={{ background: `${dotColor}08` }}>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "10px 20px",
+                                  borderBottom: `2px solid ${dotColor}30`,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: dotColor, display: "inline-block", flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, fontWeight: 900, color: THEME.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                      {section.label}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                                      ({section.keys.length} {section.keys.length === 1 ? "fund" : "funds"})
+                                    </span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12 }}>
+                                    <span style={{ color: THEME.muted, fontWeight: 600 }}>
+                                      Invested: <b style={{ color: THEME.ink }}>{fmtINRFull(sectionInvested)}</b>
+                                    </span>
+                                    <span style={{ color: THEME.muted, fontWeight: 600 }}>
+                                      Value: <b style={{ color: THEME.ink }}>{fmtINRFull(sectionValue)}</b>
+                                    </span>
+                                    <span style={{ fontWeight: 800, color: sectionPnl >= 0 ? THEME.sage : THEME.rust }}>
+                                      {sectionPnl >= 0 ? "+" : ""}{fmtINRFull(sectionPnl)} ({sectionPnlPct >= 0 ? "+" : ""}{sectionPnlPct.toFixed(2)}%)
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          {section.keys.map((gKey) => {
                       const grp = folioGroups[gKey];
                       const groupItems = grp.items;
                       const hasMultiple = groupItems.length > 1;
@@ -8259,6 +8359,9 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                               </td>
                             </tr>
                           )}
+                        </React.Fragment>
+                      );
+                    })}
                         </React.Fragment>
                       );
                     })}
