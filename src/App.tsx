@@ -3357,7 +3357,7 @@ function FinanceDashboard() {
         { id: "demat", label: "Demat & Stocks", icon: BarChart3 },
         {
           id: "investments",
-          label: "Fixed Income",
+          label: "Investments Portfolio",
           icon: TrendingUp,
           children: [
             { id: "fd", label: "Fixed Deposits", icon: Coins },

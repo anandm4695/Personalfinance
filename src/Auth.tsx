@@ -86,7 +86,7 @@ const FEATURES = [
     bg: "rgba(56,189,248,0.12)",
     border: "rgba(56,189,248,0.2)",
     title: "FDs, Bonds & PPF / NPS",
-    desc: "Fixed income, recurring deposits & long-term savings",
+    desc: "Investments portfolio, recurring deposits & long-term savings",
   },
   {
     icon: <CreditCard size={15} />,

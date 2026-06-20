@@ -17,7 +17,7 @@ interface EmptyStateProps {
 }
 
 /**
- * Shared empty state component — matches the InvestmentsTab (Fixed Income) gold standard.
+ * Shared empty state component — matches the InvestmentsTab (Investments Portfolio) gold standard.
  * Simple dot-bullet pills, clean centered layout, no heavy borders or shadows.
  */
 export function EmptyState({

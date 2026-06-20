@@ -719,17 +719,28 @@ const AddInvestmentModal = ({ sub, onClose, onSave }: any) => {
             )}
           </div>
           {nps.investmentChoice === "Active" && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
-              <Field label="Corp Bond (C) %">
-                <input style={inp} type="number" min={0} max={100} value={nps.corpBondPct} onChange={(e) => setNps({ ...nps, corpBondPct: e.target.value })} placeholder="e.g. 30" />
-              </Field>
-              <Field label="Govt Sec (G) %">
-                <input style={inp} type="number" min={0} max={100} value={nps.govtSecPct} onChange={(e) => setNps({ ...nps, govtSecPct: e.target.value })} placeholder="e.g. 15" />
-              </Field>
-              <Field label="Alternative (A) % — max 5%">
-                <input style={inp} type="number" min={0} max={5} value={nps.altAssetPct} onChange={(e) => setNps({ ...nps, altAssetPct: e.target.value })} placeholder="e.g. 5" />
-              </Field>
-            </div>
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                <Field label="Corp Bond (C) %">
+                  <input style={inp} type="number" min={0} max={100} value={nps.corpBondPct} onChange={(e) => setNps({ ...nps, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+                </Field>
+                <Field label="Govt Sec (G) %">
+                  <input style={inp} type="number" min={0} max={100} value={nps.govtSecPct} onChange={(e) => setNps({ ...nps, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+                </Field>
+                <Field label="Alternative (A) % — max 5%">
+                  <input style={inp} type="number" min={0} max={5} value={nps.altAssetPct} onChange={(e) => setNps({ ...nps, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+                </Field>
+              </div>
+              {(() => {
+                const allocTotal = (Number(nps.equityPct) || 0) + (Number(nps.corpBondPct) || 0) + (Number(nps.govtSecPct) || 0) + (Number(nps.altAssetPct) || 0);
+                if (allocTotal > 0 && allocTotal !== 100) return (
+                  <div style={{ padding: "8px 12px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px solid ${THEME.rust}33`, fontSize: 11, color: THEME.rust, fontWeight: 600 }}>
+                    Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
+                  </div>
+                );
+                return null;
+              })()}
+            </>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Current Corpus (₹)">
@@ -1011,8 +1022,22 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       (s: number, x: any) => s + (Number(x.totalInvestmentAmount || x.faceValue) || 0),
       0
     ) || 0) +
-    (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.ppf?.reduce((s: number, x: any) => {
+      const txs = x.transactions || [];
+      if (txs.length > 0) {
+        const deposits = txs.filter((t: any) => t.type === "deposit").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const withdrawals = txs.filter((t: any) => t.type === "withdrawal").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return s + deposits - withdrawals;
+      }
+      return s + (Number(x.balance) || 0);
+    }, 0) || 0) +
+    (state.nps?.reduce((s: number, x: any) => {
+      const txs = x.transactions || [];
+      if (txs.length > 0) {
+        return s + txs.reduce((sum: number, t: any) => sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+      }
+      return s + (Number(x.balance) || 0);
+    }, 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0) || 0) +
     (state.mutualFunds?.reduce(
       (s: number, x: any) => s + (Number(x.invested || x.investedValue) || 0),
@@ -1170,7 +1195,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           },
           {
             label: "Instruments",
-            value: String(subs.filter((s) => s.id !== "income" && (s.count ?? 0) > 0).length),
+            value: String(subs.filter((s) => s.id !== "income").reduce((sum, s) => sum + (s.count ?? 0), 0)),
             color: THEME.muted,
             Icon: BarChart3,
           },
@@ -2022,17 +2047,28 @@ function EditNPSModal({ nps: initial, onClose, onSave }: any) {
         )}
       </div>
       {form.investmentChoice === "Active" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
-          <Field label="Corp Bond (C) %">
-            <input style={inp} type="number" min={0} max={100} value={form.corpBondPct} onChange={(e) => setForm({ ...form, corpBondPct: e.target.value })} placeholder="e.g. 30" />
-          </Field>
-          <Field label="Govt Sec (G) %">
-            <input style={inp} type="number" min={0} max={100} value={form.govtSecPct} onChange={(e) => setForm({ ...form, govtSecPct: e.target.value })} placeholder="e.g. 15" />
-          </Field>
-          <Field label="Alternative (A) % — max 5%">
-            <input style={inp} type="number" min={0} max={5} value={form.altAssetPct} onChange={(e) => setForm({ ...form, altAssetPct: e.target.value })} placeholder="e.g. 5" />
-          </Field>
-        </div>
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+            <Field label="Corp Bond (C) %">
+              <input style={inp} type="number" min={0} max={100} value={form.corpBondPct} onChange={(e) => setForm({ ...form, corpBondPct: e.target.value })} placeholder="e.g. 30" />
+            </Field>
+            <Field label="Govt Sec (G) %">
+              <input style={inp} type="number" min={0} max={100} value={form.govtSecPct} onChange={(e) => setForm({ ...form, govtSecPct: e.target.value })} placeholder="e.g. 15" />
+            </Field>
+            <Field label="Alternative (A) % — max 5%">
+              <input style={inp} type="number" min={0} max={5} value={form.altAssetPct} onChange={(e) => setForm({ ...form, altAssetPct: e.target.value })} placeholder="e.g. 5" />
+            </Field>
+          </div>
+          {(() => {
+            const allocTotal = (Number(form.equityPct) || 0) + (Number(form.corpBondPct) || 0) + (Number(form.govtSecPct) || 0) + (Number(form.altAssetPct) || 0);
+            if (allocTotal > 0 && allocTotal !== 100) return (
+              <div style={{ padding: "8px 12px", borderRadius: 8, background: `${THEME.rust}0f`, border: `1px solid ${THEME.rust}33`, fontSize: 11, color: THEME.rust, fontWeight: 600 }}>
+                Allocation total is {allocTotal}% — must sum to 100% (E + C + G + A)
+              </div>
+            );
+            return null;
+          })()}
+        </>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Current Corpus (₹)">

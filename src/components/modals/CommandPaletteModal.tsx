@@ -67,7 +67,7 @@ export const CommandPaletteModal = ({
     // Wealth & Assets
     { id: "nav-banks", type: "nav", icon: <Landmark size={16} />, label: "Banks & Transactions", keywords: "banks accounts savings current transactions", tab: "banks" },
     { id: "nav-demat", type: "nav", icon: <BarChart3 size={16} />, label: "Demat & Stocks", keywords: "demat stocks shares equity portfolio broker", tab: "demat" },
-    { id: "nav-investments", type: "nav", icon: <TrendingUp size={16} />, label: "Fixed Income", keywords: "investments fixed income deposits", tab: "investments" },
+    { id: "nav-investments", type: "nav", icon: <TrendingUp size={16} />, label: "Investments Portfolio", keywords: "investments portfolio fixed income deposits", tab: "investments" },
     { id: "nav-fd", type: "nav", icon: <Coins size={16} />, label: "Fixed Deposits", keywords: "fd fixed deposit interest maturity", tab: "investments", subTab: "fd" },
     { id: "nav-rd", type: "nav", icon: <Repeat size={16} />, label: "Recurring Deposits", keywords: "rd recurring deposit monthly", tab: "investments", subTab: "rd" },
     { id: "nav-bonds", type: "nav", icon: <FileText size={16} />, label: "Bonds", keywords: "bonds sgb government corporate", tab: "investments", subTab: "bond" },

@@ -4728,7 +4728,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     padding: 24,
                   }}
                 >
-                  Add assets in Bank Accounts, Demat, or Fixed Income to see allocation.
+                  Add assets in Bank Accounts, Demat, or Investments Portfolio to see allocation.
                 </div>
               ) : (
                 <div
