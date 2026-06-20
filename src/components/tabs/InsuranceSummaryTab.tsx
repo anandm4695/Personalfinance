@@ -1467,12 +1467,16 @@ const getNextPremiumDue = (startDateStr: string, expiryDateStr?: string) => {
   if (!startDateStr) return null;
   const today = new Date();
   if (expiryDateStr && new Date(expiryDateStr) < today) return null;
-  const start = new Date(startDateStr);
+  const start = new Date(startDateStr + "T00:00:00");
   const next = new Date(start);
   next.setFullYear(today.getFullYear());
-  if (next <= today) next.setFullYear(today.getFullYear() + 1);
-  const days = Math.round((next.getTime() - today.getTime()) / 86400000);
-  return { date: next.toISOString().slice(0, 10), days };
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (next <= todayMidnight) next.setFullYear(today.getFullYear() + 1);
+  const days = Math.round((next.getTime() - todayMidnight.getTime()) / 86400000);
+  const yStr = next.getFullYear();
+  const mStr = String(next.getMonth() + 1).padStart(2, "0");
+  const dStr = String(next.getDate()).padStart(2, "0");
+  return { date: `${yStr}-${mStr}-${dStr}`, days };
 };
 
 const estimateLICSurrenderValue = (premiumPaid: number, commencementDate: string) => {
@@ -2947,11 +2951,11 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         <AddInsuranceModal
           sub={
             modal ||
-            (editPolicy.expectedMaturityAmount !== undefined
-              ? "invest"
-              : editPolicy.insurer
+            (state.lic.some((l: any) => l.id === editPolicy?.id)
+              ? "lic"
+              : state.termPlans.some((t: any) => t.id === editPolicy?.id)
                 ? "term"
-                : "lic")
+                : "invest")
           }
           policy={editPolicy}
           onClose={() => {
