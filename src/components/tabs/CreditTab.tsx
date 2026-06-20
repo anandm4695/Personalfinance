@@ -3982,8 +3982,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           const emi = Number(l.emi) || 0;
           const months = Number(l.monthsRemaining) || 0;
           const isPaidOff = months === 0 && outstanding === 0;
-          const paid = principal - outstanding;
-          const paidPct = principal > 0 ? (paid / principal) * 100 : 0;
+          const paid = Math.max(0, principal - outstanding);
+          const paidPct = principal > 0 ? Math.min(100, (paid / principal) * 100) : 0;
           const interestRemaining = Math.max(0, emi * months - outstanding);
           const payoffDate =
             months > 0
@@ -5615,7 +5615,10 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
-      <ModalActions onSave={() => f.lender && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => {
+        if (!f.lender || !f.principal || !f.emi) return;
+        onSave({ ...f, outstanding: f.outstanding || f.principal });
+      }} onClose={onClose} />
     </Modal>
   );
 }
@@ -5705,7 +5708,10 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           onChange={(e) => setF({ ...f, note: e.target.value })}
         />
       </Field>
-      <ModalActions onSave={() => f.borrower && f.principal && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => {
+        if (!f.borrower || !f.principal) return;
+        onSave({ ...f, outstanding: f.outstanding || f.principal });
+      }} onClose={onClose} />
     </Modal>
   );
 }

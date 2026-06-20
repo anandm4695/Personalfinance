@@ -2221,7 +2221,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .map((l: any) => {
           const outstanding = Number(l.outstanding || 0);
           const emi = Number(l.emi || 0);
-          const rate = Number(l.interestRate || 0) / 12 / 100;
+          const rate = Number(l.rate || l.interestRate || 0) / 12 / 100;
           let months: number;
           if (rate === 0) {
             months = Math.ceil(outstanding / emi);
@@ -3989,7 +3989,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           {activeLoans.slice(0, 3).map((l: any, i: number) => {
                             const outstanding = Number(l.outstanding || 0);
                             const emi = Number(l.emi || 0);
-                            const rate = Number(l.interestRate || 0) / 12 / 100;
+                            const rate = Number(l.rate || l.interestRate || 0) / 12 / 100;
                             let months = 9999;
                             if (rate === 0) months = Math.ceil(outstanding / emi);
                             else {
