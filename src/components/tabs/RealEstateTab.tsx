@@ -556,7 +556,9 @@ function PropertyCard({
     Number(property.stampDuty || 0) +
     Number(property.tdsValue || 0);
   const statusHex = STATUS_HEX[property.status] || "#6366f1";
-  const gain = Number(property.marketValue || 0) - totalCost;
+  const isSold = property.status === "sold";
+  const saleProceeds = isSold ? Number(property.salePrice || 0) - Number(property.saleStampDuty || 0) - Number(property.saleTds || 0) : 0;
+  const gain = isSold ? saleProceeds - totalCost : Number(property.marketValue || 0) - totalCost;
 
   // All table cell borders use CSS variable directly (valid CSS, not "var(...)44" which is invalid)
   const divider = "1px solid var(--t-line)";
@@ -663,18 +665,17 @@ function PropertyCard({
       </div>
 
       {/* Gain/Loss */}
-      {property.marketValue && totalCost > 0 && (
+      {((isSold && Number(property.salePrice || 0) > 0) || (!isSold && property.marketValue)) && totalCost > 0 && (
         <div style={{
           padding: "8px 20px",
           borderBottom: divider,
-          // Valid CSS: literal rgba values, no CSS variable alpha appending
           background: gain >= 0 ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
         }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: gain >= 0 ? "#22c55e" : "#ef4444" }}>
-            {gain >= 0 ? "▲" : "▼"} Unrealised {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
+            {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"} {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
           </span>
           <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 8 }}>
-            (Total cost: <Prv>{fmtINRFull(totalCost)}</Prv>)
+            (Total cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? ` · Net sale: ${fmtINRFull(saleProceeds)}` : ""})
           </span>
         </div>
       )}
@@ -905,15 +906,18 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
   const [editPayment, setEditPayment] = useState<any>(null);
 
   const stats = useMemo(() => {
-    const portfolioValue = properties.reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
-    const totalInvested = properties.reduce(
+    const activeProperties = properties.filter((p) => p.status !== "sold");
+    const portfolioValue = activeProperties.reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
+    const totalInvested = activeProperties.reduce(
       (s, p) => s + Number(p.agreementValue || 0) + Number(p.stampDuty || 0) + Number(p.tdsValue || 0),
       0
     );
-    const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-    const totalDemanded = demands.reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+    const ucIds = new Set(properties.filter((p) => p.status === "under-construction").map((p) => p.id));
+    const totalPaid = payments.filter((p) => ucIds.has(p.propertyId)).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalDemanded = demands.filter((d) => ucIds.has(d.propertyId)).reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
     const outstanding = Math.max(0, totalDemanded - totalPaid);
-    return { portfolioValue, totalInvested, totalPaid, outstanding };
+    const allPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    return { portfolioValue, totalInvested, totalPaid: allPaid, outstanding };
   }, [properties, demands, payments]);
 
   const handleSaveProperty = (data: any) => {
