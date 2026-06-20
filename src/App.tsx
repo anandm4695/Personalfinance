@@ -3536,7 +3536,7 @@ function FinanceDashboard() {
     // SIPs
     (state.sips || []).forEach((s) => {
       if (match(s.scheme) || match(s.name)) {
-        results.push({ type: "SIP", name: s.scheme || s.name, detail: `${fmtINRFull(s.amount)}/mo`, tab: "sip" });
+        results.push({ type: "SIP", name: s.scheme || s.name, detail: `${fmtINRFull(s.amount)}/${s.frequency === "quarterly" ? "qtr" : "mo"}`, tab: "sip" });
       }
     });
     // Insurance (LIC + Term Plans)

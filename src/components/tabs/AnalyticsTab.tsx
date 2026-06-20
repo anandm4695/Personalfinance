@@ -1649,7 +1649,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // SIP Habit
     const totalSIPAmt = (state.sips || []).reduce(
-      (s: number, sip: any) => s + Number(sip.amount || 0),
+      (s: number, sip: any) => s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
       0
     );
     if ((state.sips?.length || 0) > 0) earned.add("sip1");
@@ -1999,7 +1999,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // Active monthly investments (SIPs + extra input)
     const monthlySIP =
-      (state.sips || []).reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0) +
+      (state.sips || []).reduce((sum: number, s: any) => sum + (s.frequency === "quarterly" ? Number(s.amount || 0) / 3 : Number(s.amount || 0)), 0) +
       fireWhatIfExtra;
     const annualSavings = monthlySIP * 12;
     const annualExpense = Number(metrics.monthExpense || 0) * 12;
@@ -2301,17 +2301,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     }
 
     // SIP affordability: flag if total SIP > monthly savings
-    const totalSIPAmt = (state.sips || []).reduce(
-      (s: number, sip: any) => s + Number(sip.amount || 0),
+    const totalSIPAmtSmart = (state.sips || []).reduce(
+      (s: number, sip: any) => s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
       0
     );
-    if (totalSIPAmt > 0 && metrics.monthIncome > 0) {
+    if (totalSIPAmtSmart > 0 && metrics.monthIncome > 0) {
       const monthlySavings = metrics.monthIncome - metrics.monthExpense;
-      if (totalSIPAmt > monthlySavings && monthlySavings < totalSIPAmt * 0.9) {
+      if (totalSIPAmtSmart > monthlySavings && monthlySavings < totalSIPAmtSmart * 0.9) {
         insights.push({
           icon: AlertTriangle,
           title: "SIP Exceeds Savings",
-          value: `SIPs ${fmtINRFull(totalSIPAmt)}/mo · only ${fmtINRFull(Math.max(0, monthlySavings))} available`,
+          value: `SIPs ${fmtINRFull(totalSIPAmtSmart)}/mo · only ${fmtINRFull(Math.max(0, monthlySavings))} available`,
           color: THEME.rust,
           bg: `color-mix(in srgb, var(--t-rust) 7%, transparent)`,
         });
