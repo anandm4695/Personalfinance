@@ -224,7 +224,15 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     setModalOut({ open: false, editing: null });
   };
   const handleEditOut = (data: any) => {
-    if (modalOut.editing) updateItem("rentalProperties", modalOut.editing.id, data);
+    if (modalOut.editing) {
+      updateItem("rentalProperties", modalOut.editing.id, {
+        ...data,
+        receipts: modalOut.editing.receipts || [],
+        depositDeductions: modalOut.editing.depositDeductions || [],
+        depositTransactions: modalOut.editing.depositTransactions || [],
+        depositReturned: modalOut.editing.depositReturned || 0,
+      });
+    }
     setModalOut({ open: false, editing: null });
   };
   const handleAddIn = (data: any) => {
@@ -237,7 +245,14 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
     setModalIn({ open: false, editing: null });
   };
   const handleEditIn = (data: any) => {
-    if (modalIn.editing) updateItem("rentedProperties", modalIn.editing.id, data);
+    if (modalIn.editing) {
+      updateItem("rentedProperties", modalIn.editing.id, {
+        ...data,
+        payments: modalIn.editing.payments || [],
+        depositTransactions: modalIn.editing.depositTransactions || [],
+        depositReturned: modalIn.editing.depositReturned || 0,
+      });
+    }
     setModalIn({ open: false, editing: null });
   };
 
