@@ -744,3 +744,149 @@ export const calculateEpfBalance = (e: any): number => {
   return closingTotal;
 };
 
+// ── XIRR Calculation Helper ──────────────────────────────────────────────────
+
+export interface CashFlow {
+  date: Date | string;
+  amount: number;
+}
+
+export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
+  // Filter out zero amounts and invalid dates
+  const flows = cashFlows
+    .map((f) => {
+      let d: Date;
+      if (f.date instanceof Date) {
+        d = f.date;
+      } else {
+        // Parse YYYY-MM-DD cleanly in local timezone to avoid off-by-one errors from UTC conversion
+        const parts = String(f.date).split("-");
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          d = new Date(y, m, day);
+        } else {
+          d = new Date(f.date);
+        }
+      }
+      return {
+        date: d,
+        amount: Number(f.amount),
+      };
+    })
+    .filter((f) => !isNaN(f.date.getTime()) && f.amount !== 0);
+
+  if (flows.length < 2) return null;
+
+  // Sort chronologically
+  flows.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Check signs (must have at least one positive and one negative cash flow)
+  let hasPos = false;
+  let hasNeg = false;
+  for (const f of flows) {
+    if (f.amount > 0) hasPos = true;
+    if (f.amount < 0) hasNeg = true;
+  }
+  if (!hasPos || !hasNeg) return null;
+
+  const t0 = flows[0].date.getTime();
+  const totalDays = (flows[flows.length - 1].date.getTime() - t0) / (24 * 3600 * 1000);
+  if (totalDays <= 0) return null;
+
+  // NPV function
+  const npv = (r: number): number => {
+    let sum = 0;
+    for (const f of flows) {
+      const t = (f.date.getTime() - t0) / (365 * 24 * 3600 * 1000);
+      sum += f.amount / Math.pow(1 + r, t);
+    }
+    return sum;
+  };
+
+  // Derivative of NPV function
+  const dNpv = (r: number): number => {
+    let sum = 0;
+    for (const f of flows) {
+      const t = (f.date.getTime() - t0) / (365 * 24 * 3600 * 1000);
+      sum += -t * f.amount / Math.pow(1 + r, t + 1);
+    }
+    return sum;
+  };
+
+  // Newton-Raphson Method
+  let r = 0.1; // initial guess: 10%
+  const maxIter = 100;
+  const tol = 1e-6;
+
+  for (let i = 0; i < maxIter; i++) {
+    const val = npv(r);
+    const deriv = dNpv(r);
+    if (Math.abs(deriv) < 1e-12) break; // Slope flat, fallback to bisection
+    const nextR = r - val / deriv;
+    if (Math.abs(nextR - r) < tol) {
+      if (!isNaN(nextR) && isFinite(nextR) && nextR > -0.99) {
+        return nextR * 100;
+      }
+    }
+    r = nextR;
+  }
+
+  // Bisection Method Fallback
+  let low = -0.99;
+  let high = 50.0; // 5000%
+  let mid = 0.0;
+
+  let valLow = npv(low);
+  let valHigh = npv(high);
+
+  if (valLow * valHigh > 0) {
+    // Try to expand search space to find a sign change
+    for (let h = 50.0; h <= 1000.0; h *= 2) {
+      const vh = npv(h);
+      if (valLow * vh < 0) {
+        high = h;
+        valHigh = vh;
+        break;
+      }
+    }
+  }
+
+  if (valLow * valHigh > 0) {
+    // Try adjusting low bound
+    for (let l = -0.95; l <= -0.1; l += 0.1) {
+      const vl = npv(l);
+      if (vl * valHigh < 0) {
+        low = l;
+        valLow = vl;
+        break;
+      }
+    }
+  }
+
+  if (valLow * valHigh < 0) {
+    for (let i = 0; i < 100; i++) {
+      mid = (low + high) / 2;
+      const val = npv(mid);
+      if (Math.abs(val) < tol) {
+        return mid * 100;
+      }
+      if (valLow * val < 0) {
+        high = mid;
+        valHigh = val;
+      } else {
+        low = mid;
+        valLow = val;
+      }
+    }
+  }
+
+  if (mid > -0.99 && !isNaN(mid) && isFinite(mid)) {
+    return mid * 100;
+  }
+
+  return null;
+};
+
+

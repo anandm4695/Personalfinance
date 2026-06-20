@@ -39,6 +39,7 @@ import {
   monthsBetween,
   calculateEpfBalance,
   calcCAGR,
+  calcXIRR,
 } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
@@ -1103,6 +1104,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         return (
           <MFSection
             items={state.mutualFunds}
+            mfSells={state.mfSells || []}
             addItem={addItem}
             removeItem={removeItem}
             updateItem={updateItem}
@@ -7579,7 +7581,7 @@ const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: number }) =>
 };
 
 /* ── MF Section ─────────────────────────────────────────────────────── */
-function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
+function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: any) {
   const [editMF, setEditMF] = useState<any>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
@@ -7710,6 +7712,50 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
     setRefreshingAll(false);
   };
 
+  const overallXirr = useMemo(() => {
+    const cashFlows: any[] = [];
+
+    // Active lots
+    items.forEach((m: any) => {
+      const units = Number(m.units) || 0;
+      const currentNav = Number(m.currentNav) || 0;
+      const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
+      if (units > 0 && m.buyDate) {
+        cashFlows.push({
+          date: m.buyDate,
+          amount: -invested,
+        });
+        cashFlows.push({
+          date: today(),
+          amount: units * currentNav,
+        });
+      }
+    });
+
+    // Historical sales
+    (mfSells || []).forEach((s: any) => {
+      const units = Number(s.units) || 0;
+      const buyNav = Number(s.buyNav) || 0;
+      const sellNav = Number(s.sellNav) || 0;
+      const buyDate = s.buyDate;
+      const sellDate = s.sellDate;
+      if (units > 0 && sellDate) {
+        if (buyDate) {
+          cashFlows.push({
+            date: buyDate,
+            amount: -(units * buyNav),
+          });
+        }
+        cashFlows.push({
+          date: sellDate,
+          amount: units * sellNav,
+        });
+      }
+    });
+
+    return calcXIRR(cashFlows);
+  }, [items, mfSells]);
+
   const totalInvested = items.reduce(
     (s: number, m: any) => s + (Number(m.invested || m.investedValue) || 0),
     0
@@ -7773,6 +7819,12 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                 value: `${totalPnl >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%`,
                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                 Icon: Activity,
+              },
+              {
+                label: "Overall XIRR",
+                value: overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—",
+                color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
+                Icon: TrendingUp,
               },
             ].map(({ label, value, color, Icon }) => (
               <div
@@ -7965,6 +8017,32 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                       const avgNav = totalUnits > 0 ? grpInvested / totalUnits : 0;
                       const currentNav = Number(groupItems[0]?.currentNav) || 0;
 
+                      const grpXirr = (() => {
+                        const cashFlows: any[] = [];
+                        groupItems.forEach((m: any) => {
+                          const units = Number(m.units) || 0;
+                          const currentNavVal = Number(m.currentNav) || 0;
+                          const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
+                          if (units > 0 && m.buyDate) {
+                            cashFlows.push({ date: m.buyDate, amount: -invested });
+                            cashFlows.push({ date: today(), amount: units * currentNavVal });
+                          }
+                        });
+                        const sells = (mfSells || []).filter((s: any) => (s.scheme || "").trim().toLowerCase() === displayName.trim().toLowerCase());
+                        sells.forEach((s: any) => {
+                          const units = Number(s.units) || 0;
+                          const buyNav = Number(s.buyNav) || 0;
+                          const sellNav = Number(s.sellNav) || 0;
+                          const buyDate = s.buyDate;
+                          const sellDate = s.sellDate;
+                          if (units > 0 && sellDate) {
+                            if (buyDate) cashFlows.push({ date: buyDate, amount: -(units * buyNav) });
+                            cashFlows.push({ date: sellDate, amount: units * sellNav });
+                          }
+                        });
+                        return calcXIRR(cashFlows);
+                      })();
+
                       return (
                         <React.Fragment key={gKey}>
                           {/* Main row */}
@@ -8009,6 +8087,11 @@ function MFSection({ items, addItem, removeItem, updateItem, onAdd }: any) {
                                   <div style={{ fontSize: 11, fontWeight: 700, color: grpPnlPct >= 0 ? THEME.sage : THEME.rust, marginTop: 1 }}>
                                     {grpPnlPct >= 0 ? "▲" : "▼"}{Math.abs(grpPnlPct).toFixed(2)}%
                                   </div>
+                                  {grpXirr !== null && (
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: grpXirr >= 0 ? THEME.sage : THEME.rust, marginTop: 2 }}>
+                                      {grpXirr >= 0 ? "+" : ""}{grpXirr.toFixed(1)}% XIRR
+                                    </div>
+                                  )}
                                 </>
                               ) : (
                                 <span style={{ color: THEME.muted }}>—</span>

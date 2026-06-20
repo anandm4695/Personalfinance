@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, calcCAGR, today } from "../../utils/finance";
+import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -927,6 +927,61 @@ export function DematTab({
     (s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice),
     0
   );
+
+  const overallXirr = useMemo(() => {
+    const cashFlows: any[] = [];
+
+    // Active stocks
+    filteredStocks.forEach((st: any) => {
+      const qty = Number(st.qty) || 0;
+      const avgPrice = Number(st.avgPrice) || 0;
+      const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+      const exch = st.exchange || "NSE";
+      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+      const md = marketData[yfSym];
+      const currentPrice = md?.price ?? Number(st.currentPrice ?? 0);
+
+      if (qty > 0 && st.buyDate) {
+        cashFlows.push({
+          date: st.buyDate,
+          amount: -(qty * avgPrice),
+        });
+        cashFlows.push({
+          date: today(),
+          amount: qty * currentPrice,
+        });
+      }
+    });
+
+    // Sold stock transactions
+    const sells = (state.stockSells || []).filter((s: any) => {
+      if (selectedDematId && s.dematId !== selectedDematId) return false;
+      return true;
+    });
+
+    sells.forEach((s: any) => {
+      const qty = Number(s.qty) || 0;
+      const buyPrice = Number(s.buyPrice) || 0;
+      const sellPrice = Number(s.sellPrice) || 0;
+      const buyDate = s.buyDate;
+      const sellDate = s.sellDate;
+      if (qty > 0 && sellDate) {
+        if (buyDate) {
+          cashFlows.push({
+            date: buyDate,
+            amount: -(qty * buyPrice),
+          });
+        }
+        cashFlows.push({
+          date: sellDate,
+          amount: qty * sellPrice,
+        });
+      }
+    });
+
+    return calcXIRR(cashFlows);
+  }, [filteredStocks, state.stockSells, marketData, selectedDematId]);
+
   const pnl = totalValue - totalInvested;
 
   const totalDaysPnL = filteredStocks.reduce((s: number, st: any) => {
@@ -1435,7 +1490,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             label="Net Return"
             value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
             color={pnl >= 0 ? THEME.sage : THEME.rust}
-            sub="Combined portfolio performance"
+            sub="Absolute portfolio performance"
+          />
+          <StatCard
+            icon={<TrendingUp />}
+            label="Overall XIRR"
+            value={overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
+            color={overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}
+            sub="Annualized rate of return"
           />
         </div>
 
@@ -1700,6 +1762,55 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   const totalCurr = totalQty * currentPrice;
                   const totalPnl = totalCurr - totalInv;
                   const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
+
+                  const stockXirr = (() => {
+                    const cashFlows: any[] = [];
+                    
+                    // Active lots
+                    lots.forEach((lot: any) => {
+                      const qty = Number(lot.qty) || 0;
+                      const avgPrice = Number(lot.avgPrice) || 0;
+                      if (qty > 0 && lot.buyDate) {
+                        cashFlows.push({
+                          date: lot.buyDate,
+                          amount: -(qty * avgPrice),
+                        });
+                        cashFlows.push({
+                          date: today(),
+                          amount: qty * currentPrice,
+                        });
+                      }
+                    });
+
+                    // Historical stock sells matching base symbol and exchange
+                    const sells = (state.stockSells || []).filter((s: any) => {
+                      const sSymbol = (s.symbol || "").trim().toLowerCase();
+                      const gSymbol = base.trim().toLowerCase();
+                      return sSymbol === gSymbol && s.exchange === exchange;
+                    });
+
+                    sells.forEach((s: any) => {
+                      const qty = Number(s.qty) || 0;
+                      const buyPrice = Number(s.buyPrice) || 0;
+                      const sellPrice = Number(s.sellPrice) || 0;
+                      const buyDate = s.buyDate;
+                      const sellDate = s.sellDate;
+                      if (qty > 0 && sellDate) {
+                        if (buyDate) {
+                          cashFlows.push({
+                            date: buyDate,
+                            amount: -(qty * buyPrice),
+                          });
+                        }
+                        cashFlows.push({
+                          date: sellDate,
+                          amount: qty * sellPrice,
+                        });
+                      }
+                    });
+
+                    return calcXIRR(cashFlows);
+                  })();
                   const isExpanded = expandedSymbols.has(yfSym);
                   const isLive = !!md;
                   const chartEntry = chartData[yfSym];
@@ -1890,6 +2001,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             {totalPnlPct >= 0 ? "▲" : "▼"}
                             {Math.abs(totalPnlPct).toFixed(2)}%
                           </div>
+                          {stockXirr !== null && (
+                            <div
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                color: stockXirr >= 0 ? THEME.sage : THEME.rust,
+                                marginTop: 2,
+                              }}
+                            >
+                              {stockXirr >= 0 ? "+" : ""}
+                              {stockXirr.toFixed(1)}% XIRR
+                            </div>
+                          )}
                         </td>
                       </tr>
 
