@@ -93,6 +93,17 @@ function monthsBetween(d1, d2) {
   return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
 }
 
+function rdMaturity(monthly, rate, months) {
+  const n = 4;
+  const r = rate / 100;
+  let total = 0;
+  for (let i = 0; i < months; i++) {
+    const t = (months - i) / 12;
+    total += monthly * Math.pow(1 + r / n, n * t);
+  }
+  return total;
+}
+
 // ── Number formatters ─────────────────────────────────────────────────────────
 function fmtINR(n) {
   const v = Math.abs(Number(n) || 0);
@@ -227,8 +238,10 @@ function computeSummary(state) {
   }, 0);
   const fdTotal = (state.fixedDeposits || []).reduce((s, x) => s + (Number(x.principal) || 0), 0);
   const rdTotal = (state.recurringDeposits || []).reduce((s, r) => {
-    const elapsed = monthsBetween(r.startDate, today());
-    return s + Math.min(elapsed, Number(r.tenureMonths || 0)) * Number(r.monthly || 0);
+    const elapsed = r.startDate
+      ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
+      : Number(r.tenureMonths || 0);
+    return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
   const ppfTotal = (state.ppf || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
   const npsTotal = (state.nps || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
@@ -298,6 +311,15 @@ function computeSummary(state) {
     0
   );
 
+  const vehicleAsset = (state.vehicles || []).reduce(
+    (s, v) => s + Number(v.currentValue || v.purchasePrice || 0),
+    0
+  );
+
+  const realEstateAsset = (state.realEstateProperties || [])
+    .filter((p) => p.status !== "sold")
+    .reduce((s, p) => s + Number(p.marketValue || p.agreementValue || 0), 0);
+
   const totalAssets =
     bankTotal +
     investTotal +
@@ -305,7 +327,9 @@ function computeSummary(state) {
     prepaidTotal +
     rentedDepositAsset +
     informalLentTotal +
-    rentalPropertiesAsset;
+    rentalPropertiesAsset +
+    realEstateAsset +
+    vehicleAsset;
 
   const activeCards = (state.creditCards || []).filter(
     (c) => (c.status || "active").toLowerCase() !== "closed"
@@ -337,8 +361,23 @@ function computeSummary(state) {
     return s + Math.max(0, totalT - totalP);
   }, 0);
 
+  const realEstateOutstanding = (() => {
+    const ucIds = new Set(
+      (state.realEstateProperties || [])
+        .filter((p) => p.status === "under-construction")
+        .map((p) => p.id)
+    );
+    const demanded = (state.realEstateDemands || [])
+      .filter((d) => ucIds.has(d.propertyId))
+      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+    const paid = (state.realEstatePayments || [])
+      .filter((p) => ucIds.has(p.propertyId))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    return Math.max(0, demanded - paid);
+  })();
+
   const totalLiabilities =
-    creditOutstanding + loanOutstanding + rentalDepositLiability + informalBorrowedTotal;
+    creditOutstanding + loanOutstanding + rentalDepositLiability + informalBorrowedTotal + realEstateOutstanding;
   const netWorth = totalAssets - totalLiabilities;
 
   // ── Cash flow (current month) ──────────────────────────────────────────────
@@ -957,6 +996,10 @@ async function fetchStateFromSupabase(supabase, userId) {
     investP,
     pcs,
     infLns,
+    reProps,
+    reDemands,
+    rePayments,
+    vehicles,
   ] = await Promise.all([
     supabase.from("bank_accounts").select("*").eq("user_id", userId),
     supabase.from("transactions").select("*").eq("user_id", userId),
@@ -1020,6 +1063,38 @@ async function fetchStateFromSupabase(supabase, userId) {
         (res) => res,
         () => ({ data: [] })
       ),
+    supabase
+      .from("real_estate_properties")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("real_estate_demands")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("real_estate_payments")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("vehicles")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
   ]);
 
   const camelBanks = snakeToCamel(banks.data || []);
@@ -1055,6 +1130,10 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelInvestP = snakeToCamel(investP.data || []);
   const camelPrepaid = snakeToCamel(pcs.data || []);
   const camelInfLns = snakeToCamel(infLns.data || []);
+  const camelReProps = snakeToCamel(reProps.data || []);
+  const camelReDemands = snakeToCamel(reDemands.data || []);
+  const camelRePayments = snakeToCamel(rePayments.data || []);
+  const camelVehicles = snakeToCamel(vehicles.data || []);
 
   const rentalProperties = camelRentalData
     .filter((x) => x.propertyType === "out")
@@ -1089,6 +1168,10 @@ async function fetchStateFromSupabase(supabase, userId) {
     income: camelIncome,
     rentalProperties,
     rentedProperties,
+    realEstateProperties: camelReProps,
+    realEstateDemands: camelReDemands,
+    realEstatePayments: camelRePayments,
+    vehicles: camelVehicles,
   };
 }
 

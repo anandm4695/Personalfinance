@@ -2687,7 +2687,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {/* Top Summary Card */}
-              <Card>
+              <Card style={{ padding: 24 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
                   
                   {/* Circular Radial Score Gauge */}
@@ -2780,7 +2780,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
                 
                 {/* Score Breakdown Bars */}
-                <Card style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <Card style={{ display: "flex", flexDirection: "column", gap: 20, padding: 24 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
                     Health Dimensions
                   </div>
@@ -2836,7 +2836,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </Card>
 
                 {/* Pie Chart Visualization */}
-                <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
                     Portfolio Allocation
                   </div>
@@ -2896,7 +2896,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               </div>
 
               {/* Actionable Financial Insights checklist */}
-              <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
                   💡 Financial Optimization Suggestions
                 </div>

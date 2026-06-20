@@ -49,7 +49,7 @@ export const Card: React.FC<CardProps> = ({
   } = style || {};
 
   const contentStyle: React.CSSProperties = {
-    height: "100%",
+    minHeight: "100%",
     width: "100%",
   };
 
