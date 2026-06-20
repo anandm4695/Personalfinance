@@ -752,22 +752,30 @@ export interface CashFlow {
 }
 
 export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
+  if (!cashFlows || !Array.isArray(cashFlows)) return null;
+
   // Filter out zero amounts and invalid dates
   const flows = cashFlows
     .map((f) => {
+      if (!f) return null;
       let d: Date;
       if (f.date instanceof Date) {
         d = f.date;
       } else {
-        // Parse YYYY-MM-DD cleanly in local timezone to avoid off-by-one errors from UTC conversion
-        const parts = String(f.date).split("-");
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const day = parseInt(parts[2], 10);
-          d = new Date(y, m, day);
+        const clean = String(f.date || "").trim();
+        if (clean === "" || clean === "null" || clean === "undefined") {
+          d = new Date(NaN); // Invalid Date
         } else {
-          d = new Date(f.date);
+          // Parse YYYY-MM-DD cleanly in local timezone to avoid off-by-one errors from UTC conversion
+          const parts = clean.split("-");
+          if (parts.length === 3) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            d = new Date(y, m, day);
+          } else {
+            d = new Date(clean);
+          }
         }
       }
       return {
@@ -775,7 +783,7 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
         amount: Number(f.amount),
       };
     })
-    .filter((f) => !isNaN(f.date.getTime()) && f.amount !== 0);
+    .filter((f): f is { date: Date; amount: number } => f !== null && !isNaN(f.date.getTime()) && f.amount !== 0);
 
   if (flows.length < 2) return null;
 

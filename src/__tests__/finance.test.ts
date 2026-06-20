@@ -33,31 +33,31 @@ describe("fmtINR", () => {
   });
 
   it("formats thousands as K", () => {
-    expect(fmtINR(1000)).toBe("₹1.0K");
-    expect(fmtINR(50000)).toBe("₹50.0K");
-    expect(fmtINR(99999)).toBe("₹100.0K");
+    expect(fmtINR(1000)).toBe("₹1K");
+    expect(fmtINR(50000)).toBe("₹50K");
+    expect(fmtINR(99999)).toBe("₹100K");
   });
 
   it("formats lakhs as L", () => {
-    expect(fmtINR(100000)).toBe("₹1.00L");
-    expect(fmtINR(500000)).toBe("₹5.00L");
-    expect(fmtINR(9999999)).toBe("₹100.00L");
+    expect(fmtINR(100000)).toBe("₹1L");
+    expect(fmtINR(500000)).toBe("₹5L");
+    expect(fmtINR(9999999)).toBe("₹100L");
   });
 
   it("formats crores as Cr", () => {
-    expect(fmtINR(10000000)).toBe("₹1.00Cr");
-    expect(fmtINR(50000000)).toBe("₹5.00Cr");
+    expect(fmtINR(10000000)).toBe("₹1Cr");
+    expect(fmtINR(50000000)).toBe("₹5Cr");
   });
 
   it("handles negative values with correct sign", () => {
     expect(fmtINR(-500)).toBe("-₹500");
-    expect(fmtINR(-100000)).toBe("-₹1.00L");
-    expect(fmtINR(-10000000)).toBe("-₹1.00Cr");
+    expect(fmtINR(-100000)).toBe("-₹1L");
+    expect(fmtINR(-10000000)).toBe("-₹1Cr");
   });
 
   it("accepts string numbers", () => {
-    expect(fmtINR("1000")).toBe("₹1.0K");
-    expect(fmtINR("100000")).toBe("₹1.00L");
+    expect(fmtINR("1000")).toBe("₹1K");
+    expect(fmtINR("100000")).toBe("₹1L");
   });
 });
 

@@ -7713,47 +7713,56 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   };
 
   const overallXirr = useMemo(() => {
-    const cashFlows: any[] = [];
+    try {
+      const cashFlows: any[] = [];
+      const safeItems = Array.isArray(items) ? items : [];
+      const safeMfSells = Array.isArray(mfSells) ? mfSells : [];
 
-    // Active lots
-    items.forEach((m: any) => {
-      const units = Number(m.units) || 0;
-      const currentNav = Number(m.currentNav) || 0;
-      const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
-      if (units > 0 && m.buyDate) {
-        cashFlows.push({
-          date: m.buyDate,
-          amount: -invested,
-        });
-        cashFlows.push({
-          date: today(),
-          amount: units * currentNav,
-        });
-      }
-    });
-
-    // Historical sales
-    (mfSells || []).forEach((s: any) => {
-      const units = Number(s.units) || 0;
-      const buyNav = Number(s.buyNav) || 0;
-      const sellNav = Number(s.sellNav) || 0;
-      const buyDate = s.buyDate;
-      const sellDate = s.sellDate;
-      if (units > 0 && sellDate) {
-        if (buyDate) {
+      // Active lots
+      safeItems.forEach((m: any) => {
+        if (!m) return;
+        const units = Number(m.units) || 0;
+        const currentNav = Number(m.currentNav) || 0;
+        const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
+        if (units > 0 && m.buyDate) {
           cashFlows.push({
-            date: buyDate,
-            amount: -(units * buyNav),
+            date: m.buyDate,
+            amount: -invested,
+          });
+          cashFlows.push({
+            date: today(),
+            amount: units * currentNav,
           });
         }
-        cashFlows.push({
-          date: sellDate,
-          amount: units * sellNav,
-        });
-      }
-    });
+      });
 
-    return calcXIRR(cashFlows);
+      // Historical sales
+      safeMfSells.forEach((s: any) => {
+        if (!s) return;
+        const units = Number(s.units) || 0;
+        const buyNav = Number(s.buyNav) || 0;
+        const sellNav = Number(s.sellNav) || 0;
+        const buyDate = s.buyDate;
+        const sellDate = s.sellDate;
+        if (units > 0 && sellDate) {
+          if (buyDate) {
+            cashFlows.push({
+              date: buyDate,
+              amount: -(units * buyNav),
+            });
+          }
+          cashFlows.push({
+            date: sellDate,
+            amount: units * sellNav,
+          });
+        }
+      });
+
+      return calcXIRR(cashFlows);
+    } catch (e) {
+      console.error("Error calculating overall MF XIRR:", e);
+      return null;
+    }
   }, [items, mfSells]);
 
   const totalInvested = items.reduce(
@@ -8018,29 +8027,38 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                       const currentNav = Number(groupItems[0]?.currentNav) || 0;
 
                       const grpXirr = (() => {
-                        const cashFlows: any[] = [];
-                        groupItems.forEach((m: any) => {
-                          const units = Number(m.units) || 0;
-                          const currentNavVal = Number(m.currentNav) || 0;
-                          const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
-                          if (units > 0 && m.buyDate) {
-                            cashFlows.push({ date: m.buyDate, amount: -invested });
-                            cashFlows.push({ date: today(), amount: units * currentNavVal });
-                          }
-                        });
-                        const sells = (mfSells || []).filter((s: any) => (s.scheme || "").trim().toLowerCase() === displayName.trim().toLowerCase());
-                        sells.forEach((s: any) => {
-                          const units = Number(s.units) || 0;
-                          const buyNav = Number(s.buyNav) || 0;
-                          const sellNav = Number(s.sellNav) || 0;
-                          const buyDate = s.buyDate;
-                          const sellDate = s.sellDate;
-                          if (units > 0 && sellDate) {
-                            if (buyDate) cashFlows.push({ date: buyDate, amount: -(units * buyNav) });
-                            cashFlows.push({ date: sellDate, amount: units * sellNav });
-                          }
-                        });
-                        return calcXIRR(cashFlows);
+                        try {
+                          const cashFlows: any[] = [];
+                          const safeGroupItems = Array.isArray(groupItems) ? groupItems : [];
+                          const safeMfSells = Array.isArray(mfSells) ? mfSells : [];
+
+                          safeGroupItems.forEach((m: any) => {
+                            if (!m) return;
+                            const units = Number(m.units) || 0;
+                            const currentNavVal = Number(m.currentNav) || 0;
+                            const invested = Number(m.invested || m.investedValue) || (Number(m.buyNav || 0) * units);
+                            if (units > 0 && m.buyDate) {
+                              cashFlows.push({ date: m.buyDate, amount: -invested });
+                              cashFlows.push({ date: today(), amount: units * currentNavVal });
+                            }
+                          });
+                          const sells = safeMfSells.filter((s: any) => s && (s.scheme || "").trim().toLowerCase() === displayName.trim().toLowerCase());
+                          sells.forEach((s: any) => {
+                            const units = Number(s.units) || 0;
+                            const buyNav = Number(s.buyNav) || 0;
+                            const sellNav = Number(s.sellNav) || 0;
+                            const buyDate = s.buyDate;
+                            const sellDate = s.sellDate;
+                            if (units > 0 && sellDate) {
+                              if (buyDate) cashFlows.push({ date: buyDate, amount: -(units * buyNav) });
+                              cashFlows.push({ date: sellDate, amount: units * sellNav });
+                            }
+                          });
+                          return calcXIRR(cashFlows);
+                        } catch (e) {
+                          console.error("Error calculating group XIRR:", e);
+                          return null;
+                        }
                       })();
 
                       return (

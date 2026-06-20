@@ -929,57 +929,66 @@ export function DematTab({
   );
 
   const overallXirr = useMemo(() => {
-    const cashFlows: any[] = [];
+    try {
+      const cashFlows: any[] = [];
+      const safeFilteredStocks = Array.isArray(filteredStocks) ? filteredStocks : [];
+      const safeStockSells = Array.isArray(state.stockSells) ? state.stockSells : [];
 
-    // Active stocks
-    filteredStocks.forEach((st: any) => {
-      const qty = Number(st.qty) || 0;
-      const avgPrice = Number(st.avgPrice) || 0;
-      const base = st.symbol.replace(/\.(NS|BO)$/i, "");
-      const exch = st.exchange || "NSE";
-      const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
-      const md = marketData[yfSym];
-      const currentPrice = md?.price ?? Number(st.currentPrice ?? 0);
+      // Active stocks
+      safeFilteredStocks.forEach((st: any) => {
+        if (!st) return;
+        const qty = Number(st.qty) || 0;
+        const avgPrice = Number(st.avgPrice) || 0;
+        const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
+        const exch = st.exchange || "NSE";
+        const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+        const md = marketData[yfSym];
+        const currentPrice = md?.price ?? Number(st.currentPrice ?? 0);
 
-      if (qty > 0 && st.buyDate) {
-        cashFlows.push({
-          date: st.buyDate,
-          amount: -(qty * avgPrice),
-        });
-        cashFlows.push({
-          date: today(),
-          amount: qty * currentPrice,
-        });
-      }
-    });
-
-    // Sold stock transactions
-    const sells = (state.stockSells || []).filter((s: any) => {
-      if (selectedDematId && s.dematId !== selectedDematId) return false;
-      return true;
-    });
-
-    sells.forEach((s: any) => {
-      const qty = Number(s.qty) || 0;
-      const buyPrice = Number(s.buyPrice) || 0;
-      const sellPrice = Number(s.sellPrice) || 0;
-      const buyDate = s.buyDate;
-      const sellDate = s.sellDate;
-      if (qty > 0 && sellDate) {
-        if (buyDate) {
+        if (qty > 0 && st.buyDate) {
           cashFlows.push({
-            date: buyDate,
-            amount: -(qty * buyPrice),
+            date: st.buyDate,
+            amount: -(qty * avgPrice),
+          });
+          cashFlows.push({
+            date: today(),
+            amount: qty * currentPrice,
           });
         }
-        cashFlows.push({
-          date: sellDate,
-          amount: qty * sellPrice,
-        });
-      }
-    });
+      });
 
-    return calcXIRR(cashFlows);
+      // Sold stock transactions
+      const sells = safeStockSells.filter((s: any) => {
+        if (!s) return false;
+        if (selectedDematId && s.dematId !== selectedDematId) return false;
+        return true;
+      });
+
+      sells.forEach((s: any) => {
+        const qty = Number(s.qty) || 0;
+        const buyPrice = Number(s.buyPrice) || 0;
+        const sellPrice = Number(s.sellPrice) || 0;
+        const buyDate = s.buyDate;
+        const sellDate = s.sellDate;
+        if (qty > 0 && sellDate) {
+          if (buyDate) {
+            cashFlows.push({
+              date: buyDate,
+              amount: -(qty * buyPrice),
+            });
+          }
+          cashFlows.push({
+            date: sellDate,
+            amount: qty * sellPrice,
+          });
+        }
+      });
+
+      return calcXIRR(cashFlows);
+    } catch (e) {
+      console.error("Error calculating overall Stock XIRR:", e);
+      return null;
+    }
   }, [filteredStocks, state.stockSells, marketData, selectedDematId]);
 
   const pnl = totalValue - totalInvested;
@@ -1764,52 +1773,61 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
 
                   const stockXirr = (() => {
-                    const cashFlows: any[] = [];
-                    
-                    // Active lots
-                    lots.forEach((lot: any) => {
-                      const qty = Number(lot.qty) || 0;
-                      const avgPrice = Number(lot.avgPrice) || 0;
-                      if (qty > 0 && lot.buyDate) {
-                        cashFlows.push({
-                          date: lot.buyDate,
-                          amount: -(qty * avgPrice),
-                        });
-                        cashFlows.push({
-                          date: today(),
-                          amount: qty * currentPrice,
-                        });
-                      }
-                    });
-
-                    // Historical stock sells matching base symbol and exchange
-                    const sells = (state.stockSells || []).filter((s: any) => {
-                      const sSymbol = (s.symbol || "").trim().toLowerCase();
-                      const gSymbol = base.trim().toLowerCase();
-                      return sSymbol === gSymbol && s.exchange === exchange;
-                    });
-
-                    sells.forEach((s: any) => {
-                      const qty = Number(s.qty) || 0;
-                      const buyPrice = Number(s.buyPrice) || 0;
-                      const sellPrice = Number(s.sellPrice) || 0;
-                      const buyDate = s.buyDate;
-                      const sellDate = s.sellDate;
-                      if (qty > 0 && sellDate) {
-                        if (buyDate) {
+                    try {
+                      const cashFlows: any[] = [];
+                      const safeLots = Array.isArray(lots) ? lots : [];
+                      const safeStockSells = Array.isArray(state.stockSells) ? state.stockSells : [];
+                      
+                      // Active lots
+                      safeLots.forEach((lot: any) => {
+                        if (!lot) return;
+                        const qty = Number(lot.qty) || 0;
+                        const avgPrice = Number(lot.avgPrice) || 0;
+                        if (qty > 0 && lot.buyDate) {
                           cashFlows.push({
-                            date: buyDate,
-                            amount: -(qty * buyPrice),
+                            date: lot.buyDate,
+                            amount: -(qty * avgPrice),
+                          });
+                          cashFlows.push({
+                            date: today(),
+                            amount: qty * currentPrice,
                           });
                         }
-                        cashFlows.push({
-                          date: sellDate,
-                          amount: qty * sellPrice,
-                        });
-                      }
-                    });
+                      });
 
-                    return calcXIRR(cashFlows);
+                      // Historical stock sells matching base symbol and exchange
+                      const sells = safeStockSells.filter((s: any) => {
+                        if (!s) return false;
+                        const sSymbol = (s.symbol || "").trim().toLowerCase();
+                        const gSymbol = base.trim().toLowerCase();
+                        return sSymbol === gSymbol && s.exchange === exchange;
+                      });
+
+                      sells.forEach((s: any) => {
+                        const qty = Number(s.qty) || 0;
+                        const buyPrice = Number(s.buyPrice) || 0;
+                        const sellPrice = Number(s.sellPrice) || 0;
+                        const buyDate = s.buyDate;
+                        const sellDate = s.sellDate;
+                        if (qty > 0 && sellDate) {
+                          if (buyDate) {
+                            cashFlows.push({
+                              date: buyDate,
+                              amount: -(qty * buyPrice),
+                            });
+                          }
+                          cashFlows.push({
+                            date: sellDate,
+                            amount: qty * sellPrice,
+                          });
+                        }
+                      });
+
+                      return calcXIRR(cashFlows);
+                    } catch (e) {
+                      console.error("Error calculating stock-wise XIRR:", e);
+                      return null;
+                    }
                   })();
                   const isExpanded = expandedSymbols.has(yfSym);
                   const isLive = !!md;
