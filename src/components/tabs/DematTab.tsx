@@ -1038,8 +1038,12 @@ export function DematTab({
     // Calculate stock values and weights
     const stockValues = filteredStocks.map((st: any) => {
       const val = Number(st.qty) * getStockPrice(st);
+      const base = st.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase();
+      const exch = st.exchange || "NSE";
       return {
-        symbol: st.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase(),
+        symbol: base,
+        exchange: exch,
+        yfSym: `${base}.${exch === "BSE" ? "BO" : "NS"}`,
         qty: Number(st.qty),
         avgPrice: Number(st.avgPrice),
         currentPrice: getStockPrice(st),
@@ -1081,14 +1085,11 @@ export function DematTab({
     // Based on return percentage + day change
     const getMomentumVal = (s: any) => {
       const absoluteReturnPct = s.avgPrice > 0 ? ((s.currentPrice - s.avgPrice) / s.avgPrice) * 100 : 0;
-      // 0% return -> 50 score, 50%+ -> 95 score, -30% or worse -> 15 score
       let score = 50 + absoluteReturnPct * 0.9;
-      
-      const base = s.symbol.replace(/\.(NS|BO)$/i, "");
-      const yfSym = `${base}.NS`; // check default
-      const md = marketData[yfSym] || marketData[`${base}.BO`];
+
+      const md = marketData[s.yfSym];
       const dailyChangePct = md?.changePercent ?? 0;
-      score += dailyChangePct * 1.5; // add short term daily momentum swing
+      score += dailyChangePct * 1.5;
 
       return Math.max(10, Math.min(99, score));
     };
@@ -3845,7 +3846,7 @@ function StockModal({ demats, onClose, onSave, initial = null, defaults = null }
           onChange={(e) => setF({ ...f, buyDate: e.target.value })}
         />
       </Field>
-      <ModalActions onSave={() => f.symbol && f.qty && onSave(f)} onClose={onClose} />
+      <ModalActions onSave={() => f.symbol && f.qty && f.avgPrice && onSave(f)} onClose={onClose} />
     </Modal>
   );
 }
