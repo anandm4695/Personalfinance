@@ -11444,6 +11444,13 @@ const CustomTreemapContent = (props: any) => {
   }
 
   const parentColor = CATEGORY_COLORS[category] || THEME.accent;
+  const isLarge = width > 120 && height > 50;
+  const isMedium = width > 70 && height > 35;
+  const isSmall = width > 40 && height > 22;
+  const nameFontSize = isLarge ? 13 : isMedium ? 11 : 9;
+  const valueFontSize = isLarge ? 12 : isMedium ? 10 : 8;
+  const maxChars = Math.max(3, Math.floor(width / (nameFontSize * 0.6)));
+  const displayName = name.length > maxChars ? name.substring(0, maxChars - 1) + "…" : name;
 
   return (
     <g>
@@ -11453,32 +11460,36 @@ const CustomTreemapContent = (props: any) => {
         width={width - 2}
         height={height - 2}
         fill={parentColor}
-        fillOpacity={0.12}
+        fillOpacity={0.15}
         stroke={parentColor}
         strokeWidth={1.5}
         rx={6}
         ry={6}
         style={{ cursor: "pointer" }}
       />
-      {width > 60 && height > 24 && (
+      {isSmall && (
         <text
-          x={x + 6}
-          y={y + 16}
+          x={x + width / 2}
+          y={y + (isMedium ? height / 2 - (valueFontSize * 0.4) : height / 2 + 3)}
           fill={THEME.ink}
-          fontSize={10}
+          fontSize={nameFontSize}
           fontWeight={700}
+          textAnchor="middle"
+          dominantBaseline="middle"
           style={{ pointerEvents: "none" }}
         >
-          {name.length > Math.floor(width / 7) ? name.substring(0, Math.floor(width / 7) - 1) + "…" : name}
+          {displayName}
         </text>
       )}
-      {width > 60 && height > 38 && (
+      {isMedium && (
         <text
-          x={x + 6}
-          y={y + 28}
+          x={x + width / 2}
+          y={y + height / 2 + (nameFontSize * 0.6)}
           fill={THEME.muted}
-          fontSize={9}
+          fontSize={valueFontSize}
           fontWeight={600}
+          textAnchor="middle"
+          dominantBaseline="middle"
           style={{ pointerEvents: "none" }}
         >
           {fmtINRFull(value)}
