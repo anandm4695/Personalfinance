@@ -915,13 +915,21 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       <Card
         style={{
           flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
           border: `1.5px solid ${THEME.line}`,
           minHeight: 0,
+          height: "100%",
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            width: "100%",
+            overflow: "hidden",
+            borderRadius: "inherit",
+          }}
+        >
         {/* ── Header ── */}
         <div
           style={{
@@ -1283,6 +1291,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
             guidance
           </div>
         </div>
+      </div>
       </Card>
     </div>
   );
