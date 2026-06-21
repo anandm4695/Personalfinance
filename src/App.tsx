@@ -3452,6 +3452,7 @@ function FinanceDashboard() {
             { id: "nps", label: "NPS", icon: Briefcase },
             { id: "epf", label: "EPF (EPFO)", icon: Shield },
             { id: "mf", label: "Mutual Funds", icon: BarChart3 },
+            { id: "dividends", label: "Dividends", icon: Coins },
             { id: "income", label: "Yield Tracker", icon: Activity },
           ],
         },

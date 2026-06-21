@@ -9303,11 +9303,41 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
 const DividendTracker = ({ state, addItem, removeItem }: any) => {
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm] = React.useState({ symbol: "", fundName: "", type: "stock", amount: "", tds: "", paymentDate: today(), fy: state?.profile?.fy || "2025-26", note: "" });
-  const dividends = state.dividends || [];
-  const totalDividends = dividends.reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
-  const totalTDS = dividends.reduce((s: number, d: any) => s + (Number(d.tds) || 0), 0);
+
+  // Manual dividend records
+  const manualDividends = state.dividends || [];
+
+  // Auto-detected dividends from transactions (category = "Dividend" or narration contains "dividend")
+  const autoDividends = React.useMemo(() => {
+    return (state.transactions || [])
+      .filter((t: any) => {
+        const cat = (t.category || "").toLowerCase();
+        const note = (t.note || t.narration || t.description || "").toLowerCase();
+        return (
+          t.type === "credit" &&
+          (cat === "dividend" || cat === "dividends" || note.includes("dividend") || note.includes("div payout") || note.includes("interim div"))
+        );
+      })
+      .map((t: any) => ({
+        id: t.id,
+        symbol: (t.note || t.narration || t.description || "").slice(0, 30),
+        fundName: "",
+        type: "auto",
+        amount: Number(t.amount) || 0,
+        tds: 0,
+        paymentDate: t.date,
+        fy: "",
+        note: "Auto-detected from transactions",
+        isAuto: true,
+      }));
+  }, [state.transactions]);
+
+  // Combined view
+  const allDividends = [...manualDividends.map((d: any) => ({ ...d, isAuto: false })), ...autoDividends];
+  const totalDividends = allDividends.reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
+  const totalTDS = allDividends.reduce((s: number, d: any) => s + (Number(d.tds) || 0), 0);
   const byFY: Record<string, { amount: number; tds: number; count: number }> = {};
-  dividends.forEach((d: any) => {
+  manualDividends.forEach((d: any) => {
     const fy = d.fy || "Unknown";
     if (!byFY[fy]) byFY[fy] = { amount: 0, tds: 0, count: 0 };
     byFY[fy].amount += Number(d.amount) || 0;
@@ -9322,7 +9352,8 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           { label: "Total Dividends", value: fmtINRFull(totalDividends), color: THEME.sage },
           { label: "TDS Deducted", value: fmtINRFull(totalTDS), color: THEME.rust },
           { label: "Net Received", value: fmtINRFull(totalDividends - totalTDS), color: THEME.accent },
-          { label: "Records", value: String(dividends.length), color: THEME.gold },
+          { label: "Manual Records", value: String(manualDividends.length), color: THEME.gold },
+          ...(autoDividends.length > 0 ? [{ label: "Auto-Detected", value: String(autoDividends.length), color: THEME.accent }] : []),
         ].map(({ label, value, color }) => (
           <Card key={label} style={{ padding: "16px 18px", borderTop: `3px solid ${color}` }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</div>
@@ -9330,6 +9361,14 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           </Card>
         ))}
       </div>
+
+      {autoDividends.length > 0 && (
+        <Card style={{ padding: "14px 18px", background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22` }}>
+          <div style={{ fontSize: 12, color: THEME.accent, fontWeight: 600 }}>
+            {autoDividends.length} dividend transaction{autoDividends.length > 1 ? "s" : ""} auto-detected from your bank transactions (category "Dividend" or narration containing "dividend"). These are shown below alongside manual records.
+          </div>
+        </Card>
+      )}
 
       <Card style={{ padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -9374,9 +9413,9 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           </div>
         )}
 
-        {dividends.length === 0 ? (
+        {allDividends.length === 0 ? (
           <div style={{ padding: 32, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
-            No dividends tracked yet. Add your first dividend record above.
+            No dividends tracked yet. Add dividend records manually above, or categorize bank transactions as "Dividend" for automatic detection.
           </div>
         ) : (
           <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
@@ -9384,7 +9423,7 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
               <thead>
                 <tr style={{ background: `${THEME.muted}09` }}>
                   <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700 }}>Security</th>
-                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Type</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Source</th>
                   <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount</th>
                   <th style={{ padding: "10px 12px", textAlign: "right" }}>TDS</th>
                   <th style={{ padding: "10px 12px", textAlign: "left" }}>Date</th>
@@ -9393,16 +9432,23 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
                 </tr>
               </thead>
               <tbody>
-                {[...dividends].sort((a: any, b: any) => (b.paymentDate || "").localeCompare(a.paymentDate || "")).map((d: any) => (
-                  <tr key={d.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                {[...allDividends].sort((a: any, b: any) => (b.paymentDate || "").localeCompare(a.paymentDate || "")).map((d: any) => (
+                  <tr key={d.id} style={{ borderTop: `1px solid ${THEME.line}`, background: d.isAuto ? `${THEME.accent}04` : undefined }}>
                     <td style={{ padding: "10px 12px", fontWeight: 600 }}>{d.symbol || d.fundName || "-"}</td>
-                    <td style={{ padding: "10px 12px" }}><Badge variant={d.type === "stock" ? "accent" : "muted"} style={{ fontSize: 10 }}>{d.type}</Badge></td>
+                    <td style={{ padding: "10px 12px" }}>
+                      {d.isAuto
+                        ? <Badge variant="muted" style={{ fontSize: 10, background: `${THEME.accent}15`, color: THEME.accent }}>Auto</Badge>
+                        : <Badge variant={d.type === "stock" ? "accent" : "muted"} style={{ fontSize: 10 }}>{d.type}</Badge>
+                      }
+                    </td>
                     <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: THEME.sage }}><Prv>{fmtINRFull(d.amount)}</Prv></td>
                     <td style={{ padding: "10px 12px", textAlign: "right", color: THEME.rust }}><Prv>{fmtINRFull(d.tds)}</Prv></td>
                     <td style={{ padding: "10px 12px", color: THEME.muted }}>{d.paymentDate || "-"}</td>
                     <td style={{ padding: "10px 12px" }}>{d.fy || "-"}</td>
                     <td style={{ padding: "10px 6px" }}>
-                      <button onClick={() => removeItem("dividends", d.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}><Trash2 size={12} /></button>
+                      {!d.isAuto && (
+                        <button onClick={() => removeItem("dividends", d.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}><Trash2 size={12} /></button>
+                      )}
                     </td>
                   </tr>
                 ))}
