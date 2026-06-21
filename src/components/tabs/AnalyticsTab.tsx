@@ -6324,7 +6324,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <Badge variant="accent">Net Worth Breakdown</Badge>
             </div>
 
-            <div style={{ width: "100%", height: 400, background: "rgba(128,128,128,0.02)", borderRadius: 12, padding: 8 }}>
+            <div style={{ width: "100%", height: 420, borderRadius: 12, padding: 4 }}>
               {treemapData.length === 0 ? (
                 <div style={{ display: "flex", alignItems: "center", justifyItems: "center", height: "100%", color: THEME.muted, justifyContent: "center" }}>
                   No asset data available to display treemap
@@ -6334,8 +6334,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <Treemap
                     data={treemapData}
                     dataKey="size"
-                    aspectRatio={4 / 3}
-                    stroke={THEME.paper}
+                    stroke="none"
                     content={<CustomTreemapContent />}
                   >
                     <Tooltip content={<TreemapTooltip />} />
@@ -11430,70 +11429,63 @@ const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, name, depth, value, category } = props;
 
   if (depth === 1) {
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill="transparent"
-        stroke={THEME.line}
-        strokeWidth={1.5}
-      />
-    );
+    return null;
   }
 
   const parentColor = CATEGORY_COLORS[category] || THEME.accent;
-  const isLarge = width > 120 && height > 50;
-  const isMedium = width > 70 && height > 35;
-  const isSmall = width > 40 && height > 22;
-  const nameFontSize = isLarge ? 13 : isMedium ? 11 : 9;
-  const valueFontSize = isLarge ? 12 : isMedium ? 10 : 8;
-  const maxChars = Math.max(3, Math.floor(width / (nameFontSize * 0.6)));
+  const isLarge = width > 100 && height > 50;
+  const isMedium = width > 60 && height > 32;
+  const isSmall = width > 30 && height > 18;
+  const nameFontSize = isLarge ? 14 : isMedium ? 12 : 10;
+  const valueFontSize = isLarge ? 13 : isMedium ? 11 : 9;
+  const maxChars = Math.max(3, Math.floor((width - 12) / (nameFontSize * 0.55)));
   const displayName = name.length > maxChars ? name.substring(0, maxChars - 1) + "…" : name;
 
   return (
     <g>
       <rect
-        x={x + 1}
-        y={y + 1}
-        width={width - 2}
-        height={height - 2}
+        x={x + 2}
+        y={y + 2}
+        width={Math.max(0, width - 4)}
+        height={Math.max(0, height - 4)}
         fill={parentColor}
-        fillOpacity={0.15}
+        fillOpacity={0.22}
         stroke={parentColor}
-        strokeWidth={1.5}
+        strokeWidth={2}
+        strokeOpacity={0.6}
         rx={6}
         ry={6}
         style={{ cursor: "pointer" }}
       />
       {isSmall && (
-        <text
-          x={x + width / 2}
-          y={y + (isMedium ? height / 2 - (valueFontSize * 0.4) : height / 2 + 3)}
-          fill={THEME.ink}
-          fontSize={nameFontSize}
-          fontWeight={700}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          style={{ pointerEvents: "none" }}
-        >
-          {displayName}
-        </text>
-      )}
-      {isMedium && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2 + (nameFontSize * 0.6)}
-          fill={THEME.muted}
-          fontSize={valueFontSize}
-          fontWeight={600}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          style={{ pointerEvents: "none" }}
-        >
-          {fmtINRFull(value)}
-        </text>
+        <>
+          <text
+            x={x + width / 2}
+            y={y + (isMedium ? height / 2 - (valueFontSize * 0.5) : height / 2)}
+            fill="#1e293b"
+            fontSize={nameFontSize}
+            fontWeight={700}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ pointerEvents: "none", textShadow: "0 0 4px rgba(255,255,255,0.9)" }}
+          >
+            {displayName}
+          </text>
+          {isMedium && (
+            <text
+              x={x + width / 2}
+              y={y + height / 2 + nameFontSize * 0.7}
+              fill="#475569"
+              fontSize={valueFontSize}
+              fontWeight={600}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              style={{ pointerEvents: "none", textShadow: "0 0 4px rgba(255,255,255,0.9)" }}
+            >
+              {fmtINRFull(value)}
+            </text>
+          )}
+        </>
       )}
     </g>
   );
