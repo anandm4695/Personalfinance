@@ -22,6 +22,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { MFLogo } from "./InvestmentsTab";
 
 const BROKERS = [
   "Zerodha",
@@ -776,25 +777,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
           marginBottom: isOverdue || isDueSoon ? 10 : 14,
         }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            flexShrink: 0,
-            background: `${fundColor}12`,
-            border: `1px solid ${fundColor}25`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {sip.isCompleted ? (
-            <CheckCircle size={20} color={statusColor} />
-          ) : (
-            <Activity size={20} color={fundColor} />
-          )}
-        </div>
+        <MFLogo fundName={sip.scheme || ""} size={40} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div

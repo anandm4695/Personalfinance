@@ -7538,7 +7538,7 @@ function getMFDomain(fundName: string): string {
   return "";
 }
 
-const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: number }) => {
+export const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: number }) => {
   const domain = getMFDomain(fundName);
   const [imgSrc, setImgSrc] = React.useState<string | null>(
     domain ? `https://logos.hunter.io/${domain}` : null
