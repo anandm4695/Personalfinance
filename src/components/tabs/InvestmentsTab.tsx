@@ -1139,7 +1139,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           />
         );
       case "dividends":
-        return <DividendTracker state={state} addItem={onSave} removeItem={removeItem} />;
+        return <DividendTracker state={state} addItem={addItem} removeItem={removeItem} />;
       case "income":
         return <YieldTracker state={state} />;
       default:
