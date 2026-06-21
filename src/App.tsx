@@ -4844,7 +4844,7 @@ function FinanceDashboard() {
           <main
             style={{
               flex: 1,
-              overflowY: "auto",
+              overflowY: tab === "ai" ? "hidden" : "auto",
               overflowX: "hidden",
               padding: "40px",
               position: "relative",

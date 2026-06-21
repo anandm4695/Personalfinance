@@ -903,7 +903,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "calc(100dvh - 110px)",
+        height: "calc(100dvh - 150px)",
         minHeight: 500,
         maxHeight: 920,
       }}
