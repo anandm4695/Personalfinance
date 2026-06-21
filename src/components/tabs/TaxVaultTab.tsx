@@ -860,10 +860,14 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         const days = m.buyDate
           ? Math.max(0, Math.ceil((Date.now() - new Date(m.buyDate).getTime()) / 86400000))
           : 0;
+        const isDebt = (m.category || m.type || "").toLowerCase().includes("debt");
+        const isPostApril23 = m.buyDate && m.buyDate >= "2023-04-01";
+        const isSlabTaxed = isDebt && isPostApril23;
+
         candidates.push({
           id: m.id,
           name: m.name || m.symbol,
-          type: "Mutual Fund",
+          type: isSlabTaxed ? "Debt Fund (Slab)" : "Mutual Fund",
           qty: units,
           buyPrice: units > 0 ? invested / units : 0,
           currentPrice: currentNav,
@@ -871,13 +875,33 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           currentVal,
           loss,
           buyDate: m.buyDate,
-          isLtcg: days > 365,
+          isLtcg: isSlabTaxed ? false : days > 365,
+          isSlabTaxed,
           days,
         });
       }
     });
     return candidates.sort((a, b) => b.loss - a.loss);
   }, [state.stocks, state.mutualFunds]);
+
+  const marginalRate = useMemo(() => {
+    const r = activeRegime === "new" ? taxNewResult : taxOldResult;
+    const taxable = r.taxable || 0;
+    if (activeRegime === "new") {
+      if (taxable <= 400000) return 0;
+      if (taxable <= 800000) return 0.05;
+      if (taxable <= 1200000) return 0.1;
+      if (taxable <= 1600000) return 0.15;
+      if (taxable <= 2000000) return 0.2;
+      if (taxable <= 2400000) return 0.25;
+      return 0.3;
+    } else {
+      if (taxable <= 250000) return 0;
+      if (taxable <= 500000) return 0.05;
+      if (taxable <= 1000000) return 0.2;
+      return 0.3;
+    }
+  }, [activeRegime, taxNewResult, taxOldResult]);
 
   const taxCalculations = useMemo(() => {
     const { stcgGains, stcgLosses, ltcgGains, ltcgLosses } = realizedGainsData;
@@ -3228,7 +3252,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             <div style={{ display: "grid", gap: 12, marginBottom: 32 }}>
               {harvestCandidates.map((cand) => {
                 const isSelected = simulatedHarvestIds.includes(cand.id);
-                const taxSavedEst = cand.isLtcg ? cand.loss * 0.125 : cand.loss * 0.2;
+                const taxSavedEst = cand.isSlabTaxed
+                  ? cand.loss * marginalRate
+                  : cand.isLtcg
+                  ? cand.loss * 0.125
+                  : cand.loss * 0.2;
                 return (
                   <div
                     key={cand.id}

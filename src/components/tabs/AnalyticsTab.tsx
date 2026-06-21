@@ -39,6 +39,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  Treemap,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent, calculateEpfBalance } from "../../utils/finance";
@@ -758,6 +759,107 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       noChangeStocks,
     };
   }, [state.stocks, marketData]);
+
+  const treemapData = useMemo(() => {
+    const data: any[] = [];
+
+    // 1. Bank Accounts
+    const bankChildren = (state.bankAccounts || [])
+      .map((b: any) => ({
+        name: b.bankName || "Bank Account",
+        size: Number(b.balance || 0),
+        category: "Banks & Cash",
+      }))
+      .filter((c: any) => c.size > 0);
+    if (bankChildren.length > 0) {
+      data.push({ name: "Banks & Cash", children: bankChildren });
+    }
+
+    // 2. Mutual Funds
+    const mfChildren = (state.mutualFunds || [])
+      .map((m: any) => {
+        const units = Number(m.units || 0);
+        const nav = Number(m.currentNav || m.buyNav || 0);
+        return {
+          name: m.name || m.scheme || "Mutual Fund",
+          size: units * nav,
+          category: "Mutual Funds",
+        };
+      })
+      .filter((c: any) => c.size > 0);
+    if (mfChildren.length > 0) {
+      data.push({ name: "Mutual Funds", children: mfChildren });
+    }
+
+    // 3. Stocks
+    const stockChildren = (state.stocks || [])
+      .map((s: any) => {
+        const qty = Number(s.qty || 0);
+        const price = Number(s.currentPrice || s.avgPrice || 0);
+        return {
+          name: s.symbol || "Stock",
+          size: qty * price,
+          category: "Stocks",
+        };
+      })
+      .filter((c: any) => c.size > 0);
+    if (stockChildren.length > 0) {
+      data.push({ name: "Stocks", children: stockChildren });
+    }
+
+    // 4. Fixed Income (FD & RD & PPF & NPS & EPF & Bonds)
+    const fiChildren: any[] = [];
+    (state.fixedDeposits || []).forEach((fd: any) => {
+      fiChildren.push({
+        name: `FD (${fd.bank || "Deposit"})`,
+        size: Number(fd.principal || 0),
+        category: "Fixed Income",
+      });
+    });
+    (state.recurringDeposits || []).forEach((rd: any) => {
+      fiChildren.push({
+        name: `RD (${rd.bank || "Deposit"})`,
+        size: Number(rd.monthly || 0) * Number(rd.tenureMonths || 0),
+        category: "Fixed Income",
+      });
+    });
+    (state.bonds || []).forEach((b: any) => {
+      fiChildren.push({
+        name: b.name || "Bond",
+        size: Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+        category: "Fixed Income",
+      });
+    });
+    (state.ppf || []).forEach((p: any) => {
+      fiChildren.push({ name: `PPF (${p.owner || "self"})`, size: Number(p.balance || 0), category: "Fixed Income" });
+    });
+    (state.nps || []).forEach((n: any) => {
+      fiChildren.push({ name: `NPS (${n.owner || "self"})`, size: Number(n.balance || 0), category: "Fixed Income" });
+    });
+    (state.epf || []).forEach((e: any) => {
+      fiChildren.push({ name: `EPF (${e.owner || "self"})`, size: calculateEpfBalance(e), category: "Fixed Income" });
+    });
+
+    const cleanFiChildren = fiChildren.filter((c) => c.size > 0);
+    if (cleanFiChildren.length > 0) {
+      data.push({ name: "Fixed Income", children: cleanFiChildren });
+    }
+
+    // 5. Real Estate
+    const reChildren = (state.realEstateProperties || [])
+      .filter((p: any) => p.status !== "sold")
+      .map((p: any) => ({
+        name: p.name || "Real Estate",
+        size: Number(p.marketValue || p.agreementValue || 0),
+        category: "Real Estate",
+      }))
+      .filter((c: any) => c.size > 0);
+    if (reChildren.length > 0) {
+      data.push({ name: "Real Estate", children: reChildren });
+    }
+
+    return data;
+  }, [state, metrics]);
 
   const getStockCapAssets = (capName: string) => {
     return (state.stocks || [])
@@ -6012,6 +6114,62 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
           </Card>
 
+          {/* Asset Allocation Treemap */}
+          <Card style={{ padding: 24, marginTop: 28 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: 20,
+              }}
+            >
+              <div>
+                <div className="section-label" style={{ marginBottom: 2 }}>
+                  Asset Allocation Treemap
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  Visualizing concentration and relative sizes of your wealth across asset classes
+                </div>
+              </div>
+              <Badge variant="accent">Net Worth Breakdown</Badge>
+            </div>
+
+            <div style={{ width: "100%", height: 400, background: "rgba(128,128,128,0.02)", borderRadius: 12, padding: 8 }}>
+              {treemapData.length === 0 ? (
+                <div style={{ display: "flex", alignItems: "center", justifyItems: "center", height: "100%", color: THEME.muted, justifyContent: "center" }}>
+                  No asset data available to display treemap
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <Treemap
+                    data={treemapData}
+                    dataKey="size"
+                    aspectRatio={4 / 3}
+                    stroke={THEME.paper}
+                    content={<CustomTreemapContent />}
+                  >
+                    <Tooltip content={<TreemapTooltip />} />
+                  </Treemap>
+                </ResponsiveContainer>
+              )}
+            </div>
+            
+            {/* Treemap Legend */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 16, padding: "0 8px" }}>
+              {Object.entries(CATEGORY_COLORS).map(([cat, color]) => {
+                const exists = treemapData.some(d => d.name === cat);
+                if (!exists) return null;
+                return (
+                  <div key={cat} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: THEME.ink }}>{cat}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
           {/* Portfolio Rebalancing */}
           <Card style={{ padding: 24, marginTop: 28 }}>
             <div
@@ -10673,4 +10831,103 @@ const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
       </div>
     </div>
   );
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "Banks & Cash": "#0D9488",
+  "Mutual Funds": "#7C3AED",
+  "Stocks": "#2563EB",
+  "Fixed Income": "#D97706",
+  "Real Estate": "#059669",
+};
+
+const CustomTreemapContent = (props: any) => {
+  const { x, y, width, height, name, depth, value, category } = props;
+
+  if (depth === 1) {
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="transparent"
+        stroke={THEME.line}
+        strokeWidth={1.5}
+      />
+    );
+  }
+
+  const parentColor = CATEGORY_COLORS[category] || THEME.accent;
+
+  return (
+    <g>
+      <rect
+        x={x + 1}
+        y={y + 1}
+        width={width - 2}
+        height={height - 2}
+        fill={parentColor}
+        fillOpacity={0.12}
+        stroke={parentColor}
+        strokeWidth={1.5}
+        rx={6}
+        ry={6}
+        style={{ cursor: "pointer" }}
+      />
+      {width > 60 && height > 24 && (
+        <text
+          x={x + 6}
+          y={y + 16}
+          fill={THEME.ink}
+          fontSize={10}
+          fontWeight={700}
+          style={{ pointerEvents: "none" }}
+        >
+          {name.length > Math.floor(width / 7) ? name.substring(0, Math.floor(width / 7) - 1) + "…" : name}
+        </text>
+      )}
+      {width > 60 && height > 38 && (
+        <text
+          x={x + 6}
+          y={y + 28}
+          fill={THEME.muted}
+          fontSize={9}
+          fontWeight={600}
+          style={{ pointerEvents: "none" }}
+        >
+          {fmtINRFull(value)}
+        </text>
+      )}
+    </g>
+  );
+};
+
+const TreemapTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    if (!data.category) return null;
+    return (
+      <div
+        style={{
+          background: THEME.paper,
+          border: `1px solid ${THEME.line}`,
+          padding: "10px 14px",
+          borderRadius: 8,
+          boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+        }}
+      >
+        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          {data.category}
+        </div>
+        <div style={{ fontSize: 12, color: THEME.ink, fontWeight: 700, marginTop: 4 }}>
+          {data.name}
+        </div>
+        <div style={{ fontSize: 13, color: THEME.accent, fontWeight: 900, marginTop: 4 }}>
+          {fmtINRFull(data.value || data.size)}
+        </div>
+      </div>
+    );
+  }
+  return null;
 };

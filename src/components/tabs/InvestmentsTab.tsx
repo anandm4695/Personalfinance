@@ -50,6 +50,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
+import { MFCasPanel } from "./MFCasPanel";
 
 interface InvestmentsTabProps {
   state: any;
@@ -7638,6 +7639,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   useEffect(() => { localStorage.setItem("finance_mf_group", mfGroupBy); }, [mfGroupBy]);
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showCasImport, setShowCasImport] = useState(false);
 
   const handleExport = () => {
     if (!items || items.length === 0) return;
@@ -8004,10 +8006,25 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                 variant="secondary"
                 size="sm"
                 icon={<Upload size={13} />}
-                onClick={() => setShowCsvImport((v) => !v)}
+                onClick={() => {
+                  setShowCsvImport((v) => !v);
+                  setShowCasImport(false);
+                }}
                 title="Import mutual funds from CSV"
               >
                 Import CSV
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Upload size={13} />}
+                onClick={() => {
+                  setShowCasImport((v) => !v);
+                  setShowCsvImport(false);
+                }}
+                title="Import mutual funds from CAS Statement copy"
+              >
+                Import CAS
               </Button>
               {items.some((m: any) => m.mfCode) && (
                 <Button
@@ -8031,6 +8048,18 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                   setShowCsvImport(false);
                 }}
                 onClose={() => setShowCsvImport(false)}
+              />
+            </div>
+          )}
+
+          {showCasImport && (
+            <div style={{ marginBottom: 16 }}>
+              <MFCasPanel
+                onImport={(rows: any[]) => {
+                  handleImport(rows);
+                  setShowCasImport(false);
+                }}
+                onClose={() => setShowCasImport(false)}
               />
             </div>
           )}

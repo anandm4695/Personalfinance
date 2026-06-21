@@ -482,9 +482,229 @@ ${topExpenses}
 ${subs}
 
 == GOALS PROGRESS ==
-${goals}`;
+${goals}
+
+You have access to local tools/functions to retrieve real-time and detailed transaction lists, holdings, and loan prepayment calculations. Use them when the user asks for detailed lists, specific transactions, or loan prepayments.`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metrics, state]);
+
+  const functionDeclarations = [
+    {
+      name: "get_financial_summary",
+      description: "Retrieve a summary of the user's financial metrics including net worth, monthly income, monthly expenses, total savings, savings rate, cash in banks, asset values (mutual funds, stocks, fixed deposits, PPF, EPF, NPS, real estate), total liabilities, and debt ratios.",
+      parameters: {
+        type: "OBJECT",
+        properties: {},
+      },
+    },
+    {
+      name: "get_investment_holdings",
+      description: "Retrieve a list of all mutual funds and stocks holdings including symbol/scheme names, folio, units/quantity, buy price/NAV, live/current price/NAV, invested value, current value, and absolute gains/losses.",
+      parameters: {
+        type: "OBJECT",
+        properties: {},
+      },
+    },
+    {
+      name: "find_transactions",
+      description: "Search and filter the user's transactions ledger by a search keyword, category, or type. Returns up to 25 matched transactions.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          queryText: {
+            type: "STRING",
+            description: "Optional search text matching the transaction note or description.",
+          },
+          category: {
+            type: "STRING",
+            description: "Optional exact category name (e.g., Food, Travel, Bills, Salary, Investment).",
+          },
+          type: {
+            type: "STRING",
+            description: "Optional transaction type. Allowed values: 'credit', 'debit'.",
+          },
+        },
+      },
+    },
+    {
+      name: "calculate_loan_prepayment",
+      description: "Calculate interest savings and tenure reduction by simulating extra monthly EMI payments or a lump-sum prepayment on the user's active loan(s).",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          loanId: {
+            type: "STRING",
+            description: "Optional ID of the loan to calculate prepayments for. Defaults to the first active loan if not provided.",
+          },
+          extraMonthlyAmount: {
+            type: "NUMBER",
+            description: "Optional extra amount to pay on top of the regular EMI every month.",
+          },
+          oneTimePaymentAmount: {
+            type: "NUMBER",
+            description: "Optional lump-sum / one-time prepayment to make immediately.",
+          },
+        },
+      },
+    },
+  ];
+
+  const handleGetFinancialSummary = () => {
+    return {
+      netWorth: metrics.netWorth || 0,
+      monthlyIncome: metrics.monthIncome || 0,
+      monthlyExpenses: metrics.monthExpense || 0,
+      monthlySavings: (metrics.monthIncome || 0) - (metrics.monthExpense || 0),
+      savingsRate: metrics.savingsRate || 0,
+      cashInBanks: metrics.cashInBanks || 0,
+      mutualFundsValue: metrics.mfValue || 0,
+      mutualFundsInvested: metrics.mfInvested || 0,
+      stocksValue: metrics.stockValue || 0,
+      stocksInvested: metrics.stockInvested || 0,
+      fixedDepositsValue: metrics.fdValue || 0,
+      ppfValue: metrics.ppfValue || 0,
+      epfValue: metrics.epfValue || 0,
+      npsValue: metrics.npsValue || 0,
+      realEstateValue: metrics.realEstateAsset || 0,
+      creditCardOutstanding: metrics.ccOutstanding || 0,
+      totalLiabilities: metrics.totalLiabilities || 0,
+      foir: metrics.foir || 0,
+      debtToAssetRatio: metrics.debtToAssetRatio || 0,
+    };
+  };
+
+  const handleGetInvestmentHoldings = () => {
+    const mutualFunds = (state.mutualFunds || []).map((m: any) => ({
+      name: m.name || m.scheme || "Mutual Fund",
+      units: Number(m.units || 0),
+      buyNav: Number(m.buyNav || 0),
+      currentNav: Number(m.currentNav || m.buyNav || 0),
+      investedAmount: Number(m.units || 0) * Number(m.buyNav || 0),
+      currentValue: Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0),
+      gain: (Number(m.currentNav || m.buyNav || 0) - Number(m.buyNav || 0)) * Number(m.units || 0),
+      folio: m.folio || "N/A",
+    }));
+
+    const stocks = (state.stocks || []).map((s: any) => ({
+      symbol: s.symbol,
+      quantity: Number(s.qty || 0),
+      avgBuyPrice: Number(s.avgPrice || 0),
+      currentPrice: Number(s.currentPrice || s.avgPrice || 0),
+      investedAmount: Number(s.qty || 0) * Number(s.avgPrice || 0),
+      currentValue: Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0),
+      gain: (Number(s.currentPrice || s.avgPrice || 0) - Number(s.avgPrice || 0)) * Number(s.qty || 0),
+    }));
+
+    return { mutualFunds, stocks };
+  };
+
+  const handleFindTransactions = (args: any) => {
+    const queryText = (args.queryText || "").toLowerCase().trim();
+    const category = (args.category || "").toLowerCase().trim();
+    const type = (args.type || "").toLowerCase().trim();
+
+    let txs = state.transactions || [];
+
+    if (queryText) {
+      txs = txs.filter(
+        (t: any) =>
+          (t.note || "").toLowerCase().includes(queryText) ||
+          (t.description || "").toLowerCase().includes(queryText) ||
+          (t.category || "").toLowerCase().includes(queryText)
+      );
+    }
+    if (category) {
+      txs = txs.filter((t: any) => (t.category || "").toLowerCase() === category);
+    }
+    if (type) {
+      txs = txs.filter((t: any) => (t.type || "").toLowerCase() === type);
+    }
+
+    return txs.slice(0, 25).map((t: any) => ({
+      id: t.id,
+      date: t.date,
+      amount: Number(t.amount || 0),
+      type: t.type,
+      category: t.category || "Uncategorized",
+      note: t.note || t.description || "",
+    }));
+  };
+
+  const handleCalculateLoanPrepayment = (args: any) => {
+    const { loanId, extraMonthlyAmount = 0, oneTimePaymentAmount = 0 } = args;
+
+    let loan = null;
+    if (loanId) {
+      loan = (state.loansTaken || []).find((l: any) => l.id === loanId);
+    } else if ((state.loansTaken || []).length > 0) {
+      loan = state.loansTaken[0];
+    }
+
+    if (!loan) {
+      return { error: "No active loan found to calculate prepayment for." };
+    }
+
+    const balance = Number(loan.outstanding || 0);
+    const emi = Number(loan.emi || 0);
+    const rate = Number(loan.rate || 0);
+
+    if (balance <= 0 || emi <= 0 || rate <= 0) {
+      return { error: "Invalid loan details. Balance, EMI and Interest Rate must be greater than zero." };
+    }
+
+    const monthlyRate = rate / 100 / 12;
+
+    // 1. Baseline simulation
+    let baseBalance = balance;
+    let baseInterest = 0;
+    let baseMonths = 0;
+    while (baseBalance > 0 && baseMonths < 600) {
+      const interest = baseBalance * monthlyRate;
+      const principal = emi - interest;
+      if (principal <= 0) {
+        return { error: "EMI is too low to cover monthly interest. Loan will never be paid off." };
+      }
+      const actualPay = Math.min(baseBalance + interest, emi);
+      baseInterest += interest;
+      baseBalance = baseBalance + interest - actualPay;
+      baseMonths++;
+    }
+
+    // 2. Prepayment simulation
+    let prepayBalance = balance;
+    if (oneTimePaymentAmount > 0) {
+      prepayBalance = Math.max(0, prepayBalance - oneTimePaymentAmount);
+    }
+
+    let prepayInterest = 0;
+    let prepayMonths = 0;
+
+    while (prepayBalance > 0 && prepayMonths < 600) {
+      const interest = prepayBalance * monthlyRate;
+      const totalPayment = emi + extraMonthlyAmount;
+      const actualPay = Math.min(prepayBalance + interest, totalPayment);
+      prepayInterest += interest;
+      prepayBalance = prepayBalance + interest - actualPay;
+      prepayMonths++;
+    }
+
+    const interestSavings = Math.max(0, baseInterest - prepayInterest);
+    const monthsSaved = Math.max(0, baseMonths - prepayMonths);
+
+    return {
+      loanName: `${loan.type || "Loan"} (${loan.bankName || "Active"})`,
+      outstandingBalance: balance,
+      interestRate: rate,
+      currentEmi: emi,
+      baselineRemainingTenureMonths: baseMonths,
+      baselineTotalInterest: baseInterest,
+      prepaymentRemainingTenureMonths: prepayMonths,
+      prepaymentTotalInterest: prepayInterest,
+      interestSaved: interestSavings,
+      monthsSaved: monthsSaved,
+      yearsSaved: Number((monthsSaved / 12).toFixed(1)),
+    };
+  };
 
   const handleSend = async (prefill?: string) => {
     const userText = (prefill ?? input).trim();
@@ -497,7 +717,10 @@ ${goals}`;
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        tools: [{ functionDeclarations }],
+      });
 
       // First message: create a new chat session and prepend full financial context
       if (!chatRef.current) {
@@ -511,7 +734,46 @@ ${goals}`;
 
       isFirstRef.current = false;
 
-      const result = await chatRef.current.sendMessage(payload);
+      let result = await chatRef.current.sendMessage(payload);
+      let functionCalls = result.response.functionCalls();
+
+      // Loop executing client-side tool calls while the model requests them
+      while (functionCalls && functionCalls.length > 0) {
+        const functionResponses = [];
+
+        for (const call of functionCalls) {
+          const { name, args } = call;
+          let contentData;
+
+          try {
+            if (name === "get_financial_summary") {
+              contentData = handleGetFinancialSummary();
+            } else if (name === "get_investment_holdings") {
+              contentData = handleGetInvestmentHoldings();
+            } else if (name === "find_transactions") {
+              contentData = handleFindTransactions(args);
+            } else if (name === "calculate_loan_prepayment") {
+              contentData = handleCalculateLoanPrepayment(args);
+            } else {
+              contentData = { error: `Function '${name}' not implemented.` };
+            }
+          } catch (execErr: any) {
+            contentData = { error: `Failed to execute: ${execErr.message}` };
+          }
+
+          functionResponses.push({
+            functionResponse: {
+              name,
+              response: { result: contentData },
+            },
+          });
+        }
+
+        // Send function responses back to model
+        result = await chatRef.current.sendMessage(functionResponses);
+        functionCalls = result.response.functionCalls();
+      }
+
       setMessages((prev) => [...prev, { role: "model", text: result.response.text() }]);
     } catch (err: any) {
       setError(err?.message || "Failed to reach Gemini. Check your API key in Settings.");
