@@ -3804,7 +3804,21 @@ function FinanceDashboard() {
         onLogin={setSession}
         onOffline={
           isDemoSite
-            ? () => {
+            ? async () => {
+                const demoEmail = import.meta.env.VITE_DEMO_USER_EMAIL;
+                const demoPass = import.meta.env.VITE_DEMO_USER_PASSWORD;
+                if (demoEmail && demoPass) {
+                  try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                      email: demoEmail,
+                      password: demoPass,
+                    });
+                    if (!error && data.session) {
+                      setSession(data.session);
+                      return;
+                    }
+                  } catch {}
+                }
                 const demoSession = {
                   user: { id: "offline-user", email: "demo@personalfinance.app" },
                   access_token: "offline",
