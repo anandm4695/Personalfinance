@@ -11428,18 +11428,18 @@ const CATEGORY_COLORS: Record<string, string> = {
 const CustomTreemapContent = (props: any) => {
   const { x, y, width, height, name, depth, value, category } = props;
 
-  if (depth === 1) {
-    return null;
-  }
+  if (depth === 1) return null;
 
   const parentColor = CATEGORY_COLORS[category] || THEME.accent;
-  const isLarge = width > 100 && height > 50;
-  const isMedium = width > 60 && height > 32;
-  const isSmall = width > 30 && height > 18;
-  const nameFontSize = isLarge ? 14 : isMedium ? 12 : 10;
-  const valueFontSize = isLarge ? 13 : isMedium ? 11 : 9;
-  const maxChars = Math.max(3, Math.floor((width - 12) / (nameFontSize * 0.55)));
+  const showValue = width > 80 && height > 44;
+  const showName = width > 36 && height > 22;
+  const fontSize = width > 120 && height > 50 ? 13 : width > 70 ? 11 : 9;
+  const valFontSize = fontSize - 1;
+  const maxChars = Math.max(3, Math.floor((width - 16) / (fontSize * 0.58)));
   const displayName = name.length > maxChars ? name.substring(0, maxChars - 1) + "…" : name;
+
+  const nameY = showValue ? y + height / 2 - 7 : y + height / 2;
+  const valY = y + height / 2 + valFontSize + 1;
 
   return (
     <g>
@@ -11449,42 +11449,63 @@ const CustomTreemapContent = (props: any) => {
         width={Math.max(0, width - 4)}
         height={Math.max(0, height - 4)}
         fill={parentColor}
-        fillOpacity={0.22}
+        fillOpacity={0.18}
         stroke={parentColor}
-        strokeWidth={2}
-        strokeOpacity={0.6}
+        strokeWidth={1.5}
         rx={6}
         ry={6}
         style={{ cursor: "pointer" }}
       />
-      {isSmall && (
+      {showName && (
         <>
+          <rect
+            x={x + width / 2 - (displayName.length * fontSize * 0.32) - 6}
+            y={nameY - fontSize / 2 - 3}
+            width={displayName.length * fontSize * 0.64 + 12}
+            height={fontSize + 6}
+            fill="white"
+            fillOpacity={0.85}
+            rx={4}
+            ry={4}
+          />
           <text
             x={x + width / 2}
-            y={y + (isMedium ? height / 2 - (valueFontSize * 0.5) : height / 2)}
-            fill="#1e293b"
-            fontSize={nameFontSize}
+            y={nameY}
+            fill="#0f172a"
+            fontSize={fontSize}
             fontWeight={700}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ pointerEvents: "none", textShadow: "0 0 4px rgba(255,255,255,0.9)" }}
+            style={{ pointerEvents: "none" }}
           >
             {displayName}
           </text>
-          {isMedium && (
-            <text
-              x={x + width / 2}
-              y={y + height / 2 + nameFontSize * 0.7}
-              fill="#475569"
-              fontSize={valueFontSize}
-              fontWeight={600}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{ pointerEvents: "none", textShadow: "0 0 4px rgba(255,255,255,0.9)" }}
-            >
-              {fmtINRFull(value)}
-            </text>
-          )}
+        </>
+      )}
+      {showValue && (
+        <>
+          <rect
+            x={x + width / 2 - (fmtINRFull(value).length * valFontSize * 0.32) - 5}
+            y={valY - valFontSize / 2 - 2}
+            width={fmtINRFull(value).length * valFontSize * 0.64 + 10}
+            height={valFontSize + 4}
+            fill="white"
+            fillOpacity={0.75}
+            rx={3}
+            ry={3}
+          />
+          <text
+            x={x + width / 2}
+            y={valY}
+            fill="#334155"
+            fontSize={valFontSize}
+            fontWeight={600}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ pointerEvents: "none" }}
+          >
+            {fmtINRFull(value)}
+          </text>
         </>
       )}
     </g>
