@@ -4844,9 +4844,11 @@ function FinanceDashboard() {
           <main
             style={{
               flex: 1,
+              display: tab === "ai" ? "flex" : "block",
+              flexDirection: "column",
               overflowY: tab === "ai" ? "hidden" : "auto",
               overflowX: "hidden",
-              padding: "40px",
+              padding: tab === "ai" ? "24px 40px" : "40px",
               position: "relative",
               zIndex: 1,
               filter: privacyMode ? "blur(16px)" : "none",
@@ -4887,7 +4889,15 @@ function FinanceDashboard() {
                 </span>
               </div>
             )}
-            <div key={tab} className="tab-content-enter">
+            <div
+              key={tab}
+              className="tab-content-enter"
+              style={
+                tab === "ai"
+                  ? { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }
+                  : undefined
+              }
+            >
               {tab === "analytics" && (
                 <AnalyticsTab
                   metrics={metrics}
@@ -5090,21 +5100,23 @@ function FinanceDashboard() {
             </div>
           </main>
 
-          <footer
-            style={{
-              textAlign: "center",
-              padding: "28px 20px 32px",
-              color: THEME.muted,
-              fontSize: 12,
-              borderTop: `1px solid ${THEME.line}`,
-              marginTop: 40,
-              letterSpacing: "0.04em",
-              lineHeight: 1.8,
-            }}
-          >
-            <span style={{ fontWeight: 600 }}>Personal Finance by Anand Mohta</span> · Enterprise
-            Grade · All data stored securely · FY {state.profile.fy}
-          </footer>
+          {tab !== "ai" && (
+            <footer
+              style={{
+                textAlign: "center",
+                padding: "28px 20px 32px",
+                color: THEME.muted,
+                fontSize: 12,
+                borderTop: `1px solid ${THEME.line}`,
+                marginTop: 40,
+                letterSpacing: "0.04em",
+                lineHeight: 1.8,
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>Personal Finance by Anand Mohta</span> · Enterprise
+              Grade · All data stored securely · FY {state.profile.fy}
+            </footer>
+          )}
         </div>
 
         {/* ── MOBILE BOTTOM NAVIGATION ──

@@ -51,9 +51,14 @@ export const Card: React.FC<CardProps> = ({
   } = style || {};
 
   const contentStyle: React.CSSProperties = {
+    flexGrow: 1,
     minHeight: "100%",
     width: "100%",
   };
+
+  // Ensure spotlight-wrapper is a flex column container so spotlight-content flexGrow resolves properly
+  outerStyle.display = "flex";
+  outerStyle.flexDirection = "column";
 
   if (height !== undefined) {
     outerStyle.height = height;

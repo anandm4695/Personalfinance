@@ -903,9 +903,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "calc(100dvh - 150px)",
-        minHeight: 500,
-        maxHeight: 920,
+        flex: 1,
+        minHeight: 0,
       }}
     >
       <SectionTitle sub="Powered by Gemini 2.5 Flash · Context anonymised locally · Multi-turn">
@@ -917,7 +916,6 @@ You have access to local tools/functions to retrieve real-time and detailed tran
           flex: 1,
           border: `1.5px solid ${THEME.line}`,
           minHeight: 0,
-          height: "100%",
         }}
       >
         <div
