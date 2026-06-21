@@ -10,9 +10,12 @@ import {
   Mail,
   CheckCircle2,
   AlertCircle,
+  Bell,
+  BarChart2,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { Modal } from "../ui/Modal";
 
 const btnGhost = {
@@ -751,6 +754,165 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
               ))}
           </div>
         </div>
+
+        {/* Top Movers — biggest stock/MF gains & losses */}
+        {(() => {
+          const movers: { name: string; gain: number; pct: number; type: string }[] = [];
+          (state.stocks || []).forEach((s: any) => {
+            const qty = Number(s.qty || 0);
+            const avg = Number(s.avgPrice || 0);
+            const cmp = Number(s.currentPrice || avg);
+            if (qty > 0 && avg > 0) {
+              const gain = (cmp - avg) * qty;
+              const pct = ((cmp - avg) / avg) * 100;
+              const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
+              movers.push({ name: base, gain, pct, type: "Stock" });
+            }
+          });
+          (state.mutualFunds || []).forEach((m: any) => {
+            const units = Number(m.units || 0);
+            const buyNav = Number(m.buyNav || 0);
+            const curNav = Number(m.currentNav || buyNav);
+            if (units > 0 && buyNav > 0) {
+              const gain = (curNav - buyNav) * units;
+              const pct = ((curNav - buyNav) / buyNav) * 100;
+              movers.push({ name: m.name || m.scheme || "MF", gain, pct, type: "MF" });
+            }
+          });
+          if (movers.length === 0) return null;
+          movers.sort((a, b) => b.gain - a.gain);
+          const topGainers = movers.filter((m) => m.gain > 0).slice(0, 3);
+          const topLosers = movers.filter((m) => m.gain < 0).sort((a, b) => a.gain - b.gain).slice(0, 3);
+          const display = [...topGainers, ...topLosers];
+          if (display.length === 0) return null;
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>Top Movers</SectionLabel>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {topGainers.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      Gainers
+                    </div>
+                    {topGainers.map((m, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 12 }}>
+                        <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                          {m.name}
+                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>{m.type}</span>
+                        </span>
+                        <span style={{ color: THEME.sage, fontWeight: 700 }}>
+                          +{m.pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {topLosers.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.rust, fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      Losers
+                    </div>
+                    {topLosers.map((m, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 12 }}>
+                        <span style={{ color: THEME.ink, fontWeight: 600 }}>
+                          {m.name}
+                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>{m.type}</span>
+                        </span>
+                        <span style={{ color: THEME.rust, fontWeight: 700 }}>
+                          {m.pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Upcoming Renewals — subscriptions & insurance premiums due in next 30 days */}
+        {(() => {
+          const now = new Date();
+          const in30 = new Date(now.getTime() + 30 * 86400000);
+          const renewals: { name: string; amount: number; date: string; type: string }[] = [];
+
+          // Subscriptions with upcoming renewals
+          (state.subscriptions || []).forEach((s: any) => {
+            if (s.paused) return;
+            const rd = s.renewalDate ? new Date(s.renewalDate) : null;
+            if (rd && rd >= now && rd <= in30) {
+              renewals.push({
+                name: s.name || s.serviceName || "Subscription",
+                amount: Number(s.amount || 0),
+                date: rd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                type: "Subscription",
+              });
+            }
+          });
+
+          // Insurance premiums due
+          (state.lic || []).forEach((l: any) => {
+            if (!l.premiumDueDate) return;
+            const dd = new Date(l.premiumDueDate);
+            if (dd >= now && dd <= in30) {
+              renewals.push({
+                name: l.policyName || l.insurer || "LIC Policy",
+                amount: Number(l.premium || 0),
+                date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                type: "Insurance",
+              });
+            }
+          });
+          (state.termPlans || []).forEach((t: any) => {
+            if (!t.premiumDueDate) return;
+            const dd = new Date(t.premiumDueDate);
+            if (dd >= now && dd <= in30) {
+              renewals.push({
+                name: t.insurer || "Term Plan",
+                amount: Number(t.premium || 0),
+                date: dd.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+                type: "Insurance",
+              });
+            }
+          });
+
+          if (renewals.length === 0) return null;
+          renewals.sort((a, b) => a.amount - b.amount);
+          const totalRenewals = renewals.reduce((s, r) => s + r.amount, 0);
+
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <SectionLabel>
+                Upcoming Renewals (30 days) · {fmtINRFull(totalRenewals)}
+              </SectionLabel>
+              {renewals.map((r, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "7px 0",
+                    borderBottom: `1px dashed ${THEME.line}`,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Bell size={12} color={THEME.gold} />
+                    <span>
+                      {r.name}
+                      <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 6 }}>{r.type}</span>
+                    </span>
+                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 700, color: THEME.gold }}>{fmtINRFull(r.amount)}</div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>Due {r.date}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Upcoming Dues — only for current/future months */}
         {showDues && upcoming.length > 0 && (

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
+import { exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Form";
@@ -1150,10 +1151,156 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
   );
 }
 
+// ─── Section: Document Vault ─────────────────────────────────────────────────
+function DocumentVaultSection({ state, addItem, removeItem }: any) {
+  const [docName, setDocName] = useState("");
+  const [docType, setDocType] = useState("tax");
+  const [docTags, setDocTags] = useState("");
+  const [docNote, setDocNote] = useState("");
+
+  const documents = state.documents || [];
+  const DOC_TYPES = ["tax", "insurance", "property", "vehicle", "investment", "bank", "legal", "other"];
+
+  const handleAddDoc = () => {
+    if (!docName.trim()) return;
+    addItem("documents", {
+      name: docName.trim(),
+      filePath: "",
+      linkedType: docType,
+      tags: docTags.split(",").map((t: string) => t.trim()).filter(Boolean),
+      note: docNote,
+    });
+    setDocName("");
+    setDocTags("");
+    setDocNote("");
+  };
+
+  const typeColor = (t: string) => {
+    const map: Record<string, string> = { tax: THEME.gold, insurance: THEME.sage, property: THEME.accent, vehicle: "#8b5cf6", investment: "#06b6d4", bank: "#3b82f6", legal: THEME.rust, other: THEME.muted };
+    return map[t] || THEME.muted;
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <Database size={16} color={THEME.accent} /> Document Vault
+        </div>
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>
+          Keep track of important financial documents — policy papers, tax returns, property deeds, vehicle RC.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <Field label="Document Name">
+            <input className="form-input" placeholder="e.g. ITR AY 2025-26" value={docName} onChange={(e) => setDocName(e.target.value)} />
+          </Field>
+          <Field label="Category">
+            <select className="form-input" value={docType} onChange={(e) => setDocType(e.target.value)}>
+              {DOC_TYPES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          </Field>
+          <Field label="Tags (comma-separated)">
+            <input className="form-input" placeholder="e.g. FY2025, filing" value={docTags} onChange={(e) => setDocTags(e.target.value)} />
+          </Field>
+          <Field label="Notes">
+            <input className="form-input" placeholder="Optional notes" value={docNote} onChange={(e) => setDocNote(e.target.value)} />
+          </Field>
+        </div>
+        <Button variant="accent" onClick={handleAddDoc} disabled={!docName.trim()}>
+          Add Document Record
+        </Button>
+      </Card>
+
+      {documents.length > 0 && (
+        <Card style={{ padding: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>
+            Saved Documents ({documents.length})
+          </div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {documents.map((doc: any) => (
+              <div
+                key={doc.id}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{doc.name}</div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: 10, padding: "1px 8px", borderRadius: 4, background: `${typeColor(doc.linkedType)}15`, color: typeColor(doc.linkedType), fontWeight: 700 }}>
+                      {(doc.linkedType || "other").toUpperCase()}
+                    </span>
+                    {(doc.tags || []).map((tag: string) => (
+                      <span key={tag} style={{ fontSize: 10, padding: "1px 8px", borderRadius: 4, background: `${THEME.muted}15`, color: THEME.muted }}>{tag}</span>
+                    ))}
+                  </div>
+                  {doc.note && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{doc.note}</div>}
+                </div>
+                <button
+                  onClick={() => removeItem("documents", doc.id)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}
+                  title="Remove"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ─── Section: Data & Account ──────────────────────────────────────────────────
-function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanupOrphaned }: any) {
+function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanupOrphaned, state }: any) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+
+  const csvExports = [
+    { label: "Bank Transactions", key: "transactions", cols: [
+      { key: "date", label: "Date" }, { key: "type", label: "Type" }, { key: "category", label: "Category" },
+      { key: "amount", label: "Amount" }, { key: "note", label: "Note" }, { key: "narration", label: "Narration" },
+      { key: "referenceNumber", label: "Reference" }, { key: "owner", label: "Owner" },
+    ]},
+    { label: "Stocks", key: "stocks", cols: [
+      { key: "symbol", label: "Symbol" }, { key: "qty", label: "Qty" }, { key: "avgPrice", label: "Avg Price" },
+      { key: "currentPrice", label: "Current Price" }, { key: "owner", label: "Owner" },
+    ]},
+    { label: "Mutual Funds", key: "mutualFunds", cols: [
+      { key: "name", label: "Scheme" }, { key: "folio", label: "Folio" }, { key: "units", label: "Units" },
+      { key: "buyNav", label: "Buy NAV" }, { key: "currentNav", label: "Current NAV" },
+      { key: "mfCode", label: "AMFI Code" }, { key: "owner", label: "Owner" },
+    ]},
+    { label: "Fixed Deposits", key: "fixedDeposits", cols: [
+      { key: "bank", label: "Bank" }, { key: "principal", label: "Principal" }, { key: "rate", label: "Rate %" },
+      { key: "years", label: "Years" }, { key: "startDate", label: "Start" }, { key: "maturityDate", label: "Maturity" },
+    ]},
+    { label: "Goals", key: "goals", cols: [
+      { key: "name", label: "Goal" }, { key: "category", label: "Category" }, { key: "targetAmount", label: "Target" },
+      { key: "currentAmount", label: "Saved" }, { key: "priority", label: "Priority" }, { key: "targetDate", label: "Target Date" },
+    ]},
+    { label: "Tax Payments", key: "taxPayments", cols: [
+      { key: "date", label: "Date" }, { key: "type", label: "Type" }, { key: "amount", label: "Amount" },
+      { key: "note", label: "Note" },
+    ]},
+    { label: "Insurance (LIC)", key: "lic", cols: [
+      { key: "planName", label: "Plan" }, { key: "policyNumber", label: "Policy No" },
+      { key: "sumAssured", label: "Sum Assured" }, { key: "annualPremium", label: "Annual Premium" },
+    ]},
+    { label: "Loans", key: "loansTaken", cols: [
+      { key: "type", label: "Type" }, { key: "principal", label: "Principal" }, { key: "outstanding", label: "Outstanding" },
+      { key: "emi", label: "EMI" }, { key: "rate", label: "Rate %" },
+    ]},
+    { label: "Credit Cards", key: "creditCards", cols: [
+      { key: "issuer", label: "Issuer" }, { key: "network", label: "Network" }, { key: "cardLimit", label: "Limit" },
+      { key: "outstanding", label: "Outstanding" }, { key: "billDate", label: "Bill Date" },
+    ]},
+  ];
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -1220,6 +1367,35 @@ function DataSection({ exportJSON, onRestoreBackup, resetAll, onSignOut, cleanup
               style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
             />
           </div>
+        </div>
+      </Card>
+
+      {/* CSV Exports */}
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <Download size={16} color={THEME.accent} /> Export as CSV
+        </div>
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>
+          Download individual data sections as CSV files for use in Excel or Google Sheets.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {csvExports.map((exp) => {
+            const count = (state?.[exp.key] || []).length;
+            return (
+              <Button
+                key={exp.key}
+                variant="secondary"
+                disabled={count === 0}
+                onClick={() => {
+                  const ts = new Date().toISOString().slice(0, 10);
+                  exportArrayToCSV(state[exp.key] || [], exp.cols, `${exp.key}_${ts}.csv`);
+                }}
+                style={{ fontSize: 12, padding: "6px 12px" }}
+              >
+                {exp.label} ({count})
+              </Button>
+            );
+          })}
         </div>
       </Card>
 
@@ -2221,11 +2397,14 @@ const TOP_TABS = [
   { id: "masterdata", label: "Master Data", icon: Tags },
   { id: "ai", label: "AI Advisor", icon: Bot },
   { id: "email", label: "Email Reports", icon: Mail },
+  { id: "documents", label: "Documents", icon: Database },
   { id: "data", label: "Data & Account", icon: HardDrive },
 ];
 
 export function SettingsTab({
   state,
+  addItem,
+  removeItem,
   exportJSON,
   onRestoreBackup,
   resetAll,
@@ -2437,6 +2616,12 @@ export function SettingsTab({
         </div>
       )}
 
+      {tab === "documents" && (
+        <div key="documents" className="tab-content-enter">
+          <DocumentVaultSection state={state} addItem={addItem} removeItem={removeItem} />
+        </div>
+      )}
+
       {tab === "data" && (
         <div key="data" className="tab-content-enter">
           <DataSection
@@ -2445,6 +2630,7 @@ export function SettingsTab({
             resetAll={resetAll}
             onSignOut={onSignOut}
             cleanupOrphaned={cleanupOrphaned}
+            state={state}
           />
         </div>
       )}

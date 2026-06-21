@@ -1,20 +1,79 @@
 // @ts-nocheck
-import React, { useState } from "react";
-import { Upload, AlertCircle, FileText, Bot, CheckCircle } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Upload, AlertCircle, FileText, Bot, CheckCircle, GitMerge } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
+import { Badge } from "../ui/Badge";
 
 interface MFCasPanelProps {
   onImport: (data: any[]) => void;
   onClose: () => void;
+  existingFunds?: any[];
 }
 
-export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => {
+/* ── Fuzzy match helper ────────────────────────────────────────────── */
+const normalizeScheme = (name: string) =>
+  (name || "")
+    .toLowerCase()
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\b(direct|regular|plan|growth|dividend|idcw|option)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const fuzzyScore = (a: string, b: string): number => {
+  const na = normalizeScheme(a);
+  const nb = normalizeScheme(b);
+  if (na === nb) return 1;
+  // Token overlap ratio
+  const ta = new Set(na.split(" ").filter(Boolean));
+  const tb = new Set(nb.split(" ").filter(Boolean));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let overlap = 0;
+  ta.forEach((w) => { if (tb.has(w)) overlap++; });
+  return (2 * overlap) / (ta.size + tb.size);
+};
+
+const FUZZY_THRESHOLD = 0.6;
+
+/* ── AMFI code extractor ───────────────────────────────────────────── */
+const extractAmfiCode = (line: string): string => {
+  // AMFI codes are typically 6-digit numbers after scheme name or in parentheses
+  const bracketMatch = line.match(/\((\d{5,6})\)/);
+  if (bracketMatch) return bracketMatch[1];
+  // Sometimes: "INF... - 123456" or "ISIN: INF..." followed by code
+  const trailingMatch = line.match(/(?:AMFI|Code|ISIN)\s*[:\-]?\s*(\d{5,6})\b/i);
+  if (trailingMatch) return trailingMatch[1];
+  // Pattern: scheme name followed by standalone 5-6 digit number at end of line
+  const endMatch = line.match(/\b(\d{5,6})\s*$/);
+  if (endMatch) return endMatch[1];
+  return "";
+};
+
+export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose, existingFunds = [] }) => {
   const [inputText, setInputText] = useState("");
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [importDone, setImportDone] = useState(false);
+  const [mergeMode, setMergeMode] = useState(true);
+
+  /* ── Build match map from parsed rows to existing funds ────────── */
+  const matchMap = useMemo(() => {
+    const map = new Map<number, { fund: any; score: number }>();
+    parsedRows.forEach((row, idx) => {
+      let bestMatch: any = null;
+      let bestScore = 0;
+      existingFunds.forEach((ef) => {
+        const s = fuzzyScore(row.name, ef.name || ef.scheme || "");
+        if (s > bestScore) { bestScore = s; bestMatch = ef; }
+      });
+      if (bestScore >= FUZZY_THRESHOLD && bestMatch) {
+        map.set(idx, { fund: bestMatch, score: bestScore });
+      }
+    });
+    return map;
+  }, [parsedRows, existingFunds]);
 
   const parseCasText = (text: string) => {
     setError("");
@@ -34,6 +93,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
       let currentFolio = "";
       let currentCategory = "Equity";
       let currentMfType = "Direct Growth";
+      let currentAmfiCode = "";
 
       // Date pattern matching: e.g. 15-Apr-2025 or 15/04/2025
       const dateRegex = /(\d{1,2})[-/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|0?\d)[-/](\d{2,4})/i;
@@ -76,6 +136,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
         const schemeLabelMatch = line.match(/(?:Scheme|Scheme\s+Name)\s*[:\-\s]\s*(.+)/i);
         if (schemeLabelMatch) {
           currentScheme = schemeLabelMatch[1].trim();
+          // Extract AMFI code if present
+          const amfi = extractAmfiCode(currentScheme);
+          if (amfi) currentAmfiCode = amfi;
           // Auto-detect type from scheme name
           if (currentScheme.toLowerCase().includes("debt")) currentCategory = "Debt";
           else if (currentScheme.toLowerCase().includes("hybrid")) currentCategory = "Hybrid";
@@ -117,6 +180,9 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
             !line.toLowerCase().includes("folio")
           ) {
             currentScheme = line.trim();
+            // Extract AMFI code if present
+            const amfi = extractAmfiCode(currentScheme);
+            if (amfi) currentAmfiCode = amfi;
             if (currentScheme.toLowerCase().includes("debt")) currentCategory = "Debt";
             else if (currentScheme.toLowerCase().includes("hybrid")) currentCategory = "Hybrid";
             else if (currentScheme.toLowerCase().includes("elss")) currentCategory = "ELSS";
@@ -205,7 +271,7 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
                 category: currentCategory,
                 mfType: currentMfType,
                 folioNumber: currentFolio,
-                mfCode: "", // to be mapped manually or matched in live NAV updates
+                mfCode: currentAmfiCode || "",
                 buyDate: isoDate,
                 buyNav: String(nav.toFixed(4)),
                 units: String(units.toFixed(3)),
@@ -232,21 +298,38 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
 
   const handleImport = () => {
     if (!parsedRows.length) return;
-    // Map transactions to the format state.mutualFunds expects
-    const mfHoldings = parsedRows.map(r => ({
-      name: r.name,
-      category: r.category,
-      type: r.mfType,
-      folioNumber: r.folioNumber,
-      mfCode: r.mfCode,
-      buyDate: r.buyDate,
-      buyNav: r.buyNav,
-      units: r.units,
-      currentNav: r.currentNav,
-      invested: r.invested,
-      owner: r.owner,
-      id: r.id
-    }));
+
+    const mfHoldings: any[] = [];
+    parsedRows.forEach((r, idx) => {
+      const match = matchMap.get(idx);
+      if (mergeMode && match) {
+        // Merge: update existing fund's units/NAV instead of creating a new entry
+        const existing = match.fund;
+        mfHoldings.push({
+          ...existing,
+          units: String((parseFloat(existing.units || "0") + parseFloat(r.units || "0")).toFixed(3)),
+          currentNav: r.currentNav,
+          invested: String((parseFloat(existing.invested || "0") + parseFloat(r.invested || "0")).toFixed(2)),
+          mfCode: existing.mfCode || r.mfCode,
+          _merge: true, // signal to parent that this is an update
+        });
+      } else {
+        mfHoldings.push({
+          name: r.name,
+          category: r.category,
+          type: r.mfType,
+          folioNumber: r.folioNumber,
+          mfCode: r.mfCode,
+          buyDate: r.buyDate,
+          buyNav: r.buyNav,
+          units: r.units,
+          currentNav: r.currentNav,
+          invested: r.invested,
+          owner: r.owner,
+          id: r.id,
+        });
+      }
+    });
     onImport(mfHoldings);
     setImportDone(true);
     setParsedRows([]);
@@ -341,15 +424,66 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 8,
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
-              ✓ Detected {parsedRows.length} transactions in {new Set(parsedRows.map(r => r.name)).size} funds:
+              Detected {parsedRows.length} transactions in {new Set(parsedRows.map(r => r.name)).size} funds
+              {matchMap.size > 0 && (
+                <span style={{ color: THEME.muted, fontWeight: 500 }}>
+                  {" "}({matchMap.size} matched to existing)
+                </span>
+              )}
             </div>
-            <button style={{ ...btnStyle, background: THEME.sage, color: "#fff" }} onClick={handleImport}>
-              Import {parsedRows.length} Transaction{parsedRows.length !== 1 ? "s" : ""}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {matchMap.size > 0 && (
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: mergeMode ? THEME.accent : THEME.muted,
+                    cursor: "pointer",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: mergeMode ? `${THEME.accent}10` : "transparent",
+                    border: `1px solid ${mergeMode ? THEME.accent + "40" : THEME.line}`,
+                  }}
+                >
+                  <GitMerge size={12} />
+                  <span>Merge Existing</span>
+                  <input
+                    type="checkbox"
+                    checked={mergeMode}
+                    onChange={(e) => setMergeMode(e.target.checked)}
+                    style={{ accentColor: THEME.accent, cursor: "pointer" }}
+                  />
+                </label>
+              )}
+              <button style={{ ...btnStyle, background: THEME.sage, color: "#fff" }} onClick={handleImport}>
+                Import {parsedRows.length} Transaction{parsedRows.length !== 1 ? "s" : ""}
+              </button>
+            </div>
           </div>
+
+          {mergeMode && matchMap.size > 0 && (
+            <div
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                background: `${THEME.accent}08`,
+                border: `1px solid ${THEME.accent}18`,
+                fontSize: 11,
+                color: THEME.muted,
+                marginBottom: 8,
+              }}
+            >
+              <b style={{ color: THEME.ink }}>Merge mode:</b> Matched funds will update units and NAV on the existing holding instead of creating duplicates.
+            </div>
+          )}
 
           <div style={{ maxHeight: 250, overflowY: "auto", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
@@ -358,6 +492,8 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Date</th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Fund Scheme</th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Folio</th>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>AMFI</th>
+                  <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Status</th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Type</th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>NAV</th>
                   <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Units</th>
@@ -365,28 +501,52 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({ onImport, onClose }) => 
                 </tr>
               </thead>
               <tbody>
-                {parsedRows.map((r, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                    <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{r.buyDate}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: 600 }}>{r.name}</td>
-                    <td style={{ padding: "8px 10px", color: THEME.muted }}>{r.folioNumber || "—"}</td>
-                    <td style={{ padding: "8px 10px" }}>
-                      <span style={{
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        background: r.type === "Redemption" ? `${THEME.rust}12` : `${THEME.sage}12`,
-                        color: r.type === "Redemption" ? THEME.rust : THEME.sage,
-                      }}>
-                        {r.type}
-                      </span>
-                    </td>
-                    <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.buyNav}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.units}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>{fmtINRFull(Number(r.invested))}</td>
-                  </tr>
-                ))}
+                {parsedRows.map((r, idx) => {
+                  const match = matchMap.get(idx);
+                  const isExisting = !!match;
+                  return (
+                    <tr key={idx} style={{ borderBottom: `1px solid ${THEME.line}`, background: isExisting && mergeMode ? `${THEME.sage}06` : undefined }}>
+                      <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{r.buyDate}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: 600 }}>
+                        {r.name}
+                        {isExisting && mergeMode && (
+                          <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 400, marginTop: 2 }}>
+                            Merging into: {match.fund.name || match.fund.scheme}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: THEME.muted }}>{r.folioNumber || "—"}</td>
+                      <td style={{ padding: "8px 10px", color: THEME.muted, fontFamily: "monospace", fontSize: 10 }}>{r.mfCode || "—"}</td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          background: isExisting ? `${THEME.sage}16` : `${THEME.accent}16`,
+                          color: isExisting ? THEME.sage : THEME.accent,
+                        }}>
+                          {isExisting ? "Existing" : "New"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          background: r.type === "Redemption" ? `${THEME.rust}12` : `${THEME.sage}12`,
+                          color: r.type === "Redemption" ? THEME.rust : THEME.sage,
+                        }}>
+                          {r.type}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.buyNav}</td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" }}>{r.units}</td>
+                      <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>{fmtINRFull(Number(r.invested))}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

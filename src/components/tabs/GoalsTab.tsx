@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { Prv } from "../../context/PrivacyContext";
 import { GoalModal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -104,6 +105,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [sipExpanded, setSipExpanded] = useState<Set<string>>(new Set());
   const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
+  const [showInflation, setShowInflation] = useState(false);
+  const [inflationRate, setInflationRate] = useState("6");
 
   const totalTarget = state.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
   const totalSaved = state.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
@@ -469,6 +472,28 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             >
               {sortDir === "desc" ? "High → Low" : "Low → High"}
             </Button>
+            <div style={{ width: 1, height: 20, background: THEME.line, margin: "0 4px" }} />
+            <Button
+              size="sm"
+              variant={showInflation ? "accent" : "ghost"}
+              onClick={() => setShowInflation((v) => !v)}
+              style={{ height: 32, fontSize: 12 }}
+            >
+              {showInflation ? "📊 Inflation ON" : "📊 Inflation"}
+            </Button>
+            {showInflation && (
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input
+                  type="number"
+                  min="1"
+                  max="15"
+                  value={inflationRate}
+                  onChange={(e) => setInflationRate(e.target.value)}
+                  style={{ width: 48, padding: "4px 6px", borderRadius: 6, border: `1px solid ${THEME.line}`, fontSize: 12, background: "var(--surface-0)", color: THEME.ink, textAlign: "center" }}
+                />
+                <span style={{ fontSize: 11, color: THEME.muted }}>% p.a.</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -482,13 +507,20 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
           {sortedGoals.map((g: any) => {
-            const progress = Number(g.targetAmount)
-              ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
+            const nominalTarget = Number(g.targetAmount) || 0;
+            const inflRate = (Number(inflationRate) || 6) / 100;
+            const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
+            const inflatedTarget = showInflation && yearsToTarget > 0
+              ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
+              : nominalTarget;
+            const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
+            const progress = effectiveTarget > 0
+              ? (Number(g.currentAmount) / effectiveTarget) * 100
               : 0;
             const isComplete = progress >= 100;
             const rawMonthsLeft = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
             const monthsLeft = Math.max(0, rawMonthsLeft);
-            const remaining = Math.max(0, Number(g.targetAmount) - Number(g.currentAmount));
+            const remaining = Math.max(0, effectiveTarget - Number(g.currentAmount));
             const effectiveMonths = monthsLeft > 0 ? monthsLeft : (rawMonthsLeft === 0 && g.targetDate ? 1 : 0);
             const monthlyNeeded = effectiveMonths > 0 ? remaining / effectiveMonths : 0;
             const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
@@ -651,11 +683,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     <div
                       style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 800 }}
                     >
-                      {fmtINRFull(g.currentAmount)}{" "}
+                      <Prv>{fmtINRFull(g.currentAmount)}</Prv>{" "}
                       <span style={{ color: THEME.muted, fontSize: 15 }}>
-                        / {fmtINRFull(g.targetAmount)}
+                        / <Prv>{fmtINRFull(effectiveTarget)}</Prv>
                       </span>
                     </div>
+                    {showInflation && inflatedTarget > nominalTarget && (
+                      <div style={{ fontSize: 11, color: THEME.gold, marginTop: 2 }}>
+                        Nominal: <Prv>{fmtINRFull(nominalTarget)}</Prv> → Inflation-adjusted @ {inflationRate}%
+                      </div>
+                    )}
                     <div style={{ fontSize: 13, fontWeight: 600, color: rc, marginTop: 4 }}>
                       {progress.toFixed(1)}% reached
                     </div>

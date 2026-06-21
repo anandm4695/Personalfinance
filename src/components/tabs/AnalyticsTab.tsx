@@ -41,7 +41,7 @@ import {
   Legend,
   Treemap,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent, calculateEpfBalance } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -555,6 +555,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return next;
     });
   };
+
+  // ── Rebalance with New Money States ──
+  const [rebalWithNewMoney, setRebalWithNewMoney] = useState(false);
+  const [newInvestAmount, setNewInvestAmount] = useState("");
 
   // ── Financial Runway & 10-Year Projection Engine States ──
   const initialProjection = useMemo(() => {
@@ -4757,6 +4761,191 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               ))}
             </div>
           </Card>
+
+          {/* ── Family / Household Dashboard ── */}
+          {(() => {
+            // Compute per-profile net worth
+            const profileData = PROFILES.map((p) => {
+              const pid = p.id;
+              const bankBal = (state.bankAccounts || [])
+                .filter((b: any) => (b.owner || "self") === pid)
+                .reduce((s: number, b: any) => s + Number(b.balance || 0), 0);
+              const fdVal = (state.fixedDeposits || [])
+                .filter((f: any) => (f.owner || "self") === pid)
+                .reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
+              const stockVal = (state.stocks || [])
+                .filter((s: any) => (s.owner || "self") === pid)
+                .reduce((sum: number, s: any) => sum + Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0), 0);
+              const mfVal = (state.mutualFunds || [])
+                .filter((m: any) => (m.owner || "self") === pid)
+                .reduce((sum: number, m: any) => sum + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+              const ppfVal = (state.ppf || [])
+                .filter((pp: any) => (pp.owner || "self") === pid)
+                .reduce((s: number, pp: any) => s + Number(pp.balance || 0), 0);
+              const npsVal = (state.nps || [])
+                .filter((n: any) => (n.owner || "self") === pid)
+                .reduce((s: number, n: any) => s + Number(n.balance || 0), 0);
+              const nw = bankBal + fdVal + stockVal + mfVal + ppfVal + npsVal;
+
+              // Insurance coverage
+              const termCover = (state.termPlans || [])
+                .filter((t: any) => (t.owner || "self") === pid)
+                .reduce((s: number, t: any) => s + Number(t.coverAmount || t.sumAssured || 0), 0);
+              const licCover = (state.lic || [])
+                .filter((l: any) => (l.owner || "self") === pid)
+                .reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
+              const totalCover = termCover + licCover;
+
+              return { ...p, nw, totalCover };
+            });
+
+            // Only show if multiple profiles have assets
+            const activeProfiles = profileData.filter((p) => p.nw > 0);
+            if (activeProfiles.length < 2) return null;
+
+            const familyNW = activeProfiles.reduce((s, p) => s + p.nw, 0);
+            const maxNW = Math.max(...activeProfiles.map((p) => p.nw));
+            const familyCover = activeProfiles.reduce((s, p) => s + p.totalCover, 0);
+
+            // Insurance adequacy: 10x annual income
+            const annualIncome = (state.transactions || [])
+              .filter((t: any) => t.type === "credit")
+              .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            // Estimate yearly: if we have at least 1 month of data, annualize
+            const txnMonths = new Set((state.transactions || []).filter((t: any) => t.type === "credit").map((t: any) => (t.date || "").slice(0, 7))).size;
+            const estimatedAnnualIncome = txnMonths > 0 ? (annualIncome / txnMonths) * 12 : 0;
+            const idealCover = estimatedAnnualIncome * 10;
+            const coverAdequacy = idealCover > 0 ? Math.min(100, Math.round((familyCover / idealCover) * 100)) : 0;
+
+            const barColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust];
+
+            return (
+              <Card style={{ padding: 24, marginTop: 28 }}>
+                <div style={{ marginBottom: 20 }}>
+                  <div className="section-label" style={{ marginBottom: 4 }}>Family / Household Dashboard</div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    Net worth breakdown across {activeProfiles.length} family members
+                  </div>
+                </div>
+
+                {/* Combined Family Net Worth */}
+                <div style={{
+                  padding: "16px 20px", borderRadius: 12,
+                  background: "#0F172A", marginBottom: 20, textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 4, fontWeight: 700 }}>
+                    Combined Family Net Worth
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
+                    <Prv>{fmtINRFull(familyNW)}</Prv>
+                  </div>
+                </div>
+
+                {/* Per-member horizontal bars */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                    Per-Member Net Worth
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {activeProfiles
+                      .sort((a, b) => b.nw - a.nw)
+                      .map((p, i) => {
+                        const pct = maxNW > 0 ? (p.nw / maxNW) * 100 : 0;
+                        const share = familyNW > 0 ? ((p.nw / familyNW) * 100).toFixed(1) : "0";
+                        return (
+                          <div key={p.id}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{p.name}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{share}%</span>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: barColors[i % barColors.length] }}>
+                                  <Prv>{fmtINRFull(p.nw)}</Prv>
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
+                              <div style={{
+                                height: "100%",
+                                width: `${pct}%`,
+                                background: barColors[i % barColors.length],
+                                borderRadius: 4,
+                                transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                              }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* Combined Insurance Coverage */}
+                {familyCover > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                      Family Insurance Coverage
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                      <div style={{ padding: 14, borderRadius: 10, background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`, borderTop: `3px solid ${THEME.accent}` }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                          Total Cover
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
+                          <Prv>{fmtINRFull(familyCover)}</Prv>
+                        </div>
+                      </div>
+                      <div style={{
+                        padding: 14, borderRadius: 10,
+                        background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
+                        borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
+                      }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                          Adequacy (10x Income)
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust }}>
+                          {idealCover > 0 ? `${coverAdequacy}%` : "N/A"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {idealCover > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
+                          <span>Coverage: <Prv>{fmtINRFull(familyCover)}</Prv></span>
+                          <span>Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv></span>
+                        </div>
+                        <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${coverAdequacy}%`,
+                            background: coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust,
+                            borderRadius: 4,
+                          }} />
+                        </div>
+                        {coverAdequacy < 80 && (
+                          <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                            <AlertTriangle size={12} />
+                            Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider increasing term insurance
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Per-member cover breakdown */}
+                    <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                      {activeProfiles.filter((p) => p.totalCover > 0).map((p, i) => (
+                        <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "rgba(128,128,128,0.04)", borderRadius: 8, fontSize: 12 }}>
+                          <span style={{ color: THEME.muted }}>{p.name}</span>
+                          <span style={{ fontWeight: 700, color: THEME.ink }}>
+                            <Prv>{fmtINRFull(p.totalCover)}</Prv>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })()}
         </div>
       )}
 
@@ -6323,6 +6512,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 />
                                 <span style={{ fontSize: 12, color }}>%</span>
                               </div>
+                              {(() => {
+                                const drift = actualPct - targetPct;
+                                const absDrift = Math.abs(drift);
+                                const driftColor = absDrift <= 2 ? THEME.sage : absDrift <= 5 ? THEME.gold : THEME.rust;
+                                return (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: "2px 7px",
+                                      borderRadius: 6,
+                                      background: `${driftColor}18`,
+                                      color: driftColor,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {drift >= 0 ? "+" : ""}{drift.toFixed(1)}%
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                           <div
@@ -6476,10 +6685,386 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* ── Rebalance with New Money ── */}
+                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 16 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: rebalWithNewMoney ? 14 : 0,
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            textTransform: "uppercase" as const,
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          Deploy New Money
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          Reduce drift without selling — allocate fresh capital
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setRebalWithNewMoney((v) => !v)}
+                        style={{
+                          position: "relative",
+                          width: 40,
+                          height: 22,
+                          borderRadius: 11,
+                          border: "none",
+                          background: rebalWithNewMoney ? THEME.accent : THEME.line,
+                          cursor: "pointer",
+                          transition: "background 0.2s",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 2,
+                            left: rebalWithNewMoney ? 20 : 2,
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: "#fff",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                            transition: "left 0.2s",
+                          }}
+                        />
+                      </button>
+                    </div>
+
+                    {rebalWithNewMoney && total > 0 && (
+                      <>
+                        <div style={{ marginBottom: 14 }}>
+                          <label
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: THEME.muted,
+                              textTransform: "uppercase" as const,
+                              letterSpacing: "0.05em",
+                              display: "block",
+                              marginBottom: 6,
+                            }}
+                          >
+                            New Investment Amount
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={newInvestAmount}
+                            onChange={(e) => setNewInvestAmount(e.target.value)}
+                            placeholder="e.g. 50000"
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              background: "var(--surface-0)",
+                              border: `1.5px solid ${THEME.line}`,
+                              borderRadius: 10,
+                              color: THEME.ink,
+                              fontSize: 14,
+                            }}
+                          />
+                        </div>
+
+                        {(() => {
+                          const amt = Number(newInvestAmount) || 0;
+                          if (amt <= 0) return (
+                            <div style={{ textAlign: "center", fontSize: 13, color: THEME.muted, padding: "12px 0" }}>
+                              Enter an amount to see deployment recommendations
+                            </div>
+                          );
+
+                          const newTotal = total + amt;
+                          const deployments = classes
+                            .map(({ key, label, actualVal, color }) => {
+                              const targetPct = rebalTargets[key] ?? 0;
+                              const idealVal = (targetPct / 100) * newTotal;
+                              const deploy = Math.max(0, idealVal - actualVal);
+                              return { key, label, color, deploy, targetPct };
+                            })
+                            .filter((d) => d.deploy > 0);
+
+                          const totalDeploy = deployments.reduce((s, d) => s + d.deploy, 0);
+                          const scaled = deployments.map((d) => ({
+                            ...d,
+                            amount: totalDeploy > 0 ? (d.deploy / totalDeploy) * amt : 0,
+                          }));
+
+                          return (
+                            <div style={{ display: "grid", gap: 10 }}>
+                              {scaled.map(({ key, label, color, amount, targetPct }) => (
+                                <div
+                                  key={key}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 14,
+                                    padding: "12px 14px",
+                                    borderRadius: 10,
+                                    background: `color-mix(in srgb, ${color} 4%, transparent)`,
+                                    border: `1px solid color-mix(in srgb, ${color} 15%, transparent)`,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: 34,
+                                      height: 34,
+                                      borderRadius: 9,
+                                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <ArrowUpRight size={16} style={{ color }} />
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700 }}>Deploy to {label}</div>
+                                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                                      Target {targetPct}% — reduces drift
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}>
+                                      +{fmtINRFull(amount)}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                                      {((amount / amt) * 100).toFixed(0)}% of new capital
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              {scaled.length === 0 && (
+                                <div style={{ textAlign: "center", fontSize: 13, color: THEME.sage, padding: "12px 0" }}>
+                                  Portfolio is already at target — invest equally or adjust targets
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    )}
+                  </div>
                 </>
               );
             })()}
           </Card>
+
+          {/* ── Portfolio Overlap Analyzer ── */}
+          {(() => {
+            const INDEX_HOLDINGS: Record<string, string[]> = {
+              "Nifty 50": ["HDFC Bank", "ICICI Bank", "Reliance", "Infosys", "TCS", "Bharti Airtel", "ITC", "L&T", "SBI", "Kotak Bank"],
+              "Nifty Next 50": ["HAL", "IOC", "BPCL", "Siemens", "Zomato", "DLF", "Vedanta", "ABB India", "Trent", "Mankind"],
+              "Sensex": ["HDFC Bank", "ICICI Bank", "Reliance", "Infosys", "TCS", "Bharti Airtel", "ITC", "L&T", "SBI", "HUL"],
+            };
+
+            const mfs = (state.mutualFunds || []).map((m: any) => {
+              const mfName = m.name || m.scheme || "Mutual Fund";
+              const units = Number(m.units || 0);
+              const nav = Number(m.currentNav || m.buyNav || 0);
+              const value = units * nav;
+
+              // Auto-detect index holdings
+              let matchedIndex: string | null = null;
+              const nameUpper = mfName.toUpperCase();
+              if (nameUpper.includes("NIFTY NEXT 50") || nameUpper.includes("NIFTY JUNIOR")) {
+                matchedIndex = "Nifty Next 50";
+              } else if (nameUpper.includes("NIFTY 50") || nameUpper.includes("NIFTY50")) {
+                matchedIndex = "Nifty 50";
+              } else if (nameUpper.includes("SENSEX")) {
+                matchedIndex = "Sensex";
+              } else if (nameUpper.includes("INDEX")) {
+                // Generic index — try to match
+                if (nameUpper.includes("NEXT")) matchedIndex = "Nifty Next 50";
+                else matchedIndex = "Nifty 50";
+              }
+
+              const holdings = matchedIndex ? INDEX_HOLDINGS[matchedIndex] || [] : [];
+              return { name: mfName, value, matchedIndex, holdings };
+            });
+
+            // Get user's direct stocks
+            const userStocks = (state.stocks || []).map((s: any) => {
+              const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
+              return base;
+            }).filter((s: string) => s);
+            const uniqueStockNames = [...new Set(userStocks)];
+
+            // Find overlaps
+            const overlapMap: Record<string, string[]> = {}; // stockName -> fund names
+            mfs.forEach((mf: any) => {
+              if (mf.holdings.length === 0) return;
+              uniqueStockNames.forEach((stock: string) => {
+                const stockUp = stock.toUpperCase();
+                const found = mf.holdings.some((h: string) => {
+                  const hUp = h.toUpperCase();
+                  return stockUp.includes(hUp) || hUp.includes(stockUp);
+                });
+                if (found) {
+                  if (!overlapMap[stock]) overlapMap[stock] = [];
+                  overlapMap[stock].push(mf.name);
+                }
+              });
+            });
+
+            const overlapEntries = Object.entries(overlapMap).sort((a, b) => b[1].length - a[1].length);
+            const overlappingStockCount = overlapEntries.length;
+            const fundsWithOverlap = new Set(overlapEntries.flatMap(([, funds]) => funds)).size;
+            const concentrationRisks = overlapEntries.filter(([, funds]) => funds.length >= 3);
+
+            if (mfs.length === 0 && uniqueStockNames.length === 0) return null;
+
+            return (
+              <Card style={{ padding: 24, marginTop: 28 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 4 }}>Portfolio Overlap Analyzer</div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>
+                      Detect overlap between your direct stocks and index fund holdings
+                    </div>
+                  </div>
+                  {overlappingStockCount > 0 && (
+                    <Badge variant={concentrationRisks.length > 0 ? "danger" : "info"}>
+                      {overlappingStockCount} stock{overlappingStockCount !== 1 ? "s" : ""} overlap in {fundsWithOverlap} fund{fundsWithOverlap !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* MF Listing with Index Tag */}
+                {mfs.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                      Your Mutual Funds
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {mfs.map((mf: any, i: number) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            background: "rgba(128,128,128,0.04)",
+                            border: `1px solid ${THEME.line}`,
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {mf.name}
+                            </div>
+                            {mf.matchedIndex && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 20,
+                                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                                  color: THEME.accent,
+                                }}>
+                                  {mf.matchedIndex}
+                                </span>
+                                <span style={{ fontSize: 10, color: THEME.muted }}>
+                                  {mf.holdings.length} top holdings tracked
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink, flexShrink: 0, marginLeft: 12 }}>
+                            <Prv>{fmtINRFull(mf.value)}</Prv>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Overlap Results */}
+                {overlapEntries.length > 0 ? (
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                      Overlap Detected
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {overlapEntries.map(([stock, funds]) => {
+                        const isConcentration = funds.length >= 3;
+                        return (
+                          <div
+                            key={stock}
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              background: isConcentration
+                                ? `color-mix(in srgb, ${THEME.rust} 5%, transparent)`
+                                : "rgba(128,128,128,0.04)",
+                              border: `1px solid ${isConcentration ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : THEME.line}`,
+                              borderLeft: isConcentration ? `3px solid ${THEME.rust}` : undefined,
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                                {stock}
+                              </div>
+                              {isConcentration && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 20,
+                                  background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                                  color: THEME.rust,
+                                }}>
+                                  Concentration Risk
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted }}>
+                              Appears in {funds.length} fund{funds.length !== 1 ? "s" : ""}:{" "}
+                              {funds.map((f: string, fi: number) => (
+                                <span key={fi}>
+                                  {fi > 0 ? ", " : ""}
+                                  <span style={{ fontWeight: 600, color: THEME.ink }}>{f.length > 30 ? f.slice(0, 30) + "..." : f}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {concentrationRisks.length > 0 && (
+                      <div style={{
+                        marginTop: 14, padding: "10px 14px", borderRadius: 10,
+                        background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                        fontSize: 12, color: THEME.rust, fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <AlertTriangle size={14} />
+                        {concentrationRisks.length} stock{concentrationRisks.length !== 1 ? "s" : ""} appear{concentrationRisks.length === 1 ? "s" : ""} in 3+ funds — consider reducing direct holding or switching to non-overlapping funds
+                      </div>
+                    )}
+                  </div>
+                ) : uniqueStockNames.length > 0 && mfs.some((m: any) => m.holdings.length > 0) ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: THEME.sage, fontSize: 13, fontWeight: 600 }}>
+                    No overlap detected — your direct stocks don't appear in any tracked index fund holdings
+                  </div>
+                ) : uniqueStockNames.length === 0 || mfs.every((m: any) => m.holdings.length === 0) ? (
+                  <div style={{ textAlign: "center", padding: "20px 0", color: THEME.muted, fontSize: 13 }}>
+                    {uniqueStockNames.length === 0
+                      ? "Add direct stocks to detect overlap with your index fund holdings"
+                      : "No index funds detected — overlap analysis works with Nifty 50, Nifty Next 50, and Sensex funds"}
+                  </div>
+                ) : null}
+              </Card>
+            );
+          })()}
         </div>
       )}
 

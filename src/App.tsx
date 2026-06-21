@@ -112,6 +112,7 @@ import { VehiclesTab } from "./components/tabs/VehiclesTab";
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
+import { OnboardingWizard } from "./components/modals/OnboardingWizard";
 
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
@@ -169,6 +170,8 @@ const DEFAULT_STATE = {
   realEstateDemands: [],
   realEstatePayments: [],
   vehicles: [],
+  dividends: [],
+  documents: [],
   corporateActions: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
@@ -719,6 +722,8 @@ function FinanceDashboard() {
         reDemands,
         rePayments,
         vehiclesQ,
+        dividendsQ,
+        documentsQ,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -757,6 +762,8 @@ function FinanceDashboard() {
         supabase.from("real_estate_demands").select("*").eq("user_id", userId),
         supabase.from("real_estate_payments").select("*").eq("user_id", userId),
         supabase.from("vehicles").select("*").eq("user_id", userId),
+        supabase.from("dividends").select("*").eq("user_id", userId),
+        supabase.from("documents").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -800,6 +807,8 @@ function FinanceDashboard() {
         reDemands,
         rePayments,
         vehiclesQ,
+        dividendsQ,
+        documentsQ,
       ].some((r) => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
@@ -1001,6 +1010,12 @@ function FinanceDashboard() {
                   serviceHistory: v.serviceHistory || [],
                 })),
               }
+            : {}),
+          ...(!dividendsQ.error && dividendsQ.data != null
+            ? { dividends: snakeToCamel(dividendsQ.data) }
+            : {}),
+          ...(!documentsQ.error && documentsQ.data != null
+            ? { documents: snakeToCamel(documentsQ.data) }
             : {}),
         };
       });
@@ -1385,12 +1400,24 @@ function FinanceDashboard() {
     const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
     setState((s) => {
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
-      const newHistory = [...history, { month: ym, netWorth: nw }].slice(-36);
+      const cashVal = (s.bankAccounts || []).reduce((sum: number, b: any) => sum + (Number(b.balance) || 0), 0);
+      const stockVal = (s.stocks || []).reduce((sum: number, st: any) => sum + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0), 0);
+      const mfVal = (s.mutualFunds || []).reduce((sum: number, m: any) => sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0), 0);
+      const fdVal = (s.fixedDeposits || []).reduce((sum: number, f: any) => sum + (Number(f.principal) || 0), 0);
+      const breakdown = {
+        cash: cashVal,
+        equity: stockVal + mfVal,
+        debt: fdVal,
+        realEstate: 0,
+        vehicles: 0,
+        liabilities: 0,
+      };
+      const newHistory = [...history, { month: ym, netWorth: nw, ...breakdown }].slice(-36);
       const uid2 = session?.user?.id;
       if (uid2 && uid2 !== "offline-user") {
         supabase
           .from("net_worth_history")
-          .upsert({ user_id: uid2, month: ym, net_worth: nw }, { onConflict: "user_id,month" })
+          .upsert({ user_id: uid2, month: ym, net_worth: nw, ...breakdown }, { onConflict: "user_id,month" })
           .then(() => {});
       }
       return { ...s, netWorthHistory: newHistory };
@@ -1568,6 +1595,8 @@ function FinanceDashboard() {
       realEstateDemands: filterByOwner(state.realEstateDemands || []),
       realEstatePayments: filterByOwner(state.realEstatePayments || []),
       vehicles: filterByOwner(state.vehicles || []),
+      dividends: filterByOwner(state.dividends || []),
+      documents: filterByOwner(state.documents || []),
       subscriptions: filterByOwner(state.subscriptions),
       goals: filterByOwner(state.goals),
       income: filterByOwner(state.income),
@@ -2369,6 +2398,60 @@ function FinanceDashboard() {
         });
       }
     });
+    // ── Feature 15: Smart Alert Extensions ──
+    // FD maturity alerts (within 30 days)
+    (state.fixedDeposits || []).forEach((fd: any) => {
+      if (!fd.maturityDate) return;
+      const days = Math.ceil((new Date(fd.maturityDate + "T00:00:00").getTime() - todayMidnight) / 86400000);
+      if (days >= 0 && days <= 30) {
+        list.push({
+          level: days <= 7 ? "error" : "warn",
+          title: `FD maturing in ${days}d`,
+          detail: `${fd.bank || "FD"} — Principal: ${fmtINRFull(fd.principal)}. Decide: reinvest or withdraw.`,
+          tab: "investments",
+        });
+      }
+    });
+    // SIP bounce detection: SIP exists but no MF buy in current month
+    const currentMonth = ym;
+    const mfBuyMonths = new Set((state.mutualFunds || []).map((m: any) => (m.buyDate || "").slice(0, 7)));
+    (state.sips || []).forEach((sip: any) => {
+      if (!sip.startDate || sip.startDate > today()) return;
+      if (!mfBuyMonths.has(currentMonth)) {
+        const schemeName = sip.scheme || sip.name || "SIP";
+        list.push({
+          level: "warn",
+          title: `Possible missed SIP: ${schemeName}`,
+          detail: `No MF purchase recorded for ${currentMonth}. Verify if SIP was executed.`,
+          tab: "sip",
+        });
+      }
+    });
+    // Subscription renewal in 7 days
+    (state.subscriptions || []).forEach((sub: any) => {
+      if (sub.paused || !sub.renewalDate) return;
+      const days = Math.ceil((new Date(sub.renewalDate + "T00:00:00").getTime() - todayMidnight) / 86400000);
+      if (days >= 0 && days <= 7) {
+        list.push({
+          level: "info",
+          title: `${sub.name} renewing in ${days}d`,
+          detail: `Amount: ${fmtINRFull(sub.amount)} / ${sub.cycle}`,
+          tab: "subs",
+        });
+      }
+    });
+    // Dividend tracker reminder (quarterly check)
+    const dividendStocks = (state.stocks || []).length;
+    const dividendsRecorded = (state.dividends || []).length;
+    if (dividendStocks > 5 && dividendsRecorded === 0) {
+      list.push({
+        level: "info",
+        title: "No dividends tracked yet",
+        detail: `You hold ${dividendStocks} stocks. Track dividends for accurate tax reporting.`,
+        tab: "investments",
+      });
+    }
+
     const ORDER = { error: 0, warn: 1, info: 2 };
     return list
       .filter((a) => {
@@ -2437,6 +2520,8 @@ function FinanceDashboard() {
     realEstateDemands: "real_estate_demands",
     realEstatePayments: "real_estate_payments",
     vehicles: "vehicles",
+    dividends: "dividends",
+    documents: "documents",
   };
 
   const camelToSnake = (obj: any) => {
@@ -4889,6 +4974,21 @@ function FinanceDashboard() {
                 </span>
               </div>
             )}
+            {/* Onboarding Wizard for new users */}
+            {loaded && !state.masterData?._onboardingComplete &&
+              (state.bankAccounts || []).length === 0 &&
+              (state.stocks || []).length === 0 &&
+              (state.mutualFunds || []).length === 0 &&
+              (state.goals || []).length === 0 &&
+              (state.fixedDeposits || []).length === 0 && (
+              <OnboardingWizard
+                updateProfile={updateProfile}
+                addItem={addItem}
+                updateSettings={updateSettings}
+                updateMasterData={updateMasterData}
+                onComplete={() => updateMasterData("_onboardingComplete", true)}
+              />
+            )}
             <div
               key={tab}
               className="tab-content-enter"
@@ -5056,6 +5156,8 @@ function FinanceDashboard() {
                 <SettingsTab
                   state={state}
                   setState={setState}
+                  addItem={addItem}
+                  removeItem={removeItem}
                   exportJSON={exportJSON}
                   onRestoreBackup={importJSON}
                   resetAll={resetAll}

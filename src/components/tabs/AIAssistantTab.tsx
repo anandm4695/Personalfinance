@@ -341,12 +341,12 @@ const TypingIndicator = () => (
 
 // ── Suggestions ─────────────────────────────────────────────────────────────
 const SUGGESTIONS = [
-  "How can I improve my savings rate?",
-  "Should I prepay my loan or invest the surplus?",
-  "Am I diversified enough?",
-  "How much should I keep as an emergency fund?",
-  "Which tax-saving investments should I consider?",
-  "Am I on track for retirement?",
+  "Review my portfolio for diversification and risk",
+  "How can I save more tax this year?",
+  "Detect any anomalies in my finances",
+  "What's my spending breakdown this month?",
+  "Am I on track for my financial goals?",
+  "Is my insurance coverage adequate?",
 ];
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -547,7 +547,197 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         },
       },
     },
+    // Feature 21: Portfolio Review
+    {
+      name: "review_portfolio",
+      description: "Analyze the user's investment portfolio for diversification quality, concentration risk, asset allocation, top holdings, and sector exposure. Call this when the user asks to review or analyze their portfolio.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature 22: Tax Optimizer
+    {
+      name: "get_tax_optimization",
+      description: "Get the user's current tax deduction utilization (80C, 80D, NPS, HRA, home loan) vs limits, compare old vs new regime tax amounts, and suggest actionable tax-saving strategies. Call when the user asks about saving tax.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature 23: Natural Language Queries
+    {
+      name: "get_spending_summary",
+      description: "Get spending breakdown by category for a date range. Shows total spent per category.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          startDate: { type: "STRING", description: "Start date YYYY-MM-DD. Defaults to current month start." },
+          endDate: { type: "STRING", description: "End date YYYY-MM-DD. Defaults to today." },
+        },
+      },
+    },
+    {
+      name: "get_goal_status",
+      description: "Get all financial goals with progress percentage, remaining amount, and target dates.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    {
+      name: "get_insurance_summary",
+      description: "Get insurance coverage summary: term plans with cover amounts, LIC policies with sum assured, and total family coverage.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    {
+      name: "get_sip_summary",
+      description: "Get all active SIPs with scheme names, amounts, frequency, and total monthly SIP outflow.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature 24: Anomaly Detection
+    {
+      name: "detect_anomalies",
+      description: "Scan the user's financial data for anomalies: months with unusually high spending, missed SIP months, sudden bank balance drops, and credit utilization spikes. Call when the user asks about unusual patterns or to check their financial health.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
   ];
+
+  // ── Feature 21: Portfolio Review Handler ──
+  const handleReviewPortfolio = () => {
+    const mfs = state.mutualFunds || [];
+    const stocks = state.stocks || [];
+    const totalEquityMF = mfs.filter((m: any) => !(m.type || m.category || "").toLowerCase().includes("debt")).reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+    const totalDebtMF = mfs.filter((m: any) => (m.type || m.category || "").toLowerCase().includes("debt")).reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+    const totalStocks = stocks.reduce((s: number, st: any) => s + Number(st.qty || 0) * Number(st.currentPrice || st.avgPrice || 0), 0);
+    const totalMF = mfs.reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+    const totalEquity = totalEquityMF + totalStocks;
+    const totalPortfolio = totalEquity + totalDebtMF + (metrics.fdValue || 0) + (metrics.ppfValue || 0) + (metrics.npsValue || 0) + (metrics.epfValue || 0);
+    const top5Holdings = [...stocks.map((s: any) => ({ name: s.symbol, value: Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0), type: "Stock" })),
+      ...mfs.map((m: any) => ({ name: m.name || m.scheme, value: Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), type: "MF" }))
+    ].sort((a, b) => b.value - a.value).slice(0, 5);
+    const concentrationRisks = stocks.filter((s: any) => {
+      const val = Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0);
+      return totalStocks > 0 && (val / totalStocks) > 0.15;
+    }).map((s: any) => ({ symbol: s.symbol, pct: Math.round((Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0) / totalStocks) * 100) }));
+    return {
+      totalPortfolioValue: totalPortfolio,
+      allocation: {
+        equityStocks: totalStocks,
+        equityMF: totalEquityMF,
+        debtMF: totalDebtMF,
+        fixedDeposits: metrics.fdValue || 0,
+        ppf: metrics.ppfValue || 0,
+        epf: metrics.epfValue || 0,
+        nps: metrics.npsValue || 0,
+      },
+      equityPct: totalPortfolio > 0 ? Math.round((totalEquity / totalPortfolio) * 100) : 0,
+      debtPct: totalPortfolio > 0 ? Math.round(((totalDebtMF + (metrics.fdValue || 0) + (metrics.ppfValue || 0) + (metrics.epfValue || 0)) / totalPortfolio) * 100) : 0,
+      top5Holdings,
+      concentrationRisks,
+      totalFunds: mfs.length,
+      totalStocks: stocks.length,
+    };
+  };
+
+  // ── Feature 22: Tax Optimizer Handler ──
+  const handleGetTaxOptimization = () => {
+    const fy = state.profile?.fy || "2025-26";
+    const fyStart = Number(fy.split("-")[0]) || 2025;
+    const fyStartStr = `${fyStart}-04-01`;
+    const fyEndStr = `${fyStart + 1}-03-31`;
+    const elss = (state.mutualFunds || []).filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr).reduce((s: number, m: any) => s + Number(m.invested || 0), 0);
+    const ppf = (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const epfContrib = (state.epf || []).reduce((s: number, e: any) => {
+      return s + (e.transactions || []).filter((t: any) => t.date >= fyStartStr && t.date <= fyEndStr && (t.type === "employee_contribution" || t.type === "monthly_contribution")).reduce((sum: number, t: any) => sum + Number(t.amount || t.employeeShare || 0), 0);
+    }, 0);
+    const used80C = Math.min(elss + ppf + lic + epfContrib, 150000);
+    const remaining80C = Math.max(0, 150000 - used80C);
+    const rentPaid = (state.rentedProperties || []).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0) * 12, 0);
+    const npsContrib = 0;
+    const remaining80CCD = 50000 - npsContrib;
+    return {
+      fy,
+      regime: state.profile?.regime || "new",
+      deductions: {
+        "80C": { used: used80C, limit: 150000, remaining: remaining80C, sources: { elss, ppf, lic, epf: epfContrib } },
+        "80CCD_1B_NPS": { used: npsContrib, limit: 50000, remaining: remaining80CCD },
+        "HRA": { rentPaidAnnually: rentPaid, eligible: rentPaid > 0 },
+      },
+      suggestions: [
+        ...(remaining80C > 0 ? [`Invest ₹${remaining80C.toLocaleString()} more in ELSS/PPF to max out 80C`] : []),
+        ...(remaining80CCD > 0 ? [`Invest ₹${remaining80CCD.toLocaleString()} in NPS for additional 80CCD(1B) deduction`] : []),
+        ...(rentPaid > 0 && state.profile?.regime === "old" ? ["Claim HRA exemption under Sec 10(13A)"] : []),
+      ],
+    };
+  };
+
+  // ── Feature 23: Spending Summary Handler ──
+  const handleGetSpendingSummary = (args: any) => {
+    const now = new Date();
+    const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const defaultEnd = now.toISOString().slice(0, 10);
+    const startDate = args.startDate || defaultStart;
+    const endDate = args.endDate || defaultEnd;
+    const txs = (state.transactions || []).filter((t: any) => t.type === "debit" && t.date >= startDate && t.date <= endDate);
+    const byCat: Record<string, number> = {};
+    txs.forEach((t: any) => { const cat = t.category || "Uncategorized"; byCat[cat] = (byCat[cat] || 0) + Number(t.amount || 0); });
+    const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([category, amount]) => ({ category, amount }));
+    return { startDate, endDate, totalSpent: txs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0), categories: sorted, transactionCount: txs.length };
+  };
+
+  // ── Feature 23: Goal Status Handler ──
+  const handleGetGoalStatus = () => {
+    return (state.goals || []).map((g: any) => {
+      const target = Number(g.targetAmount) || 0;
+      const current = Number(g.currentAmount) || 0;
+      return { name: g.name, category: g.category, priority: g.priority, targetAmount: target, currentAmount: current, progress: target > 0 ? Math.round((current / target) * 100) : 0, remaining: Math.max(0, target - current), targetDate: g.targetDate || null };
+    });
+  };
+
+  // ── Feature 23: Insurance Summary Handler ──
+  const handleGetInsuranceSummary = () => {
+    const termPlans = (state.termPlans || []).map((t: any) => ({ name: t.planName || t.name, insurer: t.insurer, coverAmount: Number(t.coverAmount || t.sumAssured || 0), annualPremium: Number(t.annualPremium || 0), maturityDate: t.maturityDate }));
+    const licPolicies = (state.lic || []).map((l: any) => ({ name: l.planName, policyNumber: l.policyNumber, sumAssured: Number(l.sumAssured || 0), annualPremium: Number(l.annualPremium || 0) }));
+    const totalCover = termPlans.reduce((s: number, t: any) => s + t.coverAmount, 0) + licPolicies.reduce((s: number, l: any) => s + l.sumAssured, 0);
+    return { termPlans, licPolicies, totalCover, monthlyIncome: metrics.monthIncome || 0, coverageMultiple: metrics.monthIncome > 0 ? Math.round(totalCover / (metrics.monthIncome * 12)) : 0 };
+  };
+
+  // ── Feature 23: SIP Summary Handler ──
+  const handleGetSipSummary = () => {
+    const sips = (state.sips || []).map((s: any) => ({ scheme: s.scheme || s.name, amount: Number(s.amount || 0), frequency: s.frequency || "monthly", startDate: s.startDate, fundType: s.fundType || s.type }));
+    const totalMonthlySIP = sips.filter((s: any) => s.frequency === "monthly").reduce((sum: number, s: any) => sum + s.amount, 0);
+    return { sips, totalMonthlySIP, activeSIPs: sips.length };
+  };
+
+  // ── Feature 24: Anomaly Detection Handler ──
+  const handleDetectAnomalies = () => {
+    const anomalies: any[] = [];
+    const txs = state.transactions || [];
+    const monthlySpend: Record<string, number> = {};
+    txs.filter((t: any) => t.type === "debit").forEach((t: any) => {
+      if (t.date) { const m = t.date.slice(0, 7); monthlySpend[m] = (monthlySpend[m] || 0) + Number(t.amount || 0); }
+    });
+    const months = Object.keys(monthlySpend).sort();
+    if (months.length >= 3) {
+      const values = months.map((m) => monthlySpend[m]);
+      const avg = values.reduce((s, v) => s + v, 0) / values.length;
+      months.forEach((m) => {
+        if (monthlySpend[m] > avg * 2) anomalies.push({ type: "high_spending", month: m, amount: monthlySpend[m], average: Math.round(avg), note: `Spending was ${Math.round(monthlySpend[m] / avg)}x the average` });
+      });
+    }
+    // Missed SIP detection
+    const sips = state.sips || [];
+    const mfBuys = state.mutualFunds || [];
+    sips.forEach((sip: any) => {
+      if (!sip.startDate) return;
+      const start = new Date(sip.startDate);
+      const now = new Date();
+      const sipMonths: string[] = [];
+      for (let d = new Date(start); d <= now; d.setMonth(d.getMonth() + 1)) { sipMonths.push(d.toISOString().slice(0, 7)); }
+      const buyMonths = new Set(mfBuys.filter((m: any) => (m.name || m.scheme || "").includes(sip.scheme || "___")).map((m: any) => (m.buyDate || "").slice(0, 7)));
+      const missed = sipMonths.filter((m) => !buyMonths.has(m));
+      if (missed.length > 0) anomalies.push({ type: "missed_sip", scheme: sip.scheme, missedMonths: missed.slice(-3), totalMissed: missed.length });
+    });
+    // Credit utilization spikes
+    (state.creditCards || []).forEach((cc: any) => {
+      const util = Number(cc.cardLimit) > 0 ? (Number(cc.outstanding || 0) / Number(cc.cardLimit)) * 100 : 0;
+      if (util > 80) anomalies.push({ type: "high_credit_utilization", card: cc.issuer, utilization: Math.round(util), outstanding: Number(cc.outstanding || 0), limit: Number(cc.cardLimit || 0) });
+    });
+    return { anomalies, scannedAt: new Date().toISOString() };
+  };
 
   const handleGetFinancialSummary = () => {
     return {
@@ -754,6 +944,20 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               contentData = handleFindTransactions(args);
             } else if (name === "calculate_loan_prepayment") {
               contentData = handleCalculateLoanPrepayment(args);
+            } else if (name === "review_portfolio") {
+              contentData = handleReviewPortfolio();
+            } else if (name === "get_tax_optimization") {
+              contentData = handleGetTaxOptimization();
+            } else if (name === "get_spending_summary") {
+              contentData = handleGetSpendingSummary(args);
+            } else if (name === "get_goal_status") {
+              contentData = handleGetGoalStatus();
+            } else if (name === "get_insurance_summary") {
+              contentData = handleGetInsuranceSummary();
+            } else if (name === "get_sip_summary") {
+              contentData = handleGetSipSummary();
+            } else if (name === "detect_anomalies") {
+              contentData = handleDetectAnomalies();
             } else {
               contentData = { error: `Function '${name}' not implemented.` };
             }

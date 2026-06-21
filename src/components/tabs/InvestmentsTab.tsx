@@ -81,6 +81,7 @@ const SUBS = [
   { id: "nps", label: "NPS", icon: Briefcase, stateKey: "nps" },
   { id: "epf", label: "EPF (EPFO)", icon: Shield, stateKey: "epf" },
   { id: "mf", label: "Mutual Funds", icon: BarChart3, stateKey: "mutualFunds" },
+  { id: "dividends", label: "Dividends", icon: Coins, stateKey: "dividends" },
   { id: "income", label: "Yield Tracker", icon: Activity, stateKey: null },
 ];
 
@@ -984,7 +985,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     setShowModal(false);
   };
 
-  const canAdd = sub !== "income";
+  const canAdd = sub !== "income" && sub !== "dividends";
 
   // ── Portfolio Calculation Helpers ──────────────────────────────────────
   // FD accrued value: use elapsed years not full tenure (shows real current worth)
@@ -1137,6 +1138,8 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             onAdd={onAdd}
           />
         );
+      case "dividends":
+        return <DividendTracker state={state} addItem={onSave} removeItem={removeItem} />;
       case "income":
         return <YieldTracker state={state} />;
       default:
@@ -7640,6 +7643,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
   const [lotExpandedGroups, setLotExpandedGroups] = useState<Set<string>>(new Set());
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showCasImport, setShowCasImport] = useState(false);
+  const [showExpenseAnalyzer, setShowExpenseAnalyzer] = useState(false);
 
   const handleExport = () => {
     if (!items || items.length === 0) return;
@@ -8060,6 +8064,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                   setShowCasImport(false);
                 }}
                 onClose={() => setShowCasImport(false)}
+                existingFunds={state.mutualFunds || []}
               />
             </div>
           )}
@@ -8447,6 +8452,289 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
               </div>
             );
           })()}
+
+          {/* ── Expense Ratio Impact Analyzer ── */}
+          {items.length > 0 && (
+            <Card style={{ padding: 0, marginTop: 20, overflow: "hidden" }}>
+              <button
+                onClick={() => setShowExpenseAnalyzer((v) => !v)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
+                      background: `${THEME.gold}1f`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: THEME.gold,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Activity size={16} />
+                  </div>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                      Expense Ratio Impact Analyzer
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                      Hidden cost of expense ratios and potential savings from switching to Direct plans
+                    </div>
+                  </div>
+                </div>
+                <ChevronDown
+                  size={18}
+                  style={{
+                    color: THEME.muted,
+                    transform: showExpenseAnalyzer ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s",
+                    flexShrink: 0,
+                  }}
+                />
+              </button>
+
+              {showExpenseAnalyzer && (() => {
+                const getExpenseInfo = (name: string, mfType: string, category: string) => {
+                  const nameLC = (name || "").toLowerCase();
+                  const typeLC = (mfType || "").toLowerCase();
+                  const catLC = (category || "").toLowerCase();
+
+                  const isDirect = nameLC.includes("direct") || typeLC.includes("direct");
+                  const isRegular = nameLC.includes("regular") || typeLC.includes("regular");
+                  const planType = isDirect ? "Direct" : isRegular ? "Regular" : (typeLC.includes("direct") ? "Direct" : "Regular");
+
+                  const isDebt = catLC.includes("debt") || catLC.includes("liquid") || catLC.includes("gilt") ||
+                    catLC.includes("overnight") || catLC.includes("money market") || catLC.includes("corporate bond") ||
+                    catLC.includes("banking") || catLC.includes("credit risk");
+                  const assetType = isDebt ? "Debt" : "Equity";
+
+                  let expenseRatio: number;
+                  if (planType === "Direct" && assetType === "Equity") expenseRatio = 0.005;
+                  else if (planType === "Direct" && assetType === "Debt") expenseRatio = 0.002;
+                  else if (planType === "Regular" && assetType === "Equity") expenseRatio = 0.015;
+                  else expenseRatio = 0.01;
+
+                  return { planType, assetType, expenseRatio };
+                };
+
+                const fundAnalysis = items.map((m: any) => {
+                  const name = m.name || m.scheme || "";
+                  const units = Number(m.units) || 0;
+                  const nav = Number(m.currentNav) || 0;
+                  const currentValue = units * nav;
+                  const { planType, assetType, expenseRatio } = getExpenseInfo(name, m.mfType || "", m.category || "");
+                  const annualCost = currentValue * expenseRatio;
+
+                  let directRatio: number | null = null;
+                  if (planType === "Regular") {
+                    directRatio = assetType === "Equity" ? 0.005 : 0.002;
+                  }
+                  const directAnnualCost = directRatio !== null ? currentValue * directRatio : null;
+                  const annualSaving = directAnnualCost !== null ? annualCost - directAnnualCost : 0;
+
+                  return {
+                    name,
+                    currentValue,
+                    planType,
+                    assetType,
+                    expenseRatio,
+                    annualCost,
+                    directRatio,
+                    annualSaving,
+                  };
+                }).filter((f: any) => f.currentValue > 0);
+
+                const totalAnnualCost = fundAnalysis.reduce((s: number, f: any) => s + f.annualCost, 0);
+                const totalAnnualSaving = fundAnalysis.reduce((s: number, f: any) => s + f.annualSaving, 0);
+                const regularFunds = fundAnalysis.filter((f: any) => f.planType === "Regular");
+                const directFunds = fundAnalysis.filter((f: any) => f.planType === "Direct");
+
+                const compoundSaving = (annual: number, years: number) => {
+                  if (annual <= 0) return 0;
+                  const rate = 0.12;
+                  let savings = 0;
+                  for (let y = 0; y < years; y++) {
+                    savings = (savings + annual) * (1 + rate);
+                  }
+                  return savings;
+                };
+
+                return (
+                  <div style={{ padding: "0 20px 20px" }}>
+                    {/* Summary strip */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                        gap: 10,
+                        marginBottom: 18,
+                      }}
+                    >
+                      {[
+                        { label: "Total Annual Cost", value: fmtINRFull(totalAnnualCost), color: THEME.rust },
+                        { label: "Regular Plans", value: String(regularFunds.length), color: THEME.gold },
+                        { label: "Direct Plans", value: String(directFunds.length), color: THEME.sage },
+                        { label: "Annual Savings Possible", value: fmtINRFull(totalAnnualSaving), color: THEME.accent },
+                      ].map(({ label, value, color }) => (
+                        <div
+                          key={label}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: 10,
+                            background: `${color}0a`,
+                            border: `1px solid ${color}20`,
+                          }}
+                        >
+                          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 4 }}>
+                            {label}
+                          </div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                            <Prv>{value}</Prv>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Long-term savings projection */}
+                    {totalAnnualSaving > 0 && (
+                      <div
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 10,
+                          background: `${THEME.sage}08`,
+                          border: `1px solid ${THEME.sage}20`,
+                          marginBottom: 18,
+                        }}
+                      >
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>
+                          Potential Savings from Switching Regular to Direct (at 12% growth)
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                          {[10, 20, 30].map((yrs) => (
+                            <div
+                              key={yrs}
+                              style={{
+                                textAlign: "center",
+                                padding: "10px 8px",
+                                borderRadius: 8,
+                                background: "var(--surface-0)",
+                                border: `1px solid ${THEME.line}`,
+                              }}
+                            >
+                              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, marginBottom: 4 }}>
+                                {yrs} Years
+                              </div>
+                              <div style={{ fontSize: 16, fontWeight: 900, color: THEME.sage }}>
+                                <Prv>{fmtINRFull(compoundSaving(totalAnnualSaving, yrs))}</Prv>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Per-fund breakdown */}
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: 10 }}>
+                      Per-Fund Expense Breakdown
+                    </div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr>
+                            {["Fund", "Value", "Plan", "Type", "Expense %", "Annual Cost", "Savings/yr"].map((h) => (
+                              <th
+                                key={h}
+                                style={{
+                                  textAlign: h === "Fund" ? "left" : "right",
+                                  padding: "10px 8px",
+                                  fontSize: 10,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase" as const,
+                                  color: THEME.muted,
+                                  fontWeight: 700,
+                                  borderBottom: `1.5px solid ${THEME.line}`,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fundAnalysis.map((f: any, idx: number) => (
+                            <tr key={idx}>
+                              <td
+                                style={{
+                                  padding: "10px 8px",
+                                  borderBottom: `1px solid ${THEME.line}`,
+                                  fontWeight: 600,
+                                  maxWidth: 200,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                                title={f.name}
+                              >
+                                {f.name.length > 30 ? f.name.slice(0, 30) + "..." : f.name}
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                <Prv>{fmtINRFull(f.currentValue)}</Prv>
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: "2px 8px",
+                                    borderRadius: 6,
+                                    background: f.planType === "Direct" ? `${THEME.sage}18` : `${THEME.gold}18`,
+                                    color: f.planType === "Direct" ? THEME.sage : THEME.gold,
+                                  }}
+                                >
+                                  {f.planType}
+                                </span>
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: THEME.muted }}>
+                                {f.assetType}
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", fontWeight: 700 }}>
+                                {(f.expenseRatio * 100).toFixed(1)}%
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: THEME.rust, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                                <Prv>{fmtINRFull(f.annualCost)}</Prv>
+                              </td>
+                              <td style={{ padding: "10px 8px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right", color: f.annualSaving > 0 ? THEME.sage : THEME.muted, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                                <Prv>{f.annualSaving > 0 ? fmtINRFull(f.annualSaving) : "—"}</Prv>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {fundAnalysis.length === 0 && (
+                      <div style={{ textAlign: "center", fontSize: 13, color: THEME.muted, padding: "16px 0" }}>
+                        No funds with current value to analyze
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </Card>
+          )}
         </>
       )}
       {editMF && (
@@ -9010,6 +9298,137 @@ function FifoSellMFModal({ group, onClose, onSave }: any) {
     </Modal>
   );
 }
+
+/* ── Dividend Tracker ──────────────────────────────────────────────── */
+const DividendTracker = ({ state, addItem, removeItem }: any) => {
+  const [showForm, setShowForm] = React.useState(false);
+  const [form, setForm] = React.useState({ symbol: "", fundName: "", type: "stock", amount: "", tds: "", paymentDate: today(), fy: state?.profile?.fy || "2025-26", note: "" });
+  const dividends = state.dividends || [];
+  const totalDividends = dividends.reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
+  const totalTDS = dividends.reduce((s: number, d: any) => s + (Number(d.tds) || 0), 0);
+  const byFY: Record<string, { amount: number; tds: number; count: number }> = {};
+  dividends.forEach((d: any) => {
+    const fy = d.fy || "Unknown";
+    if (!byFY[fy]) byFY[fy] = { amount: 0, tds: 0, count: 0 };
+    byFY[fy].amount += Number(d.amount) || 0;
+    byFY[fy].tds += Number(d.tds) || 0;
+    byFY[fy].count++;
+  });
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+        {[
+          { label: "Total Dividends", value: fmtINRFull(totalDividends), color: THEME.sage },
+          { label: "TDS Deducted", value: fmtINRFull(totalTDS), color: THEME.rust },
+          { label: "Net Received", value: fmtINRFull(totalDividends - totalTDS), color: THEME.accent },
+          { label: "Records", value: String(dividends.length), color: THEME.gold },
+        ].map(({ label, value, color }) => (
+          <Card key={label} style={{ padding: "16px 18px", borderTop: `3px solid ${color}` }}>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{label}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color }}><Prv>{value}</Prv></div>
+          </Card>
+        ))}
+      </div>
+
+      <Card style={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>Dividend Records</div>
+          <Button variant="accent" size="sm" onClick={() => setShowForm(!showForm)}>
+            {showForm ? "Cancel" : "+ Add Dividend"}
+          </Button>
+        </div>
+
+        {showForm && (
+          <div style={{ padding: 16, borderRadius: 12, background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22`, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+              <Field label="Type">
+                <select className="form-input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  <option value="stock">Stock</option><option value="mf">Mutual Fund</option>
+                </select>
+              </Field>
+              <Field label={form.type === "stock" ? "Symbol" : "Fund Name"}>
+                <input className="form-input" placeholder={form.type === "stock" ? "e.g. RELIANCE" : "e.g. HDFC Top 100"} value={form.type === "stock" ? form.symbol : form.fundName} onChange={(e) => setForm({ ...form, [form.type === "stock" ? "symbol" : "fundName"]: e.target.value })} />
+              </Field>
+              <Field label="Amount (₹)">
+                <input className="form-input" type="number" placeholder="e.g. 5000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+              </Field>
+              <Field label="TDS (₹)">
+                <input className="form-input" type="number" placeholder="e.g. 500" value={form.tds} onChange={(e) => setForm({ ...form, tds: e.target.value })} />
+              </Field>
+              <Field label="Payment Date">
+                <input className="form-input" type="date" value={form.paymentDate} onChange={(e) => setForm({ ...form, paymentDate: e.target.value })} />
+              </Field>
+              <Field label="FY">
+                <input className="form-input" placeholder="2025-26" value={form.fy} onChange={(e) => setForm({ ...form, fy: e.target.value })} />
+              </Field>
+            </div>
+            <Button variant="accent" size="sm" style={{ marginTop: 12 }} onClick={() => {
+              if (!form.amount) return;
+              addItem("dividends", { symbol: form.symbol, fundName: form.fundName, type: form.type, amount: Number(form.amount) || 0, tds: Number(form.tds) || 0, paymentDate: form.paymentDate, fy: form.fy, note: form.note, owner: "self" });
+              setForm({ symbol: "", fundName: "", type: "stock", amount: "", tds: "", paymentDate: today(), fy: state?.profile?.fy || "2025-26", note: "" });
+              setShowForm(false);
+            }}>
+              Save Dividend
+            </Button>
+          </div>
+        )}
+
+        {dividends.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+            No dividends tracked yet. Add your first dividend record above.
+          </div>
+        ) : (
+          <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: `${THEME.muted}09` }}>
+                  <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700 }}>Security</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Type</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right" }}>TDS</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Date</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>FY</th>
+                  <th style={{ padding: "10px 6px" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...dividends].sort((a: any, b: any) => (b.paymentDate || "").localeCompare(a.paymentDate || "")).map((d: any) => (
+                  <tr key={d.id} style={{ borderTop: `1px solid ${THEME.line}` }}>
+                    <td style={{ padding: "10px 12px", fontWeight: 600 }}>{d.symbol || d.fundName || "-"}</td>
+                    <td style={{ padding: "10px 12px" }}><Badge variant={d.type === "stock" ? "accent" : "muted"} style={{ fontSize: 10 }}>{d.type}</Badge></td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: THEME.sage }}><Prv>{fmtINRFull(d.amount)}</Prv></td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: THEME.rust }}><Prv>{fmtINRFull(d.tds)}</Prv></td>
+                    <td style={{ padding: "10px 12px", color: THEME.muted }}>{d.paymentDate || "-"}</td>
+                    <td style={{ padding: "10px 12px" }}>{d.fy || "-"}</td>
+                    <td style={{ padding: "10px 6px" }}>
+                      <button onClick={() => removeItem("dividends", d.id)} style={{ background: "transparent", border: "none", cursor: "pointer", color: THEME.muted, padding: 2 }}><Trash2 size={12} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {Object.keys(byFY).length > 1 && (
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: `${THEME.muted}06` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>FY-wise Summary</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+              {Object.entries(byFY).sort((a, b) => b[0].localeCompare(a[0])).map(([fy, data]) => (
+                <div key={fy} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}>FY {fy}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}><Prv>{fmtINRFull(data.amount)}</Prv></div>
+                  <div style={{ fontSize: 10, color: THEME.muted }}>TDS: {fmtINRFull(data.tds)} · {data.count} records</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
 
 /* ── Yield Tracker ──────────────────────────────────────────────────── */
 const YieldTracker = ({ state }: any) => {

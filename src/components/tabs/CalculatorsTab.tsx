@@ -613,6 +613,33 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       reqCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / reqCorpus) * 100)) : 0;
     const safeWithdrawalRate = reqCorpus > 0 ? (retAnnualExp / reqCorpus) * 100 : 4;
 
+    // Current runway: how long current portfolio lasts without further savings
+    const currentRunwayMonths = monthlyExp > 0 ? Math.round(curPort / monthlyExp) : Infinity;
+    const currentRunwayYears = Math.round((currentRunwayMonths / 12) * 10) / 10;
+
+    // Projected FIRE date: find the year when cumulative corpus >= reqCorpus
+    let projectedFireYear: number | null = null;
+    let tempCorpus = curPort;
+    for (let y = 1; y <= 60; y++) {
+      tempCorpus = tempCorpus * (1 + preRet) + mSavings * 12;
+      const inflAdjReq = retAnnualExp * ((1 - Math.pow(1 + realPostReturn, -(lifeExp - curAge - y))) / (realPostReturn || 1));
+      if (tempCorpus >= inflAdjReq && inflAdjReq > 0) {
+        projectedFireYear = new Date().getFullYear() + y;
+        break;
+      }
+    }
+
+    // Monthly savings needed to close the gap
+    let monthlySavingsNeeded = 0;
+    if (gap > 0 && monthlyPreRate > 0 && monthsToRet > 0) {
+      const fvFactor = ((Math.pow(1 + monthlyPreRate, monthsToRet) - 1) / monthlyPreRate) * (1 + monthlyPreRate);
+      monthlySavingsNeeded = Math.round(gap / fvFactor);
+    }
+
+    // 4% Rule status
+    const fourPctCorpus = retAnnualExp / 0.04;
+    const fourPctProgress = fourPctCorpus > 0 ? Math.min(100, Math.round((projectedCorpus / fourPctCorpus) * 100)) : 0;
+
     return {
       retMonthlyExp,
       retAnnualExp,
@@ -626,6 +653,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
       realPostReturn,
       infl,
       postRet,
+      currentRunwayMonths,
+      currentRunwayYears,
+      projectedFireYear,
+      monthlySavingsNeeded,
+      fourPctCorpus,
+      fourPctProgress,
     };
   }, [
     fireAge,
@@ -2306,6 +2339,48 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       </span>
                     </>
                   )}
+                </div>
+              </Card>
+
+              {/* ── FIRE Enhancement: Additional Insights ── */}
+              <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 16, letterSpacing: "-0.02em" }}>
+                  FIRE Quick Insights
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.accent}08`, border: `1px solid ${THEME.accent}22` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Current Runway</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent }}>
+                      {fireResult.currentRunwayYears === Infinity ? "∞" : `${fireResult.currentRunwayYears} yrs`}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.currentRunwayMonths === Infinity ? "No expenses" : `${fireResult.currentRunwayMonths} months at current spend`}</div>
+                  </div>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}22` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Projected FIRE Year</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage }}>
+                      {fireResult.projectedFireYear ? fireResult.projectedFireYear : "N/A"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.projectedFireYear ? `Age ${Number(fireAge) + (fireResult.projectedFireYear - new Date().getFullYear())}` : "Increase savings to project"}</div>
+                  </div>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.gold}08`, border: `1px solid ${THEME.gold}22` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Savings Needed to Close Gap</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: THEME.gold }}>
+                      {fireResult.monthlySavingsNeeded > 0 ? fmtINRFull(fireResult.monthlySavingsNeeded) : "On Track ✓"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{fireResult.monthlySavingsNeeded > 0 ? "additional per month needed" : "Current savings exceed target"}</div>
+                  </div>
+                  <div style={{ padding: "14px 16px", borderRadius: 12, background: `${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}08`, border: `1px solid ${fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust}22` }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>4% Rule Status</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: fireResult.fourPctProgress >= 100 ? THEME.sage : THEME.rust }}>
+                      {fireResult.fourPctProgress}%
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      Need {fmtINRFull(fireResult.fourPctCorpus)} corpus
+                    </div>
+                    <div style={{ height: 4, borderRadius: 2, background: `${THEME.muted}22`, marginTop: 6 }}>
+                      <div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, fireResult.fourPctProgress)}%`, background: fireResult.fourPctProgress >= 100 ? THEME.sage : fireResult.fourPctProgress >= 50 ? THEME.gold : THEME.rust, transition: "width 0.3s" }} />
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>
