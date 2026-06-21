@@ -22,7 +22,6 @@ import {
   ChevronDown,
   ChevronUp,
   Zap,
-  Printer,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, calcTaxNewByFY, calcTaxOldByFY, today, uid } from "../../utils/finance";
@@ -783,6 +782,78 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
 /* ══════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════ */
+
+const HRACalculator = () => {
+  const [hraBasic, setHraBasic] = useState("");
+  const [hraDa, setHraDa] = useState("");
+  const [hraReceived, setHraReceived] = useState("");
+  const [hraRent, setHraRent] = useState("");
+  const [hraMetro, setHraMetro] = useState(true);
+
+  const basic = Number(hraBasic) || 0;
+  const da = Number(hraDa) || 0;
+  const received = Number(hraReceived) || 0;
+  const rent = Number(hraRent) || 0;
+  const salary = basic + da;
+
+  const c1 = received;
+  const c2 = Math.max(0, rent - 0.10 * salary);
+  const c3 = (hraMetro ? 0.50 : 0.40) * salary;
+  const exempt = salary > 0 && received > 0 ? Math.min(c1, c2, c3) : 0;
+  const taxable = Math.max(0, received - exempt);
+
+  const inputStyle: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`, fontSize: 13, background: "var(--surface-0)", color: THEME.ink, width: "100%" };
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <Calculator size={16} color={THEME.accent} />
+          <span style={{ fontSize: 14, fontWeight: 800 }}>HRA Exemption Calculator</span>
+          <span style={{ fontSize: 11, color: THEME.muted }}>Section 10(13A)</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 16 }}>
+          <Field label="Basic Salary (Annual)">
+            <input type="number" style={inputStyle} placeholder="e.g. 600000" value={hraBasic} onChange={(e) => setHraBasic(e.target.value)} />
+          </Field>
+          <Field label="DA (Annual)">
+            <input type="number" style={inputStyle} placeholder="0" value={hraDa} onChange={(e) => setHraDa(e.target.value)} />
+          </Field>
+          <Field label="HRA Received (Annual)">
+            <input type="number" style={inputStyle} placeholder="e.g. 240000" value={hraReceived} onChange={(e) => setHraReceived(e.target.value)} />
+          </Field>
+          <Field label="Rent Paid (Annual)">
+            <input type="number" style={inputStyle} placeholder="e.g. 300000" value={hraRent} onChange={(e) => setHraRent(e.target.value)} />
+          </Field>
+          <Field label="City Type">
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button size="sm" variant={hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(true)} style={{ flex: 1, height: 34 }}>Metro</Button>
+              <Button size="sm" variant={!hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(false)} style={{ flex: 1, height: 34 }}>Non-Metro</Button>
+            </div>
+          </Field>
+        </div>
+        {salary > 0 && received > 0 && (
+          <div style={{ background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22`, borderRadius: 12, padding: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
+              <span style={{ color: THEME.muted }}>A. Actual HRA Received</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c1)}</span>
+              <span style={{ color: THEME.muted }}>B. Rent Paid − 10% of Salary</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c2)}</span>
+              <span style={{ color: THEME.muted }}>C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})</span>
+              <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c3)}</span>
+            </div>
+            <div style={{ borderTop: `1px solid ${THEME.line}`, marginTop: 10, paddingTop: 10, display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 14 }}>
+              <span style={{ fontWeight: 800, color: THEME.sage }}>HRA Exempt (Minimum of A, B, C)</span>
+              <span style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}>{fmtINRFull(exempt)}</span>
+              <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA</span>
+              <span style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}>{fmtINRFull(taxable)}</span>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
 
 interface TaxVaultTabProps {
   state: any;
@@ -2066,81 +2137,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
           )}
 
           {/* ── 1c. HRA EXEMPTION CALCULATOR ───────────────────────── */}
-          {activeRegime === "old" && (
-            <div style={{ marginBottom: 28 }}>
-              <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <Calculator size={16} color={THEME.accent} />
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>HRA Exemption Calculator</span>
-                  <span style={{ fontSize: 11, color: THEME.muted }}>Section 10(13A)</span>
-                </div>
-                {(() => {
-                  const [hraBasic, setHraBasic] = React.useState("");
-                  const [hraDa, setHraDa] = React.useState("");
-                  const [hraReceived, setHraReceived] = React.useState("");
-                  const [hraRent, setHraRent] = React.useState("");
-                  const [hraMetro, setHraMetro] = React.useState(true);
-
-                  const basic = Number(hraBasic) || 0;
-                  const da = Number(hraDa) || 0;
-                  const received = Number(hraReceived) || 0;
-                  const rent = Number(hraRent) || 0;
-                  const salary = basic + da;
-
-                  const c1 = received;
-                  const c2 = Math.max(0, rent - 0.10 * salary);
-                  const c3 = (hraMetro ? 0.50 : 0.40) * salary;
-                  const exempt = salary > 0 && received > 0 ? Math.min(c1, c2, c3) : 0;
-                  const taxable = Math.max(0, received - exempt);
-
-                  const inputStyle = { padding: "8px 10px", borderRadius: 8, border: `1px solid ${THEME.line}`, fontSize: 13, background: "var(--surface-0)", color: THEME.ink, width: "100%" };
-
-                  return (
-                    <>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 16 }}>
-                        <Field label="Basic Salary (Annual)">
-                          <input type="number" style={inputStyle} placeholder="e.g. 600000" value={hraBasic} onChange={(e) => setHraBasic(e.target.value)} />
-                        </Field>
-                        <Field label="DA (Annual)">
-                          <input type="number" style={inputStyle} placeholder="0" value={hraDa} onChange={(e) => setHraDa(e.target.value)} />
-                        </Field>
-                        <Field label="HRA Received (Annual)">
-                          <input type="number" style={inputStyle} placeholder="e.g. 240000" value={hraReceived} onChange={(e) => setHraReceived(e.target.value)} />
-                        </Field>
-                        <Field label="Rent Paid (Annual)">
-                          <input type="number" style={inputStyle} placeholder="e.g. 300000" value={hraRent} onChange={(e) => setHraRent(e.target.value)} />
-                        </Field>
-                        <Field label="City Type">
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <Button size="sm" variant={hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(true)} style={{ flex: 1, height: 34 }}>Metro</Button>
-                            <Button size="sm" variant={!hraMetro ? "accent" : "ghost"} onClick={() => setHraMetro(false)} style={{ flex: 1, height: 34 }}>Non-Metro</Button>
-                          </div>
-                        </Field>
-                      </div>
-                      {salary > 0 && received > 0 && (
-                        <div style={{ background: `${THEME.accent}06`, border: `1px solid ${THEME.accent}22`, borderRadius: 12, padding: 16 }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
-                            <span style={{ color: THEME.muted }}>A. Actual HRA Received</span>
-                            <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c1)}</span>
-                            <span style={{ color: THEME.muted }}>B. Rent Paid − 10% of Salary</span>
-                            <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c2)}</span>
-                            <span style={{ color: THEME.muted }}>C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})</span>
-                            <span style={{ fontWeight: 600, textAlign: "right" }}>{fmtINRFull(c3)}</span>
-                          </div>
-                          <div style={{ borderTop: `1px solid ${THEME.line}`, marginTop: 10, paddingTop: 10, display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 14 }}>
-                            <span style={{ fontWeight: 800, color: THEME.sage }}>HRA Exempt (Minimum of A, B, C)</span>
-                            <span style={{ fontWeight: 900, fontSize: 18, color: THEME.sage, textAlign: "right" }}>{fmtINRFull(exempt)}</span>
-                            <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA</span>
-                            <span style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}>{fmtINRFull(taxable)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </Card>
-            </div>
-          )}
+          {activeRegime === "old" && <HRACalculator />}
 
           {/* ── 2. ADVANCE TAX SUMMARY ─────────────────────────────── */}
           <div
@@ -4240,7 +4237,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       cursor: "pointer",
                     }}
                   >
-                    <Printer size={13} /> ITR Report
+                    <Download size={13} /> ITR Report
                   </button>
                 </>
               )}
