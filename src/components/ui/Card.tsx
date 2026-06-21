@@ -45,6 +45,8 @@ export const Card: React.FC<CardProps> = ({
     gridGap,
     rowGap,
     columnGap,
+    height,
+    maxHeight,
     ...outerStyle
   } = style || {};
 
@@ -52,6 +54,15 @@ export const Card: React.FC<CardProps> = ({
     minHeight: "100%",
     width: "100%",
   };
+
+  if (height !== undefined) {
+    outerStyle.height = height;
+    contentStyle.height = height;
+  }
+  if (maxHeight !== undefined) {
+    outerStyle.maxHeight = maxHeight;
+    contentStyle.maxHeight = maxHeight;
+  }
 
   if (display !== undefined) contentStyle.display = display;
   if (flexDirection !== undefined) contentStyle.flexDirection = flexDirection;
