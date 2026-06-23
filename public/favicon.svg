@@ -4,51 +4,65 @@
       <stop offset="0%" stop-color="#111827"/>
       <stop offset="100%" stop-color="#0B0F1A"/>
     </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4A843"/>
+      <stop offset="100%" stop-color="#B8922E"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5EDD3"/>
+      <stop offset="100%" stop-color="#E8DFC0"/>
+    </linearGradient>
   </defs>
-  <!-- Dark background circle -->
-  <circle cx="32" cy="32" r="31" fill="url(#bg)"/>
-  <!-- Gold circle border matching logo -->
-  <circle cx="32" cy="32" r="29" fill="none" stroke="#C5A152" stroke-width="2"/>
-  <!-- Trunk - gold, central -->
-  <line x1="32" y1="30" x2="32" y2="50" stroke="#8B7332" stroke-width="3" stroke-linecap="round"/>
-  <!-- Branch pair 1 (lowest) -->
-  <line x1="32" y1="40" x2="22" y2="33" stroke="#8B7332" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="32" y1="40" x2="42" y2="33" stroke="#8B7332" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- Branch pair 2 (middle) -->
-  <line x1="32" y1="35" x2="20" y2="26" stroke="#8B7332" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="32" y1="35" x2="44" y2="26" stroke="#8B7332" stroke-width="1.5" stroke-linecap="round"/>
-  <!-- Branch pair 3 (upper) -->
-  <line x1="32" y1="30" x2="24" y2="20" stroke="#8B7332" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="32" y1="30" x2="40" y2="20" stroke="#8B7332" stroke-width="1.2" stroke-linecap="round"/>
-  <!-- Leaves - dark green individual ellipses matching logo style -->
-  <!-- Top crown -->
-  <ellipse cx="32" cy="12" rx="4" ry="3" fill="#1B5E3A"/>
-  <ellipse cx="27" cy="14" rx="3.5" ry="2.8" fill="#1E6E42"/>
-  <ellipse cx="37" cy="14" rx="3.5" ry="2.8" fill="#1E6E42"/>
-  <!-- Upper layer -->
-  <ellipse cx="22" cy="17" rx="3.5" ry="2.8" fill="#1B5E3A"/>
-  <ellipse cx="32" cy="16" rx="4" ry="3" fill="#22734A"/>
-  <ellipse cx="42" cy="17" rx="3.5" ry="2.8" fill="#1B5E3A"/>
-  <!-- Middle layer -->
-  <ellipse cx="18" cy="22" rx="3.2" ry="2.5" fill="#1E6E42"/>
-  <ellipse cx="25" cy="21" rx="3.5" ry="2.8" fill="#22734A"/>
-  <ellipse cx="32" cy="22" rx="3.5" ry="2.8" fill="#1B5E3A"/>
-  <ellipse cx="39" cy="21" rx="3.5" ry="2.8" fill="#22734A"/>
-  <ellipse cx="46" cy="22" rx="3.2" ry="2.5" fill="#1E6E42"/>
-  <!-- Lower canopy layer -->
-  <ellipse cx="20" cy="27" rx="3" ry="2.5" fill="#1B5E3A"/>
-  <ellipse cx="27" cy="26" rx="3.2" ry="2.5" fill="#1E6E42"/>
-  <ellipse cx="37" cy="26" rx="3.2" ry="2.5" fill="#1E6E42"/>
-  <ellipse cx="44" cy="27" rx="3" ry="2.5" fill="#1B5E3A"/>
-  <!-- Bottom canopy -->
-  <ellipse cx="22" cy="31" rx="3" ry="2.2" fill="#22734A"/>
-  <ellipse cx="42" cy="31" rx="3" ry="2.2" fill="#22734A"/>
-  <!-- Gold/amber accent leaves (matching logo's golden leaves) -->
-  <ellipse cx="29" cy="13" rx="2.5" ry="2" fill="#C5A152"/>
-  <ellipse cx="36" cy="18" rx="2.2" ry="1.8" fill="#C5A152"/>
-  <ellipse cx="23" cy="24" rx="2" ry="1.6" fill="#C5A152"/>
-  <ellipse cx="41" cy="24" rx="2" ry="1.6" fill="#C5A152"/>
-  <ellipse cx="32" cy="19" rx="2.2" ry="1.8" fill="#B8963E"/>
-  <!-- Green grass base -->
-  <ellipse cx="32" cy="51" rx="14" ry="4" fill="#1B5E3A"/>
+  <!-- Dark outer background -->
+  <circle cx="32" cy="32" r="32" fill="url(#bg)"/>
+  <!-- Gold circle border -->
+  <circle cx="32" cy="32" r="27" fill="url(#gold)"/>
+  <!-- Light cream inner circle -->
+  <circle cx="32" cy="32" r="24.5" fill="url(#inner)"/>
+
+  <!-- Trunk - curved gold -->
+  <path d="M32 48 C32 42, 30 36, 32 28" stroke="#9B7B2C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <!-- Left main branch -->
+  <path d="M31 36 C28 32, 22 28, 18 26" stroke="#9B7B2C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <!-- Right main branch -->
+  <path d="M33 36 C36 32, 42 28, 46 26" stroke="#9B7B2C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <!-- Left upper branch -->
+  <path d="M31 32 C28 28, 22 22, 20 20" stroke="#9B7B2C" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <!-- Right upper branch -->
+  <path d="M33 32 C36 28, 42 22, 44 20" stroke="#9B7B2C" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <!-- Left small branch -->
+  <path d="M31 30 C28 26, 25 21, 24 18" stroke="#9B7B2C" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <!-- Right small branch -->
+  <path d="M33 30 C36 26, 39 21, 40 18" stroke="#9B7B2C" stroke-width="1" fill="none" stroke-linecap="round"/>
+
+  <!-- Leaves - pointed dark green ovals radiating outward -->
+  <!-- Top center -->
+  <ellipse cx="32" cy="11" rx="2.2" ry="3.5" fill="#1B5E3A" transform="rotate(0,32,11)"/>
+  <!-- Top left fan -->
+  <ellipse cx="28" cy="12" rx="1.8" ry="3.2" fill="#1B5E3A" transform="rotate(-15,28,12)"/>
+  <ellipse cx="24" cy="14" rx="1.8" ry="3.2" fill="#1E6B40" transform="rotate(-30,24,14)"/>
+  <ellipse cx="21" cy="17" rx="1.6" ry="3" fill="#1B5E3A" transform="rotate(-45,21,17)"/>
+  <ellipse cx="18" cy="21" rx="1.5" ry="2.8" fill="#1E6B40" transform="rotate(-55,18,21)"/>
+  <ellipse cx="17" cy="25" rx="1.4" ry="2.6" fill="#1B5E3A" transform="rotate(-65,17,25)"/>
+  <!-- Top right fan -->
+  <ellipse cx="36" cy="12" rx="1.8" ry="3.2" fill="#1B5E3A" transform="rotate(15,36,12)"/>
+  <ellipse cx="40" cy="14" rx="1.8" ry="3.2" fill="#1E6B40" transform="rotate(30,40,14)"/>
+  <ellipse cx="43" cy="17" rx="1.6" ry="3" fill="#1B5E3A" transform="rotate(45,43,17)"/>
+  <ellipse cx="46" cy="21" rx="1.5" ry="2.8" fill="#1E6B40" transform="rotate(55,46,21)"/>
+  <ellipse cx="47" cy="25" rx="1.4" ry="2.6" fill="#1B5E3A" transform="rotate(65,47,25)"/>
+  <!-- Inner layer leaves -->
+  <ellipse cx="30" cy="14" rx="1.6" ry="2.8" fill="#22734A" transform="rotate(-8,30,14)"/>
+  <ellipse cx="34" cy="14" rx="1.6" ry="2.8" fill="#22734A" transform="rotate(8,34,14)"/>
+  <ellipse cx="26" cy="17" rx="1.5" ry="2.6" fill="#22734A" transform="rotate(-25,26,17)"/>
+  <ellipse cx="38" cy="17" rx="1.5" ry="2.6" fill="#22734A" transform="rotate(25,38,17)"/>
+  <ellipse cx="22" cy="21" rx="1.4" ry="2.5" fill="#22734A" transform="rotate(-40,22,21)"/>
+  <ellipse cx="42" cy="21" rx="1.4" ry="2.5" fill="#22734A" transform="rotate(40,42,21)"/>
+  <ellipse cx="20" cy="26" rx="1.3" ry="2.3" fill="#22734A" transform="rotate(-55,20,26)"/>
+  <ellipse cx="44" cy="26" rx="1.3" ry="2.3" fill="#22734A" transform="rotate(55,44,26)"/>
+
+  <!-- ₹ Rupee symbol at top of trunk -->
+  <text x="32" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="8" fill="#9B7B2C">₹</text>
+
+  <!-- Green boat/leaf-shaped base -->
+  <path d="M18 49 Q32 43, 46 49 Q32 52, 18 49 Z" fill="#1B5E3A"/>
 </svg>
