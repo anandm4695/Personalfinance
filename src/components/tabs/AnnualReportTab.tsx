@@ -3,9 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   FileText,
   Printer,
-  Calendar,
   TrendingUp,
-  TrendingDown,
   Wallet,
   PiggyBank,
   PieChart as PieIcon,
@@ -15,11 +13,7 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowDownRight,
-  Award,
   Landmark,
-  Building2,
-  ChevronDown,
-  DollarSign,
   BarChart2,
   AlertTriangle,
 } from "lucide-react";
@@ -39,11 +33,12 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, calcCAGR } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 /* ══════════════════════════════════════════════════════════════════
@@ -74,9 +69,6 @@ const getFYMonths = (fy: string): string[] => {
   return months;
 };
 
-const pctChange = (v1: number, v2: number) =>
-  v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0;
-
 const formatDateReadable = (dateStr: string) => {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -92,27 +84,17 @@ const printStyles = `@media print {
 
 /* ── Tiny sub-components ───────────────────────────────────────── */
 
-const StatBox = ({ label, value, sub, color, masked = true }: any) => (
-  <div style={{ flex: 1, minWidth: 140, padding: "16px 20px", background: `${THEME.accent}08`, borderRadius: 12, textAlign: "center" }}>
-    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</div>
-    <div style={{ fontSize: 22, fontWeight: 800, color: color || THEME.ink, letterSpacing: "-0.02em" }}>
-      {masked ? <Prv>{value}</Prv> : value}
+const CardHeading = ({ icon: Icon, title, id, color = THEME.accent }: any) => (
+  <div id={id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <div style={{ width: 32, height: 32, borderRadius: 8, background: `color-mix(in srgb, ${color} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Icon size={16} style={{ color }} />
     </div>
-    {sub && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{sub}</div>}
+    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, letterSpacing: "-0.02em" }}>{title}</div>
   </div>
 );
 
-const SectionHeader = ({ icon: Icon, title, id }: any) => (
-  <div id={id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, marginTop: 8 }}>
-    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${THEME.accent}14`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Icon size={18} color={THEME.accent} />
-    </div>
-    <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: THEME.ink, letterSpacing: "-0.02em" }}>{title}</h3>
-  </div>
-);
-
-const TableRow = ({ label, value, bold, color }: any) => (
-  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${THEME.line}` }}>
+const DataRow = ({ label, value, bold, color }: any) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${THEME.line}` }}>
     <span style={{ fontSize: 13, color: THEME.muted, fontWeight: bold ? 700 : 500 }}>{label}</span>
     <span style={{ fontSize: 13, fontWeight: bold ? 700 : 600, color: color || THEME.ink }}>
       <Prv>{value}</Prv>
@@ -120,9 +102,26 @@ const TableRow = ({ label, value, bold, color }: any) => (
   </div>
 );
 
-const ProgressBar = ({ pct, color, height = 8 }: any) => (
-  <div style={{ width: "100%", height, borderRadius: height, background: `${THEME.line}` }}>
+const ProgressBar = ({ pct, color, height = 6 }: any) => (
+  <div style={{ width: "100%", height, borderRadius: height, background: `var(--surface-2)` }}>
     <div style={{ width: `${Math.min(100, Math.max(0, pct))}%`, height: "100%", borderRadius: height, background: color || THEME.accent, transition: "width 0.4s ease" }} />
+  </div>
+);
+
+const MetricTile = ({ label, value, sub, color }: any) => (
+  <div style={{ padding: "14px 16px", background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 10, textAlign: "center" }}>
+    <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{label}</div>
+    <div style={{ fontSize: 20, fontWeight: 800, color: color || THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>
+      <Prv>{value}</Prv>
+    </div>
+    {sub && <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>{sub}</div>}
+  </div>
+);
+
+const InfoBanner = ({ children }: any) => (
+  <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
+    <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+    {children}
   </div>
 );
 
@@ -701,8 +700,11 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
   const hasAnyData = incomeData.totalIncome > 0 || expenseData.totalExpense > 0 ||
     netWorthData.closingNW > 0 || (state.netWorthHistory || []).length > 0;
 
+  const nwChangeColor = netWorthData.change >= 0 ? THEME.sage : THEME.rust;
+  const savingsRateColor = savingsData.savingsRate >= 20 ? THEME.sage : savingsData.savingsRate >= 10 ? THEME.gold : THEME.rust;
+
   return (
-    <div className="annual-report" style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div className="annual-report">
       {/* Header */}
       <SectionTitle
         sub="Comprehensive financial year summary — print or save as PDF"
@@ -733,7 +735,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
 
       {!hasAnyData ? (
         <Card style={{ padding: "64px 32px", textAlign: "center" }}>
-          <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 60%, #fff))`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
             <FileText size={30} color="#fff" />
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>No Data for {fyLabel}</div>
@@ -744,196 +746,191 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       ) : (
         <>
           {/* ─── Report Title Banner ─────────────────────────────────── */}
-          <Card style={{ padding: "28px 32px", marginBottom: 24, textAlign: "center" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.accent, marginBottom: 6 }}>
+          <Card variant="hero" style={{ padding: "32px 40px", marginBottom: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.8, marginBottom: 8 }}>
               Annual Financial Report
             </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.03em" }}>{fyLabel}</div>
-            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+            <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.1 }}>{fyLabel}</div>
+            <div style={{ fontSize: 13, marginTop: 8, opacity: 0.7 }}>
               {formatDateReadable(fyStart)} to {formatDateReadable(fyEnd)}
-              {netWorthData.isCurrentFY && <Badge variant="gold" style={{ marginLeft: 8, fontSize: 10 }}>Ongoing</Badge>}
             </div>
+            {netWorthData.isCurrentFY && <Badge variant="gold" style={{ marginTop: 10, fontSize: 10 }}>Ongoing</Badge>}
           </Card>
 
           {/* ─── Section Navigation ─────────────────────────────────── */}
-          <Card className="no-print" style={{ padding: "14px 20px", marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-              {[
-                { id: "nw", label: "Net Worth" },
-                { id: "income", label: "Income" },
-                { id: "expense", label: "Expenses" },
-                { id: "savings", label: "Savings" },
-                { id: "allocation", label: "Assets" },
-                ...(debtData.loanCount > 0 || debtData.ccOutstanding > 0 ? [{ id: "debt", label: "Debt" }] : []),
-                ...(insuranceData.licCount > 0 || insuranceData.termCount > 0 ? [{ id: "insurance", label: "Insurance" }] : []),
-                ...(taxData.totalTaxPaid > 0 ? [{ id: "tax", label: "Tax" }] : []),
-                ...(goalsData.totalGoals > 0 ? [{ id: "goals", label: "Goals" }] : []),
-                ...(highlights.length > 0 ? [{ id: "highlights", label: "Highlights" }] : []),
-                { id: "health", label: "Health" },
-              ].map((s) => (
-                <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
-                  style={{ padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}10`, color: THEME.accent, fontSize: 12, fontWeight: 600, textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
-                >
-                  {s.label}
-                </a>
-              ))}
-            </div>
-          </Card>
+          <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 24 }}>
+            {[
+              { id: "nw", label: "Net Worth" },
+              { id: "income", label: "Income" },
+              { id: "expense", label: "Expenses" },
+              { id: "savings", label: "Savings" },
+              { id: "allocation", label: "Assets" },
+              ...(debtData.loanCount > 0 || debtData.ccOutstanding > 0 ? [{ id: "debt", label: "Debt" }] : []),
+              ...(insuranceData.licCount > 0 || insuranceData.termCount > 0 ? [{ id: "insurance", label: "Insurance" }] : []),
+              ...(taxData.totalTaxPaid > 0 ? [{ id: "tax", label: "Tax" }] : []),
+              ...(goalsData.totalGoals > 0 ? [{ id: "goals", label: "Goals" }] : []),
+              ...(highlights.length > 0 ? [{ id: "highlights", label: "Highlights" }] : []),
+              { id: "health", label: "Health" },
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="card-lift"
+                style={{ padding: "6px 14px", borderRadius: 20, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, color: THEME.accent, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", boxShadow: "var(--shadow-card)" }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
 
-          {/* ─── (a) Net Worth Summary ───────────────────────────────── */}
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={TrendingUp} title="Net Worth Summary" id="nw" />
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-              <StatBox label="Opening" value={fmtINR(netWorthData.openingNW)} />
-              <StatBox label="Closing" value={fmtINR(netWorthData.closingNW)} />
-              <StatBox
-                label="Change"
-                value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINR(netWorthData.change)}`}
-                sub={`${netWorthData.changePct >= 0 ? "+" : ""}${netWorthData.changePct.toFixed(1)}%`}
-                color={netWorthData.change >= 0 ? "#059669" : THEME.rust}
-              />
-            </div>
-            {netWorthData.chartData.length > 1 && (
-              <div style={{ height: 200 }}>
+          {/* ─── Hero Stat Cards ─────────────────────────────────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+            <StatCard
+              label="Opening Net Worth"
+              value={fmtINR(netWorthData.openingNW)}
+              icon={<Wallet />}
+              color={THEME.accent}
+              sub={`Start of ${fyLabel}`}
+            />
+            <StatCard
+              label="Closing Net Worth"
+              value={fmtINR(netWorthData.closingNW)}
+              icon={<TrendingUp />}
+              color={THEME.accent}
+              sub={netWorthData.isCurrentFY ? "As of today" : `End of ${fyLabel}`}
+            />
+            <StatCard
+              label="NW Change"
+              value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINR(netWorthData.change)}`}
+              icon={netWorthData.change >= 0 ? <ArrowUpRight /> : <ArrowDownRight />}
+              color={nwChangeColor}
+              sub={`${netWorthData.changePct >= 0 ? "+" : ""}${netWorthData.changePct.toFixed(1)}%`}
+              subColor={nwChangeColor}
+            />
+            <StatCard
+              label="Savings Rate"
+              value={`${savingsData.savingsRate.toFixed(0)}%`}
+              icon={<PiggyBank />}
+              color={savingsRateColor}
+              sub={savingsData.savingsRate >= 30 ? "Excellent" : savingsData.savingsRate >= 20 ? "Good" : savingsData.savingsRate >= 10 ? "Fair" : "Needs attention"}
+              subColor={savingsRateColor}
+            />
+          </div>
+
+          {/* ─── (a) Net Worth Trend ─────────────────────────────────── */}
+          {netWorthData.chartData.length > 1 && (
+            <Card style={{ padding: 24, marginBottom: 24 }}>
+              <CardHeading icon={TrendingUp} title="Net Worth Trend" id="nw" />
+              <div style={{ height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={netWorthData.chartData}>
                     <defs>
                       <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.2} />
+                        <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.15} />
                         <stop offset="95%" stopColor={THEME.accent} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.muted }} />
-                    <YAxis tick={{ fontSize: 11, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={60} />
+                    <YAxis tick={{ fontSize: 11, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={65} />
                     <Tooltip formatter={(v: number) => [fmtINRFull(v), "Net Worth"]} />
-                    <Area type="monotone" dataKey="value" stroke={THEME.accent} fill="url(#nwGrad)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="value" stroke={THEME.accent} fill="url(#nwGrad)" strokeWidth={2.5} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            )}
-          </Card>
+            </Card>
+          )}
 
-          {/* ─── (b) Income Summary ──────────────────────────────────── */}
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={Wallet} title="Income Summary" id="income" />
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-              <StatBox label="Total Income" value={fmtINR(incomeData.totalIncome)} color="#059669" />
-              <StatBox label="Monthly Avg" value={fmtINR(incomeData.totalIncome / (fyMonthsElapsed || 12))} />
-              <StatBox label="Sources" value={incomeData.breakdown.length} masked={false} />
-            </div>
-
-            {/* Category breakdown */}
-            {incomeData.breakdown.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 10 }}>Breakdown by Category</div>
-                {incomeData.breakdown.map((cat, idx) => (
-                  <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 13, color: THEME.muted }}>{cat.name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(cat.value)}</Prv>
-                    </span>
-                    <span style={{ fontSize: 11, color: THEME.muted, minWidth: 40, textAlign: "right" }}>
-                      {incomeData.totalIncome > 0 ? ((cat.value / incomeData.totalIncome) * 100).toFixed(0) : 0}%
-                    </span>
-                  </div>
-                ))}
+          {/* ─── Income & Expense (two-column grid) ─────────────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 24 }}>
+            {/* (b) Income Summary */}
+            <Card style={{ padding: 24 }}>
+              <CardHeading icon={Wallet} title="Income Summary" id="income" color={THEME.sage} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                <MetricTile label="Total Income" value={fmtINR(incomeData.totalIncome)} color={THEME.sage} />
+                <MetricTile label="Monthly Avg" value={fmtINR(incomeData.totalIncome / (fyMonthsElapsed || 12))} />
               </div>
-            )}
-
-            {/* Monthly income chart */}
-            {incomeData.monthlyChart.some((d) => d.income > 0) && (
-              <div style={{ height: 180 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={incomeData.monthlyChart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: THEME.muted }} />
-                    <YAxis tick={{ fontSize: 10, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={55} />
-                    <Tooltip formatter={(v: number) => [fmtINRFull(v), "Income"]} />
-                    <Bar dataKey="income" fill="#059669" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </Card>
-
-          {/* ─── (c) Expense Summary ─────────────────────────────────── */}
-          <div className="page-break" />
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={Receipt} title="Expense Summary" id="expense" />
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-              <StatBox label="Total Expenses" value={fmtINR(expenseData.totalExpense)} color={THEME.rust} />
-              <StatBox label="Monthly Avg" value={fmtINR(expenseData.avgMonthly)} />
-              <StatBox label="Categories" value={expenseData.breakdown.length} masked={false} />
-            </div>
-
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {/* Category list */}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 10 }}>Top Categories</div>
-                {expenseData.breakdown.slice(0, 8).map((cat, idx) => (
-                  <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 12, color: THEME.muted }}>{cat.name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
-                      <Prv>{fmtINRFull(cat.value)}</Prv>
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pie chart */}
-              {expenseData.top5.length > 0 && (
-                <div style={{ width: 220, height: 220, flexShrink: 0 }}>
+              {incomeData.breakdown.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 10 }}>By Category</div>
+                  {incomeData.breakdown.map((cat, idx) => (
+                    <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: THEME.muted }}>{cat.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(cat.value)}</Prv></span>
+                      <span style={{ fontSize: 10, color: THEME.muted, minWidth: 32, textAlign: "right" }}>
+                        {incomeData.totalIncome > 0 ? ((cat.value / incomeData.totalIncome) * 100).toFixed(0) : 0}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {incomeData.monthlyChart.some((d) => d.income > 0) && (
+                <div style={{ height: 160 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expenseData.top5}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={40}
-                        paddingAngle={2}
-                      >
-                        {expenseData.top5.map((_, idx) => (
-                          <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => fmtINRFull(v)} />
-                    </PieChart>
+                    <BarChart data={incomeData.monthlyChart}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                      <XAxis dataKey="month" tick={{ fontSize: 9, fill: THEME.muted }} />
+                      <YAxis tick={{ fontSize: 9, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={50} />
+                      <Tooltip formatter={(v: number) => [fmtINRFull(v), "Income"]} />
+                      <Bar dataKey="income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               )}
-            </div>
-          </Card>
+            </Card>
 
-          {/* ─── (d) Savings & Investment ─────────────────────────────── */}
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={PiggyBank} title="Savings & Investment" id="savings" />
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-              <StatBox
-                label="Net Savings"
-                value={`${savingsData.savings >= 0 ? "+" : ""}${fmtINR(savingsData.savings)}`}
-                color={savingsData.savings >= 0 ? "#059669" : THEME.rust}
-              />
-              <StatBox
-                label="Savings Rate"
-                value={`${savingsData.savingsRate.toFixed(1)}%`}
-                color={savingsData.savingsRate >= 20 ? "#059669" : savingsData.savingsRate >= 10 ? "#d97706" : THEME.rust}
-                masked={false}
-              />
-              <StatBox label="New Investments" value={fmtINR(savingsData.totalNewInvestments)} color={THEME.accent} />
-            </div>
+            {/* (c) Expense Summary */}
+            <Card style={{ padding: 24 }}>
+              <div className="page-break" />
+              <CardHeading icon={Receipt} title="Expense Summary" id="expense" color={THEME.rust} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                <MetricTile label="Total Expenses" value={fmtINR(expenseData.totalExpense)} color={THEME.rust} />
+                <MetricTile label="Monthly Avg" value={fmtINR(expenseData.avgMonthly)} />
+              </div>
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 10 }}>Top Categories</div>
+                  {expenseData.breakdown.slice(0, 6).map((cat, idx) => (
+                    <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, color: THEME.muted }}>{cat.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(cat.value)}</Prv></span>
+                    </div>
+                  ))}
+                </div>
+                {expenseData.top5.length > 0 && (
+                  <div style={{ width: 160, height: 160, flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={expenseData.top5} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} innerRadius={35} paddingAngle={2}>
+                          {expenseData.top5.map((_, idx) => (
+                            <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => fmtINRFull(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
 
-            {/* Investment breakdown */}
-            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 10 }}>Investment Additions</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          {/* ─── Savings & Asset Allocation (two-column grid) ────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 24 }}>
+            {/* (d) Savings & Investment */}
+            <Card style={{ padding: 24 }}>
+              <CardHeading icon={PiggyBank} title="Savings & Investment" id="savings" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                <MetricTile
+                  label="Net Savings"
+                  value={`${savingsData.savings >= 0 ? "+" : ""}${fmtINR(savingsData.savings)}`}
+                  color={savingsData.savings >= 0 ? THEME.sage : THEME.rust}
+                />
+                <MetricTile label="New Investments" value={fmtINR(savingsData.totalNewInvestments)} color={THEME.accent} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 8 }}>Investment Additions</div>
               {[
                 { label: "Stocks", value: savingsData.stockBuys },
                 { label: "Mutual Funds", value: savingsData.mfBuys },
@@ -941,225 +938,180 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 { label: "PPF", value: savingsData.ppfAdds },
                 { label: "Active SIPs (annual)", value: savingsData.sipTotal },
               ].filter((r) => r.value > 0).map((r) => (
-                <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 12px", background: `${THEME.accent}06`, borderRadius: 8 }}>
-                  <span style={{ fontSize: 12, color: THEME.muted }}>{r.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(r.value)}</Prv></span>
-                </div>
+                <DataRow key={r.label} label={r.label} value={fmtINRFull(r.value)} />
               ))}
-            </div>
-
-            {/* Realized gains */}
-            {(savingsData.stcg !== 0 || savingsData.ltcg !== 0) && (
-              <>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 8, marginTop: 12 }}>Realized Capital Gains</div>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ flex: 1, padding: "10px 14px", borderRadius: 8, background: `${THEME.accent}06` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Short-Term (STCG)</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: savingsData.stcg >= 0 ? "#059669" : THEME.rust }}>
-                      <Prv>{fmtINRFull(savingsData.stcg)}</Prv>
-                    </div>
+              {(savingsData.stcg !== 0 || savingsData.ltcg !== 0) && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 8, marginTop: 16 }}>Capital Gains</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <MetricTile label="STCG" value={fmtINRFull(savingsData.stcg)} color={savingsData.stcg >= 0 ? THEME.sage : THEME.rust} />
+                    <MetricTile label="LTCG" value={fmtINRFull(savingsData.ltcg)} color={savingsData.ltcg >= 0 ? THEME.sage : THEME.rust} />
                   </div>
-                  <div style={{ flex: 1, padding: "10px 14px", borderRadius: 8, background: `${THEME.accent}06` }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4 }}>Long-Term (LTCG)</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: savingsData.ltcg >= 0 ? "#059669" : THEME.rust }}>
-                      <Prv>{fmtINRFull(savingsData.ltcg)}</Prv>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </Card>
-
-          {/* ─── (e) Asset Allocation ────────────────────────────────── */}
-          <div className="page-break" />
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={PieIcon} title="Asset Allocation" id="allocation" />
-            {isPastFY && (
-              <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={12} />
-                Asset allocation reflects current holdings — historical snapshot not available for past FYs.
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center" }}>
-              {/* Pie chart */}
-              {assetAllocation.alloc.length > 0 && (
-                <div style={{ width: 240, height: 240, flexShrink: 0 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={assetAllocation.alloc}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        innerRadius={50}
-                        paddingAngle={2}
-                      >
-                        {assetAllocation.alloc.map((_, idx) => (
-                          <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => fmtINRFull(v)} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                </>
               )}
+            </Card>
 
-              {/* Allocation table */}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                {assetAllocation.alloc.map((a, idx) => (
-                  <div key={a.name} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{a.name}</span>
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(a.value)}</Prv>
-                        <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 6 }}>
-                          {assetAllocation.total > 0 ? ((a.value / assetAllocation.total) * 100).toFixed(0) : 0}%
-                        </span>
-                      </span>
-                    </div>
-                    <ProgressBar pct={assetAllocation.total > 0 ? (a.value / assetAllocation.total) * 100 : 0} color={PIE_COLORS[idx % PIE_COLORS.length]} />
-                  </div>
-                ))}
-                <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: `${THEME.accent}06` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>Total Assets</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>
-                      <Prv>{fmtINRFull(assetAllocation.total)}</Prv>
-                    </span>
-                  </div>
-                </div>
-                {assetAllocation.prevNW > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: THEME.muted }}>
-                    Previous FY-end net worth: <Prv>{fmtINRFull(assetAllocation.prevNW)}</Prv>
+            {/* (e) Asset Allocation */}
+            <Card style={{ padding: 24 }}>
+              <div className="page-break" />
+              <CardHeading icon={PieIcon} title="Asset Allocation" id="allocation" />
+              {isPastFY && <InfoBanner>Asset allocation reflects current holdings — historical snapshot not available for past FYs.</InfoBanner>}
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
+                {assetAllocation.alloc.length > 0 && (
+                  <div style={{ width: 180, height: 180, flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={assetAllocation.alloc} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={42} paddingAngle={2}>
+                          {assetAllocation.alloc.map((_, idx) => (
+                            <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => fmtINRFull(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
-              </div>
-            </div>
-          </Card>
-
-          {/* ─── (f) Debt Summary ────────────────────────────────────── */}
-          {(debtData.loanCount > 0 || debtData.ccOutstanding > 0) && (
-            <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-              <SectionHeader icon={Landmark} title="Debt Summary" id="debt" />
-              {isPastFY && (
-                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={12} />
-                  Debt figures reflect current outstanding — historical balances not available for past FYs.
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-                <StatBox label="Outstanding Loans" value={fmtINR(debtData.totalOutstanding)} color={THEME.rust} />
-                <StatBox label="Monthly EMI" value={fmtINR(debtData.totalEMI)} />
-                <StatBox label="Annual EMI" value={fmtINR(debtData.annualEMI)} />
-              </div>
-              <TableRow label="Active loans" value={debtData.loanCount} />
-              <TableRow label="Total loan principal" value={fmtINRFull(debtData.totalPrincipal)} />
-              <TableRow label="Estimated principal repaid (annual)" value={fmtINRFull(debtData.principalRepaid)} />
-              <TableRow label="Estimated interest paid (annual)" value={fmtINRFull(debtData.interestPortion)} />
-              {debtData.ccOutstanding > 0 && (
-                <TableRow label="Credit card outstanding" value={fmtINRFull(debtData.ccOutstanding)} color={THEME.rust} />
-              )}
-            </Card>
-          )}
-
-          {/* ─── (g) Insurance Coverage ──────────────────────────────── */}
-          {(insuranceData.licCount > 0 || insuranceData.termCount > 0) && (<>
-            <div className="page-break" />
-            <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-              <SectionHeader icon={Shield} title="Insurance Coverage" id="insurance" />
-              {isPastFY && (
-                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={12} />
-                  Insurance data reflects current policies — historical coverage not available for past FYs.
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-                <StatBox label="Total Life Cover" value={fmtINR(insuranceData.totalLifeCover)} color={THEME.accent} />
-                <StatBox label="Annual Premiums" value={fmtINR(insuranceData.totalPremiums)} />
-                <StatBox
-                  label="Coverage Ratio"
-                  value={`${insuranceData.adequacyRatio.toFixed(1)}x`}
-                  sub={insuranceData.adequacyRatio >= 10 ? "Adequate" : insuranceData.adequacyRatio >= 5 ? "Moderate" : "Low"}
-                  color={insuranceData.adequacyRatio >= 10 ? "#059669" : insuranceData.adequacyRatio >= 5 ? "#d97706" : THEME.rust}
-                  masked={false}
-                />
-              </div>
-              <TableRow label="LIC / Endowment policies" value={insuranceData.licCount} />
-              <TableRow label="Term life plans" value={insuranceData.termCount} />
-              <TableRow label="Total life cover" value={fmtINRFull(insuranceData.totalLifeCover)} />
-              <TableRow label="Annual premiums paid" value={fmtINRFull(insuranceData.totalPremiums)} />
-              {insuranceData.adequacyRatio < 10 && incomeData.totalIncome > 0 && (
-                <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 8, background: "#fef3c7", fontSize: 12, color: "#92400e", display: "flex", alignItems: "center", gap: 8 }}>
-                  <AlertTriangle size={14} />
-                  <span>
-                    Coverage is {insuranceData.adequacyRatio.toFixed(1)}x annual income.
-                    Recommended: at least 10x ({fmtINR(incomeData.totalIncome * 10)}).
-                  </span>
-                </div>
-              )}
-            </Card>
-          </>)}
-
-          {/* ─── (h) Tax Summary ─────────────────────────────────────── */}
-          {(taxData.totalTaxPaid > 0 || taxData.paymentCount > 0) && (
-            <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-              <SectionHeader icon={Receipt} title="Tax Summary" id="tax" />
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-                <StatBox label="Total Tax Paid" value={fmtINR(taxData.totalTaxPaid)} color={THEME.rust} />
-                <StatBox label="Effective Rate" value={`${taxData.effectiveRate.toFixed(1)}%`} masked={false} />
-                <StatBox label="Regime" value={taxData.regime === "new" ? "New" : "Old"} masked={false} />
-              </div>
-              {Object.entries(taxData.byType).length > 0 && (
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 8 }}>Payment Breakdown</div>
-                  {Object.entries(taxData.byType).map(([type, amount]) => (
-                    <TableRow key={type} label={type} value={fmtINRFull(amount as number)} />
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  {assetAllocation.alloc.map((a, idx) => (
+                    <div key={a.name} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>{a.name}</span>
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
+                          <Prv>{fmtINRFull(a.value)}</Prv>
+                          <span style={{ fontSize: 10, color: THEME.muted, marginLeft: 4 }}>
+                            {assetAllocation.total > 0 ? ((a.value / assetAllocation.total) * 100).toFixed(0) : 0}%
+                          </span>
+                        </span>
+                      </div>
+                      <ProgressBar pct={assetAllocation.total > 0 ? (a.value / assetAllocation.total) * 100 : 0} color={PIE_COLORS[idx % PIE_COLORS.length]} />
+                    </div>
                   ))}
+                  <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 8, background: "var(--surface-1)", border: `1px solid ${THEME.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>Total Assets</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINRFull(assetAllocation.total)}</Prv></span>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
             </Card>
+          </div>
+
+          {/* ─── Debt & Insurance (two-column grid, conditional) ─────── */}
+          {(debtData.loanCount > 0 || debtData.ccOutstanding > 0 || insuranceData.licCount > 0 || insuranceData.termCount > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 24 }}>
+              {/* (f) Debt Summary */}
+              {(debtData.loanCount > 0 || debtData.ccOutstanding > 0) && (
+                <Card style={{ padding: 24 }}>
+                  <CardHeading icon={Landmark} title="Debt Summary" id="debt" color={THEME.rust} />
+                  {isPastFY && <InfoBanner>Debt figures reflect current outstanding — historical balances not available for past FYs.</InfoBanner>}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                    <MetricTile label="Outstanding" value={fmtINR(debtData.totalOutstanding)} color={THEME.rust} />
+                    <MetricTile label="Annual EMI" value={fmtINR(debtData.annualEMI)} />
+                  </div>
+                  <DataRow label="Active loans" value={debtData.loanCount} />
+                  <DataRow label="Total principal" value={fmtINRFull(debtData.totalPrincipal)} />
+                  <DataRow label="Est. principal repaid (annual)" value={fmtINRFull(debtData.principalRepaid)} />
+                  <DataRow label="Est. interest paid (annual)" value={fmtINRFull(debtData.interestPortion)} />
+                  {debtData.ccOutstanding > 0 && (
+                    <DataRow label="Credit card outstanding" value={fmtINRFull(debtData.ccOutstanding)} color={THEME.rust} />
+                  )}
+                </Card>
+              )}
+
+              {/* (g) Insurance Coverage */}
+              {(insuranceData.licCount > 0 || insuranceData.termCount > 0) && (
+                <Card style={{ padding: 24 }}>
+                  <div className="page-break" />
+                  <CardHeading icon={Shield} title="Insurance Coverage" id="insurance" />
+                  {isPastFY && <InfoBanner>Insurance data reflects current policies — historical coverage not available for past FYs.</InfoBanner>}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                    <MetricTile label="Life Cover" value={fmtINR(insuranceData.totalLifeCover)} color={THEME.accent} />
+                    <MetricTile
+                      label="Coverage"
+                      value={`${insuranceData.adequacyRatio.toFixed(1)}x`}
+                      sub={insuranceData.adequacyRatio >= 10 ? "Adequate" : insuranceData.adequacyRatio >= 5 ? "Moderate" : "Low"}
+                      color={insuranceData.adequacyRatio >= 10 ? THEME.sage : insuranceData.adequacyRatio >= 5 ? THEME.gold : THEME.rust}
+                    />
+                  </div>
+                  <DataRow label="LIC / Endowment policies" value={insuranceData.licCount} />
+                  <DataRow label="Term life plans" value={insuranceData.termCount} />
+                  <DataRow label="Annual premiums" value={fmtINRFull(insuranceData.totalPremiums)} />
+                  {insuranceData.adequacyRatio < 10 && incomeData.totalIncome > 0 && (
+                    <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 8, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 8 }}>
+                      <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                      <span>
+                        Coverage is {insuranceData.adequacyRatio.toFixed(1)}x annual income.
+                        Recommended: at least 10x ({fmtINR(incomeData.totalIncome * 10)}).
+                      </span>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
           )}
 
-          {/* ─── (i) Goals Progress ──────────────────────────────────── */}
-          {goalsData.totalGoals > 0 && (
-            <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-              <SectionHeader icon={Target} title="Goals Progress" id="goals" />
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-                <StatBox label="Total Goals" value={goalsData.totalGoals} masked={false} />
-                <StatBox label="Completed" value={goalsData.completed} masked={false} />
-                <StatBox label="Overall Progress" value={`${goalsData.overallPct.toFixed(0)}%`} color={THEME.accent} masked={false} />
-              </div>
-              {goalsData.topGoals.map((g) => (
-                <div key={g.name} style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>{g.name}</span>
-                    <span style={{ fontSize: 12, color: THEME.muted }}>
-                      <Prv>{fmtINR(g.saved)}</Prv> / <Prv>{fmtINR(g.target)}</Prv>
-                      <span style={{ marginLeft: 6, fontWeight: 700, color: g.pct >= 100 ? "#059669" : THEME.accent }}>{g.pct.toFixed(0)}%</span>
-                    </span>
+          {/* ─── Tax & Goals (two-column grid, conditional) ──────────── */}
+          {(taxData.totalTaxPaid > 0 || taxData.paymentCount > 0 || goalsData.totalGoals > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, marginBottom: 24 }}>
+              {/* (h) Tax Summary */}
+              {(taxData.totalTaxPaid > 0 || taxData.paymentCount > 0) && (
+                <Card style={{ padding: 24 }}>
+                  <CardHeading icon={Receipt} title="Tax Summary" id="tax" color={THEME.gold} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                    <MetricTile label="Total Tax" value={fmtINR(taxData.totalTaxPaid)} color={THEME.rust} />
+                    <MetricTile label="Effective Rate" value={`${taxData.effectiveRate.toFixed(1)}%`} sub={`Regime: ${taxData.regime === "new" ? "New" : "Old"}`} />
                   </div>
-                  <ProgressBar pct={g.pct} color={g.pct >= 100 ? "#059669" : g.pct >= 50 ? THEME.accent : "#d97706"} />
-                </div>
-              ))}
-            </Card>
+                  {Object.entries(taxData.byType).length > 0 && (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 8 }}>Breakdown</div>
+                      {Object.entries(taxData.byType).map(([type, amount]) => (
+                        <DataRow key={type} label={type} value={fmtINRFull(amount as number)} />
+                      ))}
+                    </>
+                  )}
+                </Card>
+              )}
+
+              {/* (i) Goals Progress */}
+              {goalsData.totalGoals > 0 && (
+                <Card style={{ padding: 24 }}>
+                  <CardHeading icon={Target} title="Goals Progress" id="goals" />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+                    <MetricTile label="Goals" value={String(goalsData.totalGoals)} />
+                    <MetricTile label="Done" value={String(goalsData.completed)} color={THEME.sage} />
+                    <MetricTile label="Progress" value={`${goalsData.overallPct.toFixed(0)}%`} color={THEME.accent} />
+                  </div>
+                  {goalsData.topGoals.map((g) => (
+                    <div key={g.name} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>{g.name}</span>
+                        <span style={{ fontSize: 11, color: THEME.muted }}>
+                          <Prv>{fmtINR(g.saved)}</Prv> / <Prv>{fmtINR(g.target)}</Prv>
+                          <span style={{ marginLeft: 4, fontWeight: 700, color: g.pct >= 100 ? THEME.sage : THEME.accent }}>{g.pct.toFixed(0)}%</span>
+                        </span>
+                      </div>
+                      <ProgressBar pct={g.pct} color={g.pct >= 100 ? THEME.sage : g.pct >= 50 ? THEME.accent : THEME.gold} />
+                    </div>
+                  ))}
+                </Card>
+              )}
+            </div>
           )}
 
           {/* ─── (j) Key Highlights ──────────────────────────────────── */}
           {highlights.length > 0 && (<>
             <div className="page-break" />
-            <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-              <SectionHeader icon={Sparkles} title="Key Highlights" id="highlights" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Card style={{ padding: 24, marginBottom: 24 }}>
+              <CardHeading icon={Sparkles} title="Key Highlights" id="highlights" color={THEME.gold} />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
                 {highlights.map((h, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 10, background: `${THEME.accent}06`, borderLeft: `3px solid ${h.color}` }}>
-                    <span style={{ fontSize: 20, lineHeight: 1 }}>{h.icon}</span>
-                    <span style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.5 }}>{h.text}</span>
+                  <div key={idx} className="card-lift" style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", borderRadius: 10, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderLeft: `3px solid ${h.color}` }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{h.icon}</span>
+                    <span style={{ fontSize: 12, color: THEME.ink, lineHeight: 1.6 }}>{h.text}</span>
                   </div>
                 ))}
               </div>
@@ -1167,39 +1119,39 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           </>)}
 
           {/* ─── Financial Health Snapshot ────────────────────────────── */}
-          <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
-            <SectionHeader icon={BarChart2} title="Financial Health Snapshot" id="health" />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+          <Card style={{ padding: 24, marginBottom: 24 }}>
+            <CardHeading icon={BarChart2} title="Financial Health Snapshot" id="health" />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
               {[
                 {
                   label: "Savings Rate",
                   value: `${savingsData.savingsRate.toFixed(0)}%`,
                   status: savingsData.savingsRate >= 30 ? "Excellent" : savingsData.savingsRate >= 20 ? "Good" : savingsData.savingsRate >= 10 ? "Fair" : "Low",
-                  color: savingsData.savingsRate >= 30 ? "#059669" : savingsData.savingsRate >= 20 ? "#059669" : savingsData.savingsRate >= 10 ? "#d97706" : THEME.rust,
+                  color: savingsData.savingsRate >= 20 ? THEME.sage : savingsData.savingsRate >= 10 ? THEME.gold : THEME.rust,
                 },
                 {
                   label: "Debt-to-Income",
                   value: incomeData.totalIncome > 0 ? `${((debtData.annualEMI / incomeData.totalIncome) * 100).toFixed(0)}%` : "0%",
-                  status: incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.3 ? "Healthy" : incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.5 ? "Moderate" : debtData.annualEMI === 0 ? "No Debt" : "High",
-                  color: debtData.annualEMI === 0 ? "#059669" : incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.3 ? "#059669" : "#d97706",
+                  status: debtData.annualEMI === 0 ? "No Debt" : incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.3 ? "Healthy" : incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.5 ? "Moderate" : "High",
+                  color: debtData.annualEMI === 0 ? THEME.sage : incomeData.totalIncome > 0 && (debtData.annualEMI / incomeData.totalIncome) < 0.3 ? THEME.sage : THEME.gold,
                 },
                 {
                   label: "Insurance Cover",
                   value: `${insuranceData.adequacyRatio.toFixed(1)}x`,
                   status: insuranceData.adequacyRatio >= 10 ? "Adequate" : insuranceData.adequacyRatio >= 5 ? "Moderate" : insuranceData.totalLifeCover === 0 ? "None" : "Low",
-                  color: insuranceData.adequacyRatio >= 10 ? "#059669" : insuranceData.adequacyRatio >= 5 ? "#d97706" : THEME.rust,
+                  color: insuranceData.adequacyRatio >= 10 ? THEME.sage : insuranceData.adequacyRatio >= 5 ? THEME.gold : THEME.rust,
                 },
                 {
                   label: "Goal Progress",
                   value: `${goalsData.overallPct.toFixed(0)}%`,
                   status: goalsData.overallPct >= 80 ? "On Track" : goalsData.overallPct >= 50 ? "In Progress" : goalsData.totalGoals === 0 ? "No Goals" : "Behind",
-                  color: goalsData.overallPct >= 80 ? "#059669" : goalsData.overallPct >= 50 ? "#d97706" : goalsData.totalGoals === 0 ? THEME.muted : THEME.rust,
+                  color: goalsData.overallPct >= 80 ? THEME.sage : goalsData.overallPct >= 50 ? THEME.gold : goalsData.totalGoals === 0 ? THEME.muted : THEME.rust,
                 },
               ].map((m) => (
-                <div key={m.label} style={{ padding: "14px 16px", borderRadius: 10, background: `${THEME.accent}06`, textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{m.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: m.color, letterSpacing: "-0.02em" }}>{m.value}</div>
-                  <Badge variant={m.color === "#059669" ? "sage" : m.color === "#d97706" ? "gold" : "rust"} style={{ fontSize: 10, marginTop: 6 }}>
+                <div key={m.label} style={{ padding: "16px", borderRadius: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `3px solid ${m.color}`, textAlign: "center", boxShadow: "var(--shadow-card)" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{m.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: m.color, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{m.value}</div>
+                  <Badge variant={m.color === THEME.sage ? "sage" : m.color === THEME.gold ? "gold" : m.color === THEME.muted ? "muted" : "rust"} style={{ fontSize: 10, marginTop: 8 }}>
                     {m.status}
                   </Badge>
                 </div>
@@ -1208,8 +1160,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           </Card>
 
           {/* ─── Footer ──────────────────────────────────────────────── */}
-          <div style={{ textAlign: "center", padding: "16px 0 32px", fontSize: 11, color: THEME.muted }}>
-            Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} -- Personal Finance Dashboard
+          <div style={{ textAlign: "center", padding: "8px 0 32px", fontSize: 11, color: THEME.muted }}>
+            Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} &middot; Personal Finance Dashboard
           </div>
         </>
       )}
