@@ -36,7 +36,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 
@@ -3789,13 +3789,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) =>
-                          v >= 10000000
-                            ? `${(v / 10000000).toFixed(1)}Cr`
-                            : v >= 100000
-                              ? `${(v / 100000).toFixed(0)}L`
-                              : v
-                        }
+                        tickFormatter={(v) => fmtINR(v)}
                       />
                       <Tooltip
                         contentStyle={{
@@ -4362,13 +4356,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) =>
-                          v >= 10000000
-                            ? `${(v / 10000000).toFixed(1)}Cr`
-                            : v >= 100000
-                              ? `${(v / 100000).toFixed(0)}L`
-                              : v
-                        }
+                        tickFormatter={(v) => fmtINR(v)}
                       />
                       <Tooltip
                         contentStyle={{
@@ -4692,12 +4680,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => {
-                        if (v >= 10000000) return `${(v / 10000000).toFixed(1)}Cr`;
-                        if (v >= 100000) return `${(v / 100000).toFixed(1)}L`;
-                        if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
-                        return String(v);
-                      }}
+                      tickFormatter={(v: number) => fmtINR(v)}
                     />
                     <Tooltip
                       formatter={(v: number) => fmtINRFull(v)}
@@ -4972,11 +4955,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => {
-                        if (v >= 100000) return `${(v / 1000).toFixed(0)}K`;
-                        if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
-                        return String(v);
-                      }}
+                      tickFormatter={(v: number) => fmtINR(v)}
                     />
                     <Tooltip
                       formatter={(v: number, name: string) => [fmtINRFull(v), name]}

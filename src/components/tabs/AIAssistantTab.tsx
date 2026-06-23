@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
+import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 
@@ -563,9 +564,9 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
       insights.push({
         icon: Lightbulb,
         title: "Tax Saving Opportunity",
-        detail: `₹${remaining80CCD.toLocaleString()} tax saving opportunity via NPS 80CCD(1B)`,
+        detail: `${fmtINRFull(remaining80CCD)} tax saving opportunity via NPS 80CCD(1B)`,
         severity: "opportunity",
-        prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ₹${remaining80CCD.toLocaleString()} in NPS?`,
+        prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ${fmtINRFull(remaining80CCD)} in NPS?`,
       });
     }
 
@@ -955,8 +956,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
         "HRA": { rentPaidAnnually: rentPaid, eligible: rentPaid > 0 },
       },
       suggestions: [
-        ...(remaining80C > 0 ? [`Invest ₹${remaining80C.toLocaleString()} more in ELSS/PPF to max out 80C`] : []),
-        ...(remaining80CCD > 0 ? [`Invest ₹${remaining80CCD.toLocaleString()} in NPS for additional 80CCD(1B) deduction`] : []),
+        ...(remaining80C > 0 ? [`Invest ${fmtINRFull(remaining80C)} more in ELSS/PPF to max out 80C`] : []),
+        ...(remaining80CCD > 0 ? [`Invest ${fmtINRFull(remaining80CCD)} in NPS for additional 80CCD(1B) deduction`] : []),
         ...(rentPaid > 0 && state.profile?.regime === "old" ? ["Claim HRA exemption under Sec 10(13A)"] : []),
       ],
     };
