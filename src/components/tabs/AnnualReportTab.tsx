@@ -77,6 +77,11 @@ const getFYMonths = (fy: string): string[] => {
 const pctChange = (v1: number, v2: number) =>
   v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0;
 
+const formatDateReadable = (dateStr: string) => {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+};
+
 const printStyles = `@media print {
   body * { visibility: hidden; }
   .annual-report, .annual-report * { visibility: visible; }
@@ -87,11 +92,11 @@ const printStyles = `@media print {
 
 /* ── Tiny sub-components ───────────────────────────────────────── */
 
-const StatBox = ({ label, value, sub, color }: any) => (
+const StatBox = ({ label, value, sub, color, masked = true }: any) => (
   <div style={{ flex: 1, minWidth: 140, padding: "16px 20px", background: `${THEME.accent}08`, borderRadius: 12, textAlign: "center" }}>
     <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{label}</div>
     <div style={{ fontSize: 22, fontWeight: 800, color: color || THEME.ink, letterSpacing: "-0.02em" }}>
-      <Prv>{value}</Prv>
+      {masked ? <Prv>{value}</Prv> : value}
     </div>
     {sub && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{sub}</div>}
   </div>
@@ -167,6 +172,22 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
   const fyLabel = getFYLabel(selectedFY);
   const fyMonths = getFYMonths(selectedFY);
   const fyStartYear = parseInt(selectedFY.split("-")[0]);
+
+  const fyMonthsElapsed = useMemo(() => {
+    const todayStr = today();
+    const todayYM = todayStr.slice(0, 7);
+    const startYM = fyStart.slice(0, 7);
+    const endYM = fyEnd.slice(0, 7);
+    if (todayYM < startYM) return 0;
+    if (todayYM > endYM) return 12;
+    const curMonth = parseInt(todayYM.slice(5, 7));
+    const curYear = parseInt(todayYM.slice(0, 4));
+    const sMonth = parseInt(startYM.slice(5, 7));
+    const sYear = parseInt(startYM.slice(0, 4));
+    return (curYear - sYear) * 12 + (curMonth - sMonth) + 1;
+  }, [fyStart, fyEnd]);
+
+  const isPastFY = fyMonthsElapsed >= 12 || today().slice(0, 7) > fyEnd.slice(0, 7);
 
   // Also compute previous FY for comparisons
   const prevFY = `${fyStartYear - 1}-${String(fyStartYear).slice(-2)}`;
@@ -320,8 +341,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
         });
     });
 
-    const monthsWithData = Object.keys(monthlyMap).length || 1;
-    const avgMonthly = totalExpense / monthsWithData;
+    const divisor = fyMonthsElapsed || 1;
+    const avgMonthly = totalExpense / divisor;
 
     // Highest single expense
     const highestExpense = debitTxns.length > 0
@@ -329,7 +350,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       : null;
 
     return { totalExpense, breakdown, top5, avgMonthly, highestExpense, monthlyMap };
-  }, [state.transactions, state.rentedProperties, selectedFY]);
+  }, [state.transactions, state.rentedProperties, selectedFY, fyMonthsElapsed]);
 
   /* ═══════════════════════════════════════════════════════════════
      (d) SAVINGS & INVESTMENT
@@ -729,8 +750,36 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.03em" }}>{fyLabel}</div>
             <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-              {fyStart.replace(/-/g, "/")} to {fyEnd.replace(/-/g, "/")}
+              {formatDateReadable(fyStart)} to {formatDateReadable(fyEnd)}
               {netWorthData.isCurrentFY && <Badge variant="gold" style={{ marginLeft: 8, fontSize: 10 }}>Ongoing</Badge>}
+            </div>
+          </Card>
+
+          {/* ─── Section Navigation ─────────────────────────────────── */}
+          <Card className="no-print" style={{ padding: "14px 20px", marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+              {[
+                { id: "nw", label: "Net Worth" },
+                { id: "income", label: "Income" },
+                { id: "expense", label: "Expenses" },
+                { id: "savings", label: "Savings" },
+                { id: "allocation", label: "Assets" },
+                ...(debtData.loanCount > 0 || debtData.ccOutstanding > 0 ? [{ id: "debt", label: "Debt" }] : []),
+                ...(insuranceData.licCount > 0 || insuranceData.termCount > 0 ? [{ id: "insurance", label: "Insurance" }] : []),
+                ...(taxData.totalTaxPaid > 0 ? [{ id: "tax", label: "Tax" }] : []),
+                ...(goalsData.totalGoals > 0 ? [{ id: "goals", label: "Goals" }] : []),
+                ...(highlights.length > 0 ? [{ id: "highlights", label: "Highlights" }] : []),
+                { id: "health", label: "Health" },
+              ].map((s) => (
+                <a
+                  key={s.id}
+                  href={`#${s.id}`}
+                  onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  style={{ padding: "5px 12px", borderRadius: 20, background: `${THEME.accent}10`, color: THEME.accent, fontSize: 12, fontWeight: 600, textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
+                >
+                  {s.label}
+                </a>
+              ))}
             </div>
           </Card>
 
@@ -773,8 +822,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <SectionHeader icon={Wallet} title="Income Summary" id="income" />
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
               <StatBox label="Total Income" value={fmtINR(incomeData.totalIncome)} color="#059669" />
-              <StatBox label="Monthly Avg" value={fmtINR(incomeData.totalIncome / 12)} />
-              <StatBox label="Sources" value={incomeData.breakdown.length} />
+              <StatBox label="Monthly Avg" value={fmtINR(incomeData.totalIncome / (fyMonthsElapsed || 12))} />
+              <StatBox label="Sources" value={incomeData.breakdown.length} masked={false} />
             </div>
 
             {/* Category breakdown */}
@@ -819,7 +868,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
               <StatBox label="Total Expenses" value={fmtINR(expenseData.totalExpense)} color={THEME.rust} />
               <StatBox label="Monthly Avg" value={fmtINR(expenseData.avgMonthly)} />
-              <StatBox label="Categories" value={expenseData.breakdown.length} />
+              <StatBox label="Categories" value={expenseData.breakdown.length} masked={false} />
             </div>
 
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -877,6 +926,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 label="Savings Rate"
                 value={`${savingsData.savingsRate.toFixed(1)}%`}
                 color={savingsData.savingsRate >= 20 ? "#059669" : savingsData.savingsRate >= 10 ? "#d97706" : THEME.rust}
+                masked={false}
               />
               <StatBox label="New Investments" value={fmtINR(savingsData.totalNewInvestments)} color={THEME.accent} />
             </div>
@@ -889,6 +939,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 { label: "Mutual Funds", value: savingsData.mfBuys },
                 { label: "Fixed Deposits", value: savingsData.fdAdds },
                 { label: "PPF", value: savingsData.ppfAdds },
+                { label: "Active SIPs (annual)", value: savingsData.sipTotal },
               ].filter((r) => r.value > 0).map((r) => (
                 <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 12px", background: `${THEME.accent}06`, borderRadius: 8 }}>
                   <span style={{ fontSize: 12, color: THEME.muted }}>{r.label}</span>
@@ -923,6 +974,12 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           <div className="page-break" />
           <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
             <SectionHeader icon={PieIcon} title="Asset Allocation" id="allocation" />
+            {isPastFY && (
+              <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={12} />
+                Asset allocation reflects current holdings — historical snapshot not available for past FYs.
+              </div>
+            )}
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center" }}>
               {/* Pie chart */}
               {assetAllocation.alloc.length > 0 && (
@@ -990,6 +1047,12 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           {(debtData.loanCount > 0 || debtData.ccOutstanding > 0) && (
             <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
               <SectionHeader icon={Landmark} title="Debt Summary" id="debt" />
+              {isPastFY && (
+                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={12} />
+                  Debt figures reflect current outstanding — historical balances not available for past FYs.
+                </div>
+              )}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                 <StatBox label="Outstanding Loans" value={fmtINR(debtData.totalOutstanding)} color={THEME.rust} />
                 <StatBox label="Monthly EMI" value={fmtINR(debtData.totalEMI)} />
@@ -1006,12 +1069,16 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           )}
 
           {/* ─── (g) Insurance Coverage ──────────────────────────────── */}
-          {(insuranceData.licCount > 0 || insuranceData.termCount > 0) && (
+          {(insuranceData.licCount > 0 || insuranceData.termCount > 0) && (<>
             <div className="page-break" />
-          )}
-          {(insuranceData.licCount > 0 || insuranceData.termCount > 0) && (
             <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
               <SectionHeader icon={Shield} title="Insurance Coverage" id="insurance" />
+              {isPastFY && (
+                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: `${THEME.accent}08`, fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={12} />
+                  Insurance data reflects current policies — historical coverage not available for past FYs.
+                </div>
+              )}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                 <StatBox label="Total Life Cover" value={fmtINR(insuranceData.totalLifeCover)} color={THEME.accent} />
                 <StatBox label="Annual Premiums" value={fmtINR(insuranceData.totalPremiums)} />
@@ -1020,6 +1087,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                   value={`${insuranceData.adequacyRatio.toFixed(1)}x`}
                   sub={insuranceData.adequacyRatio >= 10 ? "Adequate" : insuranceData.adequacyRatio >= 5 ? "Moderate" : "Low"}
                   color={insuranceData.adequacyRatio >= 10 ? "#059669" : insuranceData.adequacyRatio >= 5 ? "#d97706" : THEME.rust}
+                  masked={false}
                 />
               </div>
               <TableRow label="LIC / Endowment policies" value={insuranceData.licCount} />
@@ -1036,7 +1104,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 </div>
               )}
             </Card>
-          )}
+          </>)}
 
           {/* ─── (h) Tax Summary ─────────────────────────────────────── */}
           {(taxData.totalTaxPaid > 0 || taxData.paymentCount > 0) && (
@@ -1044,8 +1112,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               <SectionHeader icon={Receipt} title="Tax Summary" id="tax" />
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                 <StatBox label="Total Tax Paid" value={fmtINR(taxData.totalTaxPaid)} color={THEME.rust} />
-                <StatBox label="Effective Rate" value={`${taxData.effectiveRate.toFixed(1)}%`} />
-                <StatBox label="Regime" value={taxData.regime === "new" ? "New" : "Old"} />
+                <StatBox label="Effective Rate" value={`${taxData.effectiveRate.toFixed(1)}%`} masked={false} />
+                <StatBox label="Regime" value={taxData.regime === "new" ? "New" : "Old"} masked={false} />
               </div>
               {Object.entries(taxData.byType).length > 0 && (
                 <div style={{ marginBottom: 8 }}>
@@ -1063,9 +1131,9 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
               <SectionHeader icon={Target} title="Goals Progress" id="goals" />
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-                <StatBox label="Total Goals" value={goalsData.totalGoals} />
-                <StatBox label="Completed" value={goalsData.completed} color="#059669" />
-                <StatBox label="Overall Progress" value={`${goalsData.overallPct.toFixed(0)}%`} color={THEME.accent} />
+                <StatBox label="Total Goals" value={goalsData.totalGoals} masked={false} />
+                <StatBox label="Completed" value={goalsData.completed} masked={false} />
+                <StatBox label="Overall Progress" value={`${goalsData.overallPct.toFixed(0)}%`} color={THEME.accent} masked={false} />
               </div>
               {goalsData.topGoals.map((g) => (
                 <div key={g.name} style={{ marginBottom: 14 }}>
@@ -1083,8 +1151,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           )}
 
           {/* ─── (j) Key Highlights ──────────────────────────────────── */}
-          <div className="page-break" />
-          {highlights.length > 0 && (
+          {highlights.length > 0 && (<>
+            <div className="page-break" />
             <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
               <SectionHeader icon={Sparkles} title="Key Highlights" id="highlights" />
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1096,12 +1164,12 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 ))}
               </div>
             </Card>
-          )}
+          </>)}
 
           {/* ─── Financial Health Snapshot ────────────────────────────── */}
           <Card style={{ padding: "24px 28px", marginBottom: 20 }}>
             <SectionHeader icon={BarChart2} title="Financial Health Snapshot" id="health" />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
               {[
                 {
                   label: "Savings Rate",
