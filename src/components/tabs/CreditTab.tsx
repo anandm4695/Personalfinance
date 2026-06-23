@@ -1055,31 +1055,22 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
     ),
   ];
 
-  const subs = [
-    { id: "cc", label: "Credit Cards", icon: CreditCard },
-    { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
-    { id: "taken", label: "Loans Taken", icon: TrendingDown },
-    { id: "given", label: "Loans Given", icon: TrendingUp },
-    { id: "borrowed", label: "From People", icon: TrendingDown },
-    { id: "lent", label: "To People", icon: IndianRupee },
-    { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
-    { id: "score", label: "Credit Score", icon: Activity },
-  ];
+  const subs: Record<string, { label: string; sub: string }> = {
+    cc: { label: "Credit Cards", sub: "Manage your credit cards and track utilization" },
+    prepaid: { label: "Prepaid Cards", sub: "Track prepaid card balances" },
+    taken: { label: "Loans Taken", sub: "Track loans you've taken and repayment progress" },
+    given: { label: "Loans Given", sub: "Track loans you've given out" },
+    borrowed: { label: "From People", sub: "Informal borrowings from people" },
+    lent: { label: "To People", sub: "Informal lending to people" },
+    optimizer: { label: "Payoff Optimizer", sub: "Optimize your debt repayment strategy" },
+    score: { label: "Credit Score", sub: "Track your credit score over time" },
+  };
 
   React.useEffect(() => {
     if (subTab) setSub(subTab);
   }, [subTab]);
 
-  const activeLabel = subs.find((s) => s.id === sub)?.label || "";
-
-  const subCounts: Record<string, number> = {
-    cc: state.creditCards.length,
-    prepaid: state.prepaidCards.length,
-    taken: state.loansTaken.length,
-    given: state.loansGiven.length,
-    borrowed: (state.informalBorrowed || []).length,
-    lent: (state.informalLent || []).length,
-  };
+  const activeMeta = subs[sub] || subs.cc;
 
   return (
     <div>
@@ -1091,8 +1082,8 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           marginBottom: 24,
         }}
       >
-        <SectionTitle sub="Manage cards, debts, and personal lending portfolios">
-          Credit & Liabilities
+        <SectionTitle sub={activeMeta.sub}>
+          {activeMeta.label}
         </SectionTitle>
         {sub !== "borrowed" &&
           sub !== "lent" &&
@@ -1103,45 +1094,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
           !(sub === "cc" && !state.creditCards.length) &&
           !(sub === "prepaid" && !state.prepaidCards.length) && (
             <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
-              Add {activeLabel.split(" ")[0]}
+              Add {activeMeta.label.split(" ")[0]}
             </Button>
           )}
-      </div>
-
-      {/* Inline sub-tab navigation */}
-      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
-        {subs.map((s) => {
-          const Icon = s.icon;
-          const active = sub === s.id;
-          const count = subCounts[s.id];
-          return (
-            <button
-              key={s.id}
-              onClick={() => {
-                setSub(s.id);
-                onSubTabChange?.(s.id);
-              }}
-              className={`demat-portfolio-pill ${active ? "active" : ""}`}
-            >
-              <Icon size={13} />
-              {s.label}
-              {count !== undefined && count > 0 && (
-                <span
-                  style={{
-                    padding: "1px 6px",
-                    borderRadius: 20,
-                    fontSize: 10,
-                    fontWeight: 800,
-                    background: `${THEME.accent}22`,
-                    color: THEME.accent,
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
       </div>
 
       <div>
