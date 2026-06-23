@@ -545,6 +545,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   dashboardWidgets,
   onUpdateWidgets,
 }) => {
+  const isDark = state.settings?.darkMode ?? false;
   const [sub, setSub] = useState("dashboard");
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -5000,7 +5001,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           />
                           <Tooltip
                             contentStyle={{
-                              background: THEME.card,
+                              background: "var(--surface-0)",
                               border: `1px solid ${THEME.line}`,
                               borderRadius: 10,
                               fontSize: 13,
@@ -5019,7 +5020,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           />
                           <Bar
                             dataKey={`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`}
-                            fill={`color-mix(in srgb, ${THEME.accent} 45%, transparent)`}
+                            fill={`color-mix(in srgb, ${THEME.accent} ${isDark ? 65 : 45}%, transparent)`}
                             radius={[6, 6, 0, 0]}
                             maxBarSize={48}
                           />
@@ -5641,8 +5642,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <AreaChart data={filteredNetWorthTrend}>
                   <defs>
                     <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.accent} stopOpacity={0.4} />
-                      <stop offset="100%" stopColor={THEME.accent} stopOpacity={0} />
+                      <stop offset="0%" stopColor={THEME.accent} stopOpacity={isDark ? 0.55 : 0.4} />
+                      <stop offset="100%" stopColor={THEME.accent} stopOpacity={isDark ? 0.08 : 0} />
                     </linearGradient>
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                       <feDropShadow
@@ -5650,7 +5651,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         dy="4"
                         stdDeviation="6"
                         floodColor={THEME.accent}
-                        floodOpacity="0.5"
+                        floodOpacity={isDark ? "0.65" : "0.5"}
                       />
                     </filter>
                   </defs>
@@ -5702,12 +5703,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <BarChart data={trendData.slice(-6)}>
                   <defs>
                     <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.4} />
                     </linearGradient>
                     <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.4} />
+                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
+                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={isDark ? 0.7 : 0.4} />
                     </linearGradient>
                     <filter id="glow-sage" x="-20%" y="-20%" width="140%" height="140%">
                       <feDropShadow
@@ -5715,7 +5716,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         dy="2"
                         stdDeviation="4"
                         floodColor={THEME.sage}
-                        floodOpacity="0.4"
+                        floodOpacity={isDark ? "0.55" : "0.4"}
                       />
                     </filter>
                     <filter id="glow-rust" x="-20%" y="-20%" width="140%" height="140%">
@@ -5724,7 +5725,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         dy="2"
                         stdDeviation="4"
                         floodColor={THEME.rust}
-                        floodOpacity="0.4"
+                        floodOpacity={isDark ? "0.55" : "0.4"}
                       />
                     </filter>
                   </defs>
@@ -5781,12 +5782,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <BarChart data={trendData.slice(-6)}>
                   <defs>
                     <linearGradient id="gNetPos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.3} />
+                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.3} />
                     </linearGradient>
                     <linearGradient id="gNetNeg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.3} />
+                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
+                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={isDark ? 0.7 : 0.3} />
                     </linearGradient>
                     <filter id="glow-net" x="-20%" y="-20%" width="140%" height="140%">
                       <feDropShadow
@@ -5794,7 +5795,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         dy="2"
                         stdDeviation="4"
                         floodColor={THEME.accent}
-                        floodOpacity="0.4"
+                        floodOpacity={isDark ? "0.55" : "0.4"}
                       />
                     </filter>
                   </defs>
@@ -5831,7 +5832,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       <Cell
                         key={index}
                         fill={entry.net >= 0 ? THEME.sage : THEME.rust}
-                        fillOpacity={0.85}
+                        fillOpacity={isDark ? 1 : 0.85}
                       />
                     ))}
                   </Bar>
@@ -5859,12 +5860,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 >
                   <defs>
                     <linearGradient id="gCurrent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.4} />
+                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.4} />
                     </linearGradient>
                     <linearGradient id="gInvested" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.muted} stopOpacity={0.5} />
-                      <stop offset="100%" stopColor={THEME.muted} stopOpacity={0.1} />
+                      <stop offset="0%" stopColor={THEME.muted} stopOpacity={isDark ? 0.7 : 0.5} />
+                      <stop offset="100%" stopColor={THEME.muted} stopOpacity={isDark ? 0.35 : 0.1} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
@@ -9061,12 +9062,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       >
                         <defs>
                           <linearGradient id="projColorNet" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={THEME.accent} stopOpacity={0.25} />
-                            <stop offset="95%" stopColor={THEME.accent} stopOpacity={0.0} />
+                            <stop offset="5%" stopColor={THEME.accent} stopOpacity={isDark ? 0.35 : 0.25} />
+                            <stop offset="95%" stopColor={THEME.accent} stopOpacity={isDark ? 0.05 : 0.0} />
                           </linearGradient>
                           <linearGradient id="projColorReal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={THEME.sage} stopOpacity={0.2} />
-                            <stop offset="95%" stopColor={THEME.sage} stopOpacity={0.0} />
+                            <stop offset="5%" stopColor={THEME.sage} stopOpacity={isDark ? 0.3 : 0.2} />
+                            <stop offset="95%" stopColor={THEME.sage} stopOpacity={isDark ? 0.05 : 0.0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
@@ -12675,6 +12676,7 @@ const CustomTreemapContent = (props: any) => {
 
   if (depth === 1) return null;
 
+  const isDark = typeof document !== "undefined" && document.querySelector(".dark-theme") !== null;
   const parentColor = CATEGORY_COLORS[category] || THEME.accent;
   const showValue = width > 80 && height > 44;
   const showName = width > 36 && height > 22;
@@ -12694,7 +12696,7 @@ const CustomTreemapContent = (props: any) => {
         width={Math.max(0, width - 4)}
         height={Math.max(0, height - 4)}
         fill={parentColor}
-        fillOpacity={0.18}
+        fillOpacity={isDark ? 0.3 : 0.18}
         stroke={parentColor}
         strokeWidth={1.5}
         rx={6}
@@ -12708,15 +12710,15 @@ const CustomTreemapContent = (props: any) => {
             y={nameY - fontSize / 2 - 3}
             width={displayName.length * fontSize * 0.64 + 12}
             height={fontSize + 6}
-            fill="white"
-            fillOpacity={0.85}
+            fill="var(--surface-0)"
+            fillOpacity={0.9}
             rx={4}
             ry={4}
           />
           <text
             x={x + width / 2}
             y={nameY}
-            fill="#0f172a"
+            fill={THEME.ink}
             fontSize={fontSize}
             fontWeight={700}
             textAnchor="middle"
@@ -12734,15 +12736,15 @@ const CustomTreemapContent = (props: any) => {
             y={valY - valFontSize / 2 - 2}
             width={fmtINRFull(value).length * valFontSize * 0.64 + 10}
             height={valFontSize + 4}
-            fill="white"
-            fillOpacity={0.75}
+            fill="var(--surface-0)"
+            fillOpacity={0.85}
             rx={3}
             ry={3}
           />
           <text
             x={x + width / 2}
             y={valY}
-            fill="#334155"
+            fill={THEME.muted}
             fontSize={valFontSize}
             fontWeight={600}
             textAnchor="middle"
