@@ -39,15 +39,22 @@ import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
 const EVENT_TYPES = [
-  { id: "education", label: "Child's Education", icon: GraduationCap, color: "#3B82F6", inflationRate: 10 },
-  { id: "home", label: "Home Purchase", icon: Home, color: "#10B981", inflationRate: 7 },
-  { id: "car", label: "Vehicle Purchase", icon: Car, color: "#F59E0B", inflationRate: 5 },
-  { id: "wedding", label: "Wedding", icon: Heart, color: "#EF4444", inflationRate: 8 },
+  { id: "education", label: "Child's Education", icon: GraduationCap, color: "var(--t-accent)", inflationRate: 10 },
+  { id: "home", label: "Home Purchase", icon: Home, color: "var(--t-sage)", inflationRate: 7 },
+  { id: "car", label: "Vehicle Purchase", icon: Car, color: "var(--t-gold)", inflationRate: 5 },
+  { id: "wedding", label: "Wedding", icon: Heart, color: "var(--t-rust)", inflationRate: 8 },
   { id: "vacation", label: "Vacation / Travel", icon: Plane, color: "#8B5CF6", inflationRate: 6 },
   { id: "baby", label: "New Baby", icon: Baby, color: "#EC4899", inflationRate: 7 },
   { id: "retirement", label: "Retirement", icon: Briefcase, color: "#6366F1", inflationRate: 6 },
-  { id: "other", label: "Other", icon: Calendar, color: "#64748B", inflationRate: 6 },
+  { id: "other", label: "Other", icon: Calendar, color: "var(--t-muted)", inflationRate: 6 },
 ];
+
+const tooltipStyle = () => ({
+  background: "var(--t-card-bg)",
+  border: `1px solid var(--t-line)`,
+  borderRadius: 12,
+  color: "var(--t-ink)",
+});
 
 const EMPTY_EVENT = { name: "", type: "education", targetDate: "", estimatedCost: 0, currentSaved: 0, notes: "", priority: "high" };
 
@@ -122,24 +129,24 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
 
       {events.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-          <StatCard label="Total Future Cost" value={<Prv>{fmtINRFull(totalCost)}</Prv>} icon={<IndianRupee />} color="#EF4444" />
-          <StatCard label="Already Saved" value={<Prv>{fmtINRFull(totalSaved)}</Prv>} icon={<CheckCircle />} color="#10B981" />
-          <StatCard label="Gap to Fill" value={<Prv>{fmtINRFull(totalGap)}</Prv>} icon={<AlertTriangle />} color="#F59E0B" />
-          <StatCard label="Monthly SIP Needed" value={<Prv>{fmtINRFull(totalMonthlySIP)}</Prv>} icon={<TrendingUp />} color="var(--accent)" />
+          <StatCard label="Total Future Cost" value={<Prv>{fmtINRFull(totalCost)}</Prv>} icon={<IndianRupee />} color={THEME.rust} />
+          <StatCard label="Already Saved" value={<Prv>{fmtINRFull(totalSaved)}</Prv>} icon={<CheckCircle />} color={THEME.sage} />
+          <StatCard label="Gap to Fill" value={<Prv>{fmtINRFull(totalGap)}</Prv>} icon={<AlertTriangle />} color={THEME.gold} />
+          <StatCard label="Monthly SIP Needed" value={<Prv>{fmtINRFull(totalMonthlySIP)}</Prv>} icon={<TrendingUp />} color={THEME.accent} />
         </div>
       )}
 
       {/* Timeline Chart */}
       {timeline.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Timeline View</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Timeline View</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={timeline}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="year" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Bar dataKey="total" name="Inflation-Adjusted Cost" fill="var(--accent)" radius={[8, 8, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+              <XAxis dataKey="year" tick={{ fontSize: 12, fill: THEME.muted }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={tooltipStyle()} />
+              <Bar dataKey="total" name="Inflation-Adjusted Cost" fill={THEME.accent} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -154,56 +161,56 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
               <Card key={e.id} style={{ padding: 20, opacity: e.isPast ? 0.6 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: `${e.evType.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in srgb, ${e.evType.color} 15%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Icon size={20} color={e.evType.color} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, color: THEME.text }}>{e.name}</div>
-                      <div style={{ fontSize: 12, color: THEME.textSecondary }}>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: THEME.ink }}>{e.name}</div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
                         {e.evType.label} — {e.isPast ? "Past" : `${e.yearsAway.toFixed(1)} years away`}
                       </div>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => handleEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textSecondary, padding: 4 }}><Edit2 size={14} /></button>
-                    <button onClick={() => removeItem("lifeEvents", e.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", padding: 4 }}><Trash2 size={14} /></button>
+                    <button onClick={() => handleEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 4 }}><Edit2 size={14} /></button>
+                    <button onClick={() => removeItem("lifeEvents", e.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 4 }}><Trash2 size={14} /></button>
                   </div>
                 </div>
 
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: THEME.textSecondary, marginBottom: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: THEME.muted, marginBottom: 4 }}>
                     <span>Progress</span>
                     <span>{Math.min(100, e.progress).toFixed(0)}%</span>
                   </div>
-                  <div style={{ height: 8, borderRadius: 4, background: THEME.border, overflow: "hidden" }}>
+                  <div style={{ height: 8, borderRadius: 4, background: THEME.line, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${Math.min(100, e.progress)}%`, borderRadius: 4, background: e.evType.color, transition: "width 0.5s" }} />
                   </div>
                 </div>
 
                 <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
                   <div>
-                    <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Today's Cost</div>
-                    <div style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(e.estimatedCost)}</Prv></div>
+                    <div style={{ color: THEME.muted, fontSize: 11 }}>Today's Cost</div>
+                    <div style={{ fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(e.estimatedCost)}</Prv></div>
                   </div>
                   <div>
-                    <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Inflation-Adjusted</div>
-                    <div style={{ fontWeight: 600, color: "#EF4444" }}><Prv>{fmtINRFull(e.inflatedCost)}</Prv></div>
+                    <div style={{ color: THEME.muted, fontSize: 11 }}>Inflation-Adjusted</div>
+                    <div style={{ fontWeight: 600, color: THEME.rust }}><Prv>{fmtINRFull(e.inflatedCost)}</Prv></div>
                   </div>
                   <div>
-                    <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Saved So Far</div>
-                    <div style={{ fontWeight: 600, color: "#10B981" }}><Prv>{fmtINRFull(e.currentSaved)}</Prv></div>
+                    <div style={{ color: THEME.muted, fontSize: 11 }}>Saved So Far</div>
+                    <div style={{ fontWeight: 600, color: THEME.sage }}><Prv>{fmtINRFull(e.currentSaved)}</Prv></div>
                   </div>
                   <div>
-                    <div style={{ color: THEME.textSecondary, fontSize: 11 }}>Monthly SIP Needed</div>
-                    <div style={{ fontWeight: 600, color: "var(--accent)" }}><Prv>{fmtINRFull(e.monthlySIP)}</Prv></div>
+                    <div style={{ color: THEME.muted, fontSize: 11 }}>Monthly SIP Needed</div>
+                    <div style={{ fontWeight: 600, color: THEME.accent }}><Prv>{fmtINRFull(e.monthlySIP)}</Prv></div>
                   </div>
                 </div>
 
                 {e.notes && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: THEME.textSecondary, fontStyle: "italic" }}>{e.notes}</div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>{e.notes}</div>
                 )}
 
-                <div style={{ marginTop: 8, fontSize: 11, color: THEME.textSecondary }}>
+                <div style={{ marginTop: 8, fontSize: 11, color: THEME.muted }}>
                   Target: {e.targetDate} • Inflation: {e.evType.inflationRate}% p.a. • Priority: {e.priority}
                 </div>
               </Card>
@@ -221,29 +228,29 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <Field label="Event Name">
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Daughter's College"
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
             <Field label="Event Type">
               <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }}>
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }}>
                 {EVENT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </Field>
             <Field label="Target Date">
               <input type="date" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
             <Field label="Estimated Cost (today's value)">
               <input type="number" value={form.estimatedCost} onChange={(e) => setForm({ ...form, estimatedCost: Number(e.target.value) })}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
             <Field label="Amount Already Saved">
               <input type="number" value={form.currentSaved} onChange={(e) => setForm({ ...form, currentSaved: Number(e.target.value) })}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
             <Field label="Priority">
               <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }}>
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }}>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
@@ -251,7 +258,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
             </Field>
             <Field label="Notes (optional)">
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
           </div>
           <ModalActions>

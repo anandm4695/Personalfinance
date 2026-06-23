@@ -46,6 +46,19 @@ const projectionPresets = [
   { label: "Aggressive", returnRate: 16, inflationRate: 6 },
 ];
 
+const tooltipProps = {
+  contentStyle: {
+    background: "var(--surface-0)",
+    border: `1px solid var(--t-line)`,
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--t-ink)",
+  },
+  labelStyle: { color: "var(--t-muted)" },
+  itemStyle: { color: "var(--t-ink)" },
+};
+
 export const NetWorthTimelineTab = ({ state, metrics }) => {
   const [projectionYears, setProjectionYears] = useState(5);
   const [selectedPreset, setSelectedPreset] = useState(1);
@@ -147,26 +160,26 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard label="Total Growth" value={<Prv>{fmtINRFull(stats.totalGrowth)}</Prv>} icon={<TrendingUp />}
-            color={stats.totalGrowth >= 0 ? "#10B981" : "#EF4444"} />
+            color={stats.totalGrowth >= 0 ? THEME.sage : THEME.rust} />
           <StatCard label="Avg Monthly Growth" value={<Prv>{fmtINRFull(stats.avgMonthly)}</Prv>} icon={<Calendar />}
-            color="#3B82F6" />
+            color={THEME.accent} />
           <StatCard label="CAGR" value={`${stats.cagr.toFixed(1)}%`} icon={<Zap />}
-            color={stats.cagr >= 0 ? "#10B981" : "#EF4444"} />
+            color={stats.cagr >= 0 ? THEME.sage : THEME.rust} />
           <StatCard label={`Best Month (${stats.best?.label})`} value={<Prv>{fmtINRFull(stats.best?.delta || 0)}</Prv>}
-            icon={<TrendingUp />} color="#10B981" />
+            icon={<TrendingUp />} color={THEME.sage} />
           <StatCard label={`Worst Month (${stats.worst?.label})`} value={<Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>}
-            icon={<TrendingDown />} color="#EF4444" />
+            icon={<TrendingDown />} color={THEME.rust} />
         </div>
       )}
 
       {/* Net Worth History Chart */}
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>Net Worth History</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.ink }}>Net Worth History</h3>
           <button
             onClick={() => setShowBreakdown(!showBreakdown)}
-            style={{ background: "none", border: `1px solid ${THEME.border}`, borderRadius: 8, padding: "6px 12px",
-              fontSize: 13, color: THEME.textSecondary, cursor: "pointer" }}
+            style={{ background: "none", border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "6px 12px",
+              fontSize: 13, color: THEME.muted, cursor: "pointer" }}
           >
             {showBreakdown ? "Simple View" : "Asset Breakdown"}
           </button>
@@ -174,23 +187,23 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
         <ResponsiveContainer width="100%" height={350}>
           {showBreakdown ? (
             <AreaChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Legend />
-              <Area type="monotone" dataKey="cash" stackId="1" stroke="#3B82F6" fill="#3B82F680" name="Cash" />
-              <Area type="monotone" dataKey="equity" stackId="1" stroke="#10B981" fill="#10B98180" name="Equity" />
-              <Area type="monotone" dataKey="debt" stackId="1" stroke="#F59E0B" fill="#F59E0B80" name="Debt" />
-              <Area type="monotone" dataKey="realEstate" stackId="1" stroke="#8B5CF6" fill="#8B5CF680" name="Real Estate" />
+              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
+              <Legend wrapperStyle={{ fontSize: 12, color: THEME.ink }} />
+              <Area type="monotone" dataKey="cash" stackId="1" stroke={THEME.accent} fill={THEME.accent} fillOpacity={0.5} name="Cash" />
+              <Area type="monotone" dataKey="equity" stackId="1" stroke={THEME.sage} fill={THEME.sage} fillOpacity={0.5} name="Equity" />
+              <Area type="monotone" dataKey="debt" stackId="1" stroke={THEME.gold} fill={THEME.gold} fillOpacity={0.5} name="Debt" />
+              <Area type="monotone" dataKey="realEstate" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.5} name="Real Estate" />
             </AreaChart>
           ) : (
             <LineChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Line type="monotone" dataKey="netWorth" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4 }} name="Net Worth" />
+              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
+              <Line type="monotone" dataKey="netWorth" stroke={THEME.accent} strokeWidth={3} dot={{ r: 4 }} name="Net Worth" />
             </LineChart>
           )}
         </ResponsiveContainer>
@@ -199,18 +212,22 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       {/* Month-over-Month Delta */}
       {momDeltas.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Monthly Change</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Monthly Change</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={momDeltas}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Bar dataKey="delta" name="Change" fill="var(--accent)" radius={[4, 4, 0, 0]}
-                // Color bars based on positive/negative
+              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={{ stroke: THEME.line }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={{ stroke: THEME.line }} />
+              <Tooltip
+                formatter={(v) => fmtINRFull(v)}
+                {...tooltipProps}
+                cursor={{ fill: `color-mix(in srgb, ${THEME.muted} 12%, transparent)` }}
+              />
+              <Bar dataKey="delta" name="Change" fill={THEME.accent} radius={[4, 4, 0, 0]}
                 shape={(props) => {
                   const { x, y, width, height, value } = props;
-                  return <rect x={x} y={y} width={width} height={Math.abs(height)} rx={4} fill={value >= 0 ? "#10B981" : "#EF4444"} />;
+                  return <rect x={x} y={y} width={width} height={Math.abs(height)} rx={4}
+                    style={{ fill: value >= 0 ? THEME.sage : THEME.rust }} />;
                 }}
               />
             </BarChart>
@@ -223,19 +240,19 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 20, alignItems: "flex-end" }}>
           <div>
-            <label style={{ fontSize: 12, color: THEME.textSecondary, display: "block", marginBottom: 4 }}>Projection Period</label>
+            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Projection Period</label>
             <select value={projectionYears} onChange={(e) => setProjectionYears(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14 }}>
+              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink, fontSize: 14 }}>
               {[1, 2, 3, 5, 10, 15, 20, 25, 30].map((y) => <option key={y} value={y}>{y} Year{y > 1 ? "s" : ""}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, color: THEME.textSecondary, display: "block", marginBottom: 4 }}>Growth Scenario</label>
+            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Growth Scenario</label>
             <div style={{ display: "flex", gap: 8 }}>
               {projectionPresets.map((p, i) => (
                 <button key={i} onClick={() => setSelectedPreset(i)}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${i === selectedPreset ? "var(--accent)" : THEME.border}`,
-                    background: i === selectedPreset ? "var(--accent)" : THEME.card, color: i === selectedPreset ? "#fff" : THEME.text,
+                  style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${i === selectedPreset ? THEME.accent : THEME.line}`,
+                    background: i === selectedPreset ? THEME.accent : "var(--t-card-bg)", color: i === selectedPreset ? "var(--t-darkInk)" : THEME.ink,
                     fontSize: 13, cursor: "pointer", fontWeight: i === selectedPreset ? 600 : 400 }}>
                   {p.label} ({p.returnRate}%)
                 </button>
@@ -243,34 +260,41 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 12, color: THEME.textSecondary, display: "block", marginBottom: 4 }}>Monthly Savings</label>
+            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Monthly Savings</label>
             <input type="number" value={monthlySavings} onChange={(e) => setMonthlySavings(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14, width: 140 }} />
+              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink, fontSize: 14, width: 140 }} />
           </div>
         </div>
 
         <ResponsiveContainer width="100%" height={350}>
-          <AreaChart data={projection.filter((_, i) => i % Math.max(1, Math.floor(projection.length / 60)) === 0 || i === projection.length - 1)}>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} interval={Math.max(0, Math.floor(projection.length / 120))} />
-            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-            <Legend />
-            <Area type="monotone" dataKey="nominal" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Nominal Value" />
-            <Area type="monotone" dataKey="real" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.1} strokeWidth={2} strokeDasharray="5 5" name="Inflation-Adjusted" />
-          </AreaChart>
+          {(() => {
+            const step = projectionYears <= 3 ? 3 : projectionYears <= 10 ? 6 : 12;
+            const chartData = projection.filter((_, i) => i % step === 0 || i === projection.length - 1);
+            const tickInterval = Math.max(0, Math.ceil(chartData.length / 10) - 1);
+            return (
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} interval={tickInterval} />
+                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
+                <Legend wrapperStyle={{ fontSize: 12, color: THEME.ink }} />
+                <Area type="monotone" dataKey="nominal" stroke={THEME.accent} fill={THEME.accent} fillOpacity={0.15} strokeWidth={2} name="Nominal Value" />
+                <Area type="monotone" dataKey="real" stroke={THEME.gold} fill={THEME.gold} fillOpacity={0.1} strokeWidth={2} strokeDasharray="5 5" name="Inflation-Adjusted" />
+              </AreaChart>
+            );
+          })()}
         </ResponsiveContainer>
 
         <div style={{ marginTop: 16, display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ padding: "12px 20px", borderRadius: 12, background: `var(--accent)15`, border: `1px solid var(--accent)30` }}>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>Projected in {projectionYears}y (Nominal)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>
+          <div style={{ padding: "12px 20px", borderRadius: 12, background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)` }}>
+            <div style={{ fontSize: 12, color: THEME.muted }}>Projected in {projectionYears}y (Nominal)</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: THEME.accent }}>
               <Prv>{fmtINRFull(projection[projection.length - 1]?.nominal || 0)}</Prv>
             </div>
           </div>
-          <div style={{ padding: "12px 20px", borderRadius: 12, background: "#F59E0B15", border: "1px solid #F59E0B30" }}>
-            <div style={{ fontSize: 12, color: THEME.textSecondary }}>Inflation-Adjusted (Real)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#F59E0B" }}>
+          <div style={{ padding: "12px 20px", borderRadius: 12, background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)` }}>
+            <div style={{ fontSize: 12, color: THEME.muted }}>Inflation-Adjusted (Real)</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: THEME.gold }}>
               <Prv>{fmtINRFull(projection[projection.length - 1]?.real || 0)}</Prv>
             </div>
           </div>
@@ -279,18 +303,19 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
 
       {/* Milestones */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Wealth Milestones</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Wealth Milestones</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
           {milestones.filter((m) => m.target >= (metrics.netWorth || 0) * 0.1).map((m) => (
             <div key={m.target} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-              borderRadius: 12, background: m.achieved ? "#10B98110" : THEME.bg, border: `1px solid ${m.achieved ? "#10B98140" : THEME.border}` }}>
+              borderRadius: 12, background: m.achieved ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)` : THEME.paper,
+              border: `1px solid ${m.achieved ? `color-mix(in srgb, ${THEME.sage} 30%, transparent)` : THEME.line}` }}>
               <div style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                background: m.achieved ? "#10B981" : THEME.border, color: m.achieved ? "#fff" : THEME.textSecondary, fontSize: 14 }}>
+                background: m.achieved ? THEME.sage : THEME.line, color: m.achieved ? "#fff" : THEME.muted, fontSize: 14 }}>
                 {m.achieved ? "✓" : "○"}
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: THEME.text }}>{fmtINRFull(m.target)}</div>
-                <div style={{ fontSize: 12, color: m.achieved ? "#10B981" : THEME.textSecondary }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink }}>{fmtINRFull(m.target)}</div>
+                <div style={{ fontSize: 12, color: m.achieved ? THEME.sage : THEME.muted }}>
                   {m.achieved ? "Achieved!" : m.eta ? `ETA: ${m.eta}` : "—"}
                 </div>
               </div>
