@@ -95,6 +95,21 @@ import { EmergencyFundTab } from "./components/tabs/EmergencyFundTab";
 import { NomineeTrackerTab } from "./components/tabs/NomineeTrackerTab";
 import { DocumentVaultTab } from "./components/tabs/DocumentVaultTab";
 import { RebalancingTab } from "./components/tabs/RebalancingTab";
+import { NetWorthTimelineTab } from "./components/tabs/NetWorthTimelineTab";
+import { BankStatementParserTab } from "./components/tabs/BankStatementParserTab";
+import { CASImportTab } from "./components/tabs/CASImportTab";
+import { LoanAmortizationTab } from "./components/tabs/LoanAmortizationTab";
+import { FIREPlannerTab } from "./components/tabs/FIREPlannerTab";
+import { LifeEventPlannerTab } from "./components/tabs/LifeEventPlannerTab";
+import { TaxFilingHelperTab } from "./components/tabs/TaxFilingHelperTab";
+import { SmartAlertsTab } from "./components/tabs/SmartAlertsTab";
+import { ExpenseForecastTab } from "./components/tabs/ExpenseForecastTab";
+import { DataExportTab } from "./components/tabs/DataExportTab";
+import { ComparisonReportsTab } from "./components/tabs/ComparisonReportsTab";
+import { Section80TrackerTab } from "./components/tabs/Section80TrackerTab";
+import { GoldSGBTab } from "./components/tabs/GoldSGBTab";
+import { AuditLogTab } from "./components/tabs/AuditLogTab";
+import { PerformanceBenchmarkTab } from "./components/tabs/PerformanceBenchmarkTab";
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
@@ -149,6 +164,8 @@ const DEFAULT_STATE = {
   vehicles: [],
   dividends: [],
   documents: [],
+  goldHoldings: [],
+  lifeEvents: [],
   corporateActions: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
@@ -540,6 +557,8 @@ function FinanceDashboard() {
         vehiclesQ,
         dividendsQ,
         documentsQ,
+        goldQ,
+        lifeEventsQ,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -580,6 +599,8 @@ function FinanceDashboard() {
         supabase.from("vehicles").select("*").eq("user_id", userId),
         supabase.from("dividends").select("*").eq("user_id", userId),
         supabase.from("documents").select("*").eq("user_id", userId),
+        supabase.from("gold_holdings").select("*").eq("user_id", userId),
+        supabase.from("life_events").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -625,6 +646,8 @@ function FinanceDashboard() {
         vehiclesQ,
         dividendsQ,
         documentsQ,
+        goldQ,
+        lifeEventsQ,
       ].some((r) => r.data && r.data.length > 0);
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
@@ -832,6 +855,12 @@ function FinanceDashboard() {
             : {}),
           ...(!documentsQ.error && documentsQ.data != null
             ? { documents: snakeToCamel(documentsQ.data) }
+            : {}),
+          ...(!goldQ.error && goldQ.data != null
+            ? { goldHoldings: snakeToCamel(goldQ.data) }
+            : {}),
+          ...(!lifeEventsQ.error && lifeEventsQ.data != null
+            ? { lifeEvents: snakeToCamel(lifeEventsQ.data) }
             : {}),
         };
       });
@@ -3636,6 +3665,51 @@ function FinanceDashboard() {
               )}
               {tab === "rebalancing" && (
                 <RebalancingTab state={filteredState} metrics={metrics} marketData={marketData} />
+              )}
+              {tab === "nwtimeline" && (
+                <NetWorthTimelineTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "bankparser" && (
+                <BankStatementParserTab state={filteredState} addItem={addItem} />
+              )}
+              {tab === "casimport" && (
+                <CASImportTab state={filteredState} addItem={addItem} updateItem={updateItem} />
+              )}
+              {tab === "amortization" && (
+                <LoanAmortizationTab state={filteredState} />
+              )}
+              {tab === "fireplanner" && (
+                <FIREPlannerTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "lifeevents" && (
+                <LifeEventPlannerTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "taxfiling" && (
+                <TaxFilingHelperTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "smartalerts" && (
+                <SmartAlertsTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "expenseforecast" && (
+                <ExpenseForecastTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "dataexport" && (
+                <DataExportTab state={state} exportJSON={exportJSON} onRestoreBackup={importJSON} showToast={showToast} />
+              )}
+              {tab === "comparison" && (
+                <ComparisonReportsTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "sec80" && (
+                <Section80TrackerTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "gold" && (
+                <GoldSGBTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "auditlog" && (
+                <AuditLogTab session={session} />
+              )}
+              {tab === "benchmark" && (
+                <PerformanceBenchmarkTab state={filteredState} metrics={metrics} marketData={marketData} />
               )}
               {tab === "settings" && (
                 <SettingsTab

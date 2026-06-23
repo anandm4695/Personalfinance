@@ -38,6 +38,12 @@ import {
   Flame,
   ClipboardList,
   LineChart,
+  Upload,
+  Gem,
+  GraduationCap,
+  Database,
+  Clock,
+  Crosshair,
 } from "lucide-react";
 
 export const getCurrentFY = () => {
@@ -127,6 +133,10 @@ export const NUMERIC_COLS = new Set([
   "purchase_price",
   "current_value",
   "year",
+  "grams",
+  "interest_rate",
+  "estimated_cost",
+  "current_saved",
 ]);
 
 export const TABLE_MAP: Record<string, string> = {
@@ -171,6 +181,8 @@ export const TABLE_MAP: Record<string, string> = {
   vehicles: "vehicles",
   dividends: "dividends",
   documents: "documents",
+  goldHoldings: "gold_holdings",
+  lifeEvents: "life_events",
 };
 
 export const camelToSnake = (obj: any) => {
@@ -202,6 +214,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "cashflow", label: "Cash Flow Forecast", icon: LineChart },
       { id: "txnhistory", label: "Global Ledger", icon: History },
       { id: "expensetrends", label: "Expense Trends", icon: BarChart3 },
+      { id: "expenseforecast", label: "Expense Forecast", icon: TrendingUp },
+      { id: "nwtimeline", label: "Net Worth Timeline", icon: LineChart },
+      { id: "comparison", label: "Comparison Reports", icon: Crosshair },
+      { id: "smartalerts", label: "Smart Alerts", icon: Bell },
       { id: "familyview", label: "Family View", icon: Users },
     ],
   },
@@ -230,6 +246,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "investstatement", label: "Investment Statement", icon: ClipboardList },
       { id: "goals", label: "Financial Goals", icon: Target },
       { id: "realestate", label: "Real Estate", icon: Home },
+      { id: "gold", label: "Gold & SGBs", icon: Gem },
       { id: "vehicles", label: "Vehicles", icon: Car },
       { id: "emergencyfund", label: "Emergency Fund", icon: Flame },
     ],
@@ -265,6 +282,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "rental", label: "Rental Details", icon: Building2 },
       { id: "subs", label: "Subscriptions", icon: Repeat },
       { id: "calendar", label: "Financial Calendar", icon: Calendar },
+      { id: "sec80", label: "80C / 80D Tracker", icon: Shield },
+      { id: "taxfiling", label: "Tax Filing Helper", icon: FileText },
+      { id: "fireplanner", label: "FIRE Planner", icon: Flame },
+      { id: "lifeevents", label: "Life Event Planner", icon: GraduationCap },
+      { id: "amortization", label: "Loan Amortization", icon: Calculator },
     ],
   },
   {
@@ -273,6 +295,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "annualreport", label: "Annual Report", icon: FileBarChart },
       { id: "nominees", label: "Will & Nominees", icon: ShieldAlert },
       { id: "docvault", label: "Document Vault", icon: FolderOpen },
+      { id: "benchmark", label: "Performance Benchmark", icon: BarChart3 },
+      { id: "bankparser", label: "Bank Statement Parser", icon: Upload },
+      { id: "casimport", label: "CAS Import", icon: Briefcase },
+      { id: "dataexport", label: "Data Export & Backup", icon: Database },
+      { id: "auditlog", label: "Audit Log", icon: Clock },
     ],
   },
   {

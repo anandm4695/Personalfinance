@@ -66,6 +66,8 @@ export function useMetrics(
       stockSells: filterByOwner(state.stockSells || []),
       mfSells: filterByOwner(state.mfSells || []),
       corporateActions: filterByOwner(state.corporateActions || []),
+      goldHoldings: filterByOwner(state.goldHoldings || []),
+      lifeEvents: filterByOwner(state.lifeEvents || []),
     };
   }, [state, activeProfile]);
 
