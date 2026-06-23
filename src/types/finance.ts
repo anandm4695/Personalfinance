@@ -231,6 +231,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   children?: NavItem[];
+  directChildren?: boolean;
 }
 
 export interface NavGroup {

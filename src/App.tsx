@@ -1044,7 +1044,7 @@ function FinanceDashboard() {
         "2": "banks",
         "3": "demat",
         "4": "investments",
-        "5": "credit",
+        "5": "cc",
         "6": "budget",
         "7": "tax",
         "8": "goals",
@@ -2553,15 +2553,22 @@ function FinanceDashboard() {
                   {(isSidebarCompact || !isCollapsed) &&
                     group.items.map((t) => {
                       const Icon = t.icon;
-                      const active = tab === t.id;
                       const hasChildren = t.children && t.children.length > 0;
+                      const isDirect = t.directChildren;
+                      const active = isDirect
+                        ? t.children?.some((c) => c.id === tab) ?? false
+                        : tab === t.id;
                       return (
                         <div key={t.id}>
                           <button
                             onClick={() => {
-                              setTab(t.id);
-                              setSubTab(hasChildren ? t.children[0].id : null);
-                              // Auto-expand when user clicks a nav item in compact mode
+                              if (isDirect && hasChildren) {
+                                setTab(t.children![0].id);
+                                setSubTab(null);
+                              } else {
+                                setTab(t.id);
+                                setSubTab(hasChildren ? t.children![0].id : null);
+                              }
                               if (isSidebarCompact) {
                                 setSidebarMinimized(false);
                                 setSidebarHovered(false);
@@ -2647,13 +2654,18 @@ function FinanceDashboard() {
                             >
                               {t.children.map((child) => {
                                 const ChildIcon = child.icon;
-                                const childActive = subTab === child.id;
+                                const childActive = isDirect ? tab === child.id : subTab === child.id;
                                 return (
                                   <button
                                     key={child.id}
                                     onClick={() => {
-                                      setTab(t.id);
-                                      setSubTab(child.id);
+                                      if (isDirect) {
+                                        setTab(child.id);
+                                        setSubTab(null);
+                                      } else {
+                                        setTab(t.id);
+                                        setSubTab(child.id);
+                                      }
                                     }}
                                     style={{
                                       display: "flex",
@@ -3642,14 +3654,14 @@ function FinanceDashboard() {
                   marketData={marketData}
                 />
               )}
-              {tab === "credit" && (
+              {(tab === "credit" || ["cc","prepaid","taken","given","borrowed","lent","optimizer"].includes(tab)) && (
                 <CreditTab
                   state={filteredState}
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
-                  subTab={subTab}
-                  onSubTabChange={setSubTab}
+                  subTab={tab === "credit" ? subTab : tab}
+                  onSubTabChange={(st: string) => { setTab(st); setSubTab(null); }}
                 />
               )}
               {tab === "subs" && (
