@@ -252,7 +252,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Briefcase} title="CAS Import" subtitle="Import Mutual Fund holdings from CAMS/KFintech Consolidated Account Statement" />
+      <SectionTitle sub="Import Mutual Fund holdings from CAMS/KFintech Consolidated Account Statement">CAS Import</SectionTitle>
 
       {imported > 0 && (
         <Card style={{ padding: 16, background: "#10B98115", border: "1px solid #10B98140" }}>
@@ -302,9 +302,9 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
       {parsedFunds.length > 0 && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-            <StatCard label="Funds Found" value={parsedFunds.length} icon={Briefcase} color="var(--accent)" />
-            <StatCard label="Selected" value={stats.count} icon={CheckCircle} color="#10B981" />
-            <StatCard label="Total Value" value={fmtINRFull(stats.totalValue)} icon={IndianRupee} color="#3B82F6" />
+            <StatCard label="Funds Found" value={parsedFunds.length} icon={<Briefcase />} color="var(--accent)" />
+            <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color="#10B981" />
+            <StatCard label="Total Value" value={fmtINRFull(stats.totalValue)} icon={<IndianRupee />} color="#3B82F6" />
           </div>
 
           {/* Category Breakdown */}

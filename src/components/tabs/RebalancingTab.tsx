@@ -158,7 +158,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   if (!allocation.total) {
     return (
       <div>
-        <SectionTitle title="Smart Rebalancing" subtitle="Compare your allocation to target and get actionable suggestions" />
+        <SectionTitle sub="Compare your allocation to target and get actionable suggestions">Smart Rebalancing</SectionTitle>
         <EmptyState icon={PieIcon} title="No Portfolio Data" subtitle="Add investments to see rebalancing suggestions" />
       </div>
     );
@@ -166,7 +166,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
   return (
     <div>
-      <SectionTitle title="Smart Rebalancing" subtitle="Compare your allocation to target and get actionable suggestions" />
+      <SectionTitle sub="Compare your allocation to target and get actionable suggestions">Smart Rebalancing</SectionTitle>
 
       {/* Alignment Score */}
       <Card>

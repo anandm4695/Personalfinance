@@ -131,7 +131,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle icon={Coins} title="Gold & Sovereign Gold Bonds" subtitle="Track physical gold, SGBs, ETFs and digital gold" />
+        <SectionTitle sub="Track physical gold, SGBs, ETFs and digital gold">Gold & Sovereign Gold Bonds</SectionTitle>
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <Coins size={14} color="#F59E0B" />
@@ -154,12 +154,12 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
 
       {holdings.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          <StatCard label="Total Gold" value={`${stats.totalGrams.toFixed(2)}g`} icon={Coins} color="#F59E0B" />
-          <StatCard label="Current Value" value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>} icon={IndianRupee} color="#3B82F6" />
-          <StatCard label="P&L" value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>} icon={TrendingUp}
+          <StatCard label="Total Gold" value={`${stats.totalGrams.toFixed(2)}g`} icon={<Coins />} color="#F59E0B" />
+          <StatCard label="Current Value" value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>} icon={<IndianRupee />} color="#3B82F6" />
+          <StatCard label="P&L" value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>} icon={<TrendingUp />}
             color={stats.totalPnL >= 0 ? "#10B981" : "#EF4444"} />
           {stats.totalInterest > 0 && (
-            <StatCard label="SGB Interest Earned" value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>} icon={Award} color="#10B981" />
+            <StatCard label="SGB Interest Earned" value={<Prv>{fmtINRFull(stats.totalInterest)}</Prv>} icon={<Award />} color="#10B981" />
           )}
         </div>
       )}

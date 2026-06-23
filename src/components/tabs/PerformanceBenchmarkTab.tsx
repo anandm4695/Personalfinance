@@ -166,14 +166,14 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={BarChart3} title="Performance Benchmark" subtitle="Compare your portfolio against market benchmarks" />
+      <SectionTitle sub="Compare your portfolio against market benchmarks">Performance Benchmark</SectionTitle>
 
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <StatCard label="Overall Return" value={`${portfolioReturns.overall.return.toFixed(1)}%`} icon={TrendingUp}
+        <StatCard label="Overall Return" value={`${portfolioReturns.overall.return.toFixed(1)}%`} icon={<TrendingUp />}
           color={portfolioReturns.overall.return >= 0 ? "#10B981" : "#EF4444"} />
-        <StatCard label="Total Invested" value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>} icon={IndianRupee} color="var(--accent)" />
-        <StatCard label="Current Value" value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>} icon={Target} color="#3B82F6" />
+        <StatCard label="Total Invested" value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
+        <StatCard label="Current Value" value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>} icon={<Target />} color="#3B82F6" />
         <Card style={{ padding: 16, textAlign: "center" }}>
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 4 }}>Financial Health</div>
           <div style={{ fontSize: 36, fontWeight: 800, color: scoreColor }}>{overallScore}</div>

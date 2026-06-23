@@ -172,7 +172,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle icon={FileText} title="Income Tax Filing Helper" subtitle="Pre-filled summary, checklist & advance tax tracker" />
+        <SectionTitle sub="Pre-filled summary, checklist & advance tax tracker">Income Tax Filing Helper</SectionTitle>
         <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)}
           style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14 }}>
           {["2024-25", "2025-26", "2026-27"].map((fy) => <option key={fy} value={fy}>FY {fy}</option>)}

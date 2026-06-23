@@ -140,7 +140,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Flame} title="FIRE Planner" subtitle="Financial Independence, Retire Early — detailed retirement planning" />
+      <SectionTitle sub="Financial Independence, Retire Early — detailed retirement planning">FIRE Planner</SectionTitle>
 
       {/* Input Panel */}
       <Card style={{ padding: 24 }}>
@@ -172,10 +172,10 @@ export const FIREPlannerTab = ({ state, metrics }) => {
 
       {/* FIRE Numbers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <StatCard label="FIRE Number" value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>} icon={Flame} color="#EF4444" />
-        <StatCard label="Coast FIRE" value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>} icon={Shield} color="#8B5CF6" />
-        <StatCard label="Lean FIRE" value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>} icon={Target} color="#F59E0B" />
-        <StatCard label="Fat FIRE" value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>} icon={Zap} color="#10B981" />
+        <StatCard label="FIRE Number" value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>} icon={<Flame />} color="#EF4444" />
+        <StatCard label="Coast FIRE" value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>} icon={<Shield />} color="#8B5CF6" />
+        <StatCard label="Lean FIRE" value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>} icon={<Target />} color="#F59E0B" />
+        <StatCard label="Fat FIRE" value={<Prv>{fmtINRFull(fireCalc.fatFIRE)}</Prv>} icon={<Zap />} color="#10B981" />
       </div>
 
       {/* Progress */}

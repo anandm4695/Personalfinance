@@ -135,7 +135,7 @@ export const LoanAmortizationTab = ({ state }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Calculator} title="Loan Amortization" subtitle="Detailed EMI breakdown with prepayment simulator" />
+      <SectionTitle sub="Detailed EMI breakdown with prepayment simulator">Loan Amortization</SectionTitle>
 
       {/* Loan Selector */}
       <Card style={{ padding: 24 }}>
@@ -203,10 +203,10 @@ export const LoanAmortizationTab = ({ state }) => {
       {loanData.principal > 0 && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-            <StatCard label="Monthly EMI" value={<Prv>{fmtINRFull(baseAmort.emi)}</Prv>} icon={IndianRupee} color="var(--accent)" />
-            <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={TrendingDown} color="#EF4444" />
-            <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={Calculator} color="#3B82F6" />
-            <StatCard label="Loan Closes In" value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`} icon={Calendar} color="#10B981" />
+            <StatCard label="Monthly EMI" value={<Prv>{fmtINRFull(baseAmort.emi)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
+            <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={<TrendingDown />} color="#EF4444" />
+            <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={<Calculator />} color="#3B82F6" />
+            <StatCard label="Loan Closes In" value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`} icon={<Calendar />} color="#10B981" />
           </div>
 
           {/* Prepayment Savings */}

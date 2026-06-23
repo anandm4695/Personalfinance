@@ -209,7 +209,7 @@ export const BankStatementParserTab = ({ state, addItem }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Upload} title="Bank Statement Parser" subtitle="Import transactions from your bank CSV statements" />
+      <SectionTitle sub="Import transactions from your bank CSV statements">Bank Statement Parser</SectionTitle>
 
       {imported > 0 && (
         <Card style={{ padding: 16, background: "#10B98115", border: "1px solid #10B98140" }}>
@@ -254,10 +254,10 @@ export const BankStatementParserTab = ({ state, addItem }) => {
       {showPreview && parsedTxns.length > 0 && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-            <StatCard label="Total Parsed" value={parsedTxns.length} icon={FileText} color="var(--accent)" />
-            <StatCard label="Selected for Import" value={previewStats.count} icon={CheckCircle} color="#10B981" />
-            <StatCard label="Duplicates Detected" value={duplicates} icon={AlertTriangle} color="#F59E0B" />
-            <StatCard label="Total Debits" value={fmtINRFull(previewStats.totalDebit)} icon={Download} color="#EF4444" />
+            <StatCard label="Total Parsed" value={parsedTxns.length} icon={<FileText />} color="var(--accent)" />
+            <StatCard label="Selected for Import" value={previewStats.count} icon={<CheckCircle />} color="#10B981" />
+            <StatCard label="Duplicates Detected" value={duplicates} icon={<AlertTriangle />} color="#F59E0B" />
+            <StatCard label="Total Debits" value={fmtINRFull(previewStats.totalDebit)} icon={<Download />} color="#EF4444" />
           </div>
 
           <Card style={{ padding: 24 }}>

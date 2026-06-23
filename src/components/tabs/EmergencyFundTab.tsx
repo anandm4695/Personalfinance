@@ -124,7 +124,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
   return (
     <div>
-      <SectionTitle title="Emergency Fund Health" subtitle="How many months can you survive on liquid assets alone?" />
+      <SectionTitle sub="How many months can you survive on liquid assets alone?">Emergency Fund Health</SectionTitle>
 
       {/* Main Health Indicator */}
       <Card>

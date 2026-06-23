@@ -366,7 +366,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
   if (events.length === 0) {
     return (
       <div>
-        <SectionTitle title="Financial Calendar" subtitle="Track upcoming maturities, dividends, premiums & renewals" />
+        <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">Financial Calendar</SectionTitle>
         <EmptyState
           icon={Calendar}
           title="No Upcoming Events"
@@ -386,7 +386,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
 
   return (
     <div>
-      <SectionTitle title="Financial Calendar" subtitle="Track upcoming maturities, dividends, premiums & renewals" />
+      <SectionTitle sub="Track upcoming maturities, dividends, premiums & renewals">Financial Calendar</SectionTitle>
 
       {/* Horizon Toggle */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>

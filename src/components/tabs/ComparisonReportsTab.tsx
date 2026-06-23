@@ -184,7 +184,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle icon={BarChart3} title="Comparison Reports" subtitle="Month-over-month and year-over-year analysis" />
+        <SectionTitle sub="Month-over-month and year-over-year analysis">Comparison Reports</SectionTitle>
         <div style={{ display: "flex", gap: 8 }}>
           {[{ id: "mom", label: "Month vs Month" }, { id: "yoy", label: "FY vs FY" }].map((m) => (
             <button key={m.id} onClick={() => setCompMode(m.id)}

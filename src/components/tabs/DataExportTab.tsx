@@ -175,13 +175,13 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Database} title="Data Export & Backup" subtitle="Download your financial data and restore from backups" />
+      <SectionTitle sub="Download your financial data and restore from backups">Data Export & Backup</SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <StatCard label="Total Records" value={totalRecords} icon={Database} color="var(--accent)" />
-        <StatCard label="Selected for Export" value={selectedRecords} icon={CheckCircle} color="#10B981" />
-        <StatCard label="Data Sections" value={dataCounts.filter((d) => d.count > 0).length} icon={FileText} color="#3B82F6" />
-        {lastExport && <StatCard label="Last Export" value={lastExport} icon={Clock} color="#F59E0B" />}
+        <StatCard label="Total Records" value={totalRecords} icon={<Database />} color="var(--accent)" />
+        <StatCard label="Selected for Export" value={selectedRecords} icon={<CheckCircle />} color="#10B981" />
+        <StatCard label="Data Sections" value={dataCounts.filter((d) => d.count > 0).length} icon={<FileText />} color="#3B82F6" />
+        {lastExport && <StatCard label="Last Export" value={lastExport} icon={<Clock />} color="#F59E0B" />}
       </div>
 
       {/* Export Panel */}

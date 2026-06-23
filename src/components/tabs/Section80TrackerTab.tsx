@@ -149,7 +149,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Shield} title="Section 80C / 80D Tracker" subtitle="Track tax-saving investments and deductions" />
+      <SectionTitle sub="Track tax-saving investments and deductions">Section 80C / 80D Tracker</SectionTitle>
 
       {/* Summary Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>

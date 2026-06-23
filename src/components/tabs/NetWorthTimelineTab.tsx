@@ -142,15 +142,15 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={TrendingUp} title="Net Worth Timeline" subtitle="Track your wealth journey over time" />
+      <SectionTitle sub="Track your wealth journey over time">Net Worth Timeline</SectionTitle>
 
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          <StatCard label="Total Growth" value={<Prv>{fmtINRFull(stats.totalGrowth)}</Prv>} icon={TrendingUp}
+          <StatCard label="Total Growth" value={<Prv>{fmtINRFull(stats.totalGrowth)}</Prv>} icon={<TrendingUp />}
             color={stats.totalGrowth >= 0 ? "#10B981" : "#EF4444"} />
-          <StatCard label="Avg Monthly Growth" value={<Prv>{fmtINRFull(stats.avgMonthly)}</Prv>} icon={Calendar}
+          <StatCard label="Avg Monthly Growth" value={<Prv>{fmtINRFull(stats.avgMonthly)}</Prv>} icon={<Calendar />}
             color="#3B82F6" />
-          <StatCard label="CAGR" value={`${stats.cagr.toFixed(1)}%`} icon={Zap}
+          <StatCard label="CAGR" value={`${stats.cagr.toFixed(1)}%`} icon={<Zap />}
             color={stats.cagr >= 0 ? "#10B981" : "#EF4444"} />
           <StatCard label={`Best Month (${stats.best?.label})`} value={<Prv>{fmtINRFull(stats.best?.delta || 0)}</Prv>}
             icon={TrendingUp} color="#10B981" />
@@ -219,7 +219,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       )}
 
       {/* Projection / Time Machine */}
-      <SectionTitle icon={Target} title="What-If Time Machine" subtitle="Project your net worth into the future" />
+      <SectionTitle sub="Project your net worth into the future">What-If Time Machine</SectionTitle>
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 20, alignItems: "flex-end" }}>
           <div>

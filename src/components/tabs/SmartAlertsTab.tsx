@@ -272,12 +272,12 @@ export const SmartAlertsTab = ({ state, metrics }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <SectionTitle icon={Bell} title="Smart Alerts" subtitle="AI-powered financial health monitoring" />
+      <SectionTitle sub="AI-powered financial health monitoring">Smart Alerts</SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
-        <StatCard label="Critical Alerts" value={errorCount} icon={XCircle} color="#EF4444" />
-        <StatCard label="Warnings" value={warnCount} icon={AlertTriangle} color="#F59E0B" />
-        <StatCard label="Total Alerts" value={smartAlerts.length} icon={Bell} color="var(--accent)" />
+        <StatCard label="Critical Alerts" value={errorCount} icon={<XCircle />} color="#EF4444" />
+        <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color="#F59E0B" />
+        <StatCard label="Total Alerts" value={smartAlerts.length} icon={<Bell />} color="var(--accent)" />
       </div>
 
       {/* Filters */}

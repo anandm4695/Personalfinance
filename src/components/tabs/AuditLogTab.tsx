@@ -128,7 +128,7 @@ export const AuditLogTab = ({ session }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle icon={Clock} title="Audit Log" subtitle="Track all changes and actions in your financial data" />
+        <SectionTitle sub="Track all changes and actions in your financial data">Audit Log</SectionTitle>
         <Button variant="ghost" size="sm" onClick={fetchLogs}>
           <RefreshCw size={14} /> Refresh
         </Button>
@@ -136,10 +136,10 @@ export const AuditLogTab = ({ session }) => {
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-        <StatCard label="Total Actions" value={logs.length} icon={Activity} color="var(--accent)" />
-        <StatCard label="Adds" value={actionStats.ADD || 0} icon={Plus} color="#10B981" />
-        <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={Edit2} color="#3B82F6" />
-        <StatCard label="Deletes" value={actionStats.DELETE || 0} icon={Trash2} color="#EF4444" />
+        <StatCard label="Total Actions" value={logs.length} icon={<Activity />} color="var(--accent)" />
+        <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color="#10B981" />
+        <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={<Edit2 />} color="#3B82F6" />
+        <StatCard label="Deletes" value={actionStats.DELETE || 0} icon={<Trash2 />} color="#EF4444" />
       </div>
 
       {/* Activity heatmap (last 7 days) */}

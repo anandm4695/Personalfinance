@@ -678,7 +678,7 @@ export const TaxToolsTab = ({ state, metrics }) => {
 
   return (
     <div>
-      <SectionTitle title="Tax Tools" subtitle="Advance tax calculator, 26AS reconciliation & HRA rent receipts" />
+      <SectionTitle sub="Advance tax calculator, 26AS reconciliation & HRA rent receipts">Tax Tools</SectionTitle>
 
       {/* Sub-tab navigation */}
       <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>

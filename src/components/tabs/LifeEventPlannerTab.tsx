@@ -114,7 +114,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <SectionTitle icon={Calendar} title="Life Event Planner" subtitle="Plan for major financial milestones" />
+        <SectionTitle sub="Plan for major financial milestones">Life Event Planner</SectionTitle>
         <Button variant="primary" size="sm" onClick={() => { setForm({ ...EMPTY_EVENT }); setEditingId(null); setShowModal(true); }}>
           <Plus size={16} /> Add Event
         </Button>
@@ -122,10 +122,10 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
 
       {events.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-          <StatCard label="Total Future Cost" value={<Prv>{fmtINRFull(totalCost)}</Prv>} icon={IndianRupee} color="#EF4444" />
-          <StatCard label="Already Saved" value={<Prv>{fmtINRFull(totalSaved)}</Prv>} icon={CheckCircle} color="#10B981" />
-          <StatCard label="Gap to Fill" value={<Prv>{fmtINRFull(totalGap)}</Prv>} icon={AlertTriangle} color="#F59E0B" />
-          <StatCard label="Monthly SIP Needed" value={<Prv>{fmtINRFull(totalMonthlySIP)}</Prv>} icon={TrendingUp} color="var(--accent)" />
+          <StatCard label="Total Future Cost" value={<Prv>{fmtINRFull(totalCost)}</Prv>} icon={<IndianRupee />} color="#EF4444" />
+          <StatCard label="Already Saved" value={<Prv>{fmtINRFull(totalSaved)}</Prv>} icon={<CheckCircle />} color="#10B981" />
+          <StatCard label="Gap to Fill" value={<Prv>{fmtINRFull(totalGap)}</Prv>} icon={<AlertTriangle />} color="#F59E0B" />
+          <StatCard label="Monthly SIP Needed" value={<Prv>{fmtINRFull(totalMonthlySIP)}</Prv>} icon={<TrendingUp />} color="var(--accent)" />
         </div>
       )}
 
