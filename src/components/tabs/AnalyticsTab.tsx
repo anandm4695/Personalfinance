@@ -3108,16 +3108,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           <div className="animate-fade-in-up bento-grid">
             {/* Hero Card */}
-            {/* #0F172A = same hardcoded dark as Habits hero card — consistent across all themes */}
             <Card
               variant="hero"
               className="bento-col-12"
               style={{
                 padding: "32px 40px",
-                background: "#0F172A",
+                background: isDark ? "#1e293b" : "#0F172A",
                 color: "#fff",
                 position: "relative",
                 overflow: "hidden",
+                border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none",
               }}
             >
               {/* ── Decorative large ₹ watermark — gold, visible on dark & light ── */}
@@ -4715,7 +4715,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "6px 12px",
                           borderRadius: 8,
                           border: `1px solid ${THEME.line}`,
-                          background: THEME.card,
+                          background: "var(--surface-0)",
                           color: THEME.ink,
                           fontSize: 13,
                           fontWeight: 700,
@@ -4739,7 +4739,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "6px 12px",
                           borderRadius: 8,
                           border: `1px solid ${THEME.line}`,
-                          background: THEME.card,
+                          background: "var(--surface-0)",
                           color: THEME.ink,
                           fontSize: 13,
                           fontWeight: 700,
@@ -4859,7 +4859,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               key={row.label}
                               style={{
                                 borderTop: idx > 0 ? `1px solid ${THEME.line}` : "none",
-                                background: idx % 2 === 1 ? "rgba(128,128,128,0.02)" : "transparent",
+                                background: idx % 2 === 1 ? `color-mix(in srgb, var(--t-accent) 4%, transparent)` : "transparent",
                               }}
                             >
                               <td
@@ -5006,11 +5006,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               borderRadius: 10,
                               fontSize: 13,
                               fontWeight: 600,
+                              color: THEME.ink,
                             }}
+                            labelStyle={{ color: THEME.muted }}
+                            itemStyle={{ color: THEME.ink }}
                             formatter={(value: number) => fmtINRFull(value)}
                           />
                           <Legend
-                            wrapperStyle={{ fontSize: 12, fontWeight: 700 }}
+                            wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}
                           />
                           <Bar
                             dataKey={`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`}
@@ -5665,7 +5668,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       border: "1px solid var(--t-line)",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-xl)",
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
                   />
                   <Area
                     type="monotone"
@@ -5750,9 +5756,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       border: "1px solid var(--t-line)",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-xl)",
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
                   />
-                  <Legend iconType="circle" />
+                  <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
                   <Bar
                     dataKey="income"
                     name="Income"
@@ -5820,7 +5829,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       border: "1px solid var(--t-line)",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-xl)",
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
                   />
                   <Bar
                     dataKey="net"
@@ -5889,9 +5901,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       border: "1px solid var(--t-line)",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-xl)",
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
                   />
-                  <Legend iconType="circle" />
+                  <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
                   <Bar
                     dataKey="current"
                     name="Current Value"
@@ -6077,7 +6092,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {/* Combined Family Net Worth */}
                 <div style={{
                   padding: "16px 20px", borderRadius: 12,
-                  background: "#0F172A", marginBottom: 20, textAlign: "center",
+                  background: isDark ? "#1e293b" : "#0F172A", marginBottom: 20, textAlign: "center",
+                  border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none",
                 }}>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 4, fontWeight: 700 }}>
                     Combined Family Net Worth
@@ -9098,6 +9114,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             color: THEME.ink,
                             fontSize: 13,
                           }}
+                          labelStyle={{ color: THEME.muted }}
+                          itemStyle={{ color: THEME.ink }}
                           formatter={(value: any, name: string) => {
                             const labelMap: Record<string, string> = {
                               netWorth: "Nominal Net Worth",
@@ -11486,9 +11504,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           className="tab-content-enter"
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
-          {/* ── HERO CARD: always-dark navy — matches Dashboard Wealth Overview ── */}
-          {/* #0F172A = --t-darkInk in dark mode; hardcoded so it stays dark in light mode too */}
-          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: "#0F172A" }}>
+          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: isDark ? "#1e293b" : "#0F172A", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
             {/* Thin accent stripe — identifies current theme color */}
             <div
               style={{
@@ -12454,13 +12470,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       background: "var(--t-paper)",
                       boxShadow: "var(--shadow-md)",
                       fontSize: 12,
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
                     formatter={(v: any, name: string) => [
                       typeof v === "number" ? v.toFixed(1) : v,
                       name,
                     ]}
                   />
-                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20 }} iconType="circle" />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20, color: THEME.ink }} iconType="circle" />
                   <Bar dataKey="You" fill="#6366f1" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Top10" fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
