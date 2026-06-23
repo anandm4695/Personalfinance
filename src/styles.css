@@ -1567,9 +1567,9 @@ input[type="date"].form-input {
 /* ── Widescreen Stats Grid (4 columns on desktop) ── */
 .demat-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 @media (max-width: 1024px) {

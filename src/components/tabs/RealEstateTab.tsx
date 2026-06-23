@@ -967,7 +967,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
 
       {/* Stats */}
       {properties.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
           <StatCard label="Portfolio Value" value={fmtINRFull(stats.portfolioValue)} icon={<TrendingUp />} color="#22c55e" />
           <StatCard label="Total Invested" value={fmtINRFull(stats.totalInvested)} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
           <StatCard label="Total Paid" value={fmtINRFull(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color="#6366f1" />

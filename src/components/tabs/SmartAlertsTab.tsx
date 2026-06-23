@@ -274,7 +274,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="AI-powered financial health monitoring">Smart Alerts</SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Critical Alerts" value={errorCount} icon={<XCircle />} color="#EF4444" />
         <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color="#F59E0B" />
         <StatCard label="Total Alerts" value={smartAlerts.length} icon={<Bell />} color="var(--accent)" />

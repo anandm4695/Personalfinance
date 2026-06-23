@@ -348,7 +348,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </div>
 
         {/* Stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard
             label="Assets Covered"
             value={String(coveredAssets.length)}

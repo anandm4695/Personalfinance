@@ -135,7 +135,7 @@ export const AuditLogTab = ({ session }) => {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Total Actions" value={logs.length} icon={<Activity />} color="var(--accent)" />
         <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color="#10B981" />
         <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={<Edit2 />} color="#3B82F6" />

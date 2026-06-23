@@ -8,12 +8,15 @@ import {
   Landmark,
   Wallet,
   Info,
+  IndianRupee,
+  Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const getHealthColor = (months) => {
@@ -178,21 +181,11 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       </Card>
 
       {/* Stats Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginTop: 16 }}>
-        {[
-          { label: "Liquid Assets", value: fmtINR(data.totalLiquid), icon: "💰", color: "#10B981" },
-          { label: "Monthly Expenses", value: fmtINR(data.monthlyExpense), icon: "💸", color: "#F59E0B" },
-          { label: "6-Month Target", value: fmtINR(data.targetAmount), icon: "🎯", color: "#3B82F6" },
-          { label: "Gap to Fill", value: data.gap > 0 ? fmtINR(data.gap) : "None!", icon: data.gap > 0 ? "⚠️" : "✅", color: data.gap > 0 ? "#EF4444" : "#10B981" },
-        ].map((s, i) => (
-          <Card key={i}>
-            <div style={{ padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}><Prv>{s.value}</Prv></div>
-              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>{s.label}</div>
-            </div>
-          </Card>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 16 }}>
+        <StatCard label="Liquid Assets" value={fmtINR(data.totalLiquid)} icon={<IndianRupee />} color="#10B981" />
+        <StatCard label="Monthly Expenses" value={fmtINR(data.monthlyExpense)} icon={<Wallet />} color="#F59E0B" />
+        <StatCard label="6-Month Target" value={fmtINR(data.targetAmount)} icon={<Target />} color="#3B82F6" />
+        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINR(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? "#EF4444" : "#10B981"} />
       </div>
 
       {/* Liquid Assets Breakdown */}

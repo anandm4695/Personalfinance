@@ -43,6 +43,7 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -564,40 +565,19 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 16,
-          marginBottom: 28,
+          gap: 14,
+          marginBottom: 24,
         }}
       >
         {summaryCards.map((c) => (
-          <Card key={c.label} style={{ padding: 20 }} hover={false}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: c.bg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <c.icon size={18} style={{ color: c.color }} />
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, letterSpacing: "0.02em" }}>
-                {c.label}
-              </span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: c.color, letterSpacing: "-0.02em" }}>
-              <Prv>{fmtINR(Math.abs(c.value))}</Prv>
-              {c.value < 0 && (
-                <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, opacity: 0.7 }}>deficit</span>
-              )}
-            </div>
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
-              {forecastMonths}-month forecast
-            </div>
-          </Card>
+          <StatCard
+            key={c.label}
+            label={c.label}
+            value={fmtINR(Math.abs(c.value))}
+            sub={`${forecastMonths}-month forecast`}
+            icon={<c.icon />}
+            color={c.color}
+          />
         ))}
       </div>
 

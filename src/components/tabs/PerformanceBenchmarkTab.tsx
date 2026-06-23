@@ -9,6 +9,7 @@ import {
   IndianRupee,
   Info,
   Zap,
+  Shield,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -169,16 +170,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       <SectionTitle sub="Compare your portfolio against market benchmarks">Performance Benchmark</SectionTitle>
 
       {/* Summary */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Overall Return" value={`${portfolioReturns.overall.return.toFixed(1)}%`} icon={<TrendingUp />}
           color={portfolioReturns.overall.return >= 0 ? "#10B981" : "#EF4444"} />
         <StatCard label="Total Invested" value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
         <StatCard label="Current Value" value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>} icon={<Target />} color="#3B82F6" />
-        <Card style={{ padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 4 }}>Financial Health</div>
-          <div style={{ fontSize: 36, fontWeight: 800, color: scoreColor }}>{overallScore}</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: scoreColor }}>{scoreLabel}</div>
-        </Card>
+        <StatCard label="Financial Health" value={String(overallScore)} sub={scoreLabel} icon={<Shield />} color={scoreColor} />
       </div>
 
       {/* Benchmark Comparison */}

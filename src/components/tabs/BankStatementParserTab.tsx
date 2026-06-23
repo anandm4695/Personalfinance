@@ -253,7 +253,7 @@ export const BankStatementParserTab = ({ state, addItem }) => {
       {/* Preview & Edit */}
       {showPreview && parsedTxns.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
             <StatCard label="Total Parsed" value={parsedTxns.length} icon={<FileText />} color="var(--accent)" />
             <StatCard label="Selected for Import" value={previewStats.count} icon={<CheckCircle />} color="#10B981" />
             <StatCard label="Duplicates Detected" value={duplicates} icon={<AlertTriangle />} color="#F59E0B" />

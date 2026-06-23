@@ -182,7 +182,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
       {/* ITR Summary */}
       <Card style={{ padding: 24 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Income Summary — FY {selectedFY}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
           {[
             { label: "Salary Income", value: incomeSummary.salaryIncome, color: "#3B82F6" },
             { label: "Rental Income", value: incomeSummary.rentalIncome, color: "#10B981" },
@@ -207,7 +207,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
       {/* Deductions */}
       <Card style={{ padding: 24 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Deductions</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80C (max ₹1.5L)</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(deductions.sec80C)}</Prv></div>

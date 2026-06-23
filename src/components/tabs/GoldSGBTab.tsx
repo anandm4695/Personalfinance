@@ -153,7 +153,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       </div>
 
       {holdings.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard label="Total Gold" value={`${stats.totalGrams.toFixed(2)}g`} icon={<Coins />} color="#F59E0B" />
           <StatCard label="Current Value" value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>} icon={<IndianRupee />} color="#3B82F6" />
           <StatCard label="P&L" value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>} icon={<TrendingUp />}

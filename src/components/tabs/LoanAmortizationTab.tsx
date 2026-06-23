@@ -202,7 +202,7 @@ export const LoanAmortizationTab = ({ state }) => {
       {/* Stats */}
       {loanData.principal > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
             <StatCard label="Monthly EMI" value={<Prv>{fmtINRFull(baseAmort.emi)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
             <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={<TrendingDown />} color="#EF4444" />
             <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={<Calculator />} color="#3B82F6" />
@@ -215,7 +215,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: "#10B981", display: "flex", alignItems: "center", gap: 8 }}>
                 <Zap size={18} /> Prepayment Impact
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
                 <div style={{ padding: "12px 16px", borderRadius: 12, background: "#10B98115" }}>
                   <div style={{ fontSize: 12, color: THEME.textSecondary }}>Interest Saved</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(savings.interestSaved)}</Prv></div>

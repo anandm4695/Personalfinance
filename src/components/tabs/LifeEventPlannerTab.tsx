@@ -121,7 +121,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       </div>
 
       {events.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard label="Total Future Cost" value={<Prv>{fmtINRFull(totalCost)}</Prv>} icon={<IndianRupee />} color="#EF4444" />
           <StatCard label="Already Saved" value={<Prv>{fmtINRFull(totalSaved)}</Prv>} icon={<CheckCircle />} color="#10B981" />
           <StatCard label="Gap to Fill" value={<Prv>{fmtINRFull(totalGap)}</Prv>} icon={<AlertTriangle />} color="#F59E0B" />

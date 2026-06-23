@@ -145,7 +145,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
       <SectionTitle sub="Track your wealth journey over time">Net Worth Timeline</SectionTitle>
 
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard label="Total Growth" value={<Prv>{fmtINRFull(stats.totalGrowth)}</Prv>} icon={<TrendingUp />}
             color={stats.totalGrowth >= 0 ? "#10B981" : "#EF4444"} />
           <StatCard label="Avg Monthly Growth" value={<Prv>{fmtINRFull(stats.avgMonthly)}</Prv>} icon={<Calendar />}

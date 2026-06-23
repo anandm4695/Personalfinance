@@ -171,7 +171,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
       </Card>
 
       {/* FIRE Numbers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="FIRE Number" value={<Prv>{fmtINRFull(fireCalc.fireNumber)}</Prv>} icon={<Flame />} color="#EF4444" />
         <StatCard label="Coast FIRE" value={<Prv>{fmtINRFull(fireCalc.coastFIRE)}</Prv>} icon={<Shield />} color="#8B5CF6" />
         <StatCard label="Lean FIRE" value={<Prv>{fmtINRFull(fireCalc.leanFIRE)}</Prv>} icon={<Target />} color="#F59E0B" />
@@ -212,7 +212,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           </div>
         </div>
 
-        <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+        <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <div style={{ padding: "16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Estimated FIRE Age</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: fireCalc.fireAge <= targetAge ? "#10B981" : "#F59E0B" }}>

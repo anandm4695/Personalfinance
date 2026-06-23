@@ -24,6 +24,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -413,24 +414,12 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
       </div>
 
       {/* Stats Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 24 }}>
-        {[
-          { label: "This Week", value: stats.upcoming7, color: "#F97316", icon: "⚡" },
-          { label: "Next 30 Days", value: stats.upcoming30, color: "#3B82F6", icon: "📅" },
-          { label: "Overdue", value: stats.overdue, color: "#EF4444", icon: "⚠️" },
-          { label: "Expected Inflows", value: fmtINR(stats.totalInflows), color: "#10B981", icon: "💰" },
-          { label: "Expected Outflows", value: fmtINR(stats.totalOutflows), color: "#EF4444", icon: "💸" },
-        ].map((s, i) => (
-          <Card key={i}>
-            <div style={{ padding: 16, textAlign: "center" }}>
-              <div style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: s.color, letterSpacing: "-0.03em" }}>
-                <Prv>{typeof s.value === "number" ? s.value : s.value}</Prv>
-              </div>
-              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>{s.label}</div>
-            </div>
-          </Card>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <StatCard label="This Week" value={String(stats.upcoming7)} icon={<Clock />} color="#F97316" />
+        <StatCard label="Next 30 Days" value={String(stats.upcoming30)} icon={<Calendar />} color="#3B82F6" />
+        <StatCard label="Overdue" value={String(stats.overdue)} icon={<AlertTriangle />} color="#EF4444" />
+        <StatCard label="Expected Inflows" value={fmtINR(stats.totalInflows)} icon={<TrendingUp />} color="#10B981" />
+        <StatCard label="Expected Outflows" value={fmtINR(stats.totalOutflows)} icon={<Coins />} color="#EF4444" />
       </div>
 
       {/* Monthly Summary Bar */}

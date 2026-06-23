@@ -27,6 +27,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#6366F1", "#14B8A6"];
@@ -152,25 +153,10 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       <SectionTitle sub="Track tax-saving investments and deductions">Section 80C / 80D Tracker</SectionTitle>
 
       {/* Summary Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-        <Card style={{ padding: 20, background: "#10B98108", border: "1px solid #10B98130" }}>
-          <div style={{ fontSize: 12, color: THEME.textSecondary }}>Total Deductions</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(data.totalDeductions)}</Prv></div>
-        </Card>
-        <Card style={{ padding: 20, background: "var(--accent)08", border: "1px solid var(--accent)30" }}>
-          <div style={{ fontSize: 12, color: THEME.textSecondary }}>Estimated Tax Saved</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: "var(--accent)" }}><Prv>{fmtINRFull(data.taxSaved)}</Prv></div>
-          <div style={{ fontSize: 11, color: THEME.textSecondary }}>At 30% tax bracket</div>
-        </Card>
-        <Card style={{ padding: 20 }}>
-          <div style={{ fontSize: 12, color: THEME.textSecondary }}>80C Remaining</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: data.sec80C.remaining > 0 ? "#F59E0B" : "#10B981" }}>
-            <Prv>{fmtINRFull(data.sec80C.remaining)}</Prv>
-          </div>
-          <div style={{ fontSize: 11, color: THEME.textSecondary }}>
-            {data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"}
-          </div>
-        </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+        <StatCard label="Total Deductions" value={fmtINRFull(data.totalDeductions)} icon={<CheckCircle />} color="#10B981" />
+        <StatCard label="Estimated Tax Saved" value={fmtINRFull(data.taxSaved)} sub="At 30% tax bracket" icon={<IndianRupee />} color="var(--accent)" />
+        <StatCard label="80C Remaining" value={fmtINRFull(data.sec80C.remaining)} sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"} icon={<Shield />} color={data.sec80C.remaining > 0 ? "#F59E0B" : "#10B981"} />
       </div>
 
       {/* Pie Chart + Details */}

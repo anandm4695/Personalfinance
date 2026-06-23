@@ -21,6 +21,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { StatCard } from "../ui/StatCard";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
 
@@ -244,100 +245,10 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
           marginBottom: 28,
         }}
       >
-        {[
-          {
-            label: "Monthly SIP",
-            value: fmtINRFull(totalMonthlyEquivalent),
-            sub:
-              metrics?.monthIncome > 0
-                ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income`
-                : "Monthly equivalent",
-            color: THEME.accent,
-            Icon: Repeat,
-          },
-          {
-            label: "Total Invested",
-            value: fmtINRFull(totalInvested),
-            sub: "Cumulative capital deployed",
-            color: THEME.sage,
-            Icon: IndianRupee,
-          },
-          {
-            label: "Est. Returns",
-            value: totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—",
-            sub:
-              totalGains > 0
-                ? `+${fmtINRFull(totalGains)} total return`
-                : "Returns after first installment",
-            color: totalGains > 0 ? THEME.gold : THEME.muted,
-            Icon: TrendingUp,
-          },
-          {
-            label: "Projected Corpus",
-            value: fmtINRFull(totalProjected),
-            sub: `@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`,
-            color: THEME.accent,
-            Icon: Activity,
-          },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
-            key={label}
-            className="card-lift"
-            style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `${color}1f`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-          </div>
-        ))}
+        <StatCard label="Monthly SIP" value={fmtINRFull(totalMonthlyEquivalent)} sub={metrics?.monthIncome > 0 ? `${((totalMonthlyEquivalent / metrics.monthIncome) * 100).toFixed(1)}% of monthly income` : "Monthly equivalent"} icon={<Repeat />} color={THEME.accent} />
+        <StatCard label="Total Invested" value={fmtINRFull(totalInvested)} sub="Cumulative capital deployed" icon={<IndianRupee />} color={THEME.sage} />
+        <StatCard label="Est. Returns" value={totalInvested > 0 ? `+${overallGainPct.toFixed(1)}%` : "—"} sub={totalGains > 0 ? `+${fmtINRFull(totalGains)} total return` : "Returns after first installment"} icon={<TrendingUp />} color={totalGains > 0 ? THEME.gold : THEME.muted} />
+        <StatCard label="Projected Corpus" value={fmtINRFull(totalProjected)} sub={`@${sipProjRate}% p.a. · ${activeSips.length} active${completedSips.length > 0 ? `, ${completedSips.length} done` : ""}`} icon={<Activity />} color={THEME.accent} />
       </div>
 
       {sipsWithCalc.length > 0 && (

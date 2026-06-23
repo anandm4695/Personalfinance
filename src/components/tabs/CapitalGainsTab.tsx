@@ -629,7 +629,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       </SectionTitle>
 
       {/* ── Summary Cards ─────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <SummaryCard
           icon={TrendingUp}
           label="Equity STCG"

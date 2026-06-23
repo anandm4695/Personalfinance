@@ -23,6 +23,7 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
+import { StatCard } from "../ui/StatCard";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 const INSURER_LOGOS: Record<string, string> = {
@@ -1701,111 +1702,12 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
       </SectionTitle>
 
       <div className="ins-stats-grid">
-        {[
-          {
-            label: "LIC Sum Assured",
-            value: fmtINRFull(totalLICAssured),
-            sub: "Life Insurance Corp policies",
-            color: THEME.rust,
-            Icon: Shield,
-          },
-          {
-            label: "Term Cover",
-            value: fmtINRFull(totalTermCover),
-            sub: "Pure protection cover",
-            color: THEME.accent,
-            Icon: Zap,
-          },
-          {
-            label: "Total Life Cover",
-            value: fmtINRFull(totalLifeCover),
-            sub: "LIC + Term combined",
-            color: THEME.accent,
-            Icon: Heart,
-          },
-          {
-            label: "Annual Premium",
-            value: fmtINRFull(totalAnnualPremium),
-            sub:
-              annualIncome > 0
-                ? `${premiumBurdenPct.toFixed(1)}% of income`
-                : "Combined insurance cost",
-            color: THEME.gold,
-            Icon: Wallet,
-          },
-          {
-            label: "Investment Maturity",
-            value: fmtINRFull(totalInvestMaturity),
-            sub: "Endowment & ULIP receivables",
-            color: THEME.sage,
-            Icon: TrendingUp,
-          },
-          {
-            label: "Cover Adequacy",
-            value: annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—",
-            sub: adequacyLabel,
-            color: adequacyColor,
-            Icon: AlertCircle,
-          },
-        ].map(({ label, value, sub, color, Icon }) => (
-          <div
-            key={label}
-            className="card-lift ins-stat-card"
-            style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `${color}1f`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              className="ins-stat-value"
-              style={{
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
-          </div>
-        ))}
+        <StatCard label="LIC Sum Assured" value={fmtINRFull(totalLICAssured)} sub="Life Insurance Corp policies" icon={<Shield />} color={THEME.rust} />
+        <StatCard label="Term Cover" value={fmtINRFull(totalTermCover)} sub="Pure protection cover" icon={<Zap />} color={THEME.accent} />
+        <StatCard label="Total Life Cover" value={fmtINRFull(totalLifeCover)} sub="LIC + Term combined" icon={<Heart />} color={THEME.accent} />
+        <StatCard label="Annual Premium" value={fmtINRFull(totalAnnualPremium)} sub={annualIncome > 0 ? `${premiumBurdenPct.toFixed(1)}% of income` : "Combined insurance cost"} icon={<Wallet />} color={THEME.gold} />
+        <StatCard label="Investment Maturity" value={fmtINRFull(totalInvestMaturity)} sub="Endowment & ULIP receivables" icon={<TrendingUp />} color={THEME.sage} />
+        <StatCard label="Cover Adequacy" value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"} sub={adequacyLabel} icon={<AlertCircle />} color={adequacyColor} />
       </div>
 
       {hasPolicies && (

@@ -177,7 +177,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="Download your financial data and restore from backups">Data Export & Backup</SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Total Records" value={totalRecords} icon={<Database />} color="var(--accent)" />
         <StatCard label="Selected for Export" value={selectedRecords} icon={<CheckCircle />} color="#10B981" />
         <StatCard label="Data Sections" value={dataCounts.filter((d) => d.count > 0).length} icon={<FileText />} color="#3B82F6" />

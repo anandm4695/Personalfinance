@@ -170,7 +170,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="Predict future spending based on your historical patterns">Expense Forecast</SectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Annual Projection" value={fmtINRFull(annualProjection)} icon={<Calendar />} color="var(--accent)" />
         <StatCard label="Monthly Average" value={fmtINRFull(Math.round(annualProjection / 12))} icon={<BarChart3 />} color="#3B82F6" />
         <StatCard label="Trending Up" value={`${trendingUp} categories`} icon={<ArrowUp />} color="#EF4444" />

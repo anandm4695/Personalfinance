@@ -960,9 +960,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: 16,
-          marginBottom: 28,
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+          marginBottom: 24,
         }}
       >
         <StatCard

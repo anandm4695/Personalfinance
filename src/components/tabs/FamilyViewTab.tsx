@@ -41,6 +41,7 @@ import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
+import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const MEMBER_COLORS = ["#4F46E5", "#059669", "#D97706", "#7C3AED"];
@@ -580,42 +581,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: 12,
-          marginBottom: 28,
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+          marginBottom: 24,
         }}
       >
-        <QuickStatTile
-          label="Total Assets"
-          value={fmtINRFull(totalAssets)}
-          color={THEME.sage}
-          Icon={TrendingUp}
-        />
-        <QuickStatTile
-          label="Liabilities"
-          value={fmtINRFull(totalLiabilities)}
-          color={totalLiabilities > 0 ? THEME.rust : THEME.sage}
-          Icon={CreditCard}
-        />
-        <QuickStatTile
-          label="Members"
-          value={`${activeMembers.length} / ${PROFILES.length}`}
-          color="#4F46E5"
-          Icon={Users}
-        />
-        <QuickStatTile
-          label="Debt Ratio"
-          value={`${debtToAssetRatio.toFixed(1)}%`}
-          color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage}
-          Icon={Percent}
-        />
+        <StatCard label="Total Assets" value={fmtINRFull(totalAssets)} icon={<TrendingUp />} color={THEME.sage} />
+        <StatCard label="Liabilities" value={fmtINRFull(totalLiabilities)} icon={<CreditCard />} color={totalLiabilities > 0 ? THEME.rust : THEME.sage} />
+        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color="#4F46E5" />
+        <StatCard label="Debt Ratio" value={`${debtToAssetRatio.toFixed(1)}%`} icon={<Percent />} color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} />
         {totalLifeCover > 0 && (
-          <QuickStatTile
-            label="Life Cover"
-            value={fmtINRFull(totalLifeCover)}
-            color="#7C3AED"
-            Icon={Shield}
-          />
+          <StatCard label="Life Cover" value={fmtINRFull(totalLifeCover)} icon={<Shield />} color="#7C3AED" />
         )}
       </div>
 

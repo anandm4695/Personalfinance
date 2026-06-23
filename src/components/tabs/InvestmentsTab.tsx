@@ -2922,7 +2922,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 14,
               marginBottom: 24,
             }}
@@ -4903,7 +4903,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
       ) : (
         <>
           {/* Summary tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
             {[
               { label: "Total NPS Corpus", value: fmtINRFull(totalCorpus), color: NPS_ORANGE, Icon: PiggyBank },
               ...(totalEmployee + totalEmployer > 0
@@ -4912,15 +4912,7 @@ function NPSSection({ items, removeItem, updateItem, onAdd }: any) {
                 : [{ label: "Accounts", value: String(items.length), color: THEME.accent, Icon: BarChart3 }]),
               ...(totalTx > 0 ? [{ label: "Transactions", value: String(totalTx), color: THEME.gold, Icon: List }] : []),
             ].map(({ label, value, color, Icon }) => (
-              <div key={label} className="card-lift" style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderTop: `4px solid ${color}`, borderRadius: 14, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, boxShadow: "var(--shadow-card)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}1f`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
-                    <Icon size={16} />
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>{label}</div>
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-              </div>
+              <StatCard key={label} label={label} value={value} icon={<Icon />} color={color} />
             ))}
           </div>
 
