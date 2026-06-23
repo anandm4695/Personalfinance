@@ -512,7 +512,26 @@ interface AnalyticsTabProps {
   marketData?: any;
   updateMasterData?: any;
   setTab?: any;
+  dashboardWidgets?: Record<string, boolean>;
+  onUpdateWidgets?: (widgets: Record<string, boolean>) => void;
 }
+
+const DASHBOARD_WIDGET_DEFS = [
+  { key: "networth", label: "Net Worth & Stats" },
+  { key: "smartInsights", label: "Smart Insights" },
+  { key: "fireWidget", label: "FIRE Widget" },
+  { key: "netWorthTrend", label: "Net Worth Trend" },
+  { key: "assetAllocation", label: "Asset Allocation" },
+  { key: "portfolio", label: "Portfolio Performance" },
+  { key: "expenses", label: "Expense Breakdown" },
+  { key: "goals", label: "Goals Progress" },
+  { key: "creditHealth", label: "Credit Health" },
+  { key: "calendar", label: "Financial Calendar" },
+  { key: "badges", label: "Badges & Achievements" },
+  { key: "topStocks", label: "Top Stock Holdings" },
+  { key: "taxTracker", label: "Tax Tracker" },
+  { key: "passiveIncome", label: "Passive Income" },
+];
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   metrics,
@@ -523,8 +542,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   marketData,
   updateMasterData,
   setTab,
+  dashboardWidgets,
+  onUpdateWidgets,
 }) => {
   const [sub, setSub] = useState("dashboard");
+  const [showWidgetConfig, setShowWidgetConfig] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
@@ -2914,7 +2936,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
         </div>
-        <div style={{ flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, display: "flex", gap: 6 }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowWidgetConfig(!showWidgetConfig)}
+          >
+            ⚙️ Widgets
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -2925,6 +2954,51 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Widget Configuration Panel */}
+      {showWidgetConfig && (
+        <Card>
+          <div style={{ padding: 16, marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Customize Dashboard Widgets</div>
+              <button onClick={() => setShowWidgetConfig(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12 }}>Toggle widgets on/off to personalize your dashboard view.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
+              {DASHBOARD_WIDGET_DEFS.map((w) => {
+                const isVisible = dashboardWidgets?.[w.key] !== false;
+                return (
+                  <button
+                    key={w.key}
+                    onClick={() => {
+                      const updated = { ...(dashboardWidgets || {}), [w.key]: !isVisible };
+                      onUpdateWidgets?.(updated);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 12px", borderRadius: 8, textAlign: "left",
+                      border: `1.5px solid ${isVisible ? THEME.accent : THEME.line}`,
+                      background: isVisible ? `${THEME.accent}10` : "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 4,
+                      border: `2px solid ${isVisible ? THEME.accent : THEME.line}`,
+                      background: isVisible ? THEME.accent : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 11, fontWeight: 700,
+                    }}>
+                      {isVisible ? "✓" : ""}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isVisible ? THEME.ink : THEME.muted }}>{w.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
       {sub === "dashboard" && (

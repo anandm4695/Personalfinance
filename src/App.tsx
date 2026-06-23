@@ -83,6 +83,18 @@ import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AIAssistantTab } from "./components/tabs/AIAssistantTab";
 import { RealEstateTab } from "./components/tabs/RealEstateTab";
 import { VehiclesTab } from "./components/tabs/VehiclesTab";
+import { CashFlowTab } from "./components/tabs/CashFlowTab";
+import { FinancialCalendarTab } from "./components/tabs/FinancialCalendarTab";
+import { CapitalGainsTab } from "./components/tabs/CapitalGainsTab";
+import { TaxToolsTab } from "./components/tabs/TaxToolsTab";
+import { AnnualReportTab } from "./components/tabs/AnnualReportTab";
+import { InvestmentStatementTab } from "./components/tabs/InvestmentStatementTab";
+import { ExpenseTrendsTab } from "./components/tabs/ExpenseTrendsTab";
+import { FamilyViewTab } from "./components/tabs/FamilyViewTab";
+import { EmergencyFundTab } from "./components/tabs/EmergencyFundTab";
+import { NomineeTrackerTab } from "./components/tabs/NomineeTrackerTab";
+import { DocumentVaultTab } from "./components/tabs/DocumentVaultTab";
+import { RebalancingTab } from "./components/tabs/RebalancingTab";
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
@@ -465,6 +477,7 @@ function FinanceDashboard() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -975,15 +988,60 @@ function FinanceDashboard() {
     };
   }, []);
 
-  // Keyboard shortcut for Command Palette (Cmd+K / Ctrl+K)
+  // Keyboard shortcuts: Cmd+K for palette, number keys for quick nav, more
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore when typing in inputs
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement)?.isContentEditable;
+
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setShowCmdPalette((prev) => !prev);
+        return;
       }
       if (e.key === "Escape") {
         setShowCmdPalette(false);
+        setShowAlerts(false);
+        setShowSearch(false);
+        return;
+      }
+
+      if (isInput) return;
+
+      // Quick navigation shortcuts (no modifier keys)
+      const shortcuts: Record<string, string> = {
+        "1": "analytics",
+        "2": "banks",
+        "3": "demat",
+        "4": "investments",
+        "5": "credit",
+        "6": "budget",
+        "7": "tax",
+        "8": "goals",
+        "9": "cashflow",
+        "0": "calendar",
+      };
+
+      // Letter shortcuts
+      if (e.key === "d") { setTab("analytics"); return; }
+      if (e.key === "b") { setTab("banks"); return; }
+      if (e.key === "s") { setTab("demat"); return; }
+      if (e.key === "i") { setTab("investments"); return; }
+      if (e.key === "t") { setTab("tax"); return; }
+      if (e.key === "g") { setTab("goals"); return; }
+      if (e.key === "r") { setTab("annualreport"); return; }
+      if (e.key === "c") { setTab("cashflow"); return; }
+      if (e.key === "e") { setTab("expensetrends"); return; }
+      if (e.key === "f") { setTab("familyview"); return; }
+      if (e.key === "n") { setTab("nominees"); return; }
+      if (e.key === "/") { e.preventDefault(); setShowSearch(true); return; }
+      if (e.key === "a") { setShowAlerts((p) => !p); return; }
+      if (e.key === "p") { setPrivacyMode((p) => !p); return; }
+      if (e.key === "?") { setShowShortcuts((p) => !p); return; }
+
+      if (shortcuts[e.key]) {
+        setTab(shortcuts[e.key]);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -3387,6 +3445,8 @@ function FinanceDashboard() {
                   marketData={marketData}
                   updateMasterData={updateMasterData}
                   setTab={setTab}
+                  dashboardWidgets={state.masterData?.dashboardWidgets}
+                  onUpdateWidgets={(widgets) => updateMasterData("dashboardWidgets", widgets)}
                 />
               )}
               {tab === "investments" && (
@@ -3531,6 +3591,52 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
+              {tab === "cashflow" && (
+                <CashFlowTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "calendar" && (
+                <FinancialCalendarTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "capitalgains" && (
+                <CapitalGainsTab state={filteredState} />
+              )}
+              {tab === "taxtools" && (
+                <TaxToolsTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "annualreport" && (
+                <AnnualReportTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "investstatement" && (
+                <InvestmentStatementTab state={filteredState} metrics={metrics} marketData={marketData} />
+              )}
+              {tab === "expensetrends" && (
+                <ExpenseTrendsTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "familyview" && (
+                <FamilyViewTab state={state} metrics={metrics} marketData={marketData} />
+              )}
+              {tab === "emergencyfund" && (
+                <EmergencyFundTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "nominees" && (
+                <NomineeTrackerTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
+              )}
+              {tab === "docvault" && (
+                <DocumentVaultTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
+              )}
+              {tab === "rebalancing" && (
+                <RebalancingTab state={filteredState} metrics={metrics} marketData={marketData} />
+              )}
               {tab === "settings" && (
                 <SettingsTab
                   state={state}
@@ -3602,6 +3708,71 @@ function FinanceDashboard() {
 
         {/* ── MOBILE BOTTOM NAVIGATION ── */}
         <MobileNav tab={tab} setTab={setTab} setSubTab={setSubTab} />
+
+        {/* ── KEYBOARD SHORTCUTS HELP ── */}
+        {showShortcuts && (
+          <div
+            onClick={() => setShowShortcuts(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 9999,
+              background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: THEME.paper, borderRadius: 16,
+                padding: 28, maxWidth: 520, width: "90%",
+                border: `1px solid ${THEME.line}`,
+                boxShadow: "0 24px 48px rgba(0,0,0,0.3)",
+                maxHeight: "80vh", overflowY: "auto",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 18, color: THEME.ink, letterSpacing: "-0.03em" }}>Keyboard Shortcuts</div>
+                <button onClick={() => setShowShortcuts(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, fontSize: 20 }}>×</button>
+              </div>
+              {[
+                { title: "Navigation", shortcuts: [
+                  { key: "D", desc: "Dashboard" }, { key: "B", desc: "Banks" }, { key: "S", desc: "Stocks" },
+                  { key: "I", desc: "Investments" }, { key: "T", desc: "Tax Vault" }, { key: "G", desc: "Goals" },
+                  { key: "C", desc: "Cash Flow" }, { key: "E", desc: "Expense Trends" }, { key: "F", desc: "Family View" },
+                  { key: "N", desc: "Nominees" }, { key: "R", desc: "Annual Report" },
+                ]},
+                { title: "Quick Access (Number Keys)", shortcuts: [
+                  { key: "1", desc: "Dashboard" }, { key: "2", desc: "Banks" }, { key: "3", desc: "Demat" },
+                  { key: "4", desc: "Investments" }, { key: "5", desc: "Credit" }, { key: "6", desc: "Budget" },
+                  { key: "7", desc: "Tax" }, { key: "8", desc: "Goals" }, { key: "9", desc: "Cash Flow" },
+                  { key: "0", desc: "Calendar" },
+                ]},
+                { title: "Actions", shortcuts: [
+                  { key: "⌘K", desc: "Command Palette" }, { key: "/", desc: "Search" },
+                  { key: "A", desc: "Toggle Alerts" }, { key: "P", desc: "Privacy Mode" },
+                  { key: "?", desc: "This Help" }, { key: "Esc", desc: "Close Modals" },
+                ]},
+              ].map((group) => (
+                <div key={group.title} style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{group.title}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "4px 16px" }}>
+                    {group.shortcuts.map((s) => (
+                      <div key={s.key + s.desc} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                        <kbd style={{
+                          display: "inline-block", minWidth: 28, padding: "2px 8px",
+                          borderRadius: 6, border: `1.5px solid ${THEME.line}`,
+                          background: "rgba(99,102,241,0.06)", fontWeight: 700,
+                          fontSize: 12, textAlign: "center", fontFamily: "monospace",
+                          color: THEME.ink,
+                        }}>{s.key}</kbd>
+                        <span style={{ fontSize: 13, color: THEME.muted }}>{s.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── TOAST NOTIFICATIONS ── */}
         <ToastStack toasts={toasts} />

@@ -28,6 +28,16 @@ import {
   Bot,
   Sparkles,
   Car,
+  Calendar,
+  Scale,
+  FileBarChart,
+  Users,
+  ShieldAlert,
+  FolderOpen,
+  Receipt,
+  Flame,
+  ClipboardList,
+  LineChart,
 } from "lucide-react";
 
 export const getCurrentFY = () => {
@@ -189,7 +199,10 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "analytics", label: "Executive Dashboard", icon: PieIcon },
       { id: "ai", label: "AI Advisor", icon: Bot },
+      { id: "cashflow", label: "Cash Flow Forecast", icon: LineChart },
       { id: "txnhistory", label: "Global Ledger", icon: History },
+      { id: "expensetrends", label: "Expense Trends", icon: BarChart3 },
+      { id: "familyview", label: "Family View", icon: Users },
     ],
   },
   {
@@ -213,9 +226,12 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: "income", label: "Yield Tracker", icon: Activity },
         ],
       },
+      { id: "rebalancing", label: "Smart Rebalancing", icon: Scale },
+      { id: "investstatement", label: "Investment Statement", icon: ClipboardList },
       { id: "goals", label: "Financial Goals", icon: Target },
       { id: "realestate", label: "Real Estate", icon: Home },
       { id: "vehicles", label: "Vehicles", icon: Car },
+      { id: "emergencyfund", label: "Emergency Fund", icon: Flame },
     ],
   },
   {
@@ -241,11 +257,22 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Planning & Spends",
     items: [
       { id: "tax", label: "Tax Vault", icon: Calculator },
+      { id: "taxtools", label: "Tax Tools", icon: Receipt },
+      { id: "capitalgains", label: "Capital Gains", icon: FileBarChart },
       { id: "sip", label: "SIP Tracker", icon: Activity },
       { id: "insurance", label: "Insurance", icon: Heart },
       { id: "budget", label: "Budgeting", icon: Wallet },
       { id: "rental", label: "Rental Details", icon: Building2 },
       { id: "subs", label: "Subscriptions", icon: Repeat },
+      { id: "calendar", label: "Financial Calendar", icon: Calendar },
+    ],
+  },
+  {
+    title: "Reports & Tools",
+    items: [
+      { id: "annualreport", label: "Annual Report", icon: FileBarChart },
+      { id: "nominees", label: "Will & Nominees", icon: ShieldAlert },
+      { id: "docvault", label: "Document Vault", icon: FolderOpen },
     ],
   },
   {
