@@ -39,8 +39,8 @@ import { Field, Input, Select } from "../ui/Form";
 
 const assetTypes = [
   { key: "bankAccounts", label: "Bank Account", nameField: "bankName", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
-  { key: "fixedDeposits", label: "Fixed Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINR(a.principal)} @ ${a.rate}%` },
-  { key: "recurringDeposits", label: "Recurring Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINR(a.monthly)}/mo` },
+  { key: "fixedDeposits", label: "Fixed Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINRFull(a.principal)} @ ${a.rate}%` },
+  { key: "recurringDeposits", label: "Recurring Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo` },
   { key: "mutualFunds", label: "Mutual Fund", nameField: "name", valueField: null, calcValue: (a: any) => (a.units || 0) * (a.currentNav || a.buyNav || 0), idLabel: (a: any) => a.folio || "" },
   { key: "stocks", label: "Stock Holding", nameField: "symbol", valueField: null, calcValue: (a: any) => (a.qty || 0) * (a.currentPrice || a.avgPrice || 0), idLabel: (a: any) => a.exchange || "" },
   { key: "ppf", label: "PPF", nameField: "institution", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
@@ -366,7 +366,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           />
           <StatCard
             label="Value at Risk"
-            value={fmtINR(valueAtRisk)}
+            value={fmtINRFull(valueAtRisk)}
             sub="Without nominee protection"
             icon={<AlertTriangle />}
             color={THEME.gold}
@@ -506,7 +506,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                   Value
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
-                  <Prv>{fmtINR(asset.value)}</Prv>
+                  <Prv>{fmtINRFull(asset.value)}</Prv>
                 </div>
               </div>
 
@@ -818,7 +818,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               <div style={{ fontSize: 12, color: THEME.muted }}>{assignModal.identifier}</div>
             )}
             <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, marginTop: 4 }}>
-              Value: <Prv>{fmtINR(assignModal.value)}</Prv>
+              Value: <Prv>{fmtINRFull(assignModal.value)}</Prv>
             </div>
           </div>
 

@@ -93,7 +93,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           maturityAmount: maturityAmt,
           rate: fd.rate,
           color: "#3B82F6",
-          detail: `${fd.rate}% p.a. • Principal: ${fmtINR(fd.principal)}`,
+          detail: `${fd.rate}% p.a. • Principal: ${fmtINRFull(fd.principal)}`,
         });
       }
     });
@@ -143,7 +143,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(b.faceValue || b.totalPrincipalAmount || 0),
           color: "#0EA5E9",
-          detail: `Coupon: ${b.coupon || 0}% • Face Value: ${fmtINR(b.faceValue || b.totalPrincipalAmount)}`,
+          detail: `Coupon: ${b.coupon || 0}% • Face Value: ${fmtINRFull(b.faceValue || b.totalPrincipalAmount)}`,
         });
       }
     });
@@ -181,7 +181,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(lastDiv.amount || 0),
           color: "#10B981",
-          detail: `Based on last dividend of ${fmtINR(lastDiv.amount)} on ${formatDate(lastDiv.date)}`,
+          detail: `Based on last dividend of ${fmtINRFull(lastDiv.amount)} on ${formatDate(lastDiv.date)}`,
           projected: true,
         });
       }
@@ -240,7 +240,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(l.outstanding || 0),
           color: "#F97316",
-          detail: `EMI: ${fmtINRFull(l.emi)} • Outstanding: ${fmtINR(l.outstanding)}`,
+          detail: `EMI: ${fmtINRFull(l.emi)} • Outstanding: ${fmtINRFull(l.outstanding)}`,
         });
       }
     });
@@ -310,7 +310,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(p.balance || 0),
           color: "#059669",
-          detail: `Balance: ${fmtINR(p.balance)}`,
+          detail: `Balance: ${fmtINRFull(p.balance)}`,
         });
       }
     });
@@ -418,8 +418,8 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
         <StatCard label="This Week" value={String(stats.upcoming7)} icon={<Clock />} color="#F97316" />
         <StatCard label="Next 30 Days" value={String(stats.upcoming30)} icon={<Calendar />} color="#3B82F6" />
         <StatCard label="Overdue" value={String(stats.overdue)} icon={<AlertTriangle />} color="#EF4444" />
-        <StatCard label="Expected Inflows" value={fmtINR(stats.totalInflows)} icon={<TrendingUp />} color="#10B981" />
-        <StatCard label="Expected Outflows" value={fmtINR(stats.totalOutflows)} icon={<Coins />} color="#EF4444" />
+        <StatCard label="Expected Inflows" value={fmtINRFull(stats.totalInflows)} icon={<TrendingUp />} color="#10B981" />
+        <StatCard label="Expected Outflows" value={fmtINRFull(stats.totalOutflows)} icon={<Coins />} color="#EF4444" />
       </div>
 
       {/* Monthly Summary Bar */}
@@ -439,12 +439,12 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{data.events} events</div>
                       {data.inflow > 0 && (
                         <div style={{ fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 6 }}>
-                          +<Prv>{fmtINR(data.inflow)}</Prv>
+                          +<Prv>{fmtINRFull(data.inflow)}</Prv>
                         </div>
                       )}
                       {data.outflow > 0 && (
                         <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600, marginTop: 2 }}>
-                          -<Prv>{fmtINR(data.outflow)}</Prv>
+                          -<Prv>{fmtINRFull(data.outflow)}</Prv>
                         </div>
                       )}
                     </div>
@@ -538,7 +538,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
-                              <Prv>{fmtINR(event.maturityAmount || event.amount)}</Prv>
+                              <Prv>{fmtINRFull(event.maturityAmount || event.amount)}</Prv>
                             </div>
                             <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{formatDate(event.date)}</div>
                           </div>

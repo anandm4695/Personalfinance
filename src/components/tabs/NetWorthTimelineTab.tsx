@@ -176,7 +176,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
             <AreaChart data={history}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
               <Legend />
               <Area type="monotone" dataKey="cash" stackId="1" stroke="#3B82F6" fill="#3B82F680" name="Cash" />
@@ -188,7 +188,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
             <LineChart data={history}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
               <Line type="monotone" dataKey="netWorth" stroke="var(--accent)" strokeWidth={3} dot={{ r: 4 }} name="Net Worth" />
             </LineChart>
@@ -204,7 +204,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
             <BarChart data={momDeltas}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
               <Bar dataKey="delta" name="Change" fill="var(--accent)" radius={[4, 4, 0, 0]}
                 // Color bars based on positive/negative
@@ -253,7 +253,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           <AreaChart data={projection.filter((_, i) => i % Math.max(1, Math.floor(projection.length / 60)) === 0 || i === projection.length - 1)}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} interval={Math.max(0, Math.floor(projection.length / 120))} />
-            <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
             <Legend />
             <Area type="monotone" dataKey="nominal" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Nominal Value" />

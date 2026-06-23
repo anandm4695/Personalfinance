@@ -573,7 +573,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
           <StatCard
             key={c.label}
             label={c.label}
-            value={fmtINR(Math.abs(c.value))}
+            value={fmtINRFull(Math.abs(c.value))}
             sub={`${forecastMonths}-month forecast`}
             icon={<c.icon />}
             color={c.color}
@@ -609,7 +609,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINR(v)}
+              tickFormatter={(v: number) => fmtINRFull(v)}
             />
             <Tooltip
               contentStyle={{

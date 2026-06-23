@@ -182,10 +182,10 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 16 }}>
-        <StatCard label="Liquid Assets" value={fmtINR(data.totalLiquid)} icon={<IndianRupee />} color="#10B981" />
-        <StatCard label="Monthly Expenses" value={fmtINR(data.monthlyExpense)} icon={<Wallet />} color="#F59E0B" />
-        <StatCard label="6-Month Target" value={fmtINR(data.targetAmount)} icon={<Target />} color="#3B82F6" />
-        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINR(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? "#EF4444" : "#10B981"} />
+        <StatCard label="Liquid Assets" value={fmtINRFull(data.totalLiquid)} icon={<IndianRupee />} color="#10B981" />
+        <StatCard label="Monthly Expenses" value={fmtINRFull(data.monthlyExpense)} icon={<Wallet />} color="#F59E0B" />
+        <StatCard label="6-Month Target" value={fmtINRFull(data.targetAmount)} icon={<Target />} color="#3B82F6" />
+        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINRFull(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? "#EF4444" : "#10B981"} />
       </div>
 
       {/* Liquid Assets Breakdown */}
@@ -208,7 +208,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 }}>
                   <Icon size={16} style={{ color: r.color }} />
                   <span style={{ flex: 1, fontSize: 13, color: THEME.ink }}>{r.label}</span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}><Prv>{fmtINR(r.value)}</Prv></span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}><Prv>{fmtINRFull(r.value)}</Prv></span>
                 </div>
               );
             })}
@@ -226,7 +226,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 14px", borderRadius: 8 }}>
                   <span style={{ fontSize: 16 }}>{e.icon}</span>
                   <span style={{ flex: 1, fontSize: 13, color: THEME.ink }}>{e.label}</span>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: THEME.ink }}><Prv>{fmtINR(e.amount)}</Prv></span>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: THEME.ink }}><Prv>{fmtINRFull(e.amount)}</Prv></span>
                   <span style={{ fontSize: 11, color: THEME.muted, minWidth: 50, textAlign: "right" }}>
                     {data.monthlyExpense ? ((e.amount / data.monthlyExpense) * 100).toFixed(0) : 0}%
                   </span>
@@ -235,7 +235,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, borderTop: `2px solid ${THEME.line}`, marginTop: 4 }}>
                 <span style={{ fontSize: 16 }}>📊</span>
                 <span style={{ flex: 1, fontSize: 13, color: THEME.ink, fontWeight: 700 }}>Total Monthly</span>
-                <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}><Prv>{fmtINR(data.monthlyExpense)}</Prv></span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}><Prv>{fmtINRFull(data.monthlyExpense)}</Prv></span>
               </div>
             </div>
           </div>
@@ -285,7 +285,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
               <div style={{ display: "flex", gap: 10, padding: "10px 14px", borderRadius: 8, background: "rgba(99,102,241,0.04)" }}>
                 <TrendingUp size={16} style={{ color: THEME.accent, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 13, color: THEME.ink }}>
-                  To reach the 6-month target, save <strong><Prv>{fmtINR(data.gap / 6)}</Prv>/month</strong> for the next 6 months, or <strong><Prv>{fmtINR(data.gap / 12)}</Prv>/month</strong> over 12 months.
+                  To reach the 6-month target, save <strong><Prv>{fmtINRFull(data.gap / 6)}</Prv>/month</strong> for the next 6 months, or <strong><Prv>{fmtINRFull(data.gap / 12)}</Prv>/month</strong> over 12 months.
                 </div>
               </div>
             )}

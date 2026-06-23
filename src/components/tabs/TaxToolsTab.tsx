@@ -357,7 +357,7 @@ const HraReceiptSection = ({ state }) => {
                   >
                     <option value="">— Select —</option>
                     {rentedProps.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name || p.address || "Property"} — {fmtINR(p.monthlyRent)}/mo</option>
+                      <option key={p.id} value={p.id}>{p.name || p.address || "Property"} — {fmtINRFull(p.monthlyRent)}/mo</option>
                     ))}
                   </select>
                 </div>
@@ -424,7 +424,7 @@ const HraReceiptSection = ({ state }) => {
                       }}
                     >
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{m.label}</div>
-                      {rent > 0 && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{fmtINR(rent)}</div>}
+                      {rent > 0 && <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{fmtINRFull(rent)}</div>}
                     </button>
                   );
                 })}

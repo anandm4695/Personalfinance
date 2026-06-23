@@ -634,7 +634,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={TrendingUp}
           label="Equity STCG"
           value={byType.totals.EQUITY_STCG}
-          sub={`Tax @ 20%: ${fmtINR(Math.max(0, byType.totals.EQUITY_STCG) * EQUITY_STCG_RATE)}`}
+          sub={`Tax @ 20%: ${fmtINRFull(Math.max(0, byType.totals.EQUITY_STCG) * EQUITY_STCG_RATE)}`}
           color={byType.totals.EQUITY_STCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #D97706, #FBBF24)"
         />
@@ -642,7 +642,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={TrendingUp}
           label="Equity LTCG"
           value={byType.totals.EQUITY_LTCG}
-          sub={`Tax @ 12.5% (above ₹1.25L): ${fmtINR(Math.max(0, byType.totals.EQUITY_LTCG - EQUITY_LTCG_EXEMPTION) * EQUITY_LTCG_RATE)}`}
+          sub={`Tax @ 12.5% (above ₹1.25L): ${fmtINRFull(Math.max(0, byType.totals.EQUITY_LTCG - EQUITY_LTCG_EXEMPTION) * EQUITY_LTCG_RATE)}`}
           color={byType.totals.EQUITY_LTCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #059669, #34D399)"
         />
@@ -650,7 +650,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={BarChart3}
           label="Debt STCG"
           value={byType.totals.DEBT_STCG}
-          sub={`Taxed at slab rate (~30%): ${fmtINR(Math.max(0, byType.totals.DEBT_STCG) * DEBT_STCG_SLAB_RATE)}`}
+          sub={`Taxed at slab rate (~30%): ${fmtINRFull(Math.max(0, byType.totals.DEBT_STCG) * DEBT_STCG_SLAB_RATE)}`}
           color={byType.totals.DEBT_STCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #B91C1C, #FCA5A5)"
         />
@@ -658,7 +658,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={BarChart3}
           label="Debt LTCG"
           value={byType.totals.DEBT_LTCG}
-          sub={`Tax @ 20% (indexation): ${fmtINR(Math.max(0, byType.totals.DEBT_LTCG) * DEBT_LTCG_RATE)}`}
+          sub={`Tax @ 20% (indexation): ${fmtINRFull(Math.max(0, byType.totals.DEBT_LTCG) * DEBT_LTCG_RATE)}`}
           color={byType.totals.DEBT_LTCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #4F46E5, #818CF8)"
         />

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { today } from "../../utils/finance";
+import { today, fmtINRFull } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -17,11 +17,6 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-/* ── Shared small helpers ──────────────────────────────────────── */
-function fmtINR(n: number) {
-  if (!n || isNaN(n)) return "₹0";
-  return "₹" + Math.round(n).toLocaleString("en-IN");
-}
 
 /* ══════════════════════════════════════════════════════════════════
    EscalationTiersSection — shared by both Rented Out & Rented In
@@ -625,7 +620,7 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CheckCircle2 size={16} color={THEME.accent} />
             <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-              Total Monthly Rent: {fmtINR(totalMonthlyRent)}/mo
+              Total Monthly Rent: {fmtINRFull(totalMonthlyRent)}/mo
             </span>
           </div>
         </div>
@@ -879,7 +874,7 @@ function LandlordSplitCard({
               color: accentColor,
             }}
           >
-            {fmtINR(share)}/mo
+            {fmtINRFull(share)}/mo
           </span>
           {canDelete && (
             <button
@@ -1370,7 +1365,7 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
                       }}
                     />
                     {ll.name || `Landlord ${i + 1}`}:{" "}
-                    {fmtINR((Number(ll.splitPct) / 100) * monthlyRent)}/mo
+                    {fmtINRFull((Number(ll.splitPct) / 100) * monthlyRent)}/mo
                   </span>
                 );
               })}

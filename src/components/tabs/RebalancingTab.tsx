@@ -194,7 +194,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           </div>
           <div style={{ marginLeft: "auto", textAlign: "right" }}>
             <div style={{ fontSize: 12, color: THEME.muted }}>Total Portfolio</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINR(allocation.total)}</Prv></div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(allocation.total)}</Prv></div>
           </div>
         </div>
       </Card>
@@ -273,7 +273,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
                   {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip formatter={(v) => fmtINR(v)} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 8 }}>
@@ -372,7 +372,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: s.overweight ? "#EF4444" : "#10B981" }}>
-                      <Prv>{fmtINR(s.diffAmt)}</Prv>
+                      <Prv>{fmtINRFull(s.diffAmt)}</Prv>
                     </div>
                     <Badge variant={s.overweight ? "error" : "success"}>{s.overweight ? "Overweight" : "Underweight"}</Badge>
                   </div>
@@ -415,7 +415,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                       {row.label}
                       <Badge variant="outline" style={{ marginLeft: 8, fontSize: 10 }}>{row.parent}</Badge>
                     </td>
-                    <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINR(row.value)}</Prv></td>
+                    <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(row.value)}</Prv></td>
                     <td style={{ padding: "8px 10px", color: THEME.muted }}>
                       {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
                     </td>

@@ -271,7 +271,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis type="number" tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <XAxis type="number" tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <YAxis type="category" dataKey="category" width={100} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
               <Legend />

@@ -980,7 +980,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     axisLine={false}
                     tickLine={false}
                     width={55}
-                    tickFormatter={(v) => fmtINR(v)}
+                    tickFormatter={(v) => fmtINRFull(v)}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend

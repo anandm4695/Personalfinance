@@ -190,7 +190,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
             <Legend />
             <Area type="monotone" dataKey="upper" stroke="none" fill="#EF444415" name="Upper Bound" />
@@ -208,7 +208,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
           <BarChart data={seasonalPatterns}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
             <Bar dataKey="avg" name="Average Spend" fill="var(--accent)" radius={[6, 6, 0, 0]} />
           </BarChart>

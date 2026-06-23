@@ -787,21 +787,21 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
             <StatCard
               label="Opening Net Worth"
-              value={fmtINR(netWorthData.openingNW)}
+              value={fmtINRFull(netWorthData.openingNW)}
               icon={<Wallet />}
               color={THEME.accent}
               sub={`Start of ${fyLabel}`}
             />
             <StatCard
               label="Closing Net Worth"
-              value={fmtINR(netWorthData.closingNW)}
+              value={fmtINRFull(netWorthData.closingNW)}
               icon={<TrendingUp />}
               color={THEME.accent}
               sub={netWorthData.isCurrentFY ? "As of today" : `End of ${fyLabel}`}
             />
             <StatCard
               label="NW Change"
-              value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINR(netWorthData.change)}`}
+              value={`${netWorthData.change >= 0 ? "+" : ""}${fmtINRFull(netWorthData.change)}`}
               icon={netWorthData.change >= 0 ? <ArrowUpRight /> : <ArrowDownRight />}
               color={nwChangeColor}
               sub={`${netWorthData.changePct >= 0 ? "+" : ""}${netWorthData.changePct.toFixed(1)}%`}
@@ -832,7 +832,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.muted }} />
-                    <YAxis tick={{ fontSize: 11, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={65} />
+                    <YAxis tick={{ fontSize: 11, fill: THEME.muted }} tickFormatter={(v: number) => fmtINRFull(v)} width={65} />
                     <Tooltip formatter={(v: number) => [fmtINRFull(v), "Net Worth"]} />
                     <Area type="monotone" dataKey="value" stroke={THEME.accent} fill="url(#nwGrad)" strokeWidth={2.5} dot={false} />
                   </AreaChart>
@@ -847,8 +847,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
             <Card style={{ padding: 24 }}>
               <CardHeading icon={Wallet} title="Income Summary" id="income" color={THEME.sage} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                <MetricTile label="Total Income" value={fmtINR(incomeData.totalIncome)} color={THEME.sage} />
-                <MetricTile label="Monthly Avg" value={fmtINR(incomeData.totalIncome / (fyMonthsElapsed || 12))} />
+                <MetricTile label="Total Income" value={fmtINRFull(incomeData.totalIncome)} color={THEME.sage} />
+                <MetricTile label="Monthly Avg" value={fmtINRFull(incomeData.totalIncome / (fyMonthsElapsed || 12))} />
               </div>
               {incomeData.breakdown.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
@@ -871,7 +871,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     <BarChart data={incomeData.monthlyChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                       <XAxis dataKey="month" tick={{ fontSize: 9, fill: THEME.muted }} />
-                      <YAxis tick={{ fontSize: 9, fill: THEME.muted }} tickFormatter={(v: number) => fmtINR(v)} width={50} />
+                      <YAxis tick={{ fontSize: 9, fill: THEME.muted }} tickFormatter={(v: number) => fmtINRFull(v)} width={50} />
                       <Tooltip formatter={(v: number) => [fmtINRFull(v), "Income"]} />
                       <Bar dataKey="income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -885,8 +885,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               <div className="page-break" />
               <CardHeading icon={Receipt} title="Expense Summary" id="expense" color={THEME.rust} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                <MetricTile label="Total Expenses" value={fmtINR(expenseData.totalExpense)} color={THEME.rust} />
-                <MetricTile label="Monthly Avg" value={fmtINR(expenseData.avgMonthly)} />
+                <MetricTile label="Total Expenses" value={fmtINRFull(expenseData.totalExpense)} color={THEME.rust} />
+                <MetricTile label="Monthly Avg" value={fmtINRFull(expenseData.avgMonthly)} />
               </div>
               <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 160 }}>
@@ -925,10 +925,10 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
                 <MetricTile
                   label="Net Savings"
-                  value={`${savingsData.savings >= 0 ? "+" : ""}${fmtINR(savingsData.savings)}`}
+                  value={`${savingsData.savings >= 0 ? "+" : ""}${fmtINRFull(savingsData.savings)}`}
                   color={savingsData.savings >= 0 ? THEME.sage : THEME.rust}
                 />
-                <MetricTile label="New Investments" value={fmtINR(savingsData.totalNewInvestments)} color={THEME.accent} />
+                <MetricTile label="New Investments" value={fmtINRFull(savingsData.totalNewInvestments)} color={THEME.accent} />
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted, marginBottom: 8 }}>Investment Additions</div>
               {[
@@ -1009,8 +1009,8 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                   <CardHeading icon={Landmark} title="Debt Summary" id="debt" color={THEME.rust} />
                   {isPastFY && <InfoBanner>Debt figures reflect current outstanding — historical balances not available for past FYs.</InfoBanner>}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                    <MetricTile label="Outstanding" value={fmtINR(debtData.totalOutstanding)} color={THEME.rust} />
-                    <MetricTile label="Annual EMI" value={fmtINR(debtData.annualEMI)} />
+                    <MetricTile label="Outstanding" value={fmtINRFull(debtData.totalOutstanding)} color={THEME.rust} />
+                    <MetricTile label="Annual EMI" value={fmtINRFull(debtData.annualEMI)} />
                   </div>
                   <DataRow label="Active loans" value={debtData.loanCount} />
                   <DataRow label="Total principal" value={fmtINRFull(debtData.totalPrincipal)} />
@@ -1029,7 +1029,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                   <CardHeading icon={Shield} title="Insurance Coverage" id="insurance" />
                   {isPastFY && <InfoBanner>Insurance data reflects current policies — historical coverage not available for past FYs.</InfoBanner>}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                    <MetricTile label="Life Cover" value={fmtINR(insuranceData.totalLifeCover)} color={THEME.accent} />
+                    <MetricTile label="Life Cover" value={fmtINRFull(insuranceData.totalLifeCover)} color={THEME.accent} />
                     <MetricTile
                       label="Coverage"
                       value={`${insuranceData.adequacyRatio.toFixed(1)}x`}
@@ -1045,7 +1045,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       <AlertTriangle size={14} style={{ flexShrink: 0 }} />
                       <span>
                         Coverage is {insuranceData.adequacyRatio.toFixed(1)}x annual income.
-                        Recommended: at least 10x ({fmtINR(incomeData.totalIncome * 10)}).
+                        Recommended: at least 10x ({fmtINRFull(incomeData.totalIncome * 10)}).
                       </span>
                     </div>
                   )}
@@ -1062,7 +1062,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                 <Card style={{ padding: 24 }}>
                   <CardHeading icon={Receipt} title="Tax Summary" id="tax" color={THEME.gold} />
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                    <MetricTile label="Total Tax" value={fmtINR(taxData.totalTaxPaid)} color={THEME.rust} />
+                    <MetricTile label="Total Tax" value={fmtINRFull(taxData.totalTaxPaid)} color={THEME.rust} />
                     <MetricTile label="Effective Rate" value={`${taxData.effectiveRate.toFixed(1)}%`} sub={`Regime: ${taxData.regime === "new" ? "New" : "Old"}`} />
                   </div>
                   {Object.entries(taxData.byType).length > 0 && (
@@ -1090,7 +1090,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>{g.name}</span>
                         <span style={{ fontSize: 11, color: THEME.muted }}>
-                          <Prv>{fmtINR(g.saved)}</Prv> / <Prv>{fmtINR(g.target)}</Prv>
+                          <Prv>{fmtINRFull(g.saved)}</Prv> / <Prv>{fmtINRFull(g.target)}</Prv>
                           <span style={{ marginLeft: 4, fontWeight: 700, color: g.pct >= 100 ? THEME.sage : THEME.accent }}>{g.pct.toFixed(0)}%</span>
                         </span>
                       </div>

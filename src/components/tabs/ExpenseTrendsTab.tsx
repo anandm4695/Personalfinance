@@ -585,21 +585,21 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       >
         <StatCard
           label="Total Spend"
-          value={fmtINR(summary.totalSpend)}
+          value={fmtINRFull(summary.totalSpend)}
           icon={<Wallet />}
           color={PIE_COLORS[3]}
           sub={`${rangeStart.slice(0, 7)} to ${rangeEnd.slice(0, 7)}`}
         />
         <StatCard
           label="Avg Monthly"
-          value={fmtINR(summary.avgMonthly)}
+          value={fmtINRFull(summary.avgMonthly)}
           icon={<Activity />}
           color={PIE_COLORS[0]}
           sub={`Over ${monthlyData.length} month${monthlyData.length !== 1 ? "s" : ""}`}
         />
         <StatCard
           label="Highest Month"
-          value={fmtINR(summary.highestMonth.amount)}
+          value={fmtINRFull(summary.highestMonth.amount)}
           icon={<TrendingUp />}
           color={THEME.rust}
           sub={summary.highestMonth.month ? fullMonthLabel(summary.highestMonth.month) : "--"}
@@ -607,7 +607,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         />
         <StatCard
           label="Lowest Month"
-          value={fmtINR(summary.lowestMonth.amount)}
+          value={fmtINRFull(summary.lowestMonth.amount)}
           icon={<TrendingDown />}
           color={THEME.sage}
           sub={summary.lowestMonth.month ? fullMonthLabel(summary.lowestMonth.month) : "--"}
@@ -654,7 +654,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINR(v)}
+              tickFormatter={(v: number) => fmtINRFull(v)}
             />
             <Tooltip content={<ChartTooltip />} />
             <Legend
@@ -668,7 +668,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               stroke={THEME.muted}
               strokeDasharray="6 4"
               label={{
-                value: `Avg: ${fmtINR(avgSpend)}`,
+                value: `Avg: ${fmtINRFull(avgSpend)}`,
                 position: "insideTopRight",
                 fill: THEME.muted,
                 fontSize: 10,
@@ -781,7 +781,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     />
                     <span style={{ color: THEME.muted }}>{c.name}</span>
                     <span style={{ fontWeight: 600, color: THEME.ink }}>
-                      <Prv>{fmtINR(c.value)}</Prv>
+                      <Prv>{fmtINRFull(c.value)}</Prv>
                     </span>
                   </div>
                 ))}
@@ -819,7 +819,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   tick={{ fontSize: 11, fill: THEME.muted }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v: number) => fmtINR(v)}
+                  tickFormatter={(v: number) => fmtINRFull(v)}
                 />
                 <Tooltip content={<ChartTooltip />} />
                 {categoryStackedData.categories.map((cat: string, i: number) => (
@@ -1070,7 +1070,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 tick={{ fontSize: 11, fill: THEME.muted }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => fmtINR(v)}
+                tickFormatter={(v: number) => fmtINRFull(v)}
               />
               <YAxis
                 type="category"
@@ -1230,7 +1230,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tick={{ fontSize: 11, fill: THEME.muted }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => fmtINR(v)}
+              tickFormatter={(v: number) => fmtINRFull(v)}
             />
             <YAxis
               yAxisId="right"

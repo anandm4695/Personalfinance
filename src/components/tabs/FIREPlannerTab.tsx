@@ -259,11 +259,11 @@ export const FIREPlannerTab = ({ state, metrics }) => {
           <AreaChart data={fireCalc.accumulation}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-            <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
             <Legend />
             <Area type="monotone" dataKey="corpus" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Your Corpus" />
-            <ReferenceLine y={fireCalc.fireNumber} stroke="#EF4444" strokeDasharray="3 3" label={{ value: `FIRE: ${fmtINR(fireCalc.fireNumber)}`, fill: "#EF4444", fontSize: 11 }} />
+            <ReferenceLine y={fireCalc.fireNumber} stroke="#EF4444" strokeDasharray="3 3" label={{ value: `FIRE: ${fmtINRFull(fireCalc.fireNumber)}`, fill: "#EF4444", fontSize: 11 }} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -278,7 +278,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             <AreaChart data={fireCalc.drawdown}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
               <Area type="monotone" dataKey="corpus" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.15} strokeWidth={2} name="Remaining Corpus" />
               <ReferenceLine y={0} stroke="#EF4444" />

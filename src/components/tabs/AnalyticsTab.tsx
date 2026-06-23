@@ -4989,7 +4989,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             tick={{ fontSize: 11, fill: THEME.muted }}
                             axisLine={false}
                             tickLine={false}
-                            tickFormatter={(v: number) => fmtINR(v)}
+                            tickFormatter={(v: number) => fmtINRFull(v)}
                           />
                           <Tooltip
                             contentStyle={{

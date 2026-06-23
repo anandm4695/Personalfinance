@@ -3789,7 +3789,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) => fmtINR(v)}
+                        tickFormatter={(v) => fmtINRFull(v)}
                       />
                       <Tooltip
                         contentStyle={{
@@ -4356,7 +4356,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         stroke={THEME.muted}
                         fontSize={11}
                         tickLine={false}
-                        tickFormatter={(v) => fmtINR(v)}
+                        tickFormatter={(v) => fmtINRFull(v)}
                       />
                       <Tooltip
                         contentStyle={{
@@ -4680,7 +4680,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => fmtINR(v)}
+                      tickFormatter={(v: number) => fmtINRFull(v)}
                     />
                     <Tooltip
                       formatter={(v: number) => fmtINRFull(v)}
@@ -4955,7 +4955,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tick={{ fontSize: 11, fill: THEME.muted }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => fmtINR(v)}
+                      tickFormatter={(v: number) => fmtINRFull(v)}
                     />
                     <Tooltip
                       formatter={(v: number, name: string) => [fmtINRFull(v), name]}

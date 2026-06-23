@@ -243,7 +243,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} label={{ value: "Month", position: "insideBottom", offset: -5 }} />
-                <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
                 <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
                 <Legend />
                 <Area type="monotone" dataKey="balance" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Outstanding Balance" />
@@ -259,7 +259,7 @@ export const LoanAmortizationTab = ({ state }) => {
               <BarChart data={yearlyBreakdown}>
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-                <YAxis tickFormatter={(v) => fmtINR(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
                 <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
                 <Legend />
                 <Bar dataKey="principal" name="Principal" fill="#10B981" stackId="a" radius={[0, 0, 0, 0]} />
