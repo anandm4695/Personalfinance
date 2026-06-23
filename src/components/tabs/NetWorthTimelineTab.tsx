@@ -153,9 +153,9 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
           <StatCard label="CAGR" value={`${stats.cagr.toFixed(1)}%`} icon={<Zap />}
             color={stats.cagr >= 0 ? "#10B981" : "#EF4444"} />
           <StatCard label={`Best Month (${stats.best?.label})`} value={<Prv>{fmtINRFull(stats.best?.delta || 0)}</Prv>}
-            icon={TrendingUp} color="#10B981" />
+            icon={<TrendingUp />} color="#10B981" />
           <StatCard label={`Worst Month (${stats.worst?.label})`} value={<Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>}
-            icon={TrendingDown} color="#EF4444" />
+            icon={<TrendingDown />} color="#EF4444" />
         </div>
       )}
 
