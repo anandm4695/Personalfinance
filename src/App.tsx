@@ -1238,6 +1238,93 @@ function FinanceDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
+  // One-time fix: corporate actions applied with per-lot Math.floor lost fractional
+  // shares (e.g. bonus 1:2 on lots of 25+475 → 37+712=749 instead of 750). Re-applies
+  // the correct largest-remainder distribution and persists to Supabase.
+  useEffect(() => {
+    if (!loaded) return;
+    if (state.masterData?._caRoundingFixV1) return;
+    const actions = state.corporateActions || [];
+    if (actions.length === 0) {
+      setState((s) => ({ ...s, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } }));
+      return;
+    }
+
+    setState((s) => {
+      const stockUpdates: { id: string; qty: string; avgPrice: string }[] = [];
+      let stocks = [...(s.stocks || [])];
+
+      for (const ca of actions) {
+        const rN = Number(ca.ratioN) || 0;
+        const rM = Number(ca.ratioM) || 0;
+        if (rN <= 0 || rM <= 0) continue;
+        const expectedTotal = Number(ca.newQty) || 0;
+        if (expectedTotal <= 0) continue;
+
+        const lots = stocks.filter(
+          (st: any) => st.symbol === ca.symbol && st.exchange === ca.exchange
+        );
+        if (lots.length === 0) continue;
+
+        const currentTotal = lots.reduce((sum: number, l: any) => sum + Number(l.qty), 0);
+        const shortfall = expectedTotal - currentTotal;
+        if (shortfall <= 0 || shortfall > lots.length) continue;
+
+        // Reverse-engineer original per-lot quantities
+        const multiplier =
+          ca.actionType === "split" ? rN / rM : (rM + rN) / rM;
+        const lotCalcs = lots.map((lot: any) => {
+          const curQty = Number(lot.qty);
+          const origQty = Math.round(curQty / multiplier);
+          const exact = origQty * multiplier;
+          const floored = Math.floor(exact);
+          return { lot, curQty, origQty, floored, remainder: exact - floored };
+        });
+
+        // Verify reverse-engineering: original totals should match ca.oldQty
+        const origTotal = lotCalcs.reduce((sum, c) => sum + c.origQty, 0);
+        if (origTotal !== Number(ca.oldQty)) continue;
+
+        // Distribute shortfall using largest remainder method
+        const sorted = [...lotCalcs].sort((a, b) => b.remainder - a.remainder);
+        let remaining = shortfall;
+        for (const c of sorted) {
+          if (remaining <= 0) break;
+          c.floored += 1;
+          remaining -= 1;
+        }
+
+        for (const c of lotCalcs) {
+          if (c.floored === c.curQty) continue;
+          const invested = c.curQty * Number(c.lot.avgPrice);
+          const newAvg = c.floored > 0 ? invested / c.floored : Number(c.lot.avgPrice);
+          const updated = { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
+          stockUpdates.push(updated);
+          stocks = stocks.map((st: any) => (st.id === c.lot.id ? { ...st, ...updated } : st));
+        }
+      }
+
+      const uid5 = session?.user?.id;
+      if (uid5 && uid5 !== "offline-user") {
+        for (const u of stockUpdates) {
+          supabase
+            .from("stocks")
+            .update({ qty: u.qty, avg_price: u.avgPrice })
+            .eq("id", u.id)
+            .then(() => {});
+        }
+        const newMaster = { ...(s.masterData || {}), _caRoundingFixV1: true };
+        supabase
+          .from("user_settings")
+          .upsert({ user_id: uid5, master_data: newMaster })
+          .then(() => {});
+        return { ...s, stocks, masterData: newMaster };
+      }
+      return { ...s, stocks, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   // Auto-advance overdue subscription renewal dates based on their billing cycle
   useEffect(() => {
     if (!loaded) return;

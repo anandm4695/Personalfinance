@@ -4603,13 +4603,23 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
   const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n > m : true);
   const handleApply = () => {
     if (!isValid) return;
-    const updates = group.lots.map((lot: any) => {
+    const lotCalcs = group.lots.map((lot: any) => {
       const oldQty = Number(lot.qty);
       const oldAvg = Number(lot.avgPrice);
-      const newQty =
-        type === "split" ? Math.floor((oldQty * n) / m) : Math.floor((oldQty * (m + n)) / m);
-      const newAvg = newQty > 0 ? (oldQty * oldAvg) / newQty : oldAvg;
-      return { id: lot.id, qty: String(newQty), avgPrice: String(Number(newAvg.toFixed(4))) };
+      const exact =
+        type === "split" ? (oldQty * n) / m : (oldQty * (m + n)) / m;
+      return { lot, oldQty, oldAvg, floored: Math.floor(exact), remainder: exact - Math.floor(exact) };
+    });
+    let shortfall = newTotalQty - lotCalcs.reduce((s: number, c: any) => s + c.floored, 0);
+    const sorted = [...lotCalcs].sort((a: any, b: any) => b.remainder - a.remainder);
+    for (const c of sorted) {
+      if (shortfall <= 0) break;
+      c.floored += 1;
+      shortfall -= 1;
+    }
+    const updates = lotCalcs.map((c: any) => {
+      const newAvg = c.floored > 0 ? (c.oldQty * c.oldAvg) / c.floored : c.oldAvg;
+      return { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
     });
     const actionLog = {
       symbol: group.base,
