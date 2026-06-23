@@ -6,14 +6,16 @@ import { Card } from "./Card";
 import { Button } from "./Button";
 
 interface EmptyStateProps {
-  icon: React.ComponentType<any>;
-  gradient: string;
-  dotColor: string;
-  title: string;
-  description: string;
-  pills: string[];
-  buttonLabel: string;
-  onAdd: () => void;
+  icon?: React.ComponentType<any>;
+  gradient?: string;
+  dotColor?: string;
+  title?: string;
+  description?: string;
+  message?: string;
+  subtitle?: string;
+  pills?: string[];
+  buttonLabel?: string;
+  onAdd?: () => void;
 }
 
 /**
@@ -26,26 +28,32 @@ export function EmptyState({
   dotColor,
   title,
   description,
+  message,
+  subtitle,
   pills,
   buttonLabel,
   onAdd,
 }: EmptyStateProps) {
+  const displayTitle = title || message || "No Data";
+  const displayDescription = description || subtitle || "";
   return (
     <Card style={{ padding: "48px 32px", textAlign: "center" }}>
-      <div
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: gradient,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto 20px",
-        }}
-      >
-        <Icon size={30} color="#fff" />
-      </div>
+      {Icon && (
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 20,
+            background: gradient || "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+          }}
+        >
+          <Icon size={30} color="#fff" />
+        </div>
+      )}
       <div
         style={{
           fontSize: 18,
@@ -55,19 +63,21 @@ export function EmptyState({
           letterSpacing: "-0.02em",
         }}
       >
-        {title}
+        {displayTitle}
       </div>
-      <div
-        style={{
-          fontSize: 13,
-          color: THEME.muted,
-          maxWidth: 380,
-          margin: "0 auto 12px",
-          lineHeight: 1.6,
-        }}
-      >
-        {description}
-      </div>
+      {displayDescription && (
+        <div
+          style={{
+            fontSize: 13,
+            color: THEME.muted,
+            maxWidth: 380,
+            margin: "0 auto 12px",
+            lineHeight: 1.6,
+          }}
+        >
+          {displayDescription}
+        </div>
+      )}
       <div
         style={{
           fontSize: 12,
@@ -79,14 +89,14 @@ export function EmptyState({
           flexWrap: "wrap",
         }}
       >
-        {pills.map((t) => (
+        {(pills || []).map((t) => (
           <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <span
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: dotColor,
+                background: dotColor || "#6366f1",
                 display: "inline-block",
               }}
             />
@@ -94,9 +104,11 @@ export function EmptyState({
           </span>
         ))}
       </div>
-      <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
-        {buttonLabel}
-      </Button>
+      {buttonLabel && onAdd && (
+        <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
+          {buttonLabel}
+        </Button>
+      )}
     </Card>
   );
 }
