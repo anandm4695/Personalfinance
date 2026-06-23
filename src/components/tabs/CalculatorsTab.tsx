@@ -16,10 +16,14 @@ import {
   AlertTriangle,
   Info,
   GitBranch,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -55,6 +59,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     | "stress"
     | "monte-carlo"
     | "scenario-sandbox"
+    | "indexation"
+    | "retirement-income"
   >("emi");
   const [monteVolatility, setMonteVolatility] = useState("10");
 
@@ -715,6 +721,201 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     ];
   }, [fdrdResult]);
 
+  // ── INDEXATION BENEFIT CALCULATOR STATE & LOGIC ──
+  const CII_TABLE: Record<string, number> = {
+    "2001-02": 100, "2002-03": 105, "2003-04": 109, "2004-05": 113,
+    "2005-06": 117, "2006-07": 122, "2007-08": 129, "2008-09": 137,
+    "2009-10": 148, "2010-11": 167, "2011-12": 184, "2012-13": 200,
+    "2013-14": 220, "2014-15": 240, "2015-16": 254, "2016-17": 264,
+    "2017-18": 272, "2018-19": 280, "2019-20": 289, "2020-21": 301,
+    "2021-22": 317, "2022-23": 331, "2023-24": 348, "2024-25": 363,
+    "2025-26": 377,
+  };
+  const CII_YEARS = Object.keys(CII_TABLE);
+
+  const [idxPurchasePrice, setIdxPurchasePrice] = useState("1000000");
+  const [idxPurchaseYear, setIdxPurchaseYear] = useState("2014-15");
+  const [idxSalePrice, setIdxSalePrice] = useState("2500000");
+  const [idxSaleYear, setIdxSaleYear] = useState("2024-25");
+  const [idxAssetType, setIdxAssetType] = useState<"Debt MF" | "Property" | "Gold/Bonds" | "Other">("Property");
+
+  const idxResult = useMemo(() => {
+    const purchase = Math.max(0, Number(idxPurchasePrice) || 0);
+    const sale = Math.max(0, Number(idxSalePrice) || 0);
+    const ciiPurchase = CII_TABLE[idxPurchaseYear] || 100;
+    const ciiSale = CII_TABLE[idxSaleYear] || 377;
+
+    // Without indexation
+    const gainWithout = sale - purchase;
+    const taxWithout = Math.max(0, gainWithout * 0.20);
+
+    // With indexation
+    const indexedCost = purchase * (ciiSale / ciiPurchase);
+    const gainWith = sale - indexedCost;
+    const taxWith = Math.max(0, gainWith * 0.20);
+
+    // Tax saved
+    const taxSaved = Math.max(0, taxWithout - taxWith);
+
+    // Effective tax rate
+    const effectiveTaxRate = gainWithout > 0 ? (taxWith / gainWithout) * 100 : 0;
+
+    return {
+      purchase,
+      sale,
+      ciiPurchase,
+      ciiSale,
+      indexedCost: Math.round(indexedCost),
+      gainWithout,
+      taxWithout: Math.round(taxWithout),
+      gainWith: Math.round(gainWith),
+      taxWith: Math.round(taxWith),
+      taxSaved: Math.round(taxSaved),
+      effectiveTaxRate,
+    };
+  }, [idxPurchasePrice, idxSalePrice, idxPurchaseYear, idxSaleYear]);
+
+  const idxBarData = useMemo(() => [
+    { name: "Purchase Price", value: idxResult.purchase, fill: THEME.accent },
+    { name: "Indexed Cost", value: idxResult.indexedCost, fill: THEME.sage },
+    { name: "Sale Price", value: idxResult.sale, fill: THEME.gold },
+  ], [idxResult]);
+
+  // ── RETIREMENT INCOME PLANNER STATE & LOGIC ──
+  const [riCurrentAge, setRiCurrentAge] = useState("30");
+  const [riRetireAge, setRiRetireAge] = useState("60");
+  const [riLifeExp, setRiLifeExp] = useState("85");
+  const [riInflation, setRiInflation] = useState("6");
+  const [riMonthlyExp, setRiMonthlyExp] = useState(() =>
+    String(Math.round(metrics?.monthExpense || 50000))
+  );
+
+  interface IncomeSource {
+    name: string;
+    monthly: number;
+    startAge: number;
+    endAge: number;
+    growth: number;
+  }
+
+  const [riSources, setRiSources] = useState<IncomeSource[]>([
+    { name: "EPF Pension", monthly: 5000, startAge: 58, endAge: 85, growth: 0 },
+    { name: "NPS Annuity", monthly: 10000, startAge: 60, endAge: 85, growth: 0 },
+    { name: "SWP from MF", monthly: 30000, startAge: 60, endAge: 85, growth: 3 },
+    { name: "Rental Income", monthly: 15000, startAge: 60, endAge: 85, growth: 5 },
+    { name: "FD Interest", monthly: 8000, startAge: 60, endAge: 75, growth: 0 },
+  ]);
+
+  const riResult = useMemo(() => {
+    if (calcTab !== "retirement-income") return null;
+
+    const currentAge = Number(riCurrentAge) || 30;
+    const retireAge = Math.max(currentAge + 1, Number(riRetireAge) || 60);
+    const lifeExp = Math.max(retireAge + 1, Number(riLifeExp) || 85);
+    const inflation = (Number(riInflation) || 6) / 100;
+    const monthlyExpNow = Number(riMonthlyExp) || 50000;
+
+    const yrsToRetire = retireAge - currentAge;
+
+    // Build year-by-year timeline from retireAge to lifeExp
+    const timeline: any[] = [];
+    let firstDeficitAge = -1;
+
+    for (let age = retireAge; age <= lifeExp; age++) {
+      const yearsFromNow = age - currentAge;
+      const yearsFromRetire = age - retireAge;
+
+      // Inflation-adjusted monthly expense
+      const inflatedExp = monthlyExpNow * Math.pow(1 + inflation, yearsFromNow);
+
+      // Calculate income from each source at this age
+      let totalIncome = 0;
+      const sourceBreakdown: Record<string, number> = {};
+
+      for (const src of riSources) {
+        if (age >= src.startAge && age <= src.endAge) {
+          // Growth compounded from the source start age
+          const yearsActive = age - src.startAge;
+          const amount = src.monthly * Math.pow(1 + src.growth / 100, yearsActive);
+          sourceBreakdown[src.name] = Math.round(amount);
+          totalIncome += amount;
+        } else {
+          sourceBreakdown[src.name] = 0;
+        }
+      }
+
+      const surplus = totalIncome - inflatedExp;
+      if (surplus < 0 && firstDeficitAge === -1) {
+        firstDeficitAge = age;
+      }
+
+      timeline.push({
+        age,
+        ...sourceBreakdown,
+        totalIncome: Math.round(totalIncome),
+        inflatedExpense: Math.round(inflatedExp),
+        surplus: Math.round(surplus),
+      });
+    }
+
+    // Summary stats at retirement
+    const atRetirement = timeline[0] || { totalIncome: 0, inflatedExpense: 0, surplus: 0 };
+    const totalIncomeAtRetire = atRetirement.totalIncome;
+    const inflatedExpAtRetire = atRetirement.inflatedExpense;
+    const surplusAtRetire = atRetirement.surplus;
+
+    // Adequacy
+    let adequacy: "green" | "yellow" | "red" = "green";
+    if (surplusAtRetire < 0) {
+      adequacy = "red";
+    } else if (firstDeficitAge > 0) {
+      adequacy = "yellow";
+    }
+
+    // Corpus calculation if there's ever a shortfall
+    let corpusNeeded = 0;
+    let monthlySIPNeeded = 0;
+    const postReturnRate = 0.08; // assume 8% post-retirement return
+    const realReturn = (1 + postReturnRate) / (1 + inflation) - 1;
+
+    if (firstDeficitAge > 0 || surplusAtRetire < 0) {
+      // Sum PV of all monthly shortfalls
+      for (const pt of timeline) {
+        if (pt.surplus < 0) {
+          const yearsFromRetire2 = pt.age - retireAge;
+          const monthlyShortfall = Math.abs(pt.surplus);
+          // PV of 12 months of shortfall in that year, discounted back to retirement
+          const annualShortfall = monthlyShortfall * 12;
+          const pvFactor = realReturn > 0 ? Math.pow(1 + realReturn, -yearsFromRetire2) : 1;
+          corpusNeeded += annualShortfall * pvFactor;
+        }
+      }
+      corpusNeeded = Math.round(corpusNeeded);
+
+      // Monthly SIP needed to build this corpus
+      const preRetReturn = 0.12; // 12% pre-retirement
+      const monthlyPreRate = preRetReturn / 12;
+      const monthsToRetire = yrsToRetire * 12;
+      if (monthlyPreRate > 0 && monthsToRetire > 0) {
+        const fvFactor =
+          ((Math.pow(1 + monthlyPreRate, monthsToRetire) - 1) / monthlyPreRate) *
+          (1 + monthlyPreRate);
+        monthlySIPNeeded = Math.round(corpusNeeded / fvFactor);
+      }
+    }
+
+    return {
+      timeline,
+      totalIncomeAtRetire,
+      inflatedExpAtRetire,
+      surplusAtRetire,
+      firstDeficitAge,
+      adequacy,
+      corpusNeeded,
+      monthlySIPNeeded,
+    };
+  }, [calcTab, riCurrentAge, riRetireAge, riLifeExp, riInflation, riMonthlyExp, riSources]);
+
   // ── 6. LOAN VS INVEST ADVISOR STATE & LOGIC ──
   const [lviSurplus, setLviSurplus] = useState("10000");
   const [lviMode, setLviMode] = useState<"sip" | "lumpsum">("sip");
@@ -1185,6 +1386,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
           { id: "stress", label: "Runway Stress Tester", icon: Shield },
           { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles },
           { id: "scenario-sandbox", label: "Scenario Sandbox", icon: GitBranch },
+          { id: "indexation", label: "Indexation", icon: Coins },
+          { id: "retirement-income", label: "Retirement Income", icon: Briefcase },
         ].map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
@@ -4257,6 +4460,762 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       )}
                     </p>
                   </div>
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* ── INDEXATION BENEFIT CALCULATOR ── */}
+        {calcTab === "indexation" && (
+          <>
+            <div className="bento-col-4">
+              <Card style={{ padding: 24, height: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Coins size={18} color={THEME.gold} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Indexation Parameters</div>
+                </div>
+
+                {inpRow("Purchase Price (₹)", idxPurchasePrice, setIdxPurchasePrice)}
+
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                    Purchase Year (FY)
+                  </div>
+                  <select
+                    value={idxPurchaseYear}
+                    onChange={(e) => setIdxPurchaseYear(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "var(--t-card-bg)",
+                      border: `1.5px solid ${THEME.line}`,
+                      borderRadius: 10,
+                      color: THEME.ink,
+                      fontSize: 14,
+                    }}
+                  >
+                    {CII_YEARS.map((yr) => (
+                      <option key={yr} value={yr}>FY {yr}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {inpRow("Sale Price (₹)", idxSalePrice, setIdxSalePrice)}
+
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                    Sale Year (FY)
+                  </div>
+                  <select
+                    value={idxSaleYear}
+                    onChange={(e) => setIdxSaleYear(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "var(--t-card-bg)",
+                      border: `1.5px solid ${THEME.line}`,
+                      borderRadius: 10,
+                      color: THEME.ink,
+                      fontSize: 14,
+                    }}
+                  >
+                    {CII_YEARS.map((yr) => (
+                      <option key={yr} value={yr}>FY {yr}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                    Asset Type
+                  </div>
+                  <select
+                    value={idxAssetType}
+                    onChange={(e) => setIdxAssetType(e.target.value as any)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "var(--t-card-bg)",
+                      border: `1.5px solid ${THEME.line}`,
+                      borderRadius: 10,
+                      color: THEME.ink,
+                      fontSize: 14,
+                    }}
+                  >
+                    {["Debt MF", "Property", "Gold/Bonds", "Other"].map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Budget 2024 info note */}
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "10px 12px",
+                    background: `${THEME.gold}12`,
+                    border: `1px solid ${THEME.gold}40`,
+                    borderRadius: 10,
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Info size={14} color={THEME.gold} style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
+                    <b>Budget 2024 Note:</b> Indexation benefit was removed for most asset classes
+                    for purchases made after April 2023. This calculator applies to assets purchased
+                    before that cutoff date, where the old LTCG regime with indexation still applies.
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <div className="bento-col-8">
+              <Card style={{ padding: 24 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 20 }}>
+                  Indexation Benefit Analysis
+                </div>
+
+                {/* Side-by-side comparison cards */}
+                <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+                  {/* Without Indexation */}
+                  <div
+                    style={{
+                      flex: "1 1 200px",
+                      padding: 20,
+                      background: `${THEME.rust}08`,
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.rust}25`,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, marginBottom: 14 }}>
+                      Without Indexation
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>Capital Gain</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{fmtINRFull(idxResult.gainWithout)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
+                      <span style={{ fontWeight: 800, color: THEME.rust, fontSize: 16 }}>{fmtINRFull(idxResult.taxWithout)}</span>
+                    </div>
+                  </div>
+
+                  {/* With Indexation */}
+                  <div
+                    style={{
+                      flex: "1 1 200px",
+                      padding: 20,
+                      background: `${THEME.sage}08`,
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.sage}25`,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 14 }}>
+                      With Indexation
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>CII (Purchase)</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{idxResult.ciiPurchase}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>CII (Sale)</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{idxResult.ciiSale}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Cost</span>
+                      <span style={{ fontWeight: 700, color: THEME.sage }}>{fmtINRFull(idxResult.indexedCost)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px dashed ${THEME.line}`, fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>Indexed Gain</span>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{fmtINRFull(idxResult.gainWith)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                      <span style={{ color: THEME.muted, fontWeight: 500 }}>Tax @ 20%</span>
+                      <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 16 }}>{fmtINRFull(idxResult.taxWith)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tax Savings highlight */}
+                <div
+                  style={{
+                    padding: 20,
+                    background: `${THEME.sage}10`,
+                    borderRadius: 12,
+                    border: `1px solid ${THEME.sage}30`,
+                    marginBottom: 24,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                      Tax Saved via Indexation
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: THEME.sage }}>
+                      {fmtINRFull(idxResult.taxSaved)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>
+                      Effective Tax Rate
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: THEME.accent }}>
+                      {idxResult.effectiveTaxRate.toFixed(1)}%
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      vs 20% without indexation
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bar Chart: Purchase Price vs Indexed Cost vs Sale Price */}
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.muted, marginBottom: 12 }}>
+                  Cost Comparison
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={idxBarData} barSize={48}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={`${THEME.line}`} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => {
+                        if (v >= 10000000) return `${(v / 10000000).toFixed(1)}Cr`;
+                        if (v >= 100000) return `${(v / 100000).toFixed(1)}L`;
+                        if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+                        return String(v);
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => fmtINRFull(v)}
+                      contentStyle={{
+                        background: "var(--t-card-bg)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 10,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {idxBarData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* ── RETIREMENT INCOME PLANNER ── */}
+        {calcTab === "retirement-income" && riResult && (
+          <>
+            {/* Inputs Panel */}
+            <div className="bento-col-4">
+              <Card style={{ padding: 24, height: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <Briefcase size={18} color={THEME.accent} />
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Retirement Parameters</div>
+                </div>
+                {inpRow("Current Age", riCurrentAge, setRiCurrentAge)}
+                {inpRow("Retirement Age", riRetireAge, setRiRetireAge)}
+                {inpRow("Life Expectancy", riLifeExp, setRiLifeExp)}
+                {sliderRow("Inflation Rate", riInflation, setRiInflation, 1, 12, 0.5, "%")}
+                {inpRow("Monthly Expenses Today (₹)", riMonthlyExp, setRiMonthlyExp)}
+
+                {/* Adequacy Indicator */}
+                <div
+                  style={{
+                    marginTop: 20,
+                    padding: 16,
+                    borderRadius: 12,
+                    background:
+                      riResult.adequacy === "green"
+                        ? `${THEME.sage}18`
+                        : riResult.adequacy === "yellow"
+                        ? `${THEME.gold}18`
+                        : `${THEME.rust}18`,
+                    border: `1.5px solid ${
+                      riResult.adequacy === "green"
+                        ? THEME.sage
+                        : riResult.adequacy === "yellow"
+                        ? THEME.gold
+                        : THEME.rust
+                    }`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    {riResult.adequacy === "green" ? (
+                      <CheckCircle2 size={18} color={THEME.sage} />
+                    ) : riResult.adequacy === "yellow" ? (
+                      <AlertTriangle size={18} color={THEME.gold} />
+                    ) : (
+                      <AlertTriangle size={18} color={THEME.rust} />
+                    )}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        color:
+                          riResult.adequacy === "green"
+                            ? THEME.sage
+                            : riResult.adequacy === "yellow"
+                            ? THEME.gold
+                            : THEME.rust,
+                      }}
+                    >
+                      {riResult.adequacy === "green"
+                        ? "Fully Covered"
+                        : riResult.adequacy === "yellow"
+                        ? "Partially Covered"
+                        : "Significant Shortfall"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
+                    {riResult.adequacy === "green"
+                      ? "Your income sources cover 100%+ of expenses throughout retirement."
+                      : riResult.adequacy === "yellow"
+                      ? `Income covers expenses initially but falls short at age ${riResult.firstDeficitAge}.`
+                      : "Income doesn't cover expenses even at retirement. You need additional corpus."}
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Results Panel */}
+            <div className="bento-col-8">
+              <Card style={{ padding: 24, marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}>
+                  Summary at Retirement
+                </div>
+                <div className="bento-grid" style={{ gap: 16 }}>
+                  <div className="bento-col-6">
+                    <div
+                      style={{
+                        padding: 18,
+                        background: `${THEME.muted}09`,
+                        borderRadius: 12,
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
+                      {resultRow("Monthly Income at Retirement", riResult.totalIncomeAtRetire, true, THEME.sage)}
+                      {resultRow(
+                        "Inflation-Adjusted Expense",
+                        riResult.inflatedExpAtRetire,
+                        false,
+                        THEME.gold
+                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "10px 0",
+                          borderBottom: `1px dashed ${THEME.line}`,
+                          fontSize: 14,
+                        }}
+                      >
+                        <span style={{ color: THEME.muted, fontWeight: 500 }}>
+                          {riResult.surplusAtRetire >= 0 ? "Surplus" : "Deficit"} at Retirement
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 900,
+                            color: riResult.surplusAtRetire >= 0 ? THEME.sage : THEME.rust,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {riResult.surplusAtRetire >= 0 ? "+" : "-"}
+                          {fmtINRFull(Math.abs(riResult.surplusAtRetire))}
+                        </span>
+                      </div>
+                      {riResult.firstDeficitAge > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "10px 0",
+                            borderBottom: `1px dashed ${THEME.line}`,
+                            fontSize: 14,
+                          }}
+                        >
+                          <span style={{ color: THEME.muted, fontWeight: 500 }}>
+                            Income Falls Below Expenses
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              color: THEME.rust,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            Age {riResult.firstDeficitAge}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bento-col-6">
+                    {riResult.corpusNeeded > 0 ? (
+                      <div
+                        style={{
+                          padding: 18,
+                          background: `${THEME.rust}0c`,
+                          borderRadius: 12,
+                          border: `1.5px solid ${THEME.rust}40`,
+                          height: "100%",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: THEME.rust,
+                            marginBottom: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          Corpus Needed to Fill the Gap
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 28,
+                            fontWeight: 900,
+                            color: THEME.ink,
+                            letterSpacing: "-0.04em",
+                            marginBottom: 8,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {fmtINRFull(riResult.corpusNeeded)}
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
+                          Start a monthly SIP of{" "}
+                          <strong style={{ color: THEME.accent }}>
+                            {fmtINRFull(riResult.monthlySIPNeeded)}
+                          </strong>{" "}
+                          at 12% return to build this corpus by retirement.
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          padding: 18,
+                          background: `${THEME.sage}0c`,
+                          borderRadius: 12,
+                          border: `1.5px solid ${THEME.sage}40`,
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          textAlign: "center",
+                        }}
+                      >
+                        <CheckCircle2 size={32} color={THEME.sage} />
+                        <div
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: THEME.sage,
+                            marginTop: 10,
+                          }}
+                        >
+                          No Additional Corpus Needed
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            marginTop: 6,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          Your planned income sources cover all retirement expenses throughout your
+                          lifetime.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Income Timeline Chart */}
+              <Card style={{ padding: 24, marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted, marginBottom: 16 }}>
+                  Income vs Expenses Timeline
+                </div>
+                <ResponsiveContainer width="100%" height={340}>
+                  <AreaChart data={riResult.timeline}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={`${THEME.line}`} />
+                    <XAxis
+                      dataKey="age"
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      axisLine={false}
+                      tickLine={false}
+                      label={{ value: "Age", position: "insideBottomRight", offset: -5, fontSize: 11, fill: THEME.muted }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => {
+                        if (v >= 100000) return `${(v / 1000).toFixed(0)}K`;
+                        if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+                        return String(v);
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(v: number, name: string) => [fmtINRFull(v), name]}
+                      contentStyle={{
+                        background: "var(--t-card-bg)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 10,
+                        fontSize: 12,
+                      }}
+                      labelFormatter={(age: number) => `Age ${age}`}
+                    />
+                    <Legend verticalAlign="top" height={36} />
+                    {riSources.map((src, i) => {
+                      const colors = [THEME.accent, THEME.sage, THEME.gold, "#8B5CF6", "#EC4899"];
+                      return (
+                        <Area
+                          key={src.name}
+                          type="monotone"
+                          dataKey={src.name}
+                          stackId="income"
+                          stroke={colors[i % colors.length]}
+                          fill={colors[i % colors.length]}
+                          fillOpacity={0.4}
+                        />
+                      );
+                    })}
+                    <Area
+                      type="monotone"
+                      dataKey="inflatedExpense"
+                      name="Inflation-Adjusted Expenses"
+                      stroke={THEME.rust}
+                      fill="none"
+                      strokeWidth={2.5}
+                      strokeDasharray="8 4"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </Card>
+
+              {/* Income Sources Table */}
+              <Card style={{ padding: 24 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.muted }}>
+                    Income Sources
+                  </div>
+                  <button
+                    onClick={() =>
+                      setRiSources((prev) => [
+                        ...prev,
+                        { name: "New Source", monthly: 10000, startAge: 60, endAge: 85, growth: 0 },
+                      ])
+                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 14px",
+                      background: THEME.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Plus size={14} /> Add Source
+                  </button>
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: 13,
+                      minWidth: 600,
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: `2px solid ${THEME.line}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                          Source Name
+                        </th>
+                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                          Monthly (₹)
+                        </th>
+                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                          Start Age
+                        </th>
+                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                          End Age
+                        </th>
+                        <th style={{ padding: "8px 6px", color: THEME.muted, fontWeight: 700, fontSize: 11 }}>
+                          Growth %
+                        </th>
+                        <th style={{ padding: "8px 6px", width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {riSources.map((src, idx) => (
+                        <tr
+                          key={idx}
+                          style={{
+                            borderBottom: `1px solid ${THEME.line}`,
+                          }}
+                        >
+                          <td style={{ padding: "6px" }}>
+                            <input
+                              type="text"
+                              value={src.name}
+                              onChange={(e) => {
+                                const next = [...riSources];
+                                next[idx] = { ...next[idx], name: e.target.value };
+                                setRiSources(next);
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "6px 8px",
+                                background: "var(--t-card-bg)",
+                                border: `1px solid ${THEME.line}`,
+                                borderRadius: 6,
+                                color: THEME.ink,
+                                fontSize: 12,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px" }}>
+                            <input
+                              type="number"
+                              value={src.monthly}
+                              onChange={(e) => {
+                                const next = [...riSources];
+                                next[idx] = { ...next[idx], monthly: Number(e.target.value) || 0 };
+                                setRiSources(next);
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "6px 8px",
+                                background: "var(--t-card-bg)",
+                                border: `1px solid ${THEME.line}`,
+                                borderRadius: 6,
+                                color: THEME.ink,
+                                fontSize: 12,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px" }}>
+                            <input
+                              type="number"
+                              value={src.startAge}
+                              onChange={(e) => {
+                                const next = [...riSources];
+                                next[idx] = { ...next[idx], startAge: Number(e.target.value) || 0 };
+                                setRiSources(next);
+                              }}
+                              style={{
+                                width: 60,
+                                padding: "6px 8px",
+                                background: "var(--t-card-bg)",
+                                border: `1px solid ${THEME.line}`,
+                                borderRadius: 6,
+                                color: THEME.ink,
+                                fontSize: 12,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px" }}>
+                            <input
+                              type="number"
+                              value={src.endAge}
+                              onChange={(e) => {
+                                const next = [...riSources];
+                                next[idx] = { ...next[idx], endAge: Number(e.target.value) || 0 };
+                                setRiSources(next);
+                              }}
+                              style={{
+                                width: 60,
+                                padding: "6px 8px",
+                                background: "var(--t-card-bg)",
+                                border: `1px solid ${THEME.line}`,
+                                borderRadius: 6,
+                                color: THEME.ink,
+                                fontSize: 12,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px" }}>
+                            <input
+                              type="number"
+                              value={src.growth}
+                              onChange={(e) => {
+                                const next = [...riSources];
+                                next[idx] = { ...next[idx], growth: Number(e.target.value) || 0 };
+                                setRiSources(next);
+                              }}
+                              style={{
+                                width: 60,
+                                padding: "6px 8px",
+                                background: "var(--t-card-bg)",
+                                border: `1px solid ${THEME.line}`,
+                                borderRadius: 6,
+                                color: THEME.ink,
+                                fontSize: 12,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px", textAlign: "center" }}>
+                            <button
+                              onClick={() =>
+                                setRiSources((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: THEME.rust,
+                                padding: 4,
+                              }}
+                              title="Remove source"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
             </div>

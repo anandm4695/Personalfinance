@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area, PieChart, Pie, Cell, Legend } from "recharts";
+import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area, PieChart, Pie, Cell, Legend, BarChart, Bar } from "recharts";
 import {
   Plus,
   Briefcase,
@@ -20,6 +20,7 @@ import {
   ArrowDown,
   Star,
   X,
+  Upload,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
@@ -29,6 +30,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
+import { BrokerImportModal } from "../modals/BrokerImportModal";
 
 // Broker logo domains for Clearbit
 const BROKER_LOGO_DOMAINS: Record<string, string> = {
@@ -770,6 +772,7 @@ export function DematTab({
   const [showStock, setShowStock] = useState(false);
   const [stockDefaults, setStockDefaults] = useState<any>(null);
   const [editStockId, setEditStockId] = useState<string | null>(null);
+  const [showBrokerImport, setShowBrokerImport] = useState(false);
 
   // Watchlist UI state
   const [dematView, setDematView] = useState<"holdings" | "analytics" | "watchlist">("holdings");
@@ -1286,16 +1289,25 @@ export function DematTab({
               )}
             </div>
             {state.stocks.length > 0 && (
-              <Button
-                variant="accent"
-                icon={<Plus size={14} />}
-                onClick={() => {
-                  setStockDefaults(null);
-                  setShowStock(true);
-                }}
-              >
-                Add Scrip
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  icon={<Upload size={14} />}
+                  onClick={() => setShowBrokerImport(true)}
+                >
+                  Import Trades
+                </Button>
+                <Button
+                  variant="accent"
+                  icon={<Plus size={14} />}
+                  onClick={() => {
+                    setStockDefaults(null);
+                    setShowStock(true);
+                  }}
+                >
+                  Add Scrip
+                </Button>
+              </>
             )}
           </div>
         }
@@ -1510,6 +1522,193 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             sub="Annualized rate of return"
           />
         </div>
+
+        {/* ── BENCHMARK COMPARISON SECTION ── */}
+        {filteredStocks.length > 0 && (() => {
+          // Compute portfolio CAGR from oldest buy date
+          const oldestBuyDate = filteredStocks.reduce((oldest: string | null, st: any) => {
+            if (!st.buyDate) return oldest;
+            if (!oldest) return st.buyDate;
+            return new Date(st.buyDate).getTime() < new Date(oldest).getTime() ? st.buyDate : oldest;
+          }, null as string | null);
+
+          const portfolioCagr = oldestBuyDate ? calcCAGR(totalInvested, totalValue, oldestBuyDate) : null;
+          const absoluteReturnPct = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
+
+          // Hardcoded benchmark annual returns
+          const benchmarks = [
+            { name: "Nifty 50",       "1Y": 8.5,  "3Y": 11.2, "5Y": 14.8, "10Y": 12.1, color: "#3b82f6" },
+            { name: "Sensex",         "1Y": 8.2,  "3Y": 10.9, "5Y": 14.5, "10Y": 12.0, color: "#64748b" },
+            { name: "Nifty Midcap",   "1Y": 15.3, "3Y": 18.7, "5Y": 19.2, "10Y": 16.5, color: "#8b5cf6" },
+            { name: "Nifty Smallcap", "1Y": 12.1, "3Y": 20.5, "5Y": 18.9, "10Y": 15.8, color: "#f59e0b" },
+          ];
+
+          // Alpha vs Nifty 50 (use 1Y as default comparison)
+          const nifty1Y = 8.5;
+          const alpha = portfolioCagr !== null ? portfolioCagr - nifty1Y : null;
+
+          // Performance rating
+          let ratingLabel = "Underperforming";
+          let ratingColor = THEME.rust;
+          if (alpha !== null) {
+            if (alpha > 5) { ratingLabel = "Outperforming"; ratingColor = THEME.sage; }
+            else if (alpha >= 0) { ratingLabel = "Market Pace"; ratingColor = THEME.gold; }
+          }
+
+          // Bar chart comparison data
+          const barChartData = [
+            { name: "Your Portfolio", return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0, fill: THEME.accent },
+            { name: "Nifty 50", return: nifty1Y, fill: "#3b82f6" },
+            { name: "Nifty Midcap", return: 15.3, fill: "#8b5cf6" },
+            { name: "Nifty Smallcap", return: 12.1, fill: "#f59e0b" },
+          ];
+
+          return (
+            <Card style={{ padding: 24, marginBottom: 24 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>
+                Portfolio vs Benchmark
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
+                Compare your portfolio returns against major Indian market indices
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+
+                {/* Left: Portfolio Returns Summary */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                    Your Portfolio Returns
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Total Invested</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalInvested)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Current Value</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalValue)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Absolute Return</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: absoluteReturnPct >= 0 ? THEME.sage : THEME.rust }}>
+                        {absoluteReturnPct >= 0 ? "+" : ""}{absoluteReturnPct.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}0d` : `${THEME.rust}0d`, border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}30` : `${THEME.rust}30`}` }}>
+                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Portfolio CAGR</span>
+                      <span style={{ fontSize: 16, fontWeight: 900, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }}>
+                        {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%` : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Alpha indicator + performance rating */}
+                  {alpha !== null && (
+                    <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        background: alpha >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
+                        border: `1.5px solid ${alpha >= 0 ? `${THEME.sage}40` : `${THEME.rust}40`}`,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}>
+                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Alpha vs Nifty 50:</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: alpha >= 0 ? THEME.sage : THEME.rust }}>
+                          {alpha >= 0 ? "+" : ""}{alpha.toFixed(1)}%
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: "5px 12px",
+                        borderRadius: 20,
+                        background: `color-mix(in srgb, ${ratingColor} 15%, transparent)`,
+                        color: ratingColor,
+                        border: `1px solid color-mix(in srgb, ${ratingColor} 30%, transparent)`,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}>
+                        {ratingLabel}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Visual bar chart comparison */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                    Annualized Return Comparison
+                  </div>
+                  <div style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 12, padding: "16px 12px" }}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={barChartData} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 10 }}>
+                        <XAxis type="number" tick={{ fontSize: 11, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} domain={[0, "auto"]} unit="%" />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }} axisLine={false} tickLine={false} width={110} />
+                        <Tooltip
+                          contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8 }}
+                          formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "CAGR"]}
+                        />
+                        <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
+                          {barChartData.map((entry, index) => (
+                            <Cell key={`bar-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Benchmark comparison table */}
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+                  Index Returns (Historical Annualized)
+                </div>
+                <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "var(--surface-0)" }}>
+                        <th style={{ ...th, paddingLeft: 16 }}>Index</th>
+                        <th style={{ ...th, textAlign: "right" }}>1Y</th>
+                        <th style={{ ...th, textAlign: "right" }}>3Y</th>
+                        <th style={{ ...th, textAlign: "right" }}>5Y</th>
+                        <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>10Y</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* User's portfolio row */}
+                      <tr style={{ background: `${THEME.accent}0a` }}>
+                        <td style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.accent }}>
+                          Your Portfolio
+                        </td>
+                        <td style={{ ...td, textAlign: "right", fontWeight: 800, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }} colSpan={4}>
+                          <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginRight: 8 }}>CAGR:</span>
+                          {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(1)}%` : "N/A"}
+                        </td>
+                      </tr>
+                      {benchmarks.map((b) => (
+                        <tr key={b.name}>
+                          <td style={{ ...td, paddingLeft: 16 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
+                              <span style={{ fontWeight: 700, color: THEME.ink }}>{b.name}</span>
+                            </div>
+                          </td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["1Y"]}%</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["3Y"]}%</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["5Y"]}%</td>
+                          <td style={{ ...td, textAlign: "right", fontWeight: 600, paddingRight: 16 }}>{b["10Y"]}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
 
         <div
           style={{
@@ -3690,6 +3889,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           />
         );
       })()}
+
+      {showBrokerImport && (
+        <BrokerImportModal
+          existingStocks={state.stocks || []}
+          demats={state.demat || []}
+          onClose={() => setShowBrokerImport(false)}
+          onImport={(buys: any[], sells: any[]) => {
+            buys.forEach((t: any) => addItem("stocks", t));
+            sells.forEach((s: any) => addItem("stockSells", s));
+            setShowBrokerImport(false);
+          }}
+        />
+      )}
     </div>
   );
 }

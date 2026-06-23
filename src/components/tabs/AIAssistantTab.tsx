@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Send,
   Bot,
@@ -11,6 +11,18 @@ import {
   Sparkles,
   ShieldCheck,
   ArrowRight,
+  Bookmark,
+  MessageSquare,
+  TrendingDown,
+  TrendingUp,
+  Shield,
+  Target,
+  PieChart,
+  Wallet,
+  BarChart3,
+  AlertCircle,
+  Lightbulb,
+  ChevronRight,
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
@@ -339,15 +351,36 @@ const TypingIndicator = () => (
   </div>
 );
 
-// ── Suggestions ─────────────────────────────────────────────────────────────
-const SUGGESTIONS = [
-  "Review my portfolio for diversification and risk",
-  "How can I save more tax this year?",
-  "Detect any anomalies in my finances",
-  "What's my spending breakdown this month?",
-  "Am I on track for my financial goals?",
-  "Is my insurance coverage adequate?",
-];
+// ── Advisor prompt categories ────────────────────────────────────────────────
+const ADVISOR_PROMPTS: Record<string, string[]> = {
+  Portfolio: [
+    "Review my portfolio for diversification and rebalancing suggestions",
+    "Which stocks should I consider selling based on fundamentals?",
+    "Am I over-exposed to any single sector?",
+  ],
+  Tax: [
+    "How can I maximize my tax savings this year?",
+    "Should I switch to old or new tax regime?",
+    "Calculate my estimated advance tax for this quarter",
+  ],
+  Goals: [
+    "Am I on track for all my financial goals?",
+    "What SIP amount do I need to retire by 55?",
+    "Prioritize my goals by urgency and feasibility",
+  ],
+  Risk: [
+    "Detect anomalies in my spending patterns",
+    "What's my financial risk score?",
+    "How vulnerable am I to a job loss scenario?",
+  ],
+};
+
+const PROMPT_CATEGORY_ICONS: Record<string, any> = {
+  Portfolio: PieChart,
+  Tax: Wallet,
+  Goals: Target,
+  Risk: Shield,
+};
 
 // ── Main component ───────────────────────────────────────────────────────────
 export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }) => {
@@ -356,6 +389,8 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [savedNoteIdx, setSavedNoteIdx] = useState<number | null>(null);
+  const [activePromptCategory, setActivePromptCategory] = useState("Portfolio");
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
@@ -412,6 +447,147 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     return `₹${Math.round(abs)}`;
   };
 
+  // ── Save AI response as note ──
+  const saveAsNote = (text: string, idx: number) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem("finance_ai_notes") || "[]");
+      existing.push({ text, savedAt: new Date().toISOString() });
+      localStorage.setItem("finance_ai_notes", JSON.stringify(existing));
+      setSavedNoteIdx(idx);
+      setTimeout(() => setSavedNoteIdx(null), 2000);
+    } catch {}
+  };
+
+  // ── Proactive insights ──
+  const proactiveInsights = useMemo(() => {
+    const insights: { icon: any; title: string; detail: string; severity: "critical" | "warning" | "opportunity"; prompt: string }[] = [];
+    const savingsRate = metrics.savingsRate || 0;
+    const creditUtil = metrics.creditUtilization || 0;
+    const monthExpense = metrics.monthExpense || 0;
+    const cashInBanks = metrics.cashInBanks || 0;
+    const emergencyMonths = monthExpense > 0 ? cashInBanks / monthExpense : 0;
+
+    // Savings rate check
+    if (savingsRate < 20 && (metrics.monthIncome || 0) > 0) {
+      insights.push({
+        icon: TrendingDown,
+        title: "Low Savings Rate",
+        detail: `Your savings rate is ${savingsRate.toFixed(0)}% — below the recommended 20%`,
+        severity: savingsRate < 10 ? "critical" : "warning",
+        prompt: `My savings rate is only ${savingsRate.toFixed(0)}%. How can I increase it to at least 20%?`,
+      });
+    }
+
+    // Credit utilization
+    if (creditUtil > 30) {
+      insights.push({
+        icon: AlertCircle,
+        title: "High Credit Utilization",
+        detail: `Credit utilization at ${creditUtil.toFixed(0)}% — may impact credit score`,
+        severity: creditUtil > 75 ? "critical" : "warning",
+        prompt: `My credit utilization is ${creditUtil.toFixed(0)}%. How can I reduce it and improve my credit score?`,
+      });
+    }
+
+    // Emergency fund
+    if (emergencyMonths < 3 && monthExpense > 0) {
+      insights.push({
+        icon: Shield,
+        title: "Weak Emergency Fund",
+        detail: `Emergency fund covers only ${emergencyMonths.toFixed(1)} months`,
+        severity: emergencyMonths < 1 ? "critical" : "warning",
+        prompt: `My emergency fund only covers ${emergencyMonths.toFixed(1)} months of expenses. How should I build it up?`,
+      });
+    }
+
+    // Goals behind schedule
+    const behindGoals = (state.goals || []).filter((g: any) => {
+      const target = Number(g.targetAmount) || 0;
+      const current = Number(g.currentAmount) || 0;
+      if (!g.targetDate || target <= 0) return false;
+      const targetDate = new Date(g.targetDate);
+      const now = new Date();
+      const totalMonths = Math.max(1, (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const remaining = target - current;
+      const monthlyNeeded = remaining / totalMonths;
+      const monthlySavings = (metrics.monthIncome || 0) - (metrics.monthExpense || 0);
+      return monthlyNeeded > monthlySavings * 0.5;
+    });
+    if (behindGoals.length > 0) {
+      insights.push({
+        icon: Target,
+        title: "Goals Behind Schedule",
+        detail: `${behindGoals.length} goal${behindGoals.length > 1 ? "s are" : " is"} behind schedule`,
+        severity: "warning",
+        prompt: `${behindGoals.length} of my financial goals are behind schedule. Which ones should I prioritize and how can I catch up?`,
+      });
+    }
+
+    // Concentration risk
+    const stocks = state.stocks || [];
+    const totalStockVal = stocks.reduce((s: number, st: any) => s + Number(st.qty || 0) * Number(st.currentPrice || st.avgPrice || 0), 0);
+    const concentrated = stocks.filter((s: any) => {
+      const val = Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0);
+      return totalStockVal > 0 && (val / totalStockVal) > 0.15;
+    });
+    if (concentrated.length > 0) {
+      insights.push({
+        icon: PieChart,
+        title: "Concentration Risk",
+        detail: `Portfolio concentrated in ${concentrated.map((s: any) => s.symbol).join(", ")}`,
+        severity: "warning",
+        prompt: `My portfolio has concentration risk in ${concentrated.map((s: any) => s.symbol).join(", ")}. Should I rebalance?`,
+      });
+    }
+
+    // Insurance adequacy
+    const termCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || t.sumAssured || 0), 0);
+    const licCover = (state.lic || []).reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
+    const totalCover = termCover + licCover;
+    const annualIncome = (metrics.monthIncome || 0) * 12;
+    const coverMultiple = annualIncome > 0 ? totalCover / annualIncome : 0;
+    if (coverMultiple < 10 && annualIncome > 0) {
+      insights.push({
+        icon: Shield,
+        title: "Under-insured",
+        detail: `Life cover is only ${coverMultiple.toFixed(0)}x income (recommend 10x)`,
+        severity: coverMultiple < 5 ? "critical" : "warning",
+        prompt: `My life insurance cover is only ${coverMultiple.toFixed(0)}x my annual income. How much more do I need?`,
+      });
+    }
+
+    // NPS/PPF tax saving opportunity
+    const npsContrib = 0; // TODO: pull actual NPS contributions
+    const remaining80CCD = 50000 - npsContrib;
+    if (remaining80CCD > 0) {
+      insights.push({
+        icon: Lightbulb,
+        title: "Tax Saving Opportunity",
+        detail: `₹${remaining80CCD.toLocaleString()} tax saving opportunity via NPS 80CCD(1B)`,
+        severity: "opportunity",
+        prompt: `I haven't utilized my 80CCD(1B) NPS deduction. How much can I save on taxes by investing ₹${remaining80CCD.toLocaleString()} in NPS?`,
+      });
+    }
+
+    // MF P&L negative
+    const mfInvested = metrics.mfInvested || 0;
+    const mfValue = metrics.mfValue || 0;
+    if (mfInvested > 0 && mfValue < mfInvested) {
+      const downPct = ((mfInvested - mfValue) / mfInvested * 100).toFixed(1);
+      insights.push({
+        icon: TrendingDown,
+        title: "MF Portfolio in Loss",
+        detail: `Mutual fund portfolio is down ${downPct}%`,
+        severity: Number(downPct) > 10 ? "critical" : "warning",
+        prompt: `My mutual fund portfolio is down ${downPct}%. Should I stay invested, switch funds, or book losses for tax harvesting?`,
+      });
+    }
+
+    // Return top 4
+    const severityOrder = { critical: 0, warning: 1, opportunity: 2 };
+    return insights.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]).slice(0, 4);
+  }, [metrics, state]);
+
   const generateContext = useCallback(() => {
     const topExpenses =
       (metrics.expenseBreakdown || [])
@@ -444,6 +620,63 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
         .join("\n") || "  No loans";
     const regime = state.profile?.regime === "old" ? "Old Regime" : "New Regime (FY 2025-26)";
 
+    // Emergency fund
+    const monthExpense = metrics.monthExpense || 0;
+    const cashInBanks = metrics.cashInBanks || 0;
+    const emergencyMonths = monthExpense > 0 ? (cashInBanks / monthExpense) : 0;
+    const emergencyStatus = emergencyMonths < 3 ? "Critical" : emergencyMonths < 6 ? "Building" : "Healthy";
+
+    // Net worth trend
+    const nwHistory = state.netWorthHistory || [];
+    const last6NW = nwHistory.slice(-6).map((e: any) => `  ${e.month || e.date}: ${fmtCr(Number(e.value || e.netWorth || 0))}`).join("\n") || "  No history";
+    const momChange = nwHistory.length >= 2
+      ? (((Number(nwHistory[nwHistory.length - 1]?.value || nwHistory[nwHistory.length - 1]?.netWorth || 0) - Number(nwHistory[nwHistory.length - 2]?.value || nwHistory[nwHistory.length - 2]?.netWorth || 0)) / Math.max(1, Number(nwHistory[nwHistory.length - 2]?.value || nwHistory[nwHistory.length - 2]?.netWorth || 1))) * 100).toFixed(1)
+      : "N/A";
+
+    // Budget status
+    const budgets = state.budgets || [];
+    const txsThisMonth = (state.transactions || []).filter((t: any) => {
+      if (t.type !== "debit" || !t.date) return false;
+      const now = new Date();
+      return t.date.startsWith(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    });
+    const spentByCat: Record<string, number> = {};
+    txsThisMonth.forEach((t: any) => { const cat = t.category || "Uncategorized"; spentByCat[cat] = (spentByCat[cat] || 0) + Number(t.amount || 0); });
+    const overBudgetCats = budgets.filter((b: any) => {
+      const spent = spentByCat[b.category] || 0;
+      return Number(b.limit || b.amount || 0) > 0 && spent > Number(b.limit || b.amount || 0);
+    }).map((b: any) => `  ${b.category}: ${fmtCr(spentByCat[b.category] || 0)} / ${fmtCr(Number(b.limit || b.amount || 0))}`);
+    const totalBudgetLimit = budgets.reduce((s: number, b: any) => s + Number(b.limit || b.amount || 0), 0);
+    const totalBudgetSpent = budgets.reduce((s: number, b: any) => s + (spentByCat[b.category] || 0), 0);
+    const budgetUtilization = totalBudgetLimit > 0 ? ((totalBudgetSpent / totalBudgetLimit) * 100).toFixed(0) : "N/A";
+
+    // Insurance coverage
+    const termCover = (state.termPlans || []).reduce((s: number, t: any) => s + Number(t.coverAmount || t.sumAssured || 0), 0);
+    const licCover = (state.lic || []).reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
+    const totalLifeCover = termCover + licCover;
+    const annualIncome = (metrics.monthIncome || 0) * 12;
+    const coverMultiple = annualIncome > 0 ? (totalLifeCover / annualIncome) : 0;
+    const insuranceAdequacy = coverMultiple >= 10 ? "Adequately insured" : coverMultiple >= 5 ? "Under insured" : "Critically under insured";
+
+    // Dividends & passive income
+    const dividendTxs = (state.transactions || []).filter((t: any) => t.type === "credit" && (t.category || "").toLowerCase().includes("dividend"));
+    const totalDividends = dividendTxs.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const rentalIncome = (state.rentedProperties || []).filter((p: any) => p.isLandlord || p.type === "owned").reduce((s: number, p: any) => s + Number(p.monthlyRent || 0), 0);
+    const realEstateRental = (state.realEstateProperties || []).filter((p: any) => p.rentalIncome).reduce((s: number, p: any) => s + Number(p.rentalIncome || 0), 0);
+    const totalRentalMonthly = rentalIncome + realEstateRental;
+    const monthlyPassive = totalDividends / 12 + totalRentalMonthly;
+    const passiveRatio = (metrics.monthIncome || 0) > 0 ? ((monthlyPassive / (metrics.monthIncome || 1)) * 100).toFixed(1) : "0";
+
+    // Vehicles & real estate
+    const properties = (state.realEstateProperties || []).filter((p: any) => p.status !== "sold");
+    const propValue = properties.reduce((s: number, p: any) => s + Number(p.currentValue || p.purchasePrice || 0), 0);
+    const vehicles = state.vehicles || [];
+    const vehicleValue = vehicles.reduce((s: number, v: any) => s + Number(v.currentValue || v.purchasePrice || 0), 0);
+
+    // Credit health
+    const activeLoans = (state.loansTaken || []).length;
+    const foir = metrics.foir || 0;
+
     return `You are a highly professional, expert financial advisor for an Indian user.
 Analyse their financial state and give concise, hyper-personalised, actionable advice.
 Use markdown (## bold headings, bullet points). Be specific with numbers. No PII.
@@ -463,7 +696,7 @@ Fixed Deposits:   ${fmtCr(metrics.fdValue || 0)}
 PPF:              ${fmtCr(metrics.ppfValue || 0)}
 EPF:              ${fmtCr(metrics.epfValue || 0)}
 NPS:              ${fmtCr(metrics.npsValue || 0)}
-Real Estate:      ${fmtCr(metrics.realEstateAsset || 0)} (${(state.realEstateProperties || []).filter((p: any) => p.status !== 'sold').length} properties; sold excluded)
+Real Estate:      ${fmtCr(metrics.realEstateAsset || 0)} (${properties.length} properties; sold excluded)
 Total Assets:     ${fmtCr(metrics.totalAssets || 0)}
 
 == LIABILITIES ==
@@ -484,7 +717,38 @@ ${subs}
 == GOALS PROGRESS ==
 ${goals}
 
-You have access to local tools/functions to retrieve real-time and detailed transaction lists, holdings, and loan prepayment calculations. Use them when the user asks for detailed lists, specific transactions, or loan prepayments.`;
+== EMERGENCY FUND ==
+Months of expenses covered: ${emergencyMonths.toFixed(1)} months
+Status: ${emergencyStatus}
+
+== NET WORTH TREND ==
+Last 6 months:
+${last6NW}
+MoM Change: ${momChange}%
+
+== BUDGET STATUS ==
+Categories over budget: ${overBudgetCats.length > 0 ? "\n" + overBudgetCats.join("\n") : "None"}
+Overall utilization: ${budgetUtilization}%
+
+== INSURANCE COVERAGE ==
+Life cover: ${fmtCr(totalLifeCover)} (${coverMultiple.toFixed(0)}x annual income)
+Adequacy: ${insuranceAdequacy}
+
+== DIVIDENDS & PASSIVE INCOME ==
+Total dividends received: ${fmtCr(totalDividends)}
+Rental income: ${fmtCr(totalRentalMonthly)}/mo
+Total passive income ratio: ${passiveRatio}%
+
+== VEHICLES & REAL ESTATE ==
+Properties: ${properties.length} (value ${fmtCr(propValue)})
+Vehicles: ${vehicles.length} (value ${fmtCr(vehicleValue)})
+
+== CREDIT HEALTH ==
+Credit utilization: ${(metrics.creditUtilization || 0).toFixed(0)}%
+FOIR: ${foir.toFixed(1)}%
+Active loans: ${activeLoans}
+
+You have access to local tools/functions to retrieve real-time and detailed transaction lists, holdings, loan prepayment calculations, net worth trends, budget status, and rebalancing suggestions. Use them when the user asks for detailed lists, specific transactions, loan prepayments, or portfolio rebalancing.`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metrics, state]);
 
@@ -591,6 +855,40 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       name: "detect_anomalies",
       description: "Scan the user's financial data for anomalies: months with unusually high spending, missed SIP months, sudden bank balance drops, and credit utilization spikes. Call when the user asks about unusual patterns or to check their financial health.",
       parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature: Net Worth Trend
+    {
+      name: "get_net_worth_trend",
+      description: "Returns the last 12 months of net worth history with month-over-month changes and growth percentages. Call when the user asks about net worth trends, growth, or historical progress.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature: Budget Status
+    {
+      name: "get_budget_status",
+      description: "Returns current month's budget vs actual spending per category, showing over/under budget amounts and overall utilization. Call when the user asks about budget, spending limits, or category-wise spending.",
+      parameters: { type: "OBJECT", properties: {} },
+    },
+    // Feature: Rebalancing Suggestion
+    {
+      name: "get_rebalancing_suggestion",
+      description: "Computes target vs actual asset allocation percentages and suggests specific rebalancing trades (buy/sell amounts per asset class) to match target allocation. Call when the user asks about rebalancing, asset allocation, or portfolio adjustment.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          targetEquityPct: {
+            type: "NUMBER",
+            description: "Target equity allocation percentage (0-100). Defaults to 60 if not provided.",
+          },
+          targetDebtPct: {
+            type: "NUMBER",
+            description: "Target debt/fixed income allocation percentage (0-100). Defaults to 30 if not provided.",
+          },
+          targetGoldPct: {
+            type: "NUMBER",
+            description: "Target gold allocation percentage (0-100). Defaults to 10 if not provided.",
+          },
+        },
+      },
     },
   ];
 
@@ -737,6 +1035,117 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       if (util > 80) anomalies.push({ type: "high_credit_utilization", card: cc.issuer, utilization: Math.round(util), outstanding: Number(cc.outstanding || 0), limit: Number(cc.cardLimit || 0) });
     });
     return { anomalies, scannedAt: new Date().toISOString() };
+  };
+
+  // ── Net Worth Trend Handler ──
+  const handleGetNetWorthTrend = () => {
+    const history = (state.netWorthHistory || []).slice(-12);
+    const trend = history.map((e: any, i: number, arr: any[]) => {
+      const value = Number(e.value || e.netWorth || 0);
+      const prevValue = i > 0 ? Number(arr[i - 1].value || arr[i - 1].netWorth || 0) : value;
+      const momChange = prevValue > 0 ? (((value - prevValue) / prevValue) * 100) : 0;
+      return {
+        month: e.month || e.date || `Month ${i + 1}`,
+        netWorth: value,
+        momChange: i > 0 ? Number(momChange.toFixed(1)) : 0,
+      };
+    });
+    const latest = trend.length > 0 ? trend[trend.length - 1].netWorth : 0;
+    const oldest = trend.length > 0 ? trend[0].netWorth : 0;
+    const overallGrowth = oldest > 0 ? (((latest - oldest) / oldest) * 100).toFixed(1) : "N/A";
+    return { trend, periodMonths: trend.length, overallGrowthPct: overallGrowth, currentNetWorth: latest };
+  };
+
+  // ── Budget Status Handler ──
+  const handleGetBudgetStatus = () => {
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const txsThisMonth = (state.transactions || []).filter(
+      (t: any) => t.type === "debit" && t.date && t.date.startsWith(monthPrefix)
+    );
+    const spentByCat: Record<string, number> = {};
+    txsThisMonth.forEach((t: any) => {
+      const cat = t.category || "Uncategorized";
+      spentByCat[cat] = (spentByCat[cat] || 0) + Number(t.amount || 0);
+    });
+    const budgets = state.budgets || [];
+    const categories = budgets.map((b: any) => {
+      const limit = Number(b.limit || b.amount || 0);
+      const spent = spentByCat[b.category] || 0;
+      return {
+        category: b.category,
+        budgetLimit: limit,
+        spent,
+        remaining: Math.max(0, limit - spent),
+        overBudget: spent > limit,
+        utilizationPct: limit > 0 ? Number(((spent / limit) * 100).toFixed(0)) : 0,
+      };
+    });
+    const totalLimit = budgets.reduce((s: number, b: any) => s + Number(b.limit || b.amount || 0), 0);
+    const totalSpent = budgets.reduce((s: number, b: any) => s + (spentByCat[b.category] || 0), 0);
+    // Include unbudgeted categories
+    const budgetedCats = new Set(budgets.map((b: any) => b.category));
+    const unbudgeted = Object.entries(spentByCat).filter(([cat]) => !budgetedCats.has(cat)).map(([category, spent]) => ({ category, spent, budgetLimit: 0, note: "No budget set" }));
+    return {
+      month: monthPrefix,
+      categories,
+      unbudgetedSpending: unbudgeted,
+      totalBudget: totalLimit,
+      totalSpent,
+      overallUtilizationPct: totalLimit > 0 ? Number(((totalSpent / totalLimit) * 100).toFixed(0)) : 0,
+      overBudgetCount: categories.filter((c: any) => c.overBudget).length,
+    };
+  };
+
+  // ── Rebalancing Suggestion Handler ──
+  const handleGetRebalancingSuggestion = (args: any) => {
+    const targetEquity = args.targetEquityPct ?? 60;
+    const targetDebt = args.targetDebtPct ?? 30;
+    const targetGold = args.targetGoldPct ?? 10;
+
+    const mfs = state.mutualFunds || [];
+    const stocks = state.stocks || [];
+    const equityMF = mfs.filter((m: any) => !(m.type || m.category || "").toLowerCase().includes("debt")).reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+    const debtMF = mfs.filter((m: any) => (m.type || m.category || "").toLowerCase().includes("debt")).reduce((s: number, m: any) => s + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+    const stockVal = stocks.reduce((s: number, st: any) => s + Number(st.qty || 0) * Number(st.currentPrice || st.avgPrice || 0), 0);
+
+    const totalEquity = equityMF + stockVal;
+    const totalDebt = debtMF + (metrics.fdValue || 0) + (metrics.ppfValue || 0) + (metrics.epfValue || 0);
+    const totalGold = metrics.goldValue || 0;
+    const totalPortfolio = totalEquity + totalDebt + totalGold;
+
+    if (totalPortfolio <= 0) {
+      return { error: "No investment portfolio found to rebalance." };
+    }
+
+    const actualEquityPct = Number(((totalEquity / totalPortfolio) * 100).toFixed(1));
+    const actualDebtPct = Number(((totalDebt / totalPortfolio) * 100).toFixed(1));
+    const actualGoldPct = Number(((totalGold / totalPortfolio) * 100).toFixed(1));
+
+    const targetEquityVal = totalPortfolio * (targetEquity / 100);
+    const targetDebtVal = totalPortfolio * (targetDebt / 100);
+    const targetGoldVal = totalPortfolio * (targetGold / 100);
+
+    const suggestions: string[] = [];
+    if (totalEquity > targetEquityVal * 1.05) suggestions.push(`Reduce equity by ${fmtCr(totalEquity - targetEquityVal)} — sell some stocks or equity MFs`);
+    if (totalEquity < targetEquityVal * 0.95) suggestions.push(`Increase equity by ${fmtCr(targetEquityVal - totalEquity)} — buy equity MFs or stocks`);
+    if (totalDebt > targetDebtVal * 1.05) suggestions.push(`Reduce debt by ${fmtCr(totalDebt - targetDebtVal)} — redeem FDs or debt MFs at maturity`);
+    if (totalDebt < targetDebtVal * 0.95) suggestions.push(`Increase debt by ${fmtCr(targetDebtVal - totalDebt)} — invest in debt MFs or FDs`);
+    if (totalGold > targetGoldVal * 1.1) suggestions.push(`Reduce gold by ${fmtCr(totalGold - targetGoldVal)}`);
+    if (totalGold < targetGoldVal * 0.9 && targetGold > 0) suggestions.push(`Increase gold by ${fmtCr(targetGoldVal - totalGold)} — consider Sovereign Gold Bonds or Gold ETFs`);
+
+    return {
+      totalPortfolioValue: totalPortfolio,
+      current: { equity: { value: totalEquity, pct: actualEquityPct }, debt: { value: totalDebt, pct: actualDebtPct }, gold: { value: totalGold, pct: actualGoldPct } },
+      target: { equity: { pct: targetEquity, value: targetEquityVal }, debt: { pct: targetDebt, value: targetDebtVal }, gold: { pct: targetGold, value: targetGoldVal } },
+      deviations: {
+        equity: Number((actualEquityPct - targetEquity).toFixed(1)),
+        debt: Number((actualDebtPct - targetDebt).toFixed(1)),
+        gold: Number((actualGoldPct - targetGold).toFixed(1)),
+      },
+      suggestions,
+      needsRebalancing: suggestions.length > 0,
+    };
   };
 
   const handleGetFinancialSummary = () => {
@@ -958,6 +1367,12 @@ You have access to local tools/functions to retrieve real-time and detailed tran
               contentData = handleGetSipSummary();
             } else if (name === "detect_anomalies") {
               contentData = handleDetectAnomalies();
+            } else if (name === "get_net_worth_trend") {
+              contentData = handleGetNetWorthTrend();
+            } else if (name === "get_budget_status") {
+              contentData = handleGetBudgetStatus();
+            } else if (name === "get_rebalancing_suggestion") {
+              contentData = handleGetRebalancingSuggestion(args);
             } else {
               contentData = { error: `Function '${name}' not implemented.` };
             }
@@ -1201,6 +1616,62 @@ You have access to local tools/functions to retrieve real-time and detailed tran
           )}
         </div>
 
+        {/* ── Proactive Insights Panel ── */}
+        {proactiveInsights.length > 0 && !hasUserMessages && (
+          <div
+            style={{
+              padding: "12px 18px",
+              borderBottom: `1px solid ${THEME.line}`,
+              background: "var(--t-paper)",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <Lightbulb size={14} style={{ color: "#f59e0b" }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, letterSpacing: 0.3, textTransform: "uppercase" }}>Smart Insights</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
+              {proactiveInsights.map((insight, idx) => {
+                const Icon = insight.icon;
+                const borderColor = insight.severity === "critical" ? "#ef4444" : insight.severity === "warning" ? "#f59e0b" : "#22c55e";
+                const bgColor = insight.severity === "critical" ? "rgba(239,68,68,0.05)" : insight.severity === "warning" ? "rgba(245,158,11,0.05)" : "rgba(34,197,94,0.05)";
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleSend(insight.prompt)}
+                    disabled={loading}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: `1px solid ${THEME.line}`,
+                      borderLeft: `3px solid ${borderColor}`,
+                      background: bgColor,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ flexShrink: 0, marginTop: 1 }}>
+                      <Icon size={15} style={{ color: borderColor }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 2 }}>{insight.title}</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>{insight.detail}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: borderColor, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                        Ask AI <ChevronRight size={10} />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Messages ── */}
         <div
           style={{
@@ -1275,9 +1746,9 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       <MarkdownRenderer text={msg.text} />
                     )}
                   </div>
-                  {/* Copy button sits BELOW the bubble in normal flow — never overlaps text */}
+                  {/* Action buttons sit BELOW the bubble in normal flow — never overlaps text */}
                   {!isUser && (
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 5 }}>
                       <button
                         onClick={() => copyMessage(msg.text, i)}
                         style={{
@@ -1297,6 +1768,46 @@ You have access to local tools/functions to retrieve real-time and detailed tran
                       >
                         {copiedIdx === i ? <Check size={11} /> : <Copy size={11} />}
                         {copiedIdx === i ? "Copied!" : "Copy"}
+                      </button>
+                      <button
+                        onClick={() => saveAsNote(msg.text, i)}
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: 6,
+                          border: `1px solid ${THEME.line}`,
+                          background: "var(--t-paper)",
+                          color: savedNoteIdx === i ? THEME.sage : THEME.muted,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {savedNoteIdx === i ? <Check size={11} /> : <Bookmark size={11} />}
+                        {savedNoteIdx === i ? "Saved!" : "Save as Note"}
+                      </button>
+                      <button
+                        onClick={() => { setInput("Can you elaborate on that?"); setTimeout(() => textareaRef.current?.focus(), 50); }}
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: 6,
+                          border: `1px solid ${THEME.line}`,
+                          background: "var(--t-paper)",
+                          color: THEME.muted,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <MessageSquare size={11} />
+                        Follow Up
                       </button>
                     </div>
                   )}
@@ -1390,40 +1901,82 @@ You have access to local tools/functions to retrieve real-time and detailed tran
             flexShrink: 0,
           }}
         >
-          {/* Suggestions — visible until first user message */}
-          {!hasUserMessages && (
-            <div
-              style={{
-                display: "flex",
-                gap: 7,
-                marginBottom: 10,
-                overflowX: "auto",
-                paddingBottom: 2,
-              }}
-              className="no-scrollbar"
-            >
-              {SUGGESTIONS.map((sug) => (
-                <button
-                  key={sug}
-                  onClick={() => handleSend(sug)}
-                  disabled={loading}
-                  style={{
-                    padding: "5px 12px",
-                    borderRadius: 20,
-                    border: `1px solid ${THEME.line}`,
-                    background: "var(--surface-0)",
-                    color: THEME.ink,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {sug}
-                </button>
-              ))}
+          {/* Categorized advisor prompts — visible until first user message or when input is empty */}
+          {(!hasUserMessages || !input.trim()) && (
+            <div style={{ marginBottom: 10 }}>
+              {/* Category tabs */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  marginBottom: 8,
+                  overflowX: "auto",
+                  paddingBottom: 2,
+                }}
+                className="no-scrollbar"
+              >
+                {Object.keys(ADVISOR_PROMPTS).map((cat) => {
+                  const CatIcon = PROMPT_CATEGORY_ICONS[cat];
+                  const isActive = activePromptCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActivePromptCategory(cat)}
+                      style={{
+                        padding: "5px 14px",
+                        borderRadius: 20,
+                        border: `1px solid ${isActive ? "var(--t-accent, #4F46E5)" : THEME.line}`,
+                        background: isActive ? "var(--t-accent, #4F46E5)" : "var(--surface-0)",
+                        color: isActive ? "#fff" : THEME.ink,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        transition: "all 0.15s",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      {CatIcon && <CatIcon size={12} />}
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Prompt chips for active category */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
+                {(ADVISOR_PROMPTS[activePromptCategory] || []).map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => handleSend(prompt)}
+                    disabled={loading}
+                    style={{
+                      padding: "6px 13px",
+                      borderRadius: 20,
+                      border: `1px solid ${THEME.line}`,
+                      background: "var(--surface-0)",
+                      color: THEME.ink,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      transition: "all 0.15s",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

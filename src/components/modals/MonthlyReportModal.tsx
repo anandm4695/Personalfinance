@@ -1,7 +1,8 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Printer,
+  Download,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
@@ -109,6 +110,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
   const [reportDate, setReportDate] = useState(() => selectedDate || new Date());
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"" | "ok" | "err" | "no-email">("");
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const monthLabel = reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" });
   const ym = toYM(reportDate);
@@ -278,6 +280,25 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
     }
   }
 
+  // Download PDF handler — adds print class to modal root, triggers browser print dialog
+  function handleDownloadPDF() {
+    // Walk up from our ref to find the portal's modal-backdrop root
+    const el = reportRef.current;
+    if (!el) { window.print(); return; }
+    const modalRoot = el.closest('.modal-backdrop') || el.parentElement;
+    if (modalRoot) {
+      modalRoot.classList.add('monthly-report-print-root');
+    }
+    // Small delay to let DOM update before triggering print
+    requestAnimationFrame(() => {
+      window.print();
+      // Clean up the class after print dialog closes
+      if (modalRoot) {
+        modalRoot.classList.remove('monthly-report-print-root');
+      }
+    });
+  }
+
   const SectionLabel = ({ children }: any) => (
     <div
       style={{
@@ -295,7 +316,53 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
 
   return (
     <Modal title={`Monthly Report — ${monthLabel}`} onClose={onClose}>
-      <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } .print-scroll { max-height: none !important; overflow: visible !important; } }`}</style>
+      <div ref={reportRef}>
+      <style>{`
+        @media print {
+          /* Hide everything on the page except our report */
+          body > *:not(.monthly-report-print-root) { display: none !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* The modal overlay / backdrop */
+          .monthly-report-print-root { position: fixed !important; inset: 0 !important; z-index: 99999 !important; background: white !important; overflow: visible !important; padding: 0 !important; }
+          .monthly-report-print-root * { color-adjust: exact !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          /* Hide interactive elements */
+          .no-print { display: none !important; }
+          /* Remove scroll constraints */
+          .print-scroll { max-height: none !important; overflow: visible !important; padding: 20px 24px !important; }
+          /* Show the print-only header */
+          .print-header { display: block !important; }
+          /* Page breaks between major sections */
+          .print-page-break { page-break-before: always; }
+          /* Clean table formatting */
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+          /* Avoid orphan rows */
+          tr { page-break-inside: avoid; }
+          /* Page settings */
+          @page { margin: 15mm 12mm; size: A4; }
+        }
+      `}</style>
+      {/* Print-only header — hidden on screen, shown in print */}
+      <div
+        className="print-header"
+        style={{
+          display: "none",
+          textAlign: "center",
+          padding: "16px 24px 12px",
+          borderBottom: "2px solid #1e293b",
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ fontSize: 18, fontWeight: 900, color: "#1e293b", letterSpacing: "-0.02em" }}>
+          Personal Finance by Anand Mohta
+        </div>
+        <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, fontWeight: 600 }}>
+          Monthly Report — {reportDate.toLocaleString("en-IN", { month: "long", year: "numeric" })}
+        </div>
+        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
+          Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+        </div>
+      </div>
       <div style={{ maxHeight: "72vh", overflowY: "auto" }} className="print-scroll">
         {/* Month Selector Bar */}
         <div
@@ -1017,11 +1084,23 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
             <Mail size={13} />
             {emailSending ? "Sending…" : "Email to me"}
           </button>
+          <button
+            style={{
+              ...btnGhost,
+              color: THEME.accent,
+              borderColor: THEME.accent + "55",
+            }}
+            onClick={handleDownloadPDF}
+            title="Download as PDF via browser print dialog"
+          >
+            <Download size={13} /> Download PDF
+          </button>
           <button style={btnSolid} onClick={() => window.print()}>
-            <Printer size={14} /> Print / Save PDF
+            <Printer size={14} /> Print
           </button>
         </div>
       </div>
+    </div>
     </Modal>
   );
 }

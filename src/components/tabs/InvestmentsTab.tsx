@@ -9472,7 +9472,159 @@ const DividendTracker = ({ state, addItem, removeItem }: any) => {
           </div>
         )}
       </Card>
+
+      {/* ── DRIP Simulator ──────────────────────────────────────────── */}
+      {allDividends.length > 0 && <DRIPSimulator allDividends={allDividends} totalDividends={totalDividends} />}
     </div>
+  );
+};
+
+/* ── DRIP Simulator Component ─────────────────────────────────────── */
+const DRIP_RATES = [
+  { label: "10%", rate: 0.10 },
+  { label: "12%", rate: 0.12 },
+  { label: "15%", rate: 0.15 },
+  { label: "18%", rate: 0.18 },
+];
+
+const DRIPSimulator = ({ allDividends, totalDividends }: { allDividends: any[]; totalDividends: number }) => {
+  const [selectedRateIdx, setSelectedRateIdx] = React.useState(1); // default 12%
+  const selectedRate = DRIP_RATES[selectedRateIdx].rate;
+
+  const dripValue = React.useMemo(() => {
+    const nowMs = new Date(today()).getTime();
+    return allDividends.reduce((sum: number, d: any) => {
+      const amt = Number(d.amount) || 0;
+      const dateStr = d.paymentDate || d.date;
+      if (!dateStr || amt <= 0) return sum + amt;
+      const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
+      if (years <= 0) return sum + amt;
+      return sum + amt * Math.pow(1 + selectedRate, years);
+    }, 0);
+  }, [allDividends, selectedRate]);
+
+  const dripAt12 = React.useMemo(() => {
+    const nowMs = new Date(today()).getTime();
+    return allDividends.reduce((sum: number, d: any) => {
+      const amt = Number(d.amount) || 0;
+      const dateStr = d.paymentDate || d.date;
+      if (!dateStr || amt <= 0) return sum + amt;
+      const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
+      if (years <= 0) return sum + amt;
+      return sum + amt * Math.pow(1.12, years);
+    }, 0);
+  }, [allDividends]);
+
+  const dripAt15 = React.useMemo(() => {
+    const nowMs = new Date(today()).getTime();
+    return allDividends.reduce((sum: number, d: any) => {
+      const amt = Number(d.amount) || 0;
+      const dateStr = d.paymentDate || d.date;
+      if (!dateStr || amt <= 0) return sum + amt;
+      const years = (nowMs - new Date(dateStr).getTime()) / (365.25 * 86400000);
+      if (years <= 0) return sum + amt;
+      return sum + amt * Math.pow(1.15, years);
+    }, 0);
+  }, [allDividends]);
+
+  const opportunityCost = dripValue - totalDividends;
+  const barMaxVal = Math.max(dripValue, totalDividends, 1);
+  const receivedPct = (totalDividends / barMaxVal) * 100;
+  const dripPct = (dripValue / barMaxVal) * 100;
+
+  return (
+    <Card style={{ padding: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <RefreshCw size={16} style={{ color: THEME.accent }} />
+        <span style={{ fontSize: 15, fontWeight: 800 }}>DRIP Simulator</span>
+        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>What if you reinvested every dividend?</span>
+      </div>
+
+      {/* Summary cards: Total Received, If Reinvested at 12%, If Reinvested at 15%, Opportunity Cost */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: 20 }}>
+        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.muted}` }}>
+          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Total Received</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}><Prv>{fmtINRFull(totalDividends)}</Prv></div>
+        </Card>
+        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.sage}` }}>
+          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>If Reinvested at 12%</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, marginTop: 4 }}><Prv>{fmtINRFull(dripAt12)}</Prv></div>
+        </Card>
+        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.accent}` }}>
+          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>If Reinvested at 15%</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, marginTop: 4 }}><Prv>{fmtINRFull(dripAt15)}</Prv></div>
+        </Card>
+        <Card style={{ padding: "14px 16px", borderTop: `3px solid ${THEME.gold}` }}>
+          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Opportunity Cost</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.gold, marginTop: 4 }}><Prv>{fmtINRFull(dripAt12 - totalDividends)}</Prv></div>
+          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>at 12% CAGR</div>
+        </Card>
+      </div>
+
+      {/* Rate toggle pills */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>Assumed CAGR:</span>
+        {DRIP_RATES.map((r, i) => (
+          <button
+            key={r.label}
+            onClick={() => setSelectedRateIdx(i)}
+            style={{
+              padding: "4px 14px",
+              borderRadius: 20,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              border: i === selectedRateIdx ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
+              background: i === selectedRateIdx ? `${THEME.accent}15` : "transparent",
+              color: i === selectedRateIdx ? THEME.accent : THEME.muted,
+              transition: "all 0.15s ease",
+            }}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Comparison visualization */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+        {/* Received card */}
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.muted}08`, border: `1px solid ${THEME.line}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Received</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}><Prv>{fmtINRFull(totalDividends)}</Prv></div>
+          {/* Bar */}
+          <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: `${THEME.muted}15`, overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 4, background: THEME.muted, width: `${receivedPct}%`, transition: "width 0.3s ease" }} />
+          </div>
+        </div>
+        {/* If Reinvested card */}
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}22` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: THEME.sage, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>If Reinvested at {DRIP_RATES[selectedRateIdx].label}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}><Prv>{fmtINRFull(dripValue)}</Prv></div>
+          {/* Bar */}
+          <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: `${THEME.sage}15`, overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 4, background: THEME.sage, width: `${dripPct}%`, transition: "width 0.3s ease" }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Missed growth callout */}
+      {opportunityCost > 0 && (
+        <div style={{
+          padding: "12px 16px",
+          borderRadius: 10,
+          background: `${THEME.sage}08`,
+          border: `1px solid ${THEME.sage}22`,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}>
+          <TrendingUp size={16} style={{ color: THEME.sage, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: THEME.sage }}>
+            You missed <Prv><b>{fmtINRFull(opportunityCost)}</b></Prv> in potential growth by not reinvesting dividends at {DRIP_RATES[selectedRateIdx].label} CAGR
+          </span>
+        </div>
+      )}
+    </Card>
   );
 };
 

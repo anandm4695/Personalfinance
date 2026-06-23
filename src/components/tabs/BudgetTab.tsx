@@ -251,6 +251,36 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
     return spent > Number(b.monthly || 0);
   }).length;
 
+  const approachingBudgetCount = budgetsToUse.filter((b: any) => {
+    const spent = monthSpending[b.category] || 0;
+    const budget = Number(b.monthly || 0);
+    if (budget <= 0) return false;
+    const pct = (spent / budget) * 100;
+    return pct > 80 && pct <= 100;
+  }).length;
+
+  // Refs for scrolling to category cards on banner click
+  const categoryRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null);
+
+  const scrollToAlertCategories = () => {
+    // Find the first over-budget or approaching-limit category and scroll to it
+    const firstAlert = budgetsToUse.find((b: any) => {
+      const spent = monthSpending[b.category] || 0;
+      const budget = Number(b.monthly || 0);
+      if (budget <= 0) return false;
+      return (spent / budget) * 100 > 80;
+    });
+    if (firstAlert) {
+      const ref = categoryRefs.current[firstAlert.category];
+      if (ref) {
+        ref.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedCategory(firstAlert.category);
+        setTimeout(() => setHighlightedCategory(null), 2000);
+      }
+    }
+  };
+
   // Unbudgeted spending — categories with real spend but no budget line
   const { unbudgetedSpending, totalUnbudgetedSpent } = useMemo(() => {
     const budgetedCats = new Set(budgetsToUse.map((b: any) => b.category));
@@ -568,26 +598,123 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       {/* ======================================================== */}
       {activeSubTab === "budget" && (
         <>
-          {overBudgetCount > 0 && (
+          {/* Budget Alert Banner */}
+          {(overBudgetCount > 0 || approachingBudgetCount > 0) && (
             <Card
+              onClick={scrollToAlertCategories}
               style={{
-                background: `${THEME.rust}09`,
-                border: `1px solid ${THEME.rust}44`,
-                padding: "12px 20px",
+                background: overBudgetCount > 0 ? `${THEME.rust}09` : `${THEME.gold}09`,
+                border: `1px solid ${overBudgetCount > 0 ? THEME.rust : THEME.gold}44`,
+                padding: "14px 20px",
                 marginBottom: 24,
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                color: THEME.rust,
+                cursor: "pointer",
+                transition: "all 0.2s",
               }}
             >
-              <AlertCircle size={18} />
-              <span style={{ fontWeight: 700, fontSize: 14 }}>
-                {overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget in{" "}
-                {selectedMonthLabel}
-              </span>
+              {overBudgetCount > 0 ? (
+                <AlertCircle size={18} color={THEME.rust} />
+              ) : (
+                <AlertTriangle size={18} color={THEME.gold} />
+              )}
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: overBudgetCount > 0 ? THEME.rust : THEME.gold }}>
+                  {overBudgetCount > 0 && (
+                    <span>{overBudgetCount} {overBudgetCount === 1 ? "category" : "categories"} over budget</span>
+                  )}
+                  {overBudgetCount > 0 && approachingBudgetCount > 0 && (
+                    <span style={{ color: THEME.muted }}>, </span>
+                  )}
+                  {approachingBudgetCount > 0 && (
+                    <span style={{ color: THEME.gold }}>
+                      {approachingBudgetCount} approaching limit
+                    </span>
+                  )}
+                </span>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, fontWeight: 500 }}>
+                  Click to scroll to flagged categories
+                </div>
+              </div>
+              <ArrowRight size={16} color={THEME.muted} />
             </Card>
           )}
+
+          {/* Monthly Budget Summary Stats */}
+          {budgetsToUse.length > 0 && (() => {
+            const utilizationPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+            const remaining = Math.max(0, totalBudget - totalSpent);
+            const utilizationColor = utilizationPct > 100 ? THEME.rust : utilizationPct > 80 ? THEME.gold : THEME.sage;
+            return (
+              <Card
+                style={{
+                  marginBottom: 24,
+                  padding: "16px 24px",
+                  border: `1px solid ${THEME.line}`,
+                  background: "var(--surface-0)",
+                }}
+              >
+                <div style={{
+                  fontSize: 10,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: THEME.muted,
+                  marginBottom: 16,
+                  fontWeight: 800,
+                }}>
+                  Monthly Budget Summary
+                </div>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                  gap: 16,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Total Budget</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent, fontVariantNumeric: "tabular-nums" }}>
+                      {fmtINRFull(totalBudget)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Total Spent</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: totalSpent > totalBudget ? THEME.rust : THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                      {fmtINRFull(totalSpent)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Remaining</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: remaining > 0 ? THEME.sage : THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                      {totalSpent > totalBudget ? `-${fmtINRFull(totalSpent - totalBudget)}` : fmtINRFull(remaining)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 4 }}>Utilization</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: utilizationColor, fontVariantNumeric: "tabular-nums" }}>
+                        {utilizationPct.toFixed(0)}%
+                      </div>
+                      <div style={{
+                        width: 60,
+                        height: 6,
+                        borderRadius: 3,
+                        background: `${THEME.line}`,
+                        overflow: "hidden",
+                      }}>
+                        <div style={{
+                          width: `${Math.min(utilizationPct, 100)}%`,
+                          height: "100%",
+                          borderRadius: 3,
+                          background: utilizationColor,
+                          transition: "width 0.5s ease",
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* Budget Inheritance Notification Banner */}
           {isInherited && budgetsToUse.length > 0 && (
@@ -1006,13 +1133,33 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 const projected = daysPassed > 0 ? (spent / daysPassed) * daysInMonth : 0;
                 const projectedPct = budget > 0 ? (projected / budget) * 100 : 0;
 
+                // Per-category status badge
+                const statusBadge = (() => {
+                  if (over) {
+                    return { label: `Over by ${fmtINRFull(spent - budget)}`, color: THEME.rust, icon: AlertCircle, variant: "danger" as const };
+                  } else if (pct >= 80) {
+                    return { label: `${pct.toFixed(0)}% used`, color: THEME.gold, icon: AlertTriangle, variant: "warning" as const };
+                  } else {
+                    return { label: "On track", color: THEME.sage, icon: CheckCircle2, variant: "success" as const };
+                  }
+                })();
+
+                const StatusIcon = statusBadge.icon;
+                const isHighlighted = highlightedCategory === b.category;
+
                 return (
                   <Card
                     key={b.id}
+                    ref={(el: HTMLDivElement | null) => { categoryRefs.current[b.category] = el; }}
                     style={{
                       padding: "18px 20px",
                       borderTop: `3px solid ${barColor}`,
                       position: "relative",
+                      transition: "box-shadow 0.3s ease, transform 0.3s ease",
+                      ...(isHighlighted ? {
+                        boxShadow: `0 0 0 2px ${barColor}, 0 4px 16px ${barColor}33`,
+                        transform: "scale(1.01)",
+                      } : {}),
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -1043,7 +1190,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                             marginBottom: 2,
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                             <span
                               style={{
                                 fontWeight: 800,
@@ -1059,6 +1206,24 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                                 INHERITED
                               </Badge>
                             )}
+                            {/* Per-Category Warning Badge */}
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: statusBadge.color,
+                                background: `${statusBadge.color}12`,
+                                border: `1px solid ${statusBadge.color}33`,
+                                padding: "2px 8px",
+                                borderRadius: 20,
+                              }}
+                            >
+                              <StatusIcon size={10} />
+                              {statusBadge.label}
+                            </span>
                           </div>
                           <div style={{ textAlign: "right" }}>
                             <div
@@ -1132,6 +1297,34 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                         </span>
                       </div>
                     )}
+
+                    {/* Projected Month-End Spending Alert */}
+                    {isCurrentMonth && spent > 0 && budget > 0 && projected > budget && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 11,
+                          marginTop: 8,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: `${THEME.rust}08`,
+                          border: `1px solid ${THEME.rust}22`,
+                          color: THEME.rust,
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Target size={12} />
+                        <span>
+                          At this pace, you'll spend {fmtINRFull(projected)}{" "}
+                          <span style={{ fontWeight: 800 }}>
+                            ({fmtINRFull(projected - budget)} over budget)
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
                     {prevSpent > 0 &&
                       (() => {
                         const delta = spent - prevSpent;

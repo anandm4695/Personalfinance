@@ -1,0 +1,194 @@
+import { useEffect } from "react";
+import { today, fmtINRFull, getCCDueDate, getLocalDateString } from "../utils/finance";
+
+export function useNotifications(loaded: boolean, session: any, state: any): void {
+  // Fire browser push notifications for upcoming reminders (runs once per tab session)
+  useEffect(() => {
+    if (!loaded || !session || typeof Notification === "undefined" || Notification.permission !== "granted")
+      return;
+    // Guard: sessionStorage persists across page refreshes within the same tab,
+    // so notifications fire at most once per tab open — not on every refresh.
+    const sessionKey = "finance-notif-fired-" + today();
+    if (sessionStorage.getItem(sessionKey)) return;
+    sessionStorage.setItem(sessionKey, "1");
+
+    const getNotificationIcon = (type: string) => {
+      const icons: Record<string, string> = {
+        credit: "https://img.icons8.com/color/128/bank-card.png",
+        subscription: "https://img.icons8.com/color/128/circular-arrows.png",
+        reminder: "https://img.icons8.com/color/128/bell.png",
+        fd: "https://img.icons8.com/color/128/piggy-bank.png",
+        insurance: "https://img.icons8.com/color/128/shield.png",
+        loan: "https://img.icons8.com/color/128/hand-with-money.png",
+      };
+      return icons[type] || "/logo.png";
+    };
+
+    // Read user's notification preferences
+    let ns = {
+      leadDays: 3,
+      categories: {
+        creditCards: true,
+        subscriptions: true,
+        reminders: true,
+        fdMaturities: true,
+        insurancePremiums: true,
+        loanRecovery: true,
+      },
+    };
+    try {
+      const s = localStorage.getItem("finance-notif-settings");
+      if (s) ns = { ...ns, ...JSON.parse(s) };
+    } catch {}
+    const leadDays = ns.leadDays || 3;
+    const cats = ns.categories || {};
+
+    const todayStr = today();
+    const soon: { title: string; body: string; type: string }[] = [];
+    // Anchor both ends to midnight to avoid IST timezone off-by-one errors
+    const daysLeft = (d: string) =>
+      Math.ceil(
+        (new Date(d + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) /
+          86400000
+      );
+    const isDismissed = (title: string, ...alts: string[]) =>
+      [title, ...alts].some((t) => state.dismissedAlerts?.[t] > Date.now());
+
+    if (cats.reminders !== false) {
+      state.reminders.forEach((r: any) => {
+        if (!r.date) return;
+        const d = daysLeft(r.date);
+        if (d >= 0 && d <= leadDays && !isDismissed(r.title)) {
+          soon.push({
+            title: r.title,
+            body: d === 0 ? "Due today!" : `Due in ${d} day${d !== 1 ? "s" : ""}`,
+            type: "reminder",
+          });
+        }
+      });
+    }
+
+    if (cats.creditCards !== false) {
+      state.creditCards
+        .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+        .forEach((c: any) => {
+          const dueDate = getCCDueDate(c);
+          if (!dueDate) return;
+          const d = daysLeft(dueDate);
+          if (
+            d >= 0 &&
+            d <= leadDays &&
+            !isDismissed(`${c.issuer} bill due`, `${c.issuer} CC due in ${d}d`)
+          ) {
+            soon.push({
+              title: `${c.issuer} bill due`,
+              body: `${fmtINRFull(c.outstanding)} outstanding${d === 0 ? " — today!" : ` — ${d}d`}`,
+              type: "credit",
+            });
+          }
+        });
+    }
+
+    if (cats.subscriptions !== false) {
+      state.subscriptions
+        .filter((s: any) => s.renewalDate && !s.paused)
+        .forEach((s: any) => {
+          const d = daysLeft(s.renewalDate);
+          if (
+            d >= 0 &&
+            d <= leadDays &&
+            !isDismissed(`${s.name} renewal`, `${s.name} renews in ${d}d`)
+          ) {
+            soon.push({
+              title: `${s.name} renewal`,
+              body: `${fmtINRFull(s.amount)} due${d === 0 ? " today" : ` in ${d}d`}`,
+              type: "subscription",
+            });
+          }
+        });
+    }
+
+    if (cats.fdMaturities !== false) {
+      (state.fixedDeposits || []).forEach((f: any) => {
+        if (!f.maturityDate) return;
+        const d = daysLeft(f.maturityDate);
+        const title = `FD Maturity — ${f.bank || f.bankName || "Bank"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(f.principal)} matures${d === 0 ? " today" : ` in ${d}d`}`,
+            type: "fd",
+          });
+        }
+      });
+    }
+
+    if (cats.insurancePremiums !== false) {
+      const allPolicies = [
+        ...(state.lic || []).map((p: any) => ({
+          name: p.planName || "LIC Policy",
+          start: p.commencementDate,
+          premium: p.annualPremium,
+        })),
+        ...(state.termPlans || []).map((p: any) => ({
+          name: p.planName || "Term Plan",
+          start: p.startDate,
+          premium: p.annualPremium,
+        })),
+        ...(state.investmentPlans || []).map((p: any) => ({
+          name: p.planName || "Investment Plan",
+          start: p.commencementDate,
+          premium: p.annualPremium,
+        })),
+      ];
+      const todayD = new Date(todayStr + "T00:00:00");
+      allPolicies.forEach((pol) => {
+        if (!pol.premium || Number(pol.premium) <= 0 || !pol.start) return;
+        const start = new Date(pol.start);
+        if (isNaN(start.getTime())) return;
+        let ann = new Date(todayD.getFullYear(), start.getMonth(), start.getDate());
+        if (ann < todayD)
+          ann = new Date(todayD.getFullYear() + 1, start.getMonth(), start.getDate());
+        const d = daysLeft(getLocalDateString(ann));
+        const title = `${pol.name} premium due`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(pol.premium)}${d === 0 ? " — today!" : ` in ${d}d`}`,
+            type: "insurance",
+          });
+        }
+      });
+    }
+
+    if (cats.loanRecovery !== false) {
+      (state.loansGiven || []).forEach((l: any) => {
+        if (!l.dueDate) return;
+        const d = daysLeft(l.dueDate);
+        const title = `Loan Recovery — ${l.lender || l.name || "Borrower"}`;
+        if (d >= 0 && d <= leadDays && !isDismissed(title)) {
+          soon.push({
+            title,
+            body: `${fmtINRFull(l.outstanding)} due${d === 0 ? " today" : ` in ${d}d`}`,
+            type: "loan",
+          });
+        }
+      });
+    }
+
+    soon.forEach(({ title, body, type }) => {
+      try {
+        new Notification(title, { body, icon: getNotificationIcon(type) });
+      } catch {}
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, session]); // intentionally omit other deps — runs once after login + load
+
+  // Request browser notification permission once after first successful login
+  useEffect(() => {
+    if (!loaded || !session || typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [loaded, session]);
+}

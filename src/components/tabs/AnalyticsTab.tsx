@@ -20,6 +20,7 @@ import {
   Flame,
   Zap,
   ShieldAlert,
+  Shield,
   BarChart2,
   Activity,
   CheckCircle2,
@@ -684,6 +685,180 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   const [trendPeriod, setTrendPeriod] = useState<"3M" | "6M" | "12M" | "All">("6M");
   const [showAllTxns, setShowAllTxns] = useState(false);
   const [txnFilter, setTxnFilter] = useState<"all" | "credit" | "debit">("all");
+
+  // ── Year-on-Year FY Comparison States ──
+  const [yoyOpen, setYoyOpen] = useState(false);
+  const yoyCurrentFYStart = useMemo(() => {
+    const now = new Date();
+    return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  }, []);
+  const [yoyFY1, setYoyFY1] = useState<number>(() => {
+    const now = new Date();
+    return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  });
+  const [yoyFY2, setYoyFY2] = useState<number>(() => {
+    const now = new Date();
+    return (now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1) - 1;
+  });
+
+  // ── Estate Planning — Nomination Coverage States ──
+  const [nominationOpen, setNominationOpen] = useState(false);
+  const [estateChecklist, setEstateChecklist] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem("finance_estate_checklist");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+  const toggleEstateItem = (key: string) => {
+    setEstateChecklist((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem("finance_estate_checklist", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // ── Year-on-Year: derive available FYs from data dates ──
+  const yoyAvailableFYs = useMemo(() => {
+    const fySet = new Set<number>();
+    const addDate = (d: string) => {
+      if (!d) return;
+      const dt = new Date(d + "T00:00:00");
+      const yr = dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
+      fySet.add(yr);
+    };
+    (state.income || []).forEach((i: any) => addDate(i.date));
+    (state.transactions || []).forEach((t: any) => addDate(t.date));
+    (state.stocks || []).forEach((s: any) => addDate(s.buyDate));
+    (state.mutualFunds || []).forEach((m: any) => addDate(m.buyDate));
+    // Always include current FY and previous FY
+    fySet.add(yoyCurrentFYStart);
+    fySet.add(yoyCurrentFYStart - 1);
+    return Array.from(fySet).sort((a, b) => b - a); // newest first
+  }, [state.income, state.transactions, state.stocks, state.mutualFunds, yoyCurrentFYStart]);
+
+  const yoyComparison = useMemo(() => {
+    const computeFY = (startYear: number) => {
+      const fyStartStr = `${startYear}-04-01`;
+      const fyEndStr = `${startYear + 1}-03-31`;
+
+      // Income from income ledger (authoritative), fallback to transaction credits
+      const incomeLedger = (state.income || [])
+        .filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr)
+        .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+      const txnIncome = (state.transactions || [])
+        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "credit")
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const totalIncome = incomeLedger > 0 ? incomeLedger : txnIncome;
+
+      // Expenses from debit transactions + rent payments
+      const txnExpense = (state.transactions || [])
+        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "debit")
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const rentPaid = (state.rentedProperties || []).reduce(
+        (sum: number, p: any) =>
+          sum +
+          (p.payments || [])
+            .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
+            .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
+        0
+      );
+      const totalExpense = txnExpense + rentPaid;
+
+      const savings = totalIncome - totalExpense;
+      const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
+
+      // Investment additions within FY
+      const stockBuys = (state.stocks || [])
+        .filter((s: any) => s.buyDate && s.buyDate >= fyStartStr && s.buyDate <= fyEndStr)
+        .reduce((s: number, st: any) => s + Number(st.invested || st.avgPrice * st.qty || 0), 0);
+      const mfBuys = (state.mutualFunds || [])
+        .filter((m: any) => m.buyDate && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr)
+        .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
+      const fdAdds = (state.fixedDeposits || [])
+        .filter((fd: any) => fd.startDate && fd.startDate >= fyStartStr && fd.startDate <= fyEndStr)
+        .reduce((s: number, fd: any) => s + Number(fd.principal || 0), 0);
+      const ppfAdds = (state.ppfLedger || [])
+        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const investmentAdditions = stockBuys + mfBuys + fdAdds + ppfAdds;
+
+      // Net worth at end of FY (March of startYear+1)
+      const marchKey = `${startYear + 1}-03`;
+      const nwEntry = (state.netWorthHistory || []).find((h: any) => h.month === marchKey);
+      const netWorth = nwEntry ? Number(nwEntry.netWorth || 0) : 0;
+
+      return { totalIncome, totalExpense, savings, savingsRate, investmentAdditions, netWorth };
+    };
+
+    const fy1 = computeFY(yoyFY1);
+    const fy2 = computeFY(yoyFY2);
+
+    const change = (v1: number, v2: number) => v1 - v2;
+    const pctChange = (v1: number, v2: number) => (v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0);
+
+    return {
+      fy1,
+      fy2,
+      rows: [
+        { label: "Total Income", v1: fy1.totalIncome, v2: fy2.totalIncome, change: change(fy1.totalIncome, fy2.totalIncome), pct: pctChange(fy1.totalIncome, fy2.totalIncome), invertColor: false },
+        { label: "Total Expenses", v1: fy1.totalExpense, v2: fy2.totalExpense, change: change(fy1.totalExpense, fy2.totalExpense), pct: pctChange(fy1.totalExpense, fy2.totalExpense), invertColor: true },
+        { label: "Savings", v1: fy1.savings, v2: fy2.savings, change: change(fy1.savings, fy2.savings), pct: pctChange(fy1.savings, fy2.savings), invertColor: false },
+        { label: "Savings Rate %", v1: fy1.savingsRate, v2: fy2.savingsRate, change: change(fy1.savingsRate, fy2.savingsRate), pct: 0, invertColor: false, isPercent: true },
+        { label: "Investment Additions", v1: fy1.investmentAdditions, v2: fy2.investmentAdditions, change: change(fy1.investmentAdditions, fy2.investmentAdditions), pct: pctChange(fy1.investmentAdditions, fy2.investmentAdditions), invertColor: false },
+        { label: "Net Worth (end of FY)", v1: fy1.netWorth, v2: fy2.netWorth, change: change(fy1.netWorth, fy2.netWorth), pct: pctChange(fy1.netWorth, fy2.netWorth), invertColor: false },
+      ],
+      chartData: [
+        { name: "Income", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalIncome, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalIncome },
+        { name: "Expenses", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalExpense, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalExpense },
+        { name: "Savings", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.savings, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.savings },
+      ],
+    };
+  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppfLedger, state.netWorthHistory]);
+
+  // ── Estate Planning — Nomination Coverage Audit ──
+  const nominationAudit = useMemo(() => {
+    const accounts: { type: string; name: string; hasNominee: boolean }[] = [];
+    (state.bankAccounts || []).forEach((a: any) =>
+      accounts.push({ type: "Bank Account", name: a.bankName || a.name || "Bank", hasNominee: !!a.nominee })
+    );
+    (state.demat || []).forEach((a: any) =>
+      accounts.push({ type: "Demat", name: a.broker || a.name || "Demat", hasNominee: !!a.nominee })
+    );
+    (state.lic || []).forEach((a: any) =>
+      accounts.push({ type: "Insurance (LIC)", name: a.planName || a.name || "LIC Policy", hasNominee: !!a.nominee })
+    );
+    (state.termPlans || []).forEach((a: any) =>
+      accounts.push({ type: "Term Insurance", name: a.planName || a.provider || a.name || "Term Plan", hasNominee: !!a.nominee })
+    );
+    (state.investmentPlans || []).forEach((a: any) =>
+      accounts.push({ type: "Investment Plan", name: a.planName || a.name || "Investment Plan", hasNominee: !!a.nominee })
+    );
+    (state.ppf || []).forEach((a: any) =>
+      accounts.push({ type: "PPF", name: a.bankName || a.name || "PPF", hasNominee: !!a.nominee })
+    );
+    (state.nps || []).forEach((a: any) =>
+      accounts.push({ type: "NPS", name: a.fundManager || a.name || "NPS", hasNominee: !!a.nominee })
+    );
+    (state.fixedDeposits || []).forEach((a: any) =>
+      accounts.push({ type: "Fixed Deposit", name: a.bankName || a.name || "FD", hasNominee: !!a.nominee })
+    );
+    (state.mutualFunds || []).forEach((a: any) =>
+      accounts.push({ type: "Mutual Fund", name: a.fundName || a.name || "MF", hasNominee: !!a.nominee })
+    );
+
+    const total = accounts.length;
+    const covered = accounts.filter((a) => a.hasNominee).length;
+    const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+    // Priority alerts
+    const insuranceTypes = ["Insurance (LIC)", "Term Insurance", "Investment Plan"];
+    const insuranceMissing = accounts.filter((a) => insuranceTypes.includes(a.type) && !a.hasNominee).length;
+    const accountMissing = accounts.filter((a) => !insuranceTypes.includes(a.type) && !a.hasNominee).length;
+
+    return { accounts, total, covered, pct, insuranceMissing, accountMissing };
+  }, [state.bankAccounts, state.demat, state.lic, state.termPlans, state.investmentPlans, state.ppf, state.nps, state.fixedDeposits, state.mutualFunds]);
 
   const lastTradingDayPerformance = useMemo(() => {
     const uniqueStocks = new Map<
@@ -3467,6 +3642,276 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </Card>
             </div>
 
+            {/* ── Emergency Fund Health Check ── */}
+            {(() => {
+              const efMonthlyExpense = metrics.monthExpense || 0;
+              // Liquid assets: bank cash + FDs maturing within 3 months
+              const nearTermFDs = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
+                if (!fd.maturityDate) return sum;
+                const matMs = new Date(fd.maturityDate).getTime();
+                const nowMs = Date.now();
+                const threeMonthsMs = nowMs + 90 * 86400000;
+                if (matMs >= nowMs && matMs <= threeMonthsMs) {
+                  return sum + Number(fd.principal || 0);
+                }
+                return sum;
+              }, 0);
+              const efLiquidBalance = (metrics.cashInBanks || 0) + nearTermFDs;
+              const efRatio = efMonthlyExpense > 0 ? efLiquidBalance / efMonthlyExpense : 0;
+              const efTarget = efMonthlyExpense * 6;
+              const efShortfall = efTarget - efLiquidBalance;
+              const efProgress = efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
+
+              const efStatusColor = efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
+              const efStatusLabel = efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
+              const EfIcon = efRatio >= 6 ? CheckCircle2 : efRatio >= 3 ? Shield : AlertTriangle;
+
+              let efAdvice = "";
+              if (efMonthlyExpense <= 0) {
+                efAdvice = "Add your monthly expenses to calculate your emergency fund coverage.";
+              } else if (efRatio < 3) {
+                const need3 = Math.max(0, efMonthlyExpense * 3 - efLiquidBalance);
+                efAdvice = `Critical! You need ${fmtINRFull(need3)} more for a minimum 3-month buffer.`;
+              } else if (efRatio < 6) {
+                efAdvice = `Building well. ${fmtINRFull(Math.max(0, efShortfall))} more to reach the recommended 6-month buffer.`;
+              } else {
+                efAdvice = `Excellent! Your emergency fund covers ${efRatio.toFixed(1)} months of expenses.`;
+              }
+
+              // Segment fill: 6 segments, each = 1 month
+              const filledSegments = Math.min(efRatio, 6);
+
+              return (
+                <Card
+                  className="bento-col-12"
+                  style={{ padding: 24, marginTop: 4 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 20,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Shield size={18} color={efStatusColor} />
+                      </div>
+                      <div>
+                        <div
+                          className="section-label"
+                          style={{ marginBottom: 0 }}
+                        >
+                          Emergency Fund Health
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 2 }}>
+                          Liquid reserves vs monthly expenses
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 12px",
+                        borderRadius: 20,
+                        background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${efStatusColor} 20%, transparent)`,
+                      }}
+                    >
+                      <EfIcon size={13} color={efStatusColor} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: efStatusColor }}>
+                        {efStatusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Ratio Display */}
+                  <div style={{ textAlign: "center", marginBottom: 24 }}>
+                    <div
+                      style={{
+                        fontSize: 42,
+                        fontWeight: 900,
+                        color: efStatusColor,
+                        lineHeight: 1,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {efRatio.toFixed(1)}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginTop: 6 }}>
+                      months of expenses covered
+                    </div>
+                  </div>
+
+                  {/* 6-Segment Progress Gauge */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 4,
+                        height: 20,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        background: THEME.line,
+                      }}
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((seg) => {
+                        const segFill = Math.max(0, Math.min(1, filledSegments - seg));
+                        const segColor = seg < 3 ? THEME.rust : seg < 6 ? THEME.gold : THEME.sage;
+                        const fillColor = filledSegments >= 6 ? THEME.sage : filledSegments >= 3 ? THEME.gold : THEME.rust;
+                        return (
+                          <div
+                            key={seg}
+                            style={{
+                              flex: 1,
+                              position: "relative",
+                              background: "transparent",
+                              borderRadius: seg === 0 ? "10px 0 0 10px" : seg === 5 ? "0 10px 10px 0" : 0,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                bottom: 0,
+                                width: `${segFill * 100}%`,
+                                background: fillColor,
+                                borderRadius: "inherit",
+                                transition: "width 0.5s ease",
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginTop: 6,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                      }}
+                    >
+                      <span>0 mo</span>
+                      <span style={{ color: efRatio >= 3 ? THEME.gold : THEME.muted }}>3 mo</span>
+                      <span style={{ color: efRatio >= 6 ? THEME.sage : THEME.muted }}>6 mo</span>
+                    </div>
+                  </div>
+
+                  {/* Key Numbers Grid */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                      gap: 12,
+                      marginBottom: 20,
+                    }}
+                  >
+                    {[
+                      {
+                        label: "Liquid Balance",
+                        value: fmtINRFull(efLiquidBalance),
+                        sub: nearTermFDs > 0 ? `Incl. ${fmtINRFull(nearTermFDs)} near-term FDs` : "Bank cash",
+                        color: THEME.accent,
+                      },
+                      {
+                        label: "Monthly Expense",
+                        value: fmtINRFull(efMonthlyExpense),
+                        sub: "Average monthly spend",
+                        color: THEME.muted,
+                      },
+                      {
+                        label: "Target (6 months)",
+                        value: fmtINRFull(efTarget),
+                        sub: "Recommended buffer",
+                        color: THEME.gold,
+                      },
+                      {
+                        label: efShortfall > 0 ? "Shortfall" : "Surplus",
+                        value: fmtINRFull(Math.abs(efShortfall)),
+                        sub: efShortfall > 0 ? "Amount needed" : "Above target",
+                        color: efShortfall > 0 ? THEME.rust : THEME.sage,
+                      },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 12,
+                          background: THEME.line,
+                          border: `1px solid color-mix(in srgb, ${item.color} 12%, transparent)`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 6,
+                          }}
+                        >
+                          {item.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 800,
+                            color: item.color,
+                            lineHeight: 1,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <Prv>{item.value}</Prv>
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                          {item.sub}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recommendation */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${efStatusColor} 6%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${efStatusColor} 14%, transparent)`,
+                      borderLeft: `3px solid ${efStatusColor}`,
+                    }}
+                  >
+                    <EfIcon size={16} color={efStatusColor} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, lineHeight: 1.5 }}>
+                      {efAdvice}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })()}
+
             {/* Row of Health, Dues, Streak */}
             {(() => {
               const healthScoreData = !healthSimActive
@@ -4141,6 +4586,732 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
               })()}
             </div>
+
+            {/* ── Year-on-Year FY Comparison ── */}
+            <Card className="bento-col-12" style={{ padding: 0, marginTop: 4, overflow: "hidden" }}>
+              <button
+                onClick={() => setYoyOpen((p) => !p)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "18px 24px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <BarChart2 size={18} style={{ color: THEME.accent }} />
+                  <span className="section-label" style={{ marginBottom: 0 }}>
+                    Year-on-Year Comparison
+                  </span>
+                  <Badge variant="muted" style={{ fontSize: 10, padding: "2px 8px" }}>
+                    FY {yoyFY1}-{String(yoyFY1 + 1).slice(-2)} vs {yoyFY2}-{String(yoyFY2 + 1).slice(-2)}
+                  </Badge>
+                </div>
+                {yoyOpen ? (
+                  <ChevronUp size={20} style={{ color: THEME.muted }} />
+                ) : (
+                  <ChevronDown size={20} style={{ color: THEME.muted }} />
+                )}
+              </button>
+
+              {yoyOpen && (
+                <div style={{ padding: "0 24px 24px" }}>
+                  {/* FY Selectors */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 20,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Compare</span>
+                      <select
+                        value={yoyFY1}
+                        onChange={(e) => setYoyFY1(Number(e.target.value))}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          border: `1px solid ${THEME.line}`,
+                          background: THEME.card,
+                          color: THEME.ink,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          outline: "none",
+                        }}
+                      >
+                        {yoyAvailableFYs.map((fy) => (
+                          <option key={fy} value={fy}>
+                            FY {fy}-{String(fy + 1).slice(-2)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>with</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <select
+                        value={yoyFY2}
+                        onChange={(e) => setYoyFY2(Number(e.target.value))}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          border: `1px solid ${THEME.line}`,
+                          background: THEME.card,
+                          color: THEME.ink,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          outline: "none",
+                        }}
+                      >
+                        {yoyAvailableFYs.map((fy) => (
+                          <option key={fy} value={fy}>
+                            FY {fy}-{String(fy + 1).slice(-2)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Comparison Table */}
+                  <div
+                    style={{
+                      overflowX: "auto",
+                      marginBottom: 24,
+                      borderRadius: 12,
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        fontSize: 13,
+                        minWidth: 580,
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
+                          }}
+                        >
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "10px 16px",
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              fontSize: 12,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            Metric
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "right",
+                              padding: "10px 16px",
+                              fontWeight: 800,
+                              color: THEME.accent,
+                              fontSize: 12,
+                            }}
+                          >
+                            FY {yoyFY1}-{String(yoyFY1 + 1).slice(-2)}
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "right",
+                              padding: "10px 16px",
+                              fontWeight: 800,
+                              color: THEME.muted,
+                              fontSize: 12,
+                            }}
+                          >
+                            FY {yoyFY2}-{String(yoyFY2 + 1).slice(-2)}
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "right",
+                              padding: "10px 16px",
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              fontSize: 12,
+                            }}
+                          >
+                            Change
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "right",
+                              padding: "10px 16px",
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              fontSize: 12,
+                            }}
+                          >
+                            % Change
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {yoyComparison.rows.map((row: any, idx: number) => {
+                          const isPositiveChange = row.change > 0;
+                          const isNegativeChange = row.change < 0;
+                          // For expenses, increase is BAD (red), decrease is GOOD (green) — inverted logic
+                          const changeColor = row.invertColor
+                            ? isPositiveChange
+                              ? THEME.rust
+                              : isNegativeChange
+                                ? THEME.sage
+                                : THEME.muted
+                            : isPositiveChange
+                              ? THEME.sage
+                              : isNegativeChange
+                                ? THEME.rust
+                                : THEME.muted;
+                          return (
+                            <tr
+                              key={row.label}
+                              style={{
+                                borderTop: idx > 0 ? `1px solid ${THEME.line}` : "none",
+                                background: idx % 2 === 1 ? "rgba(128,128,128,0.02)" : "transparent",
+                              }}
+                            >
+                              <td
+                                style={{
+                                  padding: "12px 16px",
+                                  fontWeight: 700,
+                                  color: THEME.ink,
+                                }}
+                              >
+                                {row.label}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "12px 16px",
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                  color: THEME.ink,
+                                }}
+                              >
+                                <Prv>
+                                  {row.isPercent
+                                    ? `${row.v1.toFixed(1)}%`
+                                    : fmtINRFull(row.v1)}
+                                </Prv>
+                              </td>
+                              <td
+                                style={{
+                                  padding: "12px 16px",
+                                  textAlign: "right",
+                                  fontWeight: 600,
+                                  color: THEME.muted,
+                                }}
+                              >
+                                <Prv>
+                                  {row.isPercent
+                                    ? `${row.v2.toFixed(1)}%`
+                                    : fmtINRFull(row.v2)}
+                                </Prv>
+                              </td>
+                              <td
+                                style={{
+                                  padding: "12px 16px",
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                  color: changeColor,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                                  {isPositiveChange ? (
+                                    <ArrowUpRight size={14} style={{ color: changeColor }} />
+                                  ) : isNegativeChange ? (
+                                    <ArrowDownRight size={14} style={{ color: changeColor }} />
+                                  ) : null}
+                                  <Prv>
+                                    {row.isPercent
+                                      ? `${row.change > 0 ? "+" : ""}${row.change.toFixed(1)} pp`
+                                      : `${row.change > 0 ? "+" : ""}${fmtINRFull(Math.abs(row.change))}`}
+                                  </Prv>
+                                </div>
+                              </td>
+                              <td
+                                style={{
+                                  padding: "12px 16px",
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {!row.isPercent && (
+                                  <Badge
+                                    variant={
+                                      row.change === 0
+                                        ? "muted"
+                                        : (row.invertColor ? !isPositiveChange : isPositiveChange)
+                                          ? "sage"
+                                          : "rust"
+                                    }
+                                    style={{ fontSize: 11, padding: "3px 10px" }}
+                                  >
+                                    {row.pct > 0 ? "+" : ""}
+                                    {row.pct.toFixed(1)}%
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Grouped Bar Chart */}
+                  <div style={{ marginBottom: 8 }}>
+                    <div className="section-label" style={{ marginBottom: 12 }}>
+                      Income / Expenses / Savings Comparison
+                    </div>
+                    {yoyComparison.chartData.every(
+                      (d: any) =>
+                        d[`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`] === 0 &&
+                        d[`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`] === 0
+                    ) ? (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "32px 0",
+                          color: THEME.muted,
+                          fontSize: 13,
+                        }}
+                      >
+                        No data available for the selected fiscal years
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart
+                          data={yoyComparison.chartData}
+                          margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                          barGap={4}
+                          barCategoryGap="25%"
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fontSize: 12, fontWeight: 700, fill: THEME.muted }}
+                            axisLine={{ stroke: THEME.line }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: THEME.muted }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) =>
+                              v >= 10000000
+                                ? `${(v / 10000000).toFixed(1)}Cr`
+                                : v >= 100000
+                                  ? `${(v / 100000).toFixed(1)}L`
+                                  : v >= 1000
+                                    ? `${(v / 1000).toFixed(0)}K`
+                                    : String(v)
+                            }
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: THEME.card,
+                              border: `1px solid ${THEME.line}`,
+                              borderRadius: 10,
+                              fontSize: 13,
+                              fontWeight: 600,
+                            }}
+                            formatter={(value: number) => fmtINRFull(value)}
+                          />
+                          <Legend
+                            wrapperStyle={{ fontSize: 12, fontWeight: 700 }}
+                          />
+                          <Bar
+                            dataKey={`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`}
+                            fill={THEME.accent}
+                            radius={[6, 6, 0, 0]}
+                            maxBarSize={48}
+                          />
+                          <Bar
+                            dataKey={`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`}
+                            fill={`color-mix(in srgb, ${THEME.accent} 45%, transparent)`}
+                            radius={[6, 6, 0, 0]}
+                            maxBarSize={48}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* ── Estate Planning — Nomination Coverage ── */}
+            <Card className="bento-col-12" style={{ padding: 0, marginTop: 4, overflow: "hidden" }}>
+              <button
+                onClick={() => setNominationOpen((p) => !p)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "18px 24px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Shield size={18} style={{ color: THEME.accent }} />
+                  <span className="section-label" style={{ marginBottom: 0 }}>
+                    Estate Planning — Nomination Coverage
+                  </span>
+                  <Badge
+                    variant={nominationAudit.pct > 80 ? "sage" : nominationAudit.pct >= 50 ? "warning" : "rust"}
+                    style={{ fontSize: 10, padding: "2px 8px" }}
+                  >
+                    {nominationAudit.covered}/{nominationAudit.total} covered
+                  </Badge>
+                </div>
+                {nominationOpen ? (
+                  <ChevronUp size={20} style={{ color: THEME.muted }} />
+                ) : (
+                  <ChevronDown size={20} style={{ color: THEME.muted }} />
+                )}
+              </button>
+
+              {nominationOpen && (
+                <div style={{ padding: "0 24px 24px" }}>
+
+                  {/* Priority Alerts */}
+                  {nominationAudit.insuranceMissing > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        padding: "12px 16px",
+                        borderRadius: 10,
+                        background: "rgba(234,179,8,0.08)",
+                        border: "1px solid rgba(234,179,8,0.25)",
+                        marginBottom: 10,
+                        fontSize: 13,
+                        color: THEME.ink,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <AlertTriangle size={16} style={{ color: "#eab308", marginTop: 2, flexShrink: 0 }} />
+                      <span>
+                        <strong>{nominationAudit.insuranceMissing} insurance {nominationAudit.insuranceMissing === 1 ? "policy has" : "policies have"} no nominee</strong> — this can delay claim settlement
+                      </span>
+                    </div>
+                  )}
+                  {nominationAudit.accountMissing > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        padding: "12px 16px",
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, var(--t-accent) 18%, transparent)`,
+                        marginBottom: 10,
+                        fontSize: 13,
+                        color: THEME.ink,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <Shield size={16} style={{ color: THEME.accent, marginTop: 2, flexShrink: 0 }} />
+                      <span>
+                        <strong>{nominationAudit.accountMissing} {nominationAudit.accountMissing === 1 ? "account has" : "accounts have"} no nominee</strong> — consider adding for smooth succession
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Coverage Summary */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                      marginBottom: 20,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
+                        {nominationAudit.covered} of {nominationAudit.total} accounts have nominees assigned
+                      </div>
+                      <div
+                        style={{
+                          height: 8,
+                          borderRadius: 4,
+                          background: THEME.line,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${nominationAudit.pct}%`,
+                            borderRadius: 4,
+                            background:
+                              nominationAudit.pct > 80
+                                ? THEME.sage
+                                : nominationAudit.pct >= 50
+                                  ? "#eab308"
+                                  : THEME.rust,
+                            transition: "width 0.4s ease",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 900,
+                        color:
+                          nominationAudit.pct > 80
+                            ? THEME.sage
+                            : nominationAudit.pct >= 50
+                              ? "#eab308"
+                              : THEME.rust,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {nominationAudit.pct}%
+                    </div>
+                  </div>
+
+                  {/* Account-by-Account Audit Table */}
+                  {nominationAudit.total > 0 ? (
+                    <div
+                      style={{
+                        overflowX: "auto",
+                        marginBottom: 24,
+                        borderRadius: 12,
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          fontSize: 13,
+                          minWidth: 480,
+                        }}
+                      >
+                        <thead>
+                          <tr
+                            style={{
+                              background: `color-mix(in srgb, var(--t-accent) 6%, transparent)`,
+                            }}
+                          >
+                            <th
+                              style={{
+                                textAlign: "left",
+                                padding: "10px 16px",
+                                fontWeight: 800,
+                                color: THEME.ink,
+                                fontSize: 12,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              Account Type
+                            </th>
+                            <th
+                              style={{
+                                textAlign: "left",
+                                padding: "10px 16px",
+                                fontWeight: 800,
+                                color: THEME.ink,
+                                fontSize: 12,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              Account Name
+                            </th>
+                            <th
+                              style={{
+                                textAlign: "center",
+                                padding: "10px 16px",
+                                fontWeight: 800,
+                                color: THEME.ink,
+                                fontSize: 12,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              Nominee Status
+                            </th>
+                            <th
+                              style={{
+                                textAlign: "center",
+                                padding: "10px 16px",
+                                fontWeight: 800,
+                                color: THEME.ink,
+                                fontSize: 12,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nominationAudit.accounts.map((acc, idx) => (
+                            <tr
+                              key={`${acc.type}-${acc.name}-${idx}`}
+                              style={{
+                                borderTop: `1px solid ${THEME.line}`,
+                                background: idx % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)",
+                              }}
+                            >
+                              <td style={{ padding: "10px 16px", fontWeight: 600, color: THEME.muted, fontSize: 12 }}>
+                                {acc.type}
+                              </td>
+                              <td style={{ padding: "10px 16px", fontWeight: 700, color: THEME.ink }}>
+                                <Prv>{acc.name}</Prv>
+                              </td>
+                              <td style={{ padding: "10px 16px", textAlign: "center" }}>
+                                {acc.hasNominee ? (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: THEME.sage, fontWeight: 700, fontSize: 12 }}>
+                                    <CheckCircle2 size={14} /> Assigned
+                                  </span>
+                                ) : (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: THEME.rust, fontWeight: 700, fontSize: 12 }}>
+                                    <XCircle size={14} /> Missing
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: "10px 16px", textAlign: "center" }}>
+                                {!acc.hasNominee && (
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      color: THEME.accent,
+                                      cursor: "pointer",
+                                      textDecoration: "underline",
+                                      textUnderlineOffset: 2,
+                                    }}
+                                  >
+                                    Add nominee
+                                  </span>
+                                )}
+                                {acc.hasNominee && <span style={{ color: THEME.muted, fontSize: 12 }}>—</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "32px 0",
+                        color: THEME.muted,
+                        fontSize: 13,
+                        marginBottom: 24,
+                      }}
+                    >
+                      No financial accounts found — add bank accounts, demat, insurance, or investments to track nomination coverage.
+                    </div>
+                  )}
+
+                  {/* Estate Planning Checklist */}
+                  <div
+                    style={{
+                      padding: "20px 20px 16px",
+                      borderRadius: 14,
+                      border: `1px solid ${THEME.line}`,
+                      background: "rgba(128,128,128,0.02)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <Shield size={16} style={{ color: THEME.accent }} />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        Estate Planning Checklist
+                      </span>
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {[
+                        { key: "will", label: "Will created/updated" },
+                        { key: "nominees", label: "Nominees assigned to all accounts" },
+                        { key: "poa", label: "Power of Attorney documented" },
+                        { key: "joint", label: "Joint holder added to key accounts" },
+                        { key: "family", label: "Family informed of account locations" },
+                        { key: "digital", label: "Digital credentials documented securely" },
+                      ].map((item) => (
+                        <label
+                          key={item.key}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            padding: "8px 12px",
+                            borderRadius: 10,
+                            background: estateChecklist[item.key]
+                              ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
+                              : "transparent",
+                            border: `1px solid ${estateChecklist[item.key] ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : "transparent"}`,
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!estateChecklist[item.key]}
+                            onChange={() => toggleEstateItem(item.key)}
+                            style={{
+                              width: 16,
+                              height: 16,
+                              accentColor: THEME.sage,
+                              cursor: "pointer",
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: estateChecklist[item.key] ? THEME.sage : THEME.ink,
+                              textDecoration: estateChecklist[item.key] ? "line-through" : "none",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            {item.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
 
             {/* Recent Transactions */}
             <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
