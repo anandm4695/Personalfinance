@@ -21,7 +21,17 @@ import {
   UserCircle,
   ChevronDown,
   ChevronUp,
+  Mail,
+  Sparkles,
 } from "lucide-react";
+
+/* ─── Time-of-day greeting ───────────────────────────────────────────── */
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 /* ─── Friendly error messages ────────────────────────────────────────── */
 function friendlyError(msg: string): string {
@@ -456,6 +466,7 @@ export default function Auth({
           RIGHT PANEL — Auth Card
       ════════════════════════════════════ */}
       <div className="af-right">
+        <div className="af-right-glow" aria-hidden="true" />
         <div className="af-card">
           {/* Mobile-only logo */}
           <div className="af-mobile-logo" aria-hidden="true">
@@ -474,6 +485,12 @@ export default function Auth({
 
           {/* Header */}
           <div className="af-card-head">
+            {!isReset && !isForgot && !isSignUp && (
+              <div className="af-greeting-badge">
+                <Sparkles size={12} />
+                <span>{getGreeting()}</span>
+              </div>
+            )}
             <h2 className="af-card-title">
               {isReset
                 ? "Set new password"
@@ -489,7 +506,7 @@ export default function Auth({
                 : isForgot
                   ? "Enter your email and we'll send a secure recovery link"
                   : isSignUp
-                    ? "Create your account and take control of your finances"
+                    ? "Start your journey to financial clarity"
                     : "Sign in to your personal finance dashboard"}
             </p>
           </div>
@@ -660,7 +677,7 @@ export default function Auth({
               <form onSubmit={handleAuth} className="af-form" noValidate>
                 {/* Display name — signup only */}
                 {isSignUp && (
-                  <div className="af-field">
+                  <div className="af-field af-field-anim" style={{ animationDelay: '0.05s' }}>
                     <label className="af-lbl" htmlFor="af-name">
                       Full Name{" "}
                       <span style={{ fontSize: 11, fontWeight: 400, color: "#9CA3AF" }}>
@@ -688,11 +705,14 @@ export default function Auth({
                 )}
 
                 {/* Email */}
-                <div className="af-field">
+                <div className="af-field af-field-anim" style={{ animationDelay: isSignUp ? '0.1s' : '0.05s' }}>
                   <label className="af-lbl" htmlFor="af-email">
                     Email address
                   </label>
                   <div className={wrapCls(emailFocused, emailErr)}>
+                    <span className="af-inp-icon">
+                      <Mail size={16} />
+                    </span>
                     <input
                       id="af-email"
                       type="email"
@@ -704,7 +724,7 @@ export default function Auth({
                         setEmailTouched(true);
                         setEmail((e) => e.trim());
                       }}
-                      className="af-inp"
+                      className="af-inp af-inp-padded"
                       placeholder="you@example.com"
                       autoComplete="email"
                       autoFocus={!isSignUp}
@@ -722,11 +742,14 @@ export default function Auth({
 
                 {/* Password */}
                 {!isForgot && (
-                  <div className="af-field">
+                  <div className="af-field af-field-anim" style={{ animationDelay: isSignUp ? '0.15s' : '0.1s' }}>
                     <label className="af-lbl" htmlFor="af-pass">
                       Password
                     </label>
                     <div className={wrapCls(passFocused, passErr)}>
+                      <span className="af-inp-icon">
+                        <Lock size={16} />
+                      </span>
                       <input
                         id="af-pass"
                         type={showPass ? "text" : "password"}
@@ -737,7 +760,7 @@ export default function Auth({
                           setPassFocused(false);
                           setPassTouched(true);
                         }}
-                        className="af-inp"
+                        className="af-inp af-inp-padded"
                         placeholder={
                           isSignUp ? "Create a strong password (8+ chars)" : "Enter your password"
                         }
@@ -801,11 +824,14 @@ export default function Auth({
 
                 {/* Confirm password — signup only */}
                 {isSignUp && (
-                  <div className="af-field">
+                  <div className="af-field af-field-anim" style={{ animationDelay: '0.2s' }}>
                     <label className="af-lbl" htmlFor="af-confirmpass">
                       Confirm Password
                     </label>
                     <div className={wrapCls(confirmPassFocused, confirmPassErr)}>
+                      <span className="af-inp-icon">
+                        <Lock size={16} />
+                      </span>
                       <input
                         id="af-confirmpass"
                         type={showConfirmPass ? "text" : "password"}
@@ -816,7 +842,7 @@ export default function Auth({
                           setConfirmPassFocused(false);
                           setConfirmPassTouched(true);
                         }}
-                        className="af-inp"
+                        className="af-inp af-inp-padded"
                         placeholder="Re-enter your password"
                         autoComplete="new-password"
                         aria-invalid={!!confirmPassErr}
@@ -858,7 +884,7 @@ export default function Auth({
 
                 {/* Remember me + Forgot password — login only */}
                 {!isForgot && !isSignUp && (
-                  <div className="af-meta-row">
+                  <div className="af-meta-row af-field-anim" style={{ animationDelay: '0.15s' }}>
                     <label className="af-remember">
                       <input
                         type="checkbox"
@@ -875,7 +901,7 @@ export default function Auth({
                 )}
 
                 {/* Primary CTA */}
-                <button type="submit" disabled={loading} className="af-cta-btn">
+                <button type="submit" disabled={loading} className="af-cta-btn af-field-anim" style={{ animationDelay: '0.2s' }}>
                   {loading ? (
                     <Loader2 size={18} className="af-spin" aria-hidden="true" />
                   ) : (
@@ -914,18 +940,16 @@ export default function Auth({
 
           {/* Security indicators */}
           <div className="af-sec-bar" aria-label="Security features">
-            <span className="af-sec-item">
-              <Lock size={9} aria-hidden="true" />
+            <span className="af-sec-chip">
+              <Lock size={10} aria-hidden="true" />
               SSL Secured
             </span>
-            <span className="af-sec-dot" aria-hidden="true" />
-            <span className="af-sec-item">
-              <Shield size={9} aria-hidden="true" />
+            <span className="af-sec-chip">
+              <Shield size={10} aria-hidden="true" />
               Data Encrypted
             </span>
-            <span className="af-sec-dot" aria-hidden="true" />
-            <span className="af-sec-item">
-              <CheckCircle2 size={9} aria-hidden="true" />
+            <span className="af-sec-chip">
+              <CheckCircle2 size={10} aria-hidden="true" />
               No Data Sharing
             </span>
           </div>
@@ -1003,6 +1027,14 @@ const AF_STYLES = `
   background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
+}
+/* Right-edge gradient bleed — visual bridge to the right panel */
+.af-left::after {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 80px;
+  background: linear-gradient(90deg, transparent, rgba(241,244,251,0.06));
+  pointer-events: none; z-index: 1;
 }
 
 /* Ambient glows */
@@ -1139,12 +1171,33 @@ const AF_STYLES = `
    RIGHT PANEL
 ══════════════════════════════════════ */
 .af-right {
-  width: 48%; min-height: 100vh; background: #F7F9FC;
+  width: 48%; min-height: 100vh;
+  background: linear-gradient(165deg, #F8FAFF 0%, #F1F4FB 40%, #EEF0F8 100%);
   display: flex; align-items: center; justify-content: center;
   padding: 48px 44px;
   transition: background 0.3s;
+  position: relative; overflow: hidden;
 }
-.af-card { width: 100%; max-width: 420px; }
+.af-right-glow {
+  position: absolute; top: -30%; right: -25%;
+  width: 60%; height: 60%;
+  background: radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 65%);
+  filter: blur(80px); pointer-events: none;
+}
+.af-card {
+  width: 100%; max-width: 420px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 24px;
+  padding: 36px 32px 32px;
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.04),
+    0 4px 12px rgba(15,23,42,0.06),
+    0 16px 40px rgba(79,70,229,0.06);
+  position: relative; z-index: 1;
+  animation: af-card-enter 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
 
 /* Mobile-only logo */
 .af-mobile-logo { display: none; align-items: center; gap: 10px; margin-bottom: 36px; }
@@ -1153,10 +1206,21 @@ const AF_STYLES = `
   color: #0F172A; letter-spacing: -0.04em;
 }
 
+/* Greeting badge */
+.af-greeting-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(124,58,237,0.06));
+  border: 1px solid rgba(79,70,229,0.12);
+  border-radius: 100px; padding: 5px 12px 5px 10px;
+  font-size: 11.5px; font-weight: 600; color: #4F46E5;
+  letter-spacing: 0.01em; margin-bottom: 14px;
+  animation: af-rise 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+}
+
 /* Card header */
-.af-card-head { margin-bottom: 24px; }
+.af-card-head { margin-bottom: 26px; }
 .af-card-title {
-  font-family: 'Outfit', sans-serif; font-size: 27px; font-weight: 900;
+  font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 900;
   color: #0F172A; letter-spacing: -0.04em; line-height: 1.12; margin-bottom: 8px;
 }
 .af-card-sub { font-size: 14px; color: #64748B; line-height: 1.55; font-weight: 400; }
@@ -1190,14 +1254,14 @@ const AF_STYLES = `
 /* Input wrapper */
 .af-inp-wrap {
   position: relative; display: flex; align-items: center;
-  background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 11px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+  background: rgba(255,255,255,0.7); border: 1.5px solid #E2E8F0; border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.04);
 }
-.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #CBD5E1; }
+.af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #CBD5E1; background: rgba(255,255,255,0.9); }
 .af-inp-wrap.af-focused {
-  border-color: #4F46E5;
-  box-shadow: 0 0 0 3px rgba(79,70,229,0.12), 0 1px 3px rgba(15,23,42,0.05);
+  border-color: #818CF8; background: #FFFFFF;
+  box-shadow: 0 0 0 3.5px rgba(79,70,229,0.1), 0 2px 8px rgba(79,70,229,0.08);
 }
 .af-inp-wrap.af-inp-err { border-color: #F87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.1); }
 .af-inp {
@@ -1209,8 +1273,10 @@ const AF_STYLES = `
 .af-inp-padded { padding-left: 8px; }
 .af-inp-icon {
   display: flex; align-items: center; padding-left: 14px; color: #94A3B8; flex-shrink: 0;
+  transition: color 0.2s;
 }
-.af-inp::placeholder { color: #94A3B8; }
+.af-focused .af-inp-icon { color: #4F46E5; }
+.af-inp::placeholder { color: #B0B8C8; }
 .af-eye-btn {
   background: none; border: none; padding: 0 14px; color: #94A3B8;
   cursor: pointer; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s;
@@ -1236,7 +1302,10 @@ const AF_STYLES = `
   display: flex; align-items: center; gap: 8px;
   font-size: 13px; color: #4B5563; cursor: pointer; font-weight: 500; user-select: none;
 }
-.af-chk { width: 15px; height: 15px; accent-color: #4F46E5; cursor: pointer; border-radius: 4px; }
+.af-chk {
+  width: 16px; height: 16px; accent-color: #4F46E5; cursor: pointer; border-radius: 4px;
+  margin: 0;
+}
 
 /* Link button */
 .af-link {
@@ -1249,25 +1318,43 @@ const AF_STYLES = `
 /* CTA Button */
 .af-cta-btn {
   width: 100%; padding: 14px 20px;
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-  color: #FFFFFF; border: none; border-radius: 11px;
+  background: linear-gradient(135deg, #4F46E5 0%, #6D5BF7 50%, #7C3AED 100%);
+  background-size: 200% 100%; background-position: 0% 0%;
+  color: #FFFFFF; border: none; border-radius: 13px;
   font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
-  box-shadow: 0 4px 18px rgba(79,70,229,0.4); margin-top: 4px; letter-spacing: -0.01em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-position 0.4s ease;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.35), 0 1px 3px rgba(79,70,229,0.2);
+  margin-top: 6px; letter-spacing: -0.01em;
+  position: relative; overflow: hidden;
 }
-.af-cta-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(79,70,229,0.5); filter: brightness(1.08); }
+.af-cta-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.af-cta-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(79,70,229,0.45), 0 2px 8px rgba(124,58,237,0.3);
+  background-position: 100% 0%;
+}
 .af-cta-btn:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 10px rgba(79,70,229,0.3); }
-.af-cta-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+.af-cta-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Mode switcher */
-.af-switch { text-align: center; margin-top: 24px; }
-.af-switch-txt { font-size: 13.5px; color: #6B7280; }
+.af-switch { text-align: center; margin-top: 22px; }
+.af-switch-txt { font-size: 13.5px; color: #6B7280; font-weight: 400; }
 
 /* Security bar */
 .af-sec-bar {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  margin-top: 24px; padding-top: 20px; border-top: 1px solid #F1F5F9; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(226,232,240,0.6); flex-wrap: wrap;
+}
+.af-sec-chip {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600; color: #94A3B8; letter-spacing: 0.01em;
+  background: rgba(241,245,249,0.7); border: 1px solid rgba(226,232,240,0.6);
+  border-radius: 100px; padding: 4px 10px;
 }
 .af-sec-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 500; color: #9CA3AF; }
 .af-sec-dot { width: 3px; height: 3px; border-radius: 50%; background: #D1D5DB; flex-shrink: 0; }
@@ -1306,25 +1393,34 @@ const AF_STYLES = `
    DARK MODE — right panel
 ══════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
-  .af-right { background: #111827; }
+  .af-right { background: linear-gradient(165deg, #0F1420 0%, #111827 40%, #131B2E 100%); }
+  .af-right-glow { background: radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 65%); }
+  .af-card {
+    background: rgba(31,41,55,0.75);
+    border-color: rgba(55,65,81,0.6);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15), 0 16px 40px rgba(0,0,0,0.15);
+  }
   .af-mobile-brand { color: #F9FAFB; }
   .af-card-title { color: #F9FAFB; }
   .af-card-sub { color: #9CA3AF; }
+  .af-greeting-badge { background: rgba(129,140,248,0.1); border-color: rgba(129,140,248,0.2); color: #A5B4FC; }
   .af-lbl { color: #D1D5DB; }
-  .af-inp-wrap { background: #1F2937; border-color: #374151; box-shadow: none; }
-  .af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #4B5563; }
-  .af-inp-wrap.af-focused { border-color: #818CF8; box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
+  .af-inp-wrap { background: rgba(17,24,39,0.6); border-color: #374151; box-shadow: none; }
+  .af-inp-wrap:hover:not(.af-focused):not(.af-inp-err) { border-color: #4B5563; background: rgba(17,24,39,0.8); }
+  .af-inp-wrap.af-focused { border-color: #818CF8; background: rgba(17,24,39,0.9); box-shadow: 0 0 0 3px rgba(129,140,248,0.12); }
   .af-inp { color: #F9FAFB; }
-  .af-inp::placeholder { color: #6B7280; }
+  .af-inp::placeholder { color: #4B5563; }
   .af-inp-icon { color: #6B7280; }
+  .af-focused .af-inp-icon { color: #818CF8; }
   .af-oauth-btn { background: #1F2937; border-color: #374151; color: #D1D5DB; }
   .af-oauth-btn:hover:not(:disabled) { background: #243143; border-color: #4B5563; }
   .af-divider-line { background: #374151; }
-  .af-divider-text { background: #111827; color: #6B7280; }
+  .af-divider-text { background: transparent; color: #6B7280; }
   .af-switch-txt { color: #9CA3AF; }
   .af-link { color: #818CF8; }
   .af-link:hover { color: #A5B4FC; }
-  .af-sec-bar { border-top-color: #1F2937; }
+  .af-sec-bar { border-top-color: rgba(55,65,81,0.5); }
+  .af-sec-chip { background: rgba(31,41,55,0.5); border-color: rgba(55,65,81,0.5); color: #6B7280; }
   .af-sec-item { color: #6B7280; }
   .af-sec-dot { background: #4B5563; }
   .af-remember { color: #9CA3AF; }
@@ -1335,6 +1431,13 @@ const AF_STYLES = `
   .af-mob-feat-toggle:hover { background: #1F2937; }
   .af-mob-feat-item { background: #1F2937; border-color: #374151; color: #D1D5DB; }
   .af-demo-btn { color: #6B7280; }
+  .af-left::after { background: linear-gradient(90deg, transparent, rgba(15,20,32,0.1)); }
+}
+
+/* Field stagger animation */
+.af-field-anim {
+  opacity: 0; transform: translateY(12px);
+  animation: af-field-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
 }
 
 /* ══════════════════════════════════════
@@ -1348,6 +1451,14 @@ const AF_STYLES = `
 }
 @keyframes af-rise {
   from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes af-card-enter {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes af-field-in {
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes af-shake {
@@ -1366,15 +1477,17 @@ const AF_STYLES = `
 ══════════════════════════════════════ */
 @media (max-width: 800px) {
   .af-left  { display: none; }
-  .af-right { width: 100%; padding: 40px 24px; align-items: flex-start; padding-top: 60px; }
-  .af-card  { max-width: 100%; }
+  .af-right { width: 100%; padding: 32px 20px; align-items: flex-start; padding-top: 52px; }
+  .af-card  { max-width: 100%; padding: 28px 22px 24px; border-radius: 20px; }
   .af-mobile-logo { display: flex; }
   .af-mobile-features { display: block; }
+  .af-card-title { font-size: 24px; }
 }
 
 @media (min-width: 801px) and (max-width: 1100px) {
   .af-left  { width: 50%; padding: 36px 40px; }
-  .af-right { width: 50%; padding: 44px 32px; }
+  .af-right { width: 50%; padding: 44px 28px; }
+  .af-card  { padding: 32px 26px 28px; }
   .af-h1    { font-size: 34px; }
   .af-feature-desc { display: none; }
   .af-features { gap: 6px; }
