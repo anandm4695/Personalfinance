@@ -3717,276 +3717,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </Card>
             </div>
 
-            {/* ── Emergency Fund Health Check ── */}
-            {(() => {
-              const efMonthlyExpense = metrics.monthExpense || 0;
-              // Liquid assets: bank cash + FDs maturing within 3 months
-              const nearTermFDs = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
-                if (!fd.maturityDate) return sum;
-                const matMs = new Date(fd.maturityDate).getTime();
-                const nowMs = Date.now();
-                const threeMonthsMs = nowMs + 90 * 86400000;
-                if (matMs >= nowMs && matMs <= threeMonthsMs) {
-                  return sum + Number(fd.principal || 0);
-                }
-                return sum;
-              }, 0);
-              const efLiquidBalance = (metrics.cashInBanks || 0) + nearTermFDs;
-              const efRatio = efMonthlyExpense > 0 ? efLiquidBalance / efMonthlyExpense : 0;
-              const efTarget = efMonthlyExpense * 6;
-              const efShortfall = efTarget - efLiquidBalance;
-              const efProgress = efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
-
-              const efStatusColor = efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
-              const efStatusLabel = efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
-              const EfIcon = efRatio >= 6 ? CheckCircle2 : efRatio >= 3 ? Shield : AlertTriangle;
-
-              let efAdvice = "";
-              if (efMonthlyExpense <= 0) {
-                efAdvice = "Add your monthly expenses to calculate your emergency fund coverage.";
-              } else if (efRatio < 3) {
-                const need3 = Math.max(0, efMonthlyExpense * 3 - efLiquidBalance);
-                efAdvice = `Critical! You need ${fmtINRFull(need3)} more for a minimum 3-month buffer.`;
-              } else if (efRatio < 6) {
-                efAdvice = `Building well. ${fmtINRFull(Math.max(0, efShortfall))} more to reach the recommended 6-month buffer.`;
-              } else {
-                efAdvice = `Excellent! Your emergency fund covers ${efRatio.toFixed(1)} months of expenses.`;
-              }
-
-              // Segment fill: 6 segments, each = 1 month
-              const filledSegments = Math.min(efRatio, 6);
-
-              return (
-                <Card
-                  className="bento-col-12"
-                  style={{ padding: 24, marginTop: 4 }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 20,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Shield size={18} color={efStatusColor} />
-                      </div>
-                      <div>
-                        <div
-                          className="section-label"
-                          style={{ marginBottom: 0 }}
-                        >
-                          Emergency Fund Health
-                        </div>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 2 }}>
-                          Liquid reserves vs monthly expenses
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "4px 12px",
-                        borderRadius: 20,
-                        background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${efStatusColor} 20%, transparent)`,
-                      }}
-                    >
-                      <EfIcon size={13} color={efStatusColor} />
-                      <span style={{ fontSize: 12, fontWeight: 800, color: efStatusColor }}>
-                        {efStatusLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ratio Display */}
-                  <div style={{ textAlign: "center", marginBottom: 24 }}>
-                    <div
-                      style={{
-                        fontSize: 42,
-                        fontWeight: 900,
-                        color: efStatusColor,
-                        lineHeight: 1,
-                        letterSpacing: "-0.03em",
-                      }}
-                    >
-                      {efRatio.toFixed(1)}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginTop: 6 }}>
-                      months of expenses covered
-                    </div>
-                  </div>
-
-                  {/* 6-Segment Progress Gauge */}
-                  <div style={{ marginBottom: 24 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 4,
-                        height: 20,
-                        borderRadius: 10,
-                        overflow: "hidden",
-                        background: THEME.line,
-                      }}
-                    >
-                      {[0, 1, 2, 3, 4, 5].map((seg) => {
-                        const segFill = Math.max(0, Math.min(1, filledSegments - seg));
-                        const segColor = seg < 3 ? THEME.rust : seg < 6 ? THEME.gold : THEME.sage;
-                        const fillColor = filledSegments >= 6 ? THEME.sage : filledSegments >= 3 ? THEME.gold : THEME.rust;
-                        return (
-                          <div
-                            key={seg}
-                            style={{
-                              flex: 1,
-                              position: "relative",
-                              background: "transparent",
-                              borderRadius: seg === 0 ? "10px 0 0 10px" : seg === 5 ? "0 10px 10px 0" : 0,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                bottom: 0,
-                                width: `${segFill * 100}%`,
-                                background: fillColor,
-                                borderRadius: "inherit",
-                                transition: "width 0.5s ease",
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginTop: 6,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                      }}
-                    >
-                      <span>0 mo</span>
-                      <span style={{ color: efRatio >= 3 ? THEME.gold : THEME.muted }}>3 mo</span>
-                      <span style={{ color: efRatio >= 6 ? THEME.sage : THEME.muted }}>6 mo</span>
-                    </div>
-                  </div>
-
-                  {/* Key Numbers Grid */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                      gap: 12,
-                      marginBottom: 20,
-                    }}
-                  >
-                    {[
-                      {
-                        label: "Liquid Balance",
-                        value: fmtINRFull(efLiquidBalance),
-                        sub: nearTermFDs > 0 ? `Incl. ${fmtINRFull(nearTermFDs)} near-term FDs` : "Bank cash",
-                        color: THEME.accent,
-                      },
-                      {
-                        label: "Monthly Expense",
-                        value: fmtINRFull(efMonthlyExpense),
-                        sub: "Average monthly spend",
-                        color: THEME.muted,
-                      },
-                      {
-                        label: "Target (6 months)",
-                        value: fmtINRFull(efTarget),
-                        sub: "Recommended buffer",
-                        color: THEME.gold,
-                      },
-                      {
-                        label: efShortfall > 0 ? "Shortfall" : "Surplus",
-                        value: fmtINRFull(Math.abs(efShortfall)),
-                        sub: efShortfall > 0 ? "Amount needed" : "Above target",
-                        color: efShortfall > 0 ? THEME.rust : THEME.sage,
-                      },
-                    ].map((item, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          padding: "14px 16px",
-                          borderRadius: 12,
-                          background: THEME.line,
-                          border: `1px solid color-mix(in srgb, ${item.color} 12%, transparent)`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                            marginBottom: 6,
-                          }}
-                        >
-                          {item.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 800,
-                            color: item.color,
-                            lineHeight: 1,
-                            marginBottom: 4,
-                          }}
-                        >
-                          <Prv>{item.value}</Prv>
-                        </div>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-                          {item.sub}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Recommendation */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 10,
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      background: `color-mix(in srgb, ${efStatusColor} 6%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${efStatusColor} 14%, transparent)`,
-                      borderLeft: `3px solid ${efStatusColor}`,
-                    }}
-                  >
-                    <EfIcon size={16} color={efStatusColor} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, lineHeight: 1.5 }}>
-                      {efAdvice}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })()}
-
             {/* Row of Health, Dues, Streak */}
             {(() => {
               const healthScoreData = !healthSimActive
@@ -4445,6 +4175,276 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
             </Card>
 
+            {/* ── Emergency Fund Health Check ── */}
+            {(() => {
+              const efMonthlyExpense = metrics.monthExpense || 0;
+              // Liquid assets: bank cash + FDs maturing within 3 months
+              const nearTermFDs = (state.fixedDeposits || []).reduce((sum: number, fd: any) => {
+                if (!fd.maturityDate) return sum;
+                const matMs = new Date(fd.maturityDate).getTime();
+                const nowMs = Date.now();
+                const threeMonthsMs = nowMs + 90 * 86400000;
+                if (matMs >= nowMs && matMs <= threeMonthsMs) {
+                  return sum + Number(fd.principal || 0);
+                }
+                return sum;
+              }, 0);
+              const efLiquidBalance = (metrics.cashInBanks || 0) + nearTermFDs;
+              const efRatio = efMonthlyExpense > 0 ? efLiquidBalance / efMonthlyExpense : 0;
+              const efTarget = efMonthlyExpense * 6;
+              const efShortfall = efTarget - efLiquidBalance;
+              const efProgress = efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
+
+              const efStatusColor = efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
+              const efStatusLabel = efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
+              const EfIcon = efRatio >= 6 ? CheckCircle2 : efRatio >= 3 ? Shield : AlertTriangle;
+
+              let efAdvice = "";
+              if (efMonthlyExpense <= 0) {
+                efAdvice = "Add your monthly expenses to calculate your emergency fund coverage.";
+              } else if (efRatio < 3) {
+                const need3 = Math.max(0, efMonthlyExpense * 3 - efLiquidBalance);
+                efAdvice = `Critical! You need ${fmtINRFull(need3)} more for a minimum 3-month buffer.`;
+              } else if (efRatio < 6) {
+                efAdvice = `Building well. ${fmtINRFull(Math.max(0, efShortfall))} more to reach the recommended 6-month buffer.`;
+              } else {
+                efAdvice = `Excellent! Your emergency fund covers ${efRatio.toFixed(1)} months of expenses.`;
+              }
+
+              // Segment fill: 6 segments, each = 1 month
+              const filledSegments = Math.min(efRatio, 6);
+
+              return (
+                <Card
+                  className="bento-col-12"
+                  style={{ padding: 24 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 20,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Shield size={18} color={efStatusColor} />
+                      </div>
+                      <div>
+                        <div
+                          className="section-label"
+                          style={{ marginBottom: 0 }}
+                        >
+                          Emergency Fund Health
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 2 }}>
+                          Liquid reserves vs monthly expenses
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 12px",
+                        borderRadius: 20,
+                        background: `color-mix(in srgb, ${efStatusColor} 10%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${efStatusColor} 20%, transparent)`,
+                      }}
+                    >
+                      <EfIcon size={13} color={efStatusColor} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: efStatusColor }}>
+                        {efStatusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Ratio Display */}
+                  <div style={{ textAlign: "center", marginBottom: 24 }}>
+                    <div
+                      style={{
+                        fontSize: 42,
+                        fontWeight: 900,
+                        color: efStatusColor,
+                        lineHeight: 1,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {efRatio.toFixed(1)}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginTop: 6 }}>
+                      months of expenses covered
+                    </div>
+                  </div>
+
+                  {/* 6-Segment Progress Gauge */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 4,
+                        height: 20,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        background: THEME.line,
+                      }}
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((seg) => {
+                        const segFill = Math.max(0, Math.min(1, filledSegments - seg));
+                        const segColor = seg < 3 ? THEME.rust : seg < 6 ? THEME.gold : THEME.sage;
+                        const fillColor = filledSegments >= 6 ? THEME.sage : filledSegments >= 3 ? THEME.gold : THEME.rust;
+                        return (
+                          <div
+                            key={seg}
+                            style={{
+                              flex: 1,
+                              position: "relative",
+                              background: "transparent",
+                              borderRadius: seg === 0 ? "10px 0 0 10px" : seg === 5 ? "0 10px 10px 0" : 0,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                bottom: 0,
+                                width: `${segFill * 100}%`,
+                                background: fillColor,
+                                borderRadius: "inherit",
+                                transition: "width 0.5s ease",
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginTop: 6,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: THEME.muted,
+                      }}
+                    >
+                      <span>0 mo</span>
+                      <span style={{ color: efRatio >= 3 ? THEME.gold : THEME.muted }}>3 mo</span>
+                      <span style={{ color: efRatio >= 6 ? THEME.sage : THEME.muted }}>6 mo</span>
+                    </div>
+                  </div>
+
+                  {/* Key Numbers Grid */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                      gap: 12,
+                      marginBottom: 20,
+                    }}
+                  >
+                    {[
+                      {
+                        label: "Liquid Balance",
+                        value: fmtINRFull(efLiquidBalance),
+                        sub: nearTermFDs > 0 ? `Incl. ${fmtINRFull(nearTermFDs)} near-term FDs` : "Bank cash",
+                        color: THEME.accent,
+                      },
+                      {
+                        label: "Monthly Expense",
+                        value: fmtINRFull(efMonthlyExpense),
+                        sub: "Average monthly spend",
+                        color: THEME.muted,
+                      },
+                      {
+                        label: "Target (6 months)",
+                        value: fmtINRFull(efTarget),
+                        sub: "Recommended buffer",
+                        color: THEME.gold,
+                      },
+                      {
+                        label: efShortfall > 0 ? "Shortfall" : "Surplus",
+                        value: fmtINRFull(Math.abs(efShortfall)),
+                        sub: efShortfall > 0 ? "Amount needed" : "Above target",
+                        color: efShortfall > 0 ? THEME.rust : THEME.sage,
+                      },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 12,
+                          background: THEME.line,
+                          border: `1px solid color-mix(in srgb, ${item.color} 12%, transparent)`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 6,
+                          }}
+                        >
+                          {item.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 800,
+                            color: item.color,
+                            lineHeight: 1,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <Prv>{item.value}</Prv>
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                          {item.sub}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recommendation */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${efStatusColor} 6%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${efStatusColor} 14%, transparent)`,
+                      borderLeft: `3px solid ${efStatusColor}`,
+                    }}
+                  >
+                    <EfIcon size={16} color={efStatusColor} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, lineHeight: 1.5 }}>
+                      {efAdvice}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })()}
+
             {/* Wealth Velocity + EMI Summary Row */}
             <div
               className="bento-col-12"
@@ -4663,7 +4663,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
 
             {/* ── Year-on-Year FY Comparison ── */}
-            <Card className="bento-col-12" style={{ padding: 0, marginTop: 4, overflow: "hidden" }}>
+            <Card className="bento-col-12" style={{ padding: 0, overflow: "hidden" }}>
               <button
                 onClick={() => setYoyOpen((p) => !p)}
                 style={{
@@ -5029,7 +5029,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </Card>
 
             {/* ── Estate Planning — Nomination Coverage ── */}
-            <Card className="bento-col-12" style={{ padding: 0, marginTop: 4, overflow: "hidden" }}>
+            <Card className="bento-col-12" style={{ padding: 0, overflow: "hidden" }}>
               <button
                 onClick={() => setNominationOpen((p) => !p)}
                 style={{
@@ -5385,7 +5385,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </Card>
 
             {/* Recent Transactions */}
-            <Card className="bento-col-12" style={{ padding: 24, marginTop: 4 }}>
+            <Card className="bento-col-12" style={{ padding: 24 }}>
               <div
                 style={{
                   display: "flex",
