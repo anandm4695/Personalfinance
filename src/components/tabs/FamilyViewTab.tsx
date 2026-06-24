@@ -921,11 +921,24 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   barGap={4}
                   barCategoryGap="25%"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                  <defs>
+                    {activeMembers.map((m) => (
+                      <React.Fragment key={m.id}>
+                        <linearGradient id={`gBar-${m.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={m.color} stopOpacity={dark ? 1 : 0.9} />
+                          <stop offset="100%" stopColor={m.color} stopOpacity={dark ? 0.7 : 0.4} />
+                        </linearGradient>
+                        <filter id={`glow-${m.id}`} x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={m.color} floodOpacity={dark ? "0.55" : "0.4"} />
+                        </filter>
+                      </React.Fragment>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
                   <XAxis
                     dataKey="name"
                     tick={{ fill: THEME.muted, fontSize: 11, fontWeight: 600 }}
-                    axisLine={{ stroke: THEME.line }}
+                    axisLine={false}
                     tickLine={false}
                     angle={-30}
                     textAnchor="end"
@@ -938,12 +951,12 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tickFormatter={(v) => fmtINRFull(v)}
                   />
                   <Tooltip
+                    cursor={{ fill: THEME.line, opacity: 0.4 }}
                     contentStyle={{
                       background: "var(--surface-0)",
-                      border: `1px solid ${THEME.line}`,
-                      borderRadius: 10,
-                      fontSize: 13,
-                      fontWeight: 600,
+                      border: "1px solid var(--t-line)",
+                      borderRadius: 12,
+                      boxShadow: "var(--shadow-xl)",
                       color: THEME.ink,
                     }}
                     labelStyle={{ color: THEME.muted }}
@@ -959,9 +972,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     <Bar
                       key={m.id}
                       dataKey={capitalize(m.id)}
-                      fill={m.color}
-                      radius={[6, 6, 0, 0]}
+                      fill={`url(#gBar-${m.id})`}
+                      radius={[4, 4, 0, 0]}
                       maxBarSize={48}
+                      style={{ filter: `url(#glow-${m.id})` }}
                     />
                   ))}
                 </BarChart>
