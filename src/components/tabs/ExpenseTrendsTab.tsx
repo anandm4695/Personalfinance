@@ -1090,11 +1090,15 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
-                width={120}
+                width={140}
               />
               <Tooltip
+                cursor={{ fill: THEME.line, opacity: 0.4 }}
                 content={({ active, payload }: any) => {
                   if (!active || !payload?.length) return null;
+                  const val = payload[0]?.value || 0;
+                  const totalMerchantSpend = topMerchants.reduce((s: number, m: any) => s + m.amount, 0);
+                  const pct = totalMerchantSpend > 0 ? ((val / totalMerchantSpend) * 100).toFixed(1) : "0";
                   return (
                     <div
                       style={{
@@ -1110,13 +1114,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         {payload[0]?.payload?.name}
                       </div>
                       <div style={{ color: THEME.muted, marginTop: 4 }}>
-                        <Prv>{fmtINRFull(payload[0]?.value)}</Prv>
+                        <Prv>{fmtINRFull(val)}</Prv> ({pct}%)
                       </div>
                     </div>
                   );
                 }}
               />
-              <Bar dataKey="amount" fill={PIE_COLORS[0]} radius={[0, 6, 6, 0]} barSize={24} />
+              <Bar dataKey="amount" radius={[0, 6, 6, 0]} barSize={24}>
+                {topMerchants.map((_: any, i: number) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         ) : (
