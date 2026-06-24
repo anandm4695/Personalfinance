@@ -1470,7 +1470,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1544,7 +1544,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1778,11 +1778,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
+                        cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: "var(--t-card-bg)",
                           borderColor: THEME.line,
                           fontSize: 12,
+                          color: THEME.ink,
                         }}
+                        labelStyle={{ color: THEME.ink }}
+                        itemStyle={{ color: THEME.ink }}
                       />
                       <Area
                         type="monotone"
@@ -2166,11 +2170,15 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       <YAxis tickFormatter={fmtINRFull} tick={{ fontSize: 10, fill: "var(--t-muted)" }} />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
+                        cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: "var(--t-card-bg)",
                           borderColor: THEME.line,
                           fontSize: 12,
+                          color: THEME.ink,
                         }}
+                        labelStyle={{ color: THEME.ink }}
+                        itemStyle={{ color: THEME.ink }}
                       />
                       <Area
                         type="monotone"
@@ -2747,7 +2755,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                        <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -3061,7 +3069,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       />
                       <Tooltip
                         formatter={(v: any) => fmtINRFull(v)}
-                        contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line }}
+                        cursor={{ stroke: THEME.line }}
+                        contentStyle={{ background: "var(--t-card-bg)", borderColor: THEME.line, color: THEME.ink }}
+                        labelStyle={{ color: THEME.ink }}
+                        itemStyle={{ color: THEME.ink }}
                       />
                       <Area
                         type="monotone"
@@ -3792,6 +3803,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tickFormatter={(v) => fmtINRFull(v)}
                       />
                       <Tooltip
+                        cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: THEME.paper,
                           border: `1.5px solid ${THEME.line}`,
@@ -3799,6 +3811,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           fontSize: 12,
                           color: THEME.ink,
                         }}
+                        labelStyle={{ color: THEME.ink }}
+                        itemStyle={{ color: THEME.ink }}
                         formatter={(val) => fmtINRFull(Number(val))}
                       />
                       <Area
@@ -4359,6 +4373,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         tickFormatter={(v) => fmtINRFull(v)}
                       />
                       <Tooltip
+                        cursor={{ stroke: THEME.line }}
                         contentStyle={{
                           background: THEME.paper,
                           border: `1.5px solid ${THEME.line}`,
@@ -4366,6 +4381,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                           fontSize: 12,
                           color: THEME.ink,
                         }}
+                        labelStyle={{ color: THEME.ink }}
+                        itemStyle={{ color: THEME.ink }}
                         formatter={(val) => fmtINRFull(Number(val))}
                       />
                       <Area
@@ -4684,12 +4701,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     />
                     <Tooltip
                       formatter={(v: number) => fmtINRFull(v)}
+                      cursor={{ fill: THEME.line, opacity: 0.4 }}
                       contentStyle={{
                         background: "var(--t-card-bg)",
                         border: `1px solid ${THEME.line}`,
                         borderRadius: 10,
                         fontSize: 12,
+                        color: THEME.ink,
                       }}
+                      labelStyle={{ color: THEME.ink }}
+                      itemStyle={{ color: THEME.ink }}
                     />
                     <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                       {idxBarData.map((entry, i) => (
@@ -4959,12 +4980,16 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     />
                     <Tooltip
                       formatter={(v: number, name: string) => [fmtINRFull(v), name]}
+                      cursor={{ stroke: THEME.line }}
                       contentStyle={{
                         background: "var(--t-card-bg)",
                         border: `1px solid ${THEME.line}`,
                         borderRadius: 10,
                         fontSize: 12,
+                        color: THEME.ink,
                       }}
+                      labelStyle={{ color: THEME.ink }}
+                      itemStyle={{ color: THEME.ink }}
                       labelFormatter={(age: number) => `Age ${age}`}
                     />
                     <Legend verticalAlign="top" height={36} />

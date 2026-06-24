@@ -273,7 +273,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
                   {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip formatter={(v) => fmtINRFull(v)} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 8 }}>
@@ -296,7 +296,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: THEME.muted }} />
                 <YAxis tick={{ fontSize: 11, fill: THEME.muted }} unit="%" />
-                <Tooltip formatter={(v) => `${v}%`} />
+                <Tooltip formatter={(v) => `${v}%`} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                 <Bar dataKey="Current" fill="#6366F1" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Target" fill="#10B981" radius={[4, 4, 0, 0]} />
                 <Legend />
@@ -314,7 +314,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 <Pie data={targetPieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
                   {targetPieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip formatter={(v) => `${v}%`} />
+                <Tooltip formatter={(v) => `${v}%`} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} cursor={{ fill: THEME.line, opacity: 0.4 }} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 8 }}>

@@ -824,12 +824,16 @@ function CreditScoreTracker() {
                       width={35}
                     />
                     <Tooltip
+                      cursor={{ stroke: THEME.line }}
                       contentStyle={{
                         borderRadius: 10,
                         border: `1px solid ${THEME.line}`,
                         fontSize: 12,
                         background: THEME.bg,
+                        color: THEME.ink,
                       }}
+                      labelStyle={{ color: THEME.ink }}
+                      itemStyle={{ color: THEME.ink }}
                     />
                     <Area
                       type="monotone"

@@ -9,7 +9,7 @@ export function LoadingScreen() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0B0F1A",
+        background: "var(--t-paper, #0B0F1A)",
         gap: 20,
       }}
     >

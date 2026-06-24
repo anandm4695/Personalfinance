@@ -175,7 +175,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                   label={({ name, percent }) => `${name.split(" ")[0]} ${(percent * 100).toFixed(0)}%`}>
                   {stats.byType.map((t, i) => <Cell key={i} fill={t.color} />)}
                 </Pie>
-                <Tooltip formatter={(v) => fmtINRFull(v)} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
               </PieChart>
             </ResponsiveContainer>
           </Card>

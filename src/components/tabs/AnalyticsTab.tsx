@@ -4992,6 +4992,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             tickFormatter={(v: number) => fmtINRFull(v)}
                           />
                           <Tooltip
+                            cursor={{ fill: THEME.line, opacity: 0.4 }}
                             contentStyle={{
                               background: "var(--surface-0)",
                               border: `1px solid ${THEME.line}`,

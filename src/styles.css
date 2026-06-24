@@ -1234,6 +1234,26 @@ select {
   background-position: right 10px center;
   padding-right: 30px !important;
 }
+option {
+  background: var(--t-card-bg);
+  color: var(--t-ink);
+}
+
+/* ── Recharts dark-mode fixes ─────────────────────────────────── */
+.recharts-legend-item-text {
+  color: var(--t-ink) !important;
+}
+.recharts-default-tooltip {
+  background: var(--t-card-bg) !important;
+  border-color: var(--t-line) !important;
+  color: var(--t-ink) !important;
+}
+.recharts-tooltip-label {
+  color: var(--t-ink) !important;
+}
+.recharts-tooltip-item {
+  color: var(--t-ink) !important;
+}
 
 /* ── Demo banner animation ─────────────────────────────────────── */
 .demo-banner {

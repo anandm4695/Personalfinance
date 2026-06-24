@@ -833,7 +833,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                     <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.muted }} />
                     <YAxis tick={{ fontSize: 11, fill: THEME.muted }} tickFormatter={(v: number) => fmtINRFull(v)} width={65} />
-                    <Tooltip formatter={(v: number) => [fmtINRFull(v), "Net Worth"]} />
+                    <Tooltip formatter={(v: number) => [fmtINRFull(v), "Net Worth"]} cursor={{ stroke: THEME.line }} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                     <Area type="monotone" dataKey="value" stroke={THEME.accent} fill="url(#nwGrad)" strokeWidth={2.5} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -872,7 +872,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                       <XAxis dataKey="month" tick={{ fontSize: 9, fill: THEME.muted }} />
                       <YAxis tick={{ fontSize: 9, fill: THEME.muted }} tickFormatter={(v: number) => fmtINRFull(v)} width={50} />
-                      <Tooltip formatter={(v: number) => [fmtINRFull(v), "Income"]} />
+                      <Tooltip formatter={(v: number) => [fmtINRFull(v), "Income"]} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                       <Bar dataKey="income" fill={THEME.sage} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -908,7 +908,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                             <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: number) => fmtINRFull(v)} />
+                        <Tooltip formatter={(v: number) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -966,7 +966,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
                             <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: number) => fmtINRFull(v)} />
+                        <Tooltip formatter={(v: number) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

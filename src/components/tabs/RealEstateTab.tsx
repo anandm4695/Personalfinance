@@ -164,7 +164,7 @@ const BuilderLogo = ({
           width: size,
           height: size,
           borderRadius,
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1.5px solid ${theme.color}30`,
           display: "flex",
           alignItems: "center",

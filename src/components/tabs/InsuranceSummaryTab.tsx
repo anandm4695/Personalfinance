@@ -99,7 +99,7 @@ const InsurerLogo = ({
           width: size,
           height: size,
           borderRadius: 10,
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
@@ -1762,7 +1762,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1805,7 +1805,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: any) => fmtINRFull(v)} />
+                    <Tooltip formatter={(v: any) => fmtINRFull(v)} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                     <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>

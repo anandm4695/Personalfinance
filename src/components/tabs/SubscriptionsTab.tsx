@@ -114,7 +114,7 @@ const ServiceLogo = ({ name, size = 40, website }: { name: string; size?: number
           width: size,
           height: size,
           borderRadius: 10,
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",

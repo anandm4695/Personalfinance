@@ -440,7 +440,7 @@ export function MonthlyReportModal({ metrics, state, selectedDate, onClose }: an
         {/* Net Worth Snapshot */}
         <div
           style={{
-            background: "#0f172a",
+            background: "var(--surface-2, #0f172a)",
             borderRadius: 10,
             padding: "16px 20px",
             marginBottom: 16,

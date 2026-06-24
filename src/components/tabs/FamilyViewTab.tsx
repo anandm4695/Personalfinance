@@ -573,6 +573,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         border: `1px solid ${THEME.line}`,
                         borderRadius: 10,
                         fontSize: 12,
+                        color: THEME.ink,
                       }}
                       labelStyle={{ color: THEME.muted }}
                       itemStyle={{ color: THEME.ink }}
@@ -789,6 +790,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             border: `1px solid ${THEME.line}`,
                             borderRadius: 8,
                             fontSize: 11,
+                            color: THEME.ink,
                           }}
                           labelStyle={{ color: THEME.muted }}
                           itemStyle={{ color: THEME.ink }}

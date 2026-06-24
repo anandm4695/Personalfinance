@@ -178,7 +178,7 @@ function VehicleMakeLogo({ make, size = 52 }: { make: string; size?: number }) {
           width: size,
           height: size,
           borderRadius: br,
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1.5px solid ${theme.color}30`,
           display: "flex",
           alignItems: "center",
@@ -293,7 +293,7 @@ function VehicleHeroBanner({ make, model, photoUrl }: { make: string; model: str
   if (!src || failed) return null;
 
   return (
-    <div style={{ position: "relative", height: 200, overflow: "hidden", background: "#000" }}>
+    <div style={{ position: "relative", height: 200, overflow: "hidden", background: "var(--surface-1)" }}>
       <img
         src={src}
         alt={`${make} ${model}`}
@@ -655,23 +655,23 @@ function VehicleModal({ existing, onClose, onSave }: any) {
 
         {/* RC lookup status banner */}
         {rcStatus === "ok" && (
-          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: "#10b98115", border: "1px solid #10b98130", color: "#065f46" }}>
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: `${THEME.sage}15`, border: `1px solid ${THEME.sage}30`, color: THEME.sage }}>
             <div>{rcMsg}</div>
             {rcSource?.includes("offline") && (
-              <div style={{ marginTop: 5, fontSize: 11, color: "#047857", fontWeight: 400, borderTop: "1px solid #10b98125", paddingTop: 4 }}>
+              <div style={{ marginTop: 5, fontSize: 11, color: THEME.sage, fontWeight: 400, borderTop: `1px solid ${THEME.sage}25`, paddingTop: 4 }}>
                 💡 <strong>Free Offline Mode:</strong> This details preview was generated offline based on the RTO prefix{rcSource.includes("failed") && " (as live lookup was unsuccessful/unconfigured)"}. To setup live RTO verification from government databases, <span style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }} onClick={() => setRcStatus("nokey")}>view live API instructions</span>.
               </div>
             )}
           </div>
         )}
         {rcStatus === "error" && (
-          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: "#ef444414", border: "1px solid #ef444430", color: "#7f1d1d" }}>
+          <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500, background: `${THEME.rust}14`, border: `1px solid ${THEME.rust}30`, color: THEME.rust }}>
             ✕ {rcMsg}
           </div>
         )}
         {rcStatus === "nokey" && (
-          <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", border: "1px solid #f59e0b40", fontSize: 12 }}>
-            <div style={{ background: "#f59e0b14", padding: "8px 12px", fontWeight: 700, color: "#78350f", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", border: `1px solid ${THEME.gold}40`, fontSize: 12 }}>
+            <div style={{ background: `${THEME.gold}14`, padding: "8px 12px", fontWeight: 700, color: THEME.gold, display: "flex", alignItems: "center", gap: 6 }}>
               <span>⚙</span> RC lookup needs a one-time API setup — choose the easiest option below:
             </div>
             {[
@@ -712,13 +712,13 @@ function VehicleModal({ existing, onClose, onSave }: any) {
                 ],
               },
             ].map((p) => (
-              <div key={p.num} style={{ borderTop: "1px solid #f59e0b20", padding: "10px 12px" }}>
+              <div key={p.num} style={{ borderTop: `1px solid ${THEME.gold}20`, padding: "10px 12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{ width: 20, height: 20, borderRadius: "50%", background: p.color, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{p.num}</span>
                   <span style={{ fontWeight: 700, color: p.color }}>{p.title}</span>
                   <span style={{ fontSize: 11, background: p.color + "15", color: p.color, borderRadius: 20, padding: "1px 7px", fontWeight: 600 }}>{p.badge}</span>
                 </div>
-                <ol style={{ margin: 0, paddingLeft: 20, color: "#78350f", lineHeight: 1.7 }}>
+                <ol style={{ margin: 0, paddingLeft: 20, color: THEME.gold, lineHeight: 1.7 }}>
                   {p.steps.map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
                 </ol>
               </div>

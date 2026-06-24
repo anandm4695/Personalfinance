@@ -1373,7 +1373,10 @@ export const InvestmentStatementTab = ({
                       border: `1px solid ${THEME.line}`,
                       borderRadius: 8,
                       fontSize: 13,
+                      color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.ink }}
+                    itemStyle={{ color: THEME.ink }}
                   />
                   <Legend
                     verticalAlign="bottom"

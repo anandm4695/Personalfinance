@@ -8,6 +8,11 @@ export const THEME = {
   muted: "var(--t-muted)",
   line: "var(--t-line)",
   darkInk: "var(--t-darkInk)",
+  text: "var(--t-ink)",
+  textSecondary: "var(--t-muted)",
+  card: "var(--t-card-bg)",
+  border: "var(--t-line)",
+  bg: "var(--t-paper)",
 };
 
 // 10 corporate accent colors — one per theme preset (perfect 1:1 mapping).

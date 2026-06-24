@@ -145,7 +145,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: THEME.muted }} />
               <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={tooltipStyle()} />
+              <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ fill: "var(--t-line)", opacity: 0.4 }} contentStyle={tooltipStyle()} labelStyle={{ color: "var(--t-ink)" }} itemStyle={{ color: "var(--t-ink)" }} />
               <Bar dataKey="total" name="Inflation-Adjusted Cost" fill={THEME.accent} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

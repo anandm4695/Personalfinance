@@ -7412,7 +7412,7 @@ const BankLogo = ({
         style={{
           width: size, height: size,
           borderRadius: Math.round(size * 0.25),
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
           display: "flex", alignItems: "center", justifyContent: "center",
           overflow: "hidden", flexShrink: 0,
@@ -7571,7 +7571,7 @@ export const MFLogo = ({ fundName, size = 40 }: { fundName: string; size?: numbe
           width: size,
           height: size,
           borderRadius: Math.round(size * 0.25),
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
@@ -8320,7 +8320,7 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                                                 </defs>
                                                 <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
                                                 <YAxis hide domain={["auto", "auto"]} />
-                                                <Tooltip contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }} formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]} />
+                                                <Tooltip cursor={{ stroke: THEME.line }} contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} formatter={(v: any) => [`₹${Number(v).toFixed(4)}`, "NAV"]} />
                                                 <Area type="monotone" dataKey="p" stroke={navUp ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#mf-g-${cId})`} dot={false} />
                                               </AreaChart>
                                             </ResponsiveContainer>

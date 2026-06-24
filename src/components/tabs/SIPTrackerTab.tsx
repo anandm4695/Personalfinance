@@ -566,12 +566,15 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
                   />
                   <Tooltip
                     formatter={(v: any) => fmtINRFull(v)}
+                    cursor={{ stroke: THEME.line }}
                     contentStyle={{
                       background: "var(--surface-0)",
                       borderColor: THEME.line,
                       borderRadius: 10,
                       color: THEME.ink,
                     }}
+                    labelStyle={{ color: THEME.ink }}
+                    itemStyle={{ color: THEME.ink }}
                   />
                   <Legend verticalAlign="top" height={36} />
                   <Area

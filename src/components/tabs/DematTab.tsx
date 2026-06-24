@@ -154,7 +154,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
     width: size,
     height: size,
     borderRadius: br,
-    background: "#fff",
+    background: "var(--surface-0)",
     border: `1px solid ${THEME.line}`,
     display: "flex",
     alignItems: "center",
@@ -273,7 +273,7 @@ const BrokerLogo = ({
           width: size,
           height: size,
           borderRadius,
-          background: "#fff",
+          background: "var(--surface-0)",
           border: `1.5px solid ${theme.color}30`,
           display: "flex",
           alignItems: "center",
@@ -1647,7 +1647,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         <XAxis type="number" tick={{ fontSize: 11, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} domain={[0, "auto"]} unit="%" />
                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }} axisLine={false} tickLine={false} width={110} />
                         <Tooltip
-                          contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8 }}
+                          cursor={{ fill: THEME.line, opacity: 0.4 }}
+                          contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }}
+                          labelStyle={{ color: THEME.ink }}
+                          itemStyle={{ color: THEME.ink }}
                           formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "CAGR"]}
                         />
                         <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
@@ -2312,12 +2315,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         />
                                         <YAxis hide domain={["auto", "auto"]} />
                                         <Tooltip
+                                          cursor={{ stroke: THEME.line }}
                                           contentStyle={{
                                             fontSize: 12,
                                             background: "var(--surface-0)",
                                             border: `1px solid ${THEME.line}`,
                                             borderRadius: 6,
+                                            color: THEME.ink,
                                           }}
+                                          labelStyle={{ color: THEME.ink }}
+                                          itemStyle={{ color: THEME.ink }}
                                           formatter={(v: any) => [
                                             `₹${Number(v).toFixed(2)}`,
                                             "Price",
@@ -3206,7 +3213,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
                             "Current Value"
                           ]}
-                          contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, fontSize: 12 }}
+                          contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, fontSize: 12, color: THEME.ink }}
+                          labelStyle={{ color: THEME.ink }}
+                          itemStyle={{ color: THEME.ink }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -3595,7 +3604,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                       <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
                                                       <YAxis hide domain={["auto", "auto"]} />
                                                       <Tooltip
-                                                        contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6 }}
+                                                        cursor={{ stroke: THEME.line }}
+                                                        contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6, color: THEME.ink }}
+                                                        labelStyle={{ color: THEME.ink }}
+                                                        itemStyle={{ color: THEME.ink }}
                                                         formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]}
                                                       />
                                                       <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#wl-ig-${it.symbol})`} dot={false} />

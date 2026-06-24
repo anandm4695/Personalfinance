@@ -612,13 +612,17 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               tickFormatter={(v: number) => fmtINRFull(v)}
             />
             <Tooltip
+              cursor={{ fill: THEME.line, opacity: 0.4 }}
               contentStyle={{
                 background: "var(--surface-0)",
                 border: `1px solid ${THEME.line}`,
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 600,
+                color: THEME.ink,
               }}
+              labelStyle={{ color: THEME.ink }}
+              itemStyle={{ color: THEME.ink }}
               formatter={(value: number) => fmtINRFull(value)}
             />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700 }} />
