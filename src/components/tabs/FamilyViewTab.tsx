@@ -4,16 +4,12 @@ import {
   Users,
   User,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Shield,
-  PieChart as PieIcon,
-  BarChart2,
   Crown,
   Heart,
   Baby,
   Building2,
-  Wallet,
   CreditCard,
   ShieldAlert,
   CheckCircle2,
@@ -21,7 +17,6 @@ import {
   Info,
   Award,
   Percent,
-  IndianRupee,
 } from "lucide-react";
 import {
   PieChart,
@@ -37,14 +32,15 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
-const MEMBER_COLORS = ["#4F46E5", "#059669", "#D97706", "#7C3AED"];
+const MEMBER_COLORS_LIGHT = ["#4F46E5", "#059669", "#D97706", "#7C3AED"];
+const MEMBER_COLORS_DARK = ["#818CF8", "#34D399", "#FBBF24", "#A78BFA"];
 const MEMBER_ICONS = {
   self: Crown,
   wife: Heart,
@@ -52,7 +48,7 @@ const MEMBER_ICONS = {
   huf: Building2,
 };
 
-const ASSET_CLASS_COLORS = {
+const ASSET_CLASS_COLORS_LIGHT = {
   Cash: "#2563EB",
   "Fixed Deposits": "#0891B2",
   "Recurring Deposits": "#06B6D4",
@@ -65,6 +61,24 @@ const ASSET_CLASS_COLORS = {
   "Real Estate": "#DC2626",
   Vehicles: "#64748B",
 };
+
+const ASSET_CLASS_COLORS_DARK = {
+  Cash: "#60A5FA",
+  "Fixed Deposits": "#22D3EE",
+  "Recurring Deposits": "#67E8F9",
+  Equity: "#34D399",
+  "Mutual Funds": "#6EE7B7",
+  PPF: "#FBBF24",
+  NPS: "#FB923C",
+  EPF: "#FCD34D",
+  Insurance: "#A78BFA",
+  "Real Estate": "#F87171",
+  Vehicles: "#94A3B8",
+};
+
+const isDark = () => document.documentElement.classList.contains("dark-theme") || document.body.classList.contains("dark-theme");
+const getMemberColors = () => isDark() ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
+const getAssetClassColors = () => isDark() ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
@@ -191,70 +205,18 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const QuickStatTile = ({ label, value, color, Icon }) => (
-  <div
-    className="card-lift"
-    style={{
-      background: "var(--surface-0)",
-      border: `1px solid ${THEME.line}`,
-      borderTop: `3px solid ${color}`,
-      borderRadius: 12,
-      padding: "14px 16px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      boxShadow: "var(--shadow-card)",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-      <div
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: 7,
-          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={13} color={color} />
-      </div>
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          color: THEME.muted,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}
-      >
-        {label}
-      </span>
-    </div>
-    <div
-      style={{
-        fontSize: 17,
-        fontWeight: 900,
-        color,
-        letterSpacing: "-0.03em",
-        lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      <Prv>{value}</Prv>
-    </div>
-  </div>
-);
-
 export const FamilyViewTab = ({ state, metrics, marketData }) => {
+  const dark = isDark();
+  const MEMBER_COLORS = getMemberColors();
+  const ASSET_CLASS_COLORS = getAssetClassColors();
+
   const familyData = useMemo(() => {
+    const colors = getMemberColors();
     const members = PROFILES.map((p, idx) => {
       const assets = memberAssets(state, p.id);
       const topHoldings = getTopHoldings(state, p.id);
       const allocation = getAllocationData(assets);
-      const color = MEMBER_COLORS[idx % MEMBER_COLORS.length];
+      const color = colors[idx % colors.length];
 
       const licCover = (state.lic || [])
         .filter((l) => l.owner === p.id)
@@ -372,7 +334,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               width: 64,
               height: 64,
               borderRadius: 20,
-              background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+              background: dark
+                ? "linear-gradient(135deg, #818CF8 0%, #A78BFA 100%)"
+                : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -405,10 +369,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     fontSize: 11,
                     padding: "5px 12px",
                     borderRadius: 20,
-                    background: `${THEME.accent}15`,
+                    background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
                     color: THEME.accent,
                     fontWeight: 600,
-                    border: `1px solid ${THEME.accent}26`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
                   }}
                 >
                   {t}
@@ -588,10 +552,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       >
         <StatCard label="Total Assets" value={fmtINRFull(totalAssets)} icon={<TrendingUp />} color={THEME.sage} />
         <StatCard label="Liabilities" value={fmtINRFull(totalLiabilities)} icon={<CreditCard />} color={totalLiabilities > 0 ? THEME.rust : THEME.sage} />
-        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color="#4F46E5" />
+        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color={dark ? "#818CF8" : "#4F46E5"} />
         <StatCard label="Debt Ratio" value={`${debtToAssetRatio.toFixed(1)}%`} icon={<Percent />} color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} />
         {totalLifeCover > 0 && (
-          <StatCard label="Life Cover" value={fmtINRFull(totalLifeCover)} icon={<Shield />} color="#7C3AED" />
+          <StatCard label="Life Cover" value={fmtINRFull(totalLifeCover)} icon={<Shield />} color={dark ? "#A78BFA" : "#7C3AED"} />
         )}
       </div>
 
@@ -607,10 +571,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 display: "flex",
                 flexWrap: "wrap",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 28,
               }}
             >
-              <div style={{ width: 220, height: 220, flexShrink: 0 }}>
+              <div style={{ width: 220, height: 220, flexShrink: 0, margin: "0 auto" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -635,6 +600,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         borderRadius: 10,
                         fontSize: 12,
                       }}
+                      labelStyle={{ color: THEME.muted }}
+                      itemStyle={{ color: THEME.ink }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -696,7 +663,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))",
           gap: 18,
           marginBottom: 28,
         }}
@@ -762,16 +729,21 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
               {/* Assets / Liabilities pills */}
               <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+                {(() => {
+                  const assetColor = dark ? "#34D399" : "#059669";
+                  const liabColor = dark ? "#F87171" : "#DC2626";
+                  return (
+                    <>
                 <div
                   style={{
                     flex: 1,
                     padding: "10px 14px",
                     borderRadius: 10,
-                    background: "color-mix(in srgb, #059669 7%, transparent)",
-                    border: "1px solid color-mix(in srgb, #059669 12%, transparent)",
+                    background: `color-mix(in srgb, ${assetColor} ${dark ? "10" : "7"}%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${assetColor} ${dark ? "18" : "12"}%, transparent)`,
                   }}
                 >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#059669", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: assetColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     Assets
                   </div>
                   <div
@@ -790,11 +762,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     flex: 1,
                     padding: "10px 14px",
                     borderRadius: 10,
-                    background: "color-mix(in srgb, #DC2626 7%, transparent)",
-                    border: "1px solid color-mix(in srgb, #DC2626 12%, transparent)",
+                    background: `color-mix(in srgb, ${liabColor} ${dark ? "10" : "7"}%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${liabColor} ${dark ? "18" : "12"}%, transparent)`,
                   }}
                 >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: liabColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     Liabilities
                   </div>
                   <div
@@ -808,6 +780,9 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     <Prv>{fmtINRFull(m.totalLiabilities)}</Prv>
                   </div>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Asset allocation pie + legend */}
@@ -841,6 +816,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             borderRadius: 8,
                             fontSize: 11,
                           }}
+                          labelStyle={{ color: THEME.muted }}
+                          itemStyle={{ color: THEME.ink }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -984,7 +961,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
-                    wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                    wrapperStyle={{ fontSize: 12, paddingTop: 12, color: THEME.ink }}
                     iconType="circle"
                     iconSize={8}
                   />
@@ -1016,7 +993,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             const isAdequate = m.coverageRatio >= 10;
             const hasCoverage = m.totalLifeCover > 0;
 
-            const statusColor = !hasCoverage ? "#DC2626" : hasIncome && !isAdequate ? "#D97706" : "#059669";
+            const statusColor = !hasCoverage ? (dark ? "#F87171" : "#DC2626") : hasIncome && !isAdequate ? (dark ? "#FBBF24" : "#D97706") : (dark ? "#34D399" : "#059669");
+            const goodColor = dark ? "#34D399" : "#059669";
+            const warnColor = dark ? "#FBBF24" : "#D97706";
+            const dangerColor = dark ? "#F87171" : "#DC2626";
 
             return (
               <div
@@ -1027,9 +1007,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   gap: 14,
                   padding: "16px 18px",
                   borderRadius: 12,
-                  background: `color-mix(in srgb, ${statusColor} 5%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${statusColor} 14%, transparent)`,
+                  background: `color-mix(in srgb, ${statusColor} ${dark ? "8" : "5"}%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${statusColor} ${dark ? "20" : "14"}%, transparent)`,
                   transition: "all 0.2s ease",
+                  flexWrap: "wrap",
                 }}
               >
                 <div
@@ -1048,7 +1029,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   <MemberIcon size={18} />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 100 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
                     {capitalize(m.id)}
                   </div>
@@ -1075,7 +1056,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       <span
                         style={{
                           fontWeight: 700,
-                          color: isAdequate ? "#059669" : "#D97706",
+                          color: isAdequate ? goodColor : warnColor,
                         }}
                       >
                         {m.coverageRatio.toFixed(1)}x income
@@ -1091,11 +1072,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
                 <div style={{ flexShrink: 0, marginLeft: 2 }}>
                   {!hasCoverage ? (
-                    <XCircle size={20} color="#DC2626" />
+                    <XCircle size={20} color={dangerColor} />
                   ) : hasIncome && !isAdequate ? (
-                    <AlertTriangle size={20} color="#D97706" />
+                    <AlertTriangle size={20} color={warnColor} />
                   ) : (
-                    <CheckCircle2 size={20} color="#059669" />
+                    <CheckCircle2 size={20} color={goodColor} />
                   )}
                 </div>
               </div>
@@ -1117,13 +1098,13 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <CheckCircle2 size={13} color="#059669" /> Adequate (10x+)
+            <CheckCircle2 size={13} color={dark ? "#34D399" : "#059669"} /> Adequate (10x+)
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <AlertTriangle size={13} color="#D97706" /> Under-covered
+            <AlertTriangle size={13} color={dark ? "#FBBF24" : "#D97706"} /> Under-covered
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <XCircle size={13} color="#DC2626" /> No coverage
+            <XCircle size={13} color={dark ? "#F87171" : "#DC2626"} /> No coverage
           </span>
         </div>
       </Card>
@@ -1137,8 +1118,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           <Card
             style={{
               padding: "22px 24px",
-              borderLeft: `4px solid #D97706`,
-              background: "color-mix(in srgb, #D97706 3%, transparent)",
+              borderLeft: `4px solid ${dark ? "#FBBF24" : "#D97706"}`,
+              background: `color-mix(in srgb, ${dark ? "#FBBF24" : "#D97706"} ${dark ? "6" : "3"}%, transparent)`,
               marginBottom: 28,
             }}
           >
@@ -1155,14 +1136,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   width: 32,
                   height: 32,
                   borderRadius: 9,
-                  background: "color-mix(in srgb, #D97706 12%, transparent)",
+                  background: `color-mix(in srgb, ${dark ? "#FBBF24" : "#D97706"} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <ShieldAlert size={16} color="#D97706" />
+                <ShieldAlert size={16} color={dark ? "#FBBF24" : "#D97706"} />
               </div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
@@ -1187,7 +1168,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     border: `1px solid ${THEME.line}`,
                   }}
                 >
-                  <Info size={14} color="#D97706" style={{ flexShrink: 0 }} />
+                  <Info size={14} color={dark ? "#FBBF24" : "#D97706"} style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {a.name}
                   </span>
