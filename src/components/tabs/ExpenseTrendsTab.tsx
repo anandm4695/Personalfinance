@@ -167,6 +167,8 @@ function extractMerchant(narration: string): string {
 
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
   return (
     <div
       style={{
@@ -179,7 +181,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
       }}
     >
       <div style={{ fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
+      {visible.map((p: any, i: number) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <span
             style={{
@@ -656,7 +658,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tickLine={false}
               tickFormatter={(v: number) => fmtINRFull(v)}
             />
-            <Tooltip content={<ChartTooltip />} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
@@ -821,7 +823,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   tickLine={false}
                   tickFormatter={(v: number) => fmtINRFull(v)}
                 />
-                <Tooltip content={<ChartTooltip />} />
+                <Tooltip
+                  content={<ChartTooltip />}
+                  cursor={{ fill: THEME.line, opacity: 0.4 }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                  iconType="circle"
+                  formatter={(value: string) => (
+                    <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                  )}
+                />
                 {categoryStackedData.categories.map((cat: string, i: number) => (
                   <Bar
                     key={cat}
@@ -1241,7 +1253,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               tickFormatter={(v: number) => `${v.toFixed(0)}%`}
               domain={[-100, 100]}
             />
-            <Tooltip content={<ChartTooltip />} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
