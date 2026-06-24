@@ -494,7 +494,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
                     <Calendar size={16} style={{ color: THEME.accent }} />
                     {label}
-                    <Badge variant="outline" style={{ marginLeft: 8 }}>{monthEvents.length} events</Badge>
+                    <Badge variant="muted" style={{ marginLeft: 8 }}>{monthEvents.length} events</Badge>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {monthEvents.map((event, idx) => {

@@ -189,8 +189,8 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       </div>
 
       {/* Liquid Assets Breakdown */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
             <Wallet size={16} style={{ color: THEME.accent }} /> What Counts as Liquid
           </div>
@@ -218,8 +218,8 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
       {/* Monthly Expense Breakdown */}
       {data.expenseBreakdown.length > 0 && (
-        <Card>
-          <div style={{ padding: 20, marginTop: 16 }}>
+        <Card style={{ marginTop: 16 }}>
+          <div style={{ padding: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Monthly Expense Breakdown</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {data.expenseBreakdown.sort((a, b) => b.amount - a.amount).map((e, i) => (
@@ -243,8 +243,8 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       )}
 
       {/* Recommendations */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
             <Info size={16} style={{ color: THEME.accent }} /> Recommendations
           </div>

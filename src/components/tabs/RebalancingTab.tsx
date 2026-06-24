@@ -170,7 +170,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
       {/* Alignment Score */}
       <Card>
-        <div style={{ padding: 20, display: "flex", alignItems: "center", gap: 20 }}>
+        <div style={{ padding: 20, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
           <div style={{
             width: 72, height: 72, borderRadius: "50%",
             background: `conic-gradient(${deviationScore > 80 ? "#10B981" : deviationScore > 50 ? "#F59E0B" : "#EF4444"} ${deviationScore * 3.6}deg, ${THEME.line} 0deg)`,
@@ -184,7 +184,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               {Math.round(deviationScore)}
             </div>
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: THEME.ink }}>Portfolio Alignment Score</div>
             <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
               {deviationScore > 80 ? "Well aligned — minor adjustments only" :
@@ -192,7 +192,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                "Significant deviation — rebalancing recommended"}
             </div>
           </div>
-          <div style={{ marginLeft: "auto", textAlign: "right" }}>
+          <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 12, color: THEME.muted }}>Total Portfolio</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}><Prv>{fmtINRFull(allocation.total)}</Prv></div>
           </div>
@@ -200,8 +200,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       </Card>
 
       {/* Target Selection */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
             <Settings size={15} /> Target Allocation
           </div>
@@ -224,7 +224,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           </div>
 
           {/* Custom Toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 8 }}>
             <button
               onClick={() => setUseCustom(!useCustom)}
               style={{
@@ -237,7 +237,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
               Custom Target
             </button>
             {useCustom && (
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {["equity", "debt", "cash"].map((k) => (
                   <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "capitalize" }}>{k}:</label>
@@ -263,7 +263,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       </Card>
 
       {/* Comparison Charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginTop: 16 }}>
         {/* Current Pie */}
         <Card>
           <div style={{ padding: 16, textAlign: "center" }}>
@@ -330,8 +330,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       </div>
 
       {/* Rebalancing Actions */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
             <Zap size={16} style={{ color: "#F59E0B" }} /> Rebalancing Suggestions
           </div>
@@ -374,7 +374,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     <div style={{ fontWeight: 700, fontSize: 14, color: s.overweight ? "#EF4444" : "#10B981" }}>
                       <Prv>{fmtINRFull(s.diffAmt)}</Prv>
                     </div>
-                    <Badge variant={s.overweight ? "error" : "success"}>{s.overweight ? "Overweight" : "Underweight"}</Badge>
+                    <Badge variant={s.overweight ? "rust" : "sage"}>{s.overweight ? "Overweight" : "Underweight"}</Badge>
                   </div>
                 </div>
               ))}
@@ -384,8 +384,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       </Card>
 
       {/* Detailed Breakdown */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Detailed Breakdown</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -413,7 +413,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                     <td style={{ padding: "8px 10px", color: THEME.ink }}>
                       {row.label}
-                      <Badge variant="outline" style={{ marginLeft: 8, fontSize: 10 }}>{row.parent}</Badge>
+                      <Badge variant="muted" style={{ marginLeft: 8, fontSize: 10 }}>{row.parent}</Badge>
                     </td>
                     <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(row.value)}</Prv></td>
                     <td style={{ padding: "8px 10px", color: THEME.muted }}>

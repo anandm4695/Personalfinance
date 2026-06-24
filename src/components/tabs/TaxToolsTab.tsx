@@ -139,8 +139,8 @@ const AdvanceTaxSection = ({ state, metrics }) => {
       </div>
 
       {/* Quarterly Schedule */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Quarterly Payment Schedule</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ADVANCE_TAX_DEADLINES.map((q, idx) => {
@@ -399,8 +399,8 @@ const HraReceiptSection = ({ state }) => {
           </Card>
 
           {/* Month Selection */}
-          <Card>
-            <div style={{ padding: 20, marginTop: 16 }}>
+          <Card style={{ marginTop: 16 }}>
+            <div style={{ padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Select Months</div>
                 <button onClick={selectAllMonths} style={{ fontSize: 12, color: THEME.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
@@ -450,8 +450,8 @@ const HraReceiptSection = ({ state }) => {
 
           {/* Preview */}
           {showPreview && months.length > 0 && (
-            <Card>
-              <div style={{ padding: 20, marginTop: 16 }}>
+            <Card style={{ marginTop: 16 }}>
+              <div style={{ padding: 20 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: THEME.ink }}>Receipt Preview</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
                   {getReceiptData().map((r) => (
@@ -614,7 +614,7 @@ const Form26ASSection = ({ state }) => {
                     <tr key={e.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
                       <td style={{ padding: "8px 10px", color: THEME.ink, fontWeight: 500 }}>{e.deductor}</td>
                       <td style={{ padding: "8px 10px", color: THEME.muted, fontFamily: "monospace" }}>{e.tan || "—"}</td>
-                      <td style={{ padding: "8px 10px" }}><Badge variant="outline">{e.section}</Badge></td>
+                      <td style={{ padding: "8px 10px" }}><Badge variant="muted">{e.section}</Badge></td>
                       <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}><Prv>{fmtINRFull(e.amount)}</Prv></td>
                       <td style={{ padding: "8px 10px" }}>
                         <button onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12 }}>Remove</button>
@@ -629,8 +629,8 @@ const Form26ASSection = ({ state }) => {
       </Card>
 
       {/* App TDS Records */}
-      <Card>
-        <div style={{ padding: 20, marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
+        <div style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>Your Tax Payment Records</div>
           {taxPayments.length === 0 ? (
             <div style={{ textAlign: "center", padding: 16, color: THEME.muted, fontSize: 13 }}>
