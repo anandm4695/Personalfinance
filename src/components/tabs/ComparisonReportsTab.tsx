@@ -174,7 +174,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
     const isUp = value > 0;
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 13, fontWeight: 600,
-        color: isUp ? "#EF4444" : "#10B981" }}>
+        color: isUp ? THEME.rust : THEME.sage }}>
         {isUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
         {showAmount && <Prv>{fmtINRFull(Math.abs(value))}</Prv>}
       </span>
@@ -231,7 +231,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontSize: 11, color: THEME.textSecondary }}>{comp.currentLabel}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(comp.currentIncome)}</Prv></div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: THEME.sage }}><Prv>{fmtINRFull(comp.currentIncome)}</Prv></div>
               </div>
               <div style={{ fontSize: 24, color: THEME.border }}>vs</div>
               <div style={{ textAlign: "right" }}>
@@ -255,7 +255,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                   <div style={{ fontSize: 20, fontWeight: 700, color: THEME.textSecondary }}><Prv>{fmtINRFull(yoyComparison.lastYearNW)}</Prv></div>
                 </div>
               </div>
-              <div style={{ marginTop: 8, textAlign: "center", fontSize: 14, fontWeight: 600, color: yoyComparison.nwDelta >= 0 ? "#10B981" : "#EF4444" }}>
+              <div style={{ marginTop: 8, textAlign: "center", fontSize: 14, fontWeight: 600, color: yoyComparison.nwDelta >= 0 ? THEME.sage : THEME.rust }}>
                 {yoyComparison.nwDelta >= 0 ? "+" : ""}<Prv>{fmtINRFull(yoyComparison.nwDelta)}</Prv>
                 {yoyComparison.lastYearNW > 0 && ` (${((yoyComparison.nwDelta / yoyComparison.lastYearNW) * 100).toFixed(1)}%)`}
               </div>
@@ -273,10 +273,10 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis type="number" tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <YAxis type="category" dataKey="category" width={100} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Legend />
+              <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+              <Legend wrapperStyle={{ color: THEME.ink }} />
               <Bar dataKey={comp.currentLabel} fill="var(--accent)" radius={[0, 4, 4, 0]} />
-              <Bar dataKey={comp.previousLabel} fill={THEME.border} radius={[0, 4, 4, 0]} />
+              <Bar dataKey={comp.previousLabel} fill={THEME.muted} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -303,10 +303,10 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                     <td style={{ padding: 10, fontWeight: 500, color: THEME.text }}>{c.category}</td>
                     <td style={{ padding: 10, textAlign: "right", color: THEME.text }}><Prv>{fmtINRFull(c.current)}</Prv></td>
                     <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}><Prv>{fmtINRFull(c.previous)}</Prv></td>
-                    <td style={{ padding: 10, textAlign: "right", fontWeight: 600, color: c.delta > 0 ? "#EF4444" : c.delta < 0 ? "#10B981" : THEME.textSecondary }}>
+                    <td style={{ padding: 10, textAlign: "right", fontWeight: 600, color: c.delta > 0 ? THEME.rust : c.delta < 0 ? THEME.sage : THEME.textSecondary }}>
                       {c.delta > 0 ? "+" : ""}<Prv>{fmtINRFull(c.delta)}</Prv>
                     </td>
-                    <td style={{ padding: 10, textAlign: "right", color: c.pctChange > 0 ? "#EF4444" : c.pctChange < 0 ? "#10B981" : THEME.textSecondary }}>
+                    <td style={{ padding: 10, textAlign: "right", color: c.pctChange > 0 ? THEME.rust : c.pctChange < 0 ? THEME.sage : THEME.textSecondary }}>
                       {c.pctChange > 0 ? "+" : ""}{c.pctChange.toFixed(0)}%
                     </td>
                   </tr>

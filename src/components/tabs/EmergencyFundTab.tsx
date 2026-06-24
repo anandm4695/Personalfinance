@@ -158,12 +158,12 @@ export const EmergencyFundTab = ({ state, metrics }) => {
             <div style={{ fontSize: 14, color: THEME.ink, marginBottom: 12 }}>
               Your liquid assets can cover <strong>{data.monthsCovered.toFixed(1)} months</strong> of expenses.
               {data.monthsCovered < 6 && (
-                <span style={{ color: "#EF4444" }}> Target is at least 6 months.</span>
+                <span style={{ color: THEME.rust }}> Target is at least 6 months.</span>
               )}
             </div>
 
             {/* Progress bar */}
-            <div style={{ height: 10, borderRadius: 5, background: THEME.line, overflow: "hidden" }}>
+            <div style={{ height: 10, borderRadius: 5, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 5,
                 width: `${Math.min(100, data.coveragePct)}%`,
@@ -182,10 +182,10 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 16 }}>
-        <StatCard label="Liquid Assets" value={fmtINRFull(data.totalLiquid)} icon={<IndianRupee />} color="#10B981" />
-        <StatCard label="Monthly Expenses" value={fmtINRFull(data.monthlyExpense)} icon={<Wallet />} color="#F59E0B" />
+        <StatCard label="Liquid Assets" value={fmtINRFull(data.totalLiquid)} icon={<IndianRupee />} color={THEME.sage} />
+        <StatCard label="Monthly Expenses" value={fmtINRFull(data.monthlyExpense)} icon={<Wallet />} color={THEME.gold} />
         <StatCard label="6-Month Target" value={fmtINRFull(data.targetAmount)} icon={<Target />} color="#3B82F6" />
-        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINRFull(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? "#EF4444" : "#10B981"} />
+        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINRFull(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? THEME.rust : THEME.sage} />
       </div>
 
       {/* Liquid Assets Breakdown */}
@@ -197,7 +197,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
               { label: "Bank Balances (Savings + Current)", value: data.bankBalance, icon: Landmark, color: "#3B82F6" },
-              { label: "Liquid / Money Market MFs", value: data.liquidMF, icon: TrendingUp, color: "#10B981" },
+              { label: "Liquid / Money Market MFs", value: data.liquidMF, icon: TrendingUp, color: THEME.sage },
               { label: "Prepaid Card Balances", value: data.prepaidBalance, icon: Wallet, color: "#8B5CF6" },
             ].filter((r) => r.value > 0).map((r, i) => {
               const Icon = r.icon;
@@ -251,7 +251,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {data.monthsCovered < 1 && (
               <div style={{ display: "flex", gap: 10, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
-                <AlertTriangle size={16} style={{ color: "#EF4444", flexShrink: 0, marginTop: 2 }} />
+                <AlertTriangle size={16} style={{ color: THEME.rust, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 13, color: THEME.ink }}>
                   <strong>Critical:</strong> You have less than 1 month of expenses covered. Prioritize building your emergency fund before any other investments.
                 </div>
@@ -275,7 +275,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
             )}
             {data.monthsCovered >= 6 && (
               <div style={{ display: "flex", gap: 10, padding: "10px 14px", borderRadius: 8, background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)" }}>
-                <CheckCircle2 size={16} style={{ color: "#10B981", flexShrink: 0, marginTop: 2 }} />
+                <CheckCircle2 size={16} style={{ color: THEME.sage, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 13, color: THEME.ink }}>
                   <strong>Well prepared!</strong> Your emergency fund exceeds the recommended 6-month threshold. Any excess can be invested for growth.
                 </div>

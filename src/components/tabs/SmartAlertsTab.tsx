@@ -266,8 +266,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
   const errorCount = smartAlerts.filter((a) => a.level === "error").length;
   const warnCount = smartAlerts.filter((a) => a.level === "warn").length;
 
-  const levelColors = { error: "#EF4444", warn: "#F59E0B", info: "#3B82F6" };
-  const levelBg = { error: "#EF444415", warn: "#F59E0B15", info: "#3B82F615" };
+  const levelColors = { error: THEME.rust, warn: THEME.gold, info: THEME.accent };
+  const levelBg = { error: `${THEME.rust}15`, warn: `${THEME.gold}15`, info: `${THEME.accent}15` };
   const levelLabels = { error: "Critical", warn: "Warning", info: "Info" };
 
   return (
@@ -275,8 +275,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       <SectionTitle sub="AI-powered financial health monitoring">Smart Alerts</SectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Critical Alerts" value={errorCount} icon={<XCircle />} color="#EF4444" />
-        <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color="#F59E0B" />
+        <StatCard label="Critical Alerts" value={errorCount} icon={<XCircle />} color={THEME.rust} />
+        <StatCard label="Warnings" value={warnCount} icon={<AlertTriangle />} color={THEME.gold} />
         <StatCard label="Total Alerts" value={smartAlerts.length} icon={<Bell />} color="var(--accent)" />
       </div>
 

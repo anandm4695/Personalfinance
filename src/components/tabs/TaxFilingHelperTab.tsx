@@ -214,14 +214,14 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
             <div style={{ fontSize: 11, color: THEME.textSecondary, marginTop: 4 }}>
               PPF: {fmtINRFull(deductions.ppfContrib)} | ELSS: {fmtINRFull(deductions.elss)} | LIC: {fmtINRFull(deductions.licPremium)} | EPF: {fmtINRFull(deductions.epfContrib)}
             </div>
-            <div style={{ height: 4, borderRadius: 2, background: THEME.border, marginTop: 8 }}>
+            <div style={{ height: 4, borderRadius: 2, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginTop: 8 }}>
               <div style={{ height: "100%", width: `${Math.min(100, (deductions.sec80C / 150000) * 100)}%`, borderRadius: 2, background: "#10B981" }} />
             </div>
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80CCD(1B) — NPS (max ₹50K)</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6" }}><Prv>{fmtINRFull(deductions.sec80CCD1B)}</Prv></div>
-            <div style={{ height: 4, borderRadius: 2, background: THEME.border, marginTop: 8 }}>
+            <div style={{ height: 4, borderRadius: 2, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginTop: 8 }}>
               <div style={{ height: "100%", width: `${Math.min(100, (deductions.sec80CCD1B / 50000) * 100)}%`, borderRadius: 2, background: "#8B5CF6" }} />
             </div>
           </div>
@@ -283,7 +283,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>ITR Filing Checklist</h3>
           <span style={{ fontSize: 13, color: THEME.textSecondary }}>{checklistProgress} / {ITR_CHECKLIST.length} completed</span>
         </div>
-        <div style={{ height: 6, borderRadius: 3, background: THEME.border, marginBottom: 20 }}>
+        <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, marginBottom: 20 }}>
           <div style={{ height: "100%", width: `${(checklistProgress / ITR_CHECKLIST.length) * 100}%`, borderRadius: 3, background: "var(--accent)", transition: "width 0.3s" }} />
         </div>
 

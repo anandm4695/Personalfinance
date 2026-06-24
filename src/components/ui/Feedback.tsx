@@ -67,8 +67,8 @@ export function ConfirmDialog({
               onClick={onConfirm}
               style={{
                 ...cancelBtnStyle,
-                background: "#DC2626",
-                border: "1px solid #DC2626",
+                background: THEME.rust,
+                border: `1px solid ${THEME.rust}`,
                 color: "#fff",
                 fontWeight: 700,
               }}

@@ -133,7 +133,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         <span>{fmtINRFull(used)} used</span>
         <span>{fmtINRFull(Math.max(0, limit - used))} remaining</span>
       </div>
-      <div style={{ height: 8, borderRadius: 4, background: THEME.border, overflow: "hidden" }}>
+      <div style={{ height: 8, borderRadius: 4, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${Math.min(100, (used / limit) * 100)}%`, borderRadius: 4, background: color, transition: "width 0.5s" }} />
       </div>
     </div>
@@ -154,9 +154,9 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
       {/* Summary Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        <StatCard label="Total Deductions" value={fmtINRFull(data.totalDeductions)} icon={<CheckCircle />} color="#10B981" />
+        <StatCard label="Total Deductions" value={fmtINRFull(data.totalDeductions)} icon={<CheckCircle />} color={THEME.sage} />
         <StatCard label="Estimated Tax Saved" value={fmtINRFull(data.taxSaved)} sub="At 30% tax bracket" icon={<IndianRupee />} color="var(--accent)" />
-        <StatCard label="80C Remaining" value={fmtINRFull(data.sec80C.remaining)} sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"} icon={<Shield />} color={data.sec80C.remaining > 0 ? "#F59E0B" : "#10B981"} />
+        <StatCard label="80C Remaining" value={fmtINRFull(data.sec80C.remaining)} sub={data.sec80C.remaining > 0 ? "Room to invest more" : "Limit exhausted!"} icon={<Shield />} color={data.sec80C.remaining > 0 ? THEME.gold : THEME.sage} />
       </div>
 
       {/* Pie Chart + Details */}
@@ -223,7 +223,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
               <span style={{ fontSize: 13, color: THEME.textSecondary }}>Parents</span>
               <span style={{ fontWeight: 600, color: THEME.text }}><Prv>{fmtINRFull(data.sec80D.parents)}</Prv> / {fmtINRFull(data.sec80D.parentsLimit)}</span>
             </div>
-            <ProgressBar used={data.sec80D.parents} limit={data.sec80D.parentsLimit} color="#F59E0B" />
+            <ProgressBar used={data.sec80D.parents} limit={data.sec80D.parentsLimit} color={THEME.gold} />
           </div>
         </Card>
 
@@ -231,7 +231,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         <Card style={{ padding: 20 }}>
           <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>Section 24 — Home Loan Interest</h4>
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Max deduction: ₹2,00,000 for self-occupied</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#F59E0B" }}><Prv>{fmtINRFull(data.sec24.total)}</Prv></div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.gold }}><Prv>{fmtINRFull(data.sec24.total)}</Prv></div>
           <ProgressBar used={data.sec24.total} limit={data.sec24.limit} color="#F59E0B" />
         </Card>
 

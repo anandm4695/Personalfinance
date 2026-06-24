@@ -162,7 +162,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
   }, [metrics, portfolioReturns, state.bankAccounts]);
 
   const overallScore = Math.round(healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length);
-  const scoreColor = overallScore >= 70 ? "#10B981" : overallScore >= 40 ? "#F59E0B" : "#EF4444";
+  const scoreColor = overallScore >= 70 ? THEME.sage : overallScore >= 40 ? THEME.gold : THEME.rust;
   const scoreLabel = overallScore >= 70 ? "Excellent" : overallScore >= 40 ? "Good" : "Needs Work";
 
   return (
@@ -172,9 +172,9 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Overall Return" value={`${portfolioReturns.overall.return.toFixed(1)}%`} icon={<TrendingUp />}
-          color={portfolioReturns.overall.return >= 0 ? "#10B981" : "#EF4444"} />
-        <StatCard label="Total Invested" value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
-        <StatCard label="Current Value" value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>} icon={<Target />} color="#3B82F6" />
+          color={portfolioReturns.overall.return >= 0 ? THEME.sage : THEME.rust} />
+        <StatCard label="Total Invested" value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>} icon={<IndianRupee />} color={THEME.accent} />
+        <StatCard label="Current Value" value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>} icon={<Target />} color={THEME.accent} />
         <StatCard label="Financial Health" value={String(overallScore)} sub={scoreLabel} icon={<Shield />} color={scoreColor} />
       </div>
 
@@ -186,12 +186,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
             <XAxis type="number" tick={{ fontSize: 11, fill: THEME.textSecondary }} tickFormatter={(v) => `${v}%`} />
             <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12, fill: THEME.textSecondary }} />
-            <Tooltip formatter={(v) => `${v.toFixed(1)}%`} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
+            <Tooltip formatter={(v) => `${v.toFixed(1)}%`} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
             <Bar dataKey="return" name="Return %" radius={[0, 6, 6, 0]}
               shape={(props) => {
                 const { x, y, width, height, payload } = props;
                 return <rect x={x} y={y} width={Math.abs(width)} height={height} rx={6}
-                  fill={payload.name === "Your Portfolio" ? "var(--accent)" : payload.color || THEME.border} />;
+                  fill={payload.name === "Your Portfolio" ? "var(--accent)" : payload.color || THEME.muted} />;
               }} />
           </BarChart>
         </ResponsiveContainer>
@@ -206,10 +206,10 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
               <XAxis dataKey="category" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
               <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-              <Tooltip formatter={(v) => `${v.toFixed(1)}%`} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
-              <Legend />
+              <Tooltip formatter={(v) => `${v.toFixed(1)}%`} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+              <Legend wrapperStyle={{ color: THEME.ink }} />
               <Bar dataKey="yours" name="Your Return" fill="var(--accent)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="benchmark" name="Benchmark" fill={THEME.border} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="benchmark" name="Benchmark" fill={THEME.muted} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -220,7 +220,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Financial Health Radar</h3>
         <ResponsiveContainer width="100%" height={350}>
           <RadarChart data={healthScore} cx="50%" cy="50%" outerRadius="80%">
-            <PolarGrid stroke={THEME.border} />
+            <PolarGrid stroke={THEME.muted} strokeOpacity={0.3} />
             <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
             <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: THEME.textSecondary }} />
             <Radar name="Your Score" dataKey="score" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} strokeWidth={2} />
@@ -233,14 +233,14 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Score Breakdown</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 }}>
           {healthScore.map((h) => {
-            const color = h.score >= 70 ? "#10B981" : h.score >= 40 ? "#F59E0B" : "#EF4444";
+            const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? THEME.gold : THEME.rust;
             return (
               <div key={h.metric} style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: THEME.text }}>{h.metric}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color }}>{Math.round(h.score)}/100</span>
                 </div>
-                <div style={{ height: 6, borderRadius: 3, background: THEME.border, overflow: "hidden" }}>
+                <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${h.score}%`, borderRadius: 3, background: color, transition: "width 0.5s" }} />
                 </div>
               </div>

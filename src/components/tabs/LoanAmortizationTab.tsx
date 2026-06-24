@@ -204,31 +204,31 @@ export const LoanAmortizationTab = ({ state }) => {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
             <StatCard label="Monthly EMI" value={<Prv>{fmtINRFull(baseAmort.emi)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
-            <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={<TrendingDown />} color="#EF4444" />
-            <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={<Calculator />} color="#3B82F6" />
-            <StatCard label="Loan Closes In" value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`} icon={<Calendar />} color="#10B981" />
+            <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={<TrendingDown />} color={THEME.rust} />
+            <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={<Calculator />} color={THEME.accent} />
+            <StatCard label="Loan Closes In" value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`} icon={<Calendar />} color={THEME.sage} />
           </div>
 
           {/* Prepayment Savings */}
           {savings && (
-            <Card style={{ padding: 24, background: "#10B98108", border: "1px solid #10B98130" }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: "#10B981", display: "flex", alignItems: "center", gap: 8 }}>
+            <Card style={{ padding: 24, background: `${THEME.sage}08`, border: `1px solid ${THEME.sage}30` }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.sage, display: "flex", alignItems: "center", gap: 8 }}>
                 <Zap size={18} /> Prepayment Impact
               </h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                <div style={{ padding: "12px 16px", borderRadius: 12, background: "#10B98115" }}>
+                <div style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}>
                   <div style={{ fontSize: 12, color: THEME.textSecondary }}>Interest Saved</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#10B981" }}><Prv>{fmtINRFull(savings.interestSaved)}</Prv></div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}><Prv>{fmtINRFull(savings.interestSaved)}</Prv></div>
                 </div>
-                <div style={{ padding: "12px 16px", borderRadius: 12, background: "#10B98115" }}>
+                <div style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}>
                   <div style={{ fontSize: 12, color: THEME.textSecondary }}>Months Saved</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#10B981" }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
                     {Math.floor(savings.monthsSaved / 12)}y {savings.monthsSaved % 12}m ({savings.monthsSaved} months)
                   </div>
                 </div>
-                <div style={{ padding: "12px 16px", borderRadius: 12, background: "#10B98115" }}>
+                <div style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}>
                   <div style={{ fontSize: 12, color: THEME.textSecondary }}>New Closure</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#10B981" }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
                     {Math.floor(extraAmort.totalMonths / 12)}y {extraAmort.totalMonths % 12}m
                   </div>
                 </div>
@@ -244,10 +244,10 @@ export const LoanAmortizationTab = ({ state }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} label={{ value: "Month", position: "insideBottom", offset: -5 }} />
                 <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                 <Legend />
                 <Area type="monotone" dataKey="balance" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Outstanding Balance" />
-                <Area type="monotone" dataKey="totalInterest" stroke="#EF4444" fill="#EF444420" strokeWidth={2} name="Cumulative Interest" />
+                <Area type="monotone" dataKey="totalInterest" stroke={THEME.rust} fill={THEME.rust} fillOpacity={0.12} strokeWidth={2} name="Cumulative Interest" />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
@@ -260,10 +260,10 @@ export const LoanAmortizationTab = ({ state }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
                 <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-                <Tooltip formatter={(v) => fmtINRFull(v)} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12 }} />
+                <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
                 <Legend />
-                <Bar dataKey="principal" name="Principal" fill="#10B981" stackId="a" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="interest" name="Interest" fill="#EF4444" stackId="a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="principal" name="Principal" fill={THEME.sage} stackId="a" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="interest" name="Interest" fill={THEME.rust} stackId="a" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -295,8 +295,8 @@ export const LoanAmortizationTab = ({ state }) => {
                       <tr key={row.month} style={{ borderBottom: `1px solid ${THEME.border}` }}>
                         <td style={{ padding: 8, textAlign: "center", color: THEME.textSecondary }}>{row.month}</td>
                         <td style={{ padding: 8, textAlign: "right", color: THEME.text }}>{fmtINRFull(row.emi)}</td>
-                        <td style={{ padding: 8, textAlign: "right", color: "#10B981" }}>{fmtINRFull(row.principal)}</td>
-                        <td style={{ padding: 8, textAlign: "right", color: "#EF4444" }}>{fmtINRFull(row.interest)}</td>
+                        <td style={{ padding: 8, textAlign: "right", color: THEME.sage }}>{fmtINRFull(row.principal)}</td>
+                        <td style={{ padding: 8, textAlign: "right", color: THEME.rust }}>{fmtINRFull(row.interest)}</td>
                         <td style={{ padding: 8, textAlign: "right", fontWeight: 600, color: THEME.text }}>{fmtINRFull(row.balance)}</td>
                       </tr>
                     ))}
