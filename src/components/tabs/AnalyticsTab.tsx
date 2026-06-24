@@ -5969,31 +5969,46 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               }}
             >
               {[
-                { label: "YTD Income", value: fmtINRFull(ytdData.ytdIncome), color: THEME.sage },
-                { label: "YTD Expense", value: fmtINRFull(ytdData.ytdExpense), color: THEME.rust },
+                {
+                  label: "YTD Income",
+                  value: fmtINRFull(ytdData.ytdIncome),
+                  color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
+                },
+                {
+                  label: "YTD Expense",
+                  value: fmtINRFull(ytdData.ytdExpense),
+                  color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
+                },
                 {
                   label: "YTD Savings",
                   value: fmtINRFull(ytdData.ytdSavings),
-                  color: ytdData.ytdSavings >= 0 ? THEME.sage : THEME.rust,
+                  color:
+                    ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
+                      ? THEME.muted
+                      : ytdData.ytdSavings >= 0
+                        ? THEME.sage
+                        : THEME.rust,
                 },
                 {
                   label: "YTD Savings Rate",
-                  value: ytdData.ytdSavingsRate.toFixed(1) + "%",
+                  value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
                   color:
-                    ytdData.ytdSavingsRate >= 20
-                      ? THEME.sage
-                      : ytdData.ytdSavingsRate >= 10
-                        ? THEME.gold
-                        : THEME.rust,
+                    ytdData.ytdIncome === 0
+                      ? THEME.muted
+                      : ytdData.ytdSavingsRate >= 20
+                        ? THEME.sage
+                        : ytdData.ytdSavingsRate >= 10
+                          ? THEME.gold
+                          : THEME.rust,
                 },
               ].map(({ label, value, color }) => (
                 <div
                   key={label}
                   style={{
-                    padding: 16,
-                    background: `${color}09`,
-                    borderRadius: 12,
-                    borderTop: `4px solid ${color}`,
+                    padding: "14px 16px",
+                    borderRadius: 10,
+                    borderLeft: `3px solid ${color}`,
+                    background: `color-mix(in srgb, ${color} 6%, transparent)`,
                   }}
                 >
                   <div
@@ -6003,7 +6018,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       fontWeight: 700,
                       textTransform: "uppercase" as const,
                       letterSpacing: "0.08em",
-                      marginBottom: 8,
+                      marginBottom: 6,
                     }}
                   >
                     {label}
