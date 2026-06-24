@@ -76,6 +76,8 @@ export const Button: React.FC<ButtonProps> = ({
       } as Record<string, string>
     )[variant] || "";
 
+  const isDisabled = !!props.disabled;
+
   const baseStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -83,10 +85,11 @@ export const Button: React.FC<ButtonProps> = ({
     gap: "8px",
     borderRadius: "var(--radius-md)",
     fontWeight: 600,
-    cursor: "pointer",
+    cursor: isDisabled ? "not-allowed" : "pointer",
     transition: "all 0.2s var(--ease-premium)",
     ...getSizeStyle(),
     ...getVariantStyle(),
+    ...(isDisabled ? { opacity: 0.45, pointerEvents: "none" as const } : {}),
     ...style,
   };
 

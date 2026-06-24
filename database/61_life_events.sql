@@ -16,5 +16,10 @@ CREATE TABLE IF NOT EXISTS life_events (
 
 ALTER TABLE life_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "life_events_user_policy" ON life_events
-  FOR ALL USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'life_events' AND policyname = 'life_events_user_policy'
+  ) THEN
+    CREATE POLICY "life_events_user_policy" ON life_events FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;

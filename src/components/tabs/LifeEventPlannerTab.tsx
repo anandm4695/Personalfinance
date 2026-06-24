@@ -101,15 +101,26 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
   const totalGap = totalCost - totalSaved;
   const totalMonthlySIP = enrichedEvents.filter((e) => !e.isPast).reduce((s, e) => s + e.monthlySIP, 0);
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
-    if (editingId) {
-      await updateItem("lifeEvents", editingId, form);
-    } else {
-      await addItem("lifeEvents", { ...form, id: uid() });
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (editingId) {
+        await updateItem("lifeEvents", editingId, form);
+      } else {
+        await addItem("lifeEvents", { ...form, id: uid() });
+      }
+      setShowModal(false);
+      setForm({ ...EMPTY_EVENT });
+      setEditingId(null);
+    } catch (err: any) {
+      console.error("[LifeEvent] Save failed:", err);
+      alert("Life Event save error: " + (err?.message || JSON.stringify(err)));
+    } finally {
+      setSaving(false);
     }
-    setShowModal(false);
-    setForm({ ...EMPTY_EVENT });
-    setEditingId(null);
   };
 
   const handleEdit = (e) => {
@@ -263,7 +274,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
           </div>
           <ModalActions>
             <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave} disabled={!form.name || !form.targetDate}>Save</Button>
+            <Button variant="primary" onClick={handleSave} disabled={!form.name || !form.targetDate || saving}>{saving ? "Saving…" : "Save"}</Button>
           </ModalActions>
         </Modal>
       )}

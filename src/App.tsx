@@ -1618,6 +1618,12 @@ function FinanceDashboard() {
             corporate_actions: "database/12_corporate_actions.sql",
             stock_sells: "database/09_stock_sells.sql",
             net_worth_history: "database/08_net_worth_history.sql",
+            life_events: "database/61_life_events.sql",
+            gold_holdings: "database/60_gold_holdings.sql",
+            documents: "database/58_documents.sql",
+            dividends: "database/57_dividends.sql",
+            vehicles: "database/53_vehicles.sql",
+            real_estate_properties: "database/52_real_estate.sql",
           };
           const migFile = migrationMap[table] || `SQL migration for table "${table}"`;
           console.error(`[Supabase] Table "${table}" missing. Run: ${migFile}`);
