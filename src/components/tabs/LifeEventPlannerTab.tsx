@@ -117,7 +117,6 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       setEditingId(null);
     } catch (err: any) {
       console.error("[LifeEvent] Save failed:", err);
-      alert("Life Event save error: " + (err?.message || JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
@@ -272,10 +271,12 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink }} />
             </Field>
           </div>
-          <ModalActions>
-            <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave} disabled={!form.name || !form.targetDate || saving}>{saving ? "Saving…" : "Save"}</Button>
-          </ModalActions>
+          <ModalActions
+            onSave={handleSave}
+            onClose={() => setShowModal(false)}
+            saveLabel={saving ? "Saving…" : "Save"}
+            disabled={!form.name || !form.targetDate || saving}
+          />
         </Modal>
       )}
     </div>

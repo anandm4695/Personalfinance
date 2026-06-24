@@ -1023,24 +1023,12 @@ function CreditScoreTracker() {
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Field>
-          <ModalActions>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowModal(false);
-                setEditEntry(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="accent"
-              onClick={handleSave}
-              disabled={!form.date || !form.score || Number(form.score) < 300 || Number(form.score) > 900}
-            >
-              {editEntry ? "Update" : "Save"}
-            </Button>
-          </ModalActions>
+          <ModalActions
+            onSave={handleSave}
+            onClose={() => { setShowModal(false); setEditEntry(null); }}
+            saveLabel={editEntry ? "Update" : "Save"}
+            disabled={!form.date || !form.score || Number(form.score) < 300 || Number(form.score) > 900}
+          />
         </Modal>
       )}
     </div>

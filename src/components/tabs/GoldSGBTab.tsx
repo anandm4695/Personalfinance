@@ -304,10 +304,11 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }} />
             </Field>
           </div>
-          <ModalActions>
-            <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave} disabled={!form.grams}>Save</Button>
-          </ModalActions>
+          <ModalActions
+            onSave={handleSave}
+            onClose={() => setShowModal(false)}
+            disabled={!form.grams}
+          />
         </Modal>
       )}
     </div>
