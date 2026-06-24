@@ -2115,9 +2115,31 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
       </div>
 
       {displayCards.length === 0 && (
-        <EmptyHint
-          text={viewMode === "active" ? "No active credit cards" : "No closed credit cards yet"}
-        />
+        <Card style={{ padding: "40px 32px", textAlign: "center" as const }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              opacity: 0.85,
+            }}
+          >
+            <CreditCard size={26} color="#fff" />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.02em" }}>
+            {viewMode === "active" ? "No Active Credit Cards" : "No Closed Credit Cards"}
+          </div>
+          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340, margin: "0 auto", lineHeight: 1.5 }}>
+            {viewMode === "active"
+              ? "All your credit cards are currently closed. Add a new card or check the Closed tab."
+              : "No closed credit cards yet. Cards you close will appear here."}
+          </div>
+        </Card>
       )}
 
       {/* Ungrouped cards render as a flat grid */}
@@ -3162,9 +3184,31 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
       </div>
 
       {displayCards.length === 0 && (
-        <EmptyHint
-          text={viewMode === "active" ? "No active prepaid cards" : "No closed prepaid cards yet"}
-        />
+        <Card style={{ padding: "40px 32px", textAlign: "center" as const }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              background: "linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              opacity: 0.85,
+            }}
+          >
+            <Wallet size={26} color="#fff" />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.02em" }}>
+            {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Prepaid Cards"}
+          </div>
+          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340, margin: "0 auto", lineHeight: 1.5 }}>
+            {viewMode === "active"
+              ? "All your prepaid cards are currently closed. Add a new card or check the Closed tab."
+              : "No closed prepaid cards yet. Cards you close will appear here."}
+          </div>
+        </Card>
       )}
 
       <Grid>
