@@ -76,9 +76,8 @@ const ASSET_CLASS_COLORS_DARK = {
   Vehicles: "#94A3B8",
 };
 
-const isDark = () => document.documentElement.classList.contains("dark-theme") || document.body.classList.contains("dark-theme");
-const getMemberColors = () => isDark() ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
-const getAssetClassColors = () => isDark() ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
+const getMemberColors = (dark: boolean) => dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
+const getAssetClassColors = (dark: boolean) => dark ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
@@ -180,38 +179,13 @@ const getTopHoldings = (state, owner) => {
   return holdings.slice(0, 3);
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      style={{
-        background: "var(--surface-0)",
-        border: `1px solid ${THEME.line}`,
-        borderRadius: 10,
-        padding: "10px 14px",
-        boxShadow: "var(--shadow-card)",
-        fontSize: 12,
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 6, color: THEME.ink }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
-          <span style={{ color: THEME.muted }}>{p.name}:</span>
-          <span style={{ fontWeight: 600, color: THEME.ink }}>{fmtINRFull(p.value)}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export const FamilyViewTab = ({ state, metrics, marketData }) => {
-  const dark = isDark();
-  const MEMBER_COLORS = getMemberColors();
-  const ASSET_CLASS_COLORS = getAssetClassColors();
+  const dark = state.settings?.darkMode ?? false;
+  const MEMBER_COLORS = getMemberColors(dark);
+  const ASSET_CLASS_COLORS = getAssetClassColors(dark);
 
   const familyData = useMemo(() => {
-    const colors = getMemberColors();
+    const colors = getMemberColors(dark);
     const members = PROFILES.map((p, idx) => {
       const assets = memberAssets(state, p.id);
       const topHoldings = getTopHoldings(state, p.id);
@@ -245,7 +219,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     const totalLifeCover = activeMembers.reduce((s, m) => s + m.totalLifeCover, 0);
 
     return { members, activeMembers, totalNetWorth, totalAssets, totalLiabilities, totalLifeCover };
-  }, [state]);
+  }, [state, dark]);
 
   const unownedAssets = useMemo(() => {
     const flagged = [];
@@ -941,8 +915,13 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           <Card style={{ padding: "24px 20px", marginBottom: 28 }}>
             <div style={{ width: "100%", height: 380 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={comparisonData} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
+                <BarChart
+                  data={comparisonData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 30 }}
+                  barGap={4}
+                  barCategoryGap="25%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
                   <XAxis
                     dataKey="name"
                     tick={{ fill: THEME.muted, fontSize: 11, fontWeight: 600 }}
@@ -956,12 +935,23 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tick={{ fill: THEME.muted, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
-                    width={55}
                     tickFormatter={(v) => fmtINRFull(v)}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--surface-0)",
+                      border: `1px solid ${THEME.line}`,
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: THEME.ink,
+                    }}
+                    labelStyle={{ color: THEME.muted }}
+                    itemStyle={{ color: THEME.ink }}
+                    formatter={(value) => fmtINRFull(value)}
+                  />
                   <Legend
-                    wrapperStyle={{ fontSize: 12, paddingTop: 12, color: THEME.ink }}
+                    wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}
                     iconType="circle"
                     iconSize={8}
                   />
@@ -970,8 +960,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       key={m.id}
                       dataKey={capitalize(m.id)}
                       fill={m.color}
-                      radius={[4, 4, 0, 0]}
-                      barSize={22}
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={48}
                     />
                   ))}
                 </BarChart>
