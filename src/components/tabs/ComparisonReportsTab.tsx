@@ -274,7 +274,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
               <XAxis type="number" tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <YAxis type="category" dataKey="category" width={100} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-              <Legend wrapperStyle={{ color: THEME.ink }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12, color: THEME.ink }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
               <Bar dataKey={comp.currentLabel} fill="var(--accent)" radius={[0, 4, 4, 0]} />
               <Bar dataKey={comp.previousLabel} fill={THEME.muted} radius={[0, 4, 4, 0]} />
             </BarChart>

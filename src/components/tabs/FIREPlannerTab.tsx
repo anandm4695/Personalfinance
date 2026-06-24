@@ -261,7 +261,7 @@ export const FIREPlannerTab = ({ state, metrics }) => {
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
             <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
             <Area type="monotone" dataKey="corpus" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Your Corpus" />
             <ReferenceLine y={fireCalc.fireNumber} stroke={THEME.rust} strokeDasharray="3 3" label={{ value: `FIRE: ${fmtINRFull(fireCalc.fireNumber)}`, fill: THEME.rust, fontSize: 11 }} />
           </AreaChart>

@@ -9,6 +9,7 @@
   --t-ink: #0f172a;
   --t-paper: #f8fafc;
   --t-accent: #4f46e5;
+  --accent: var(--t-accent);
   --t-gold: #d97706;
   --t-sage: #059669;
   --t-rust: #dc2626;

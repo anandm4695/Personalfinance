@@ -245,7 +245,7 @@ export const LoanAmortizationTab = ({ state }) => {
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} label={{ value: "Month", position: "insideBottom", offset: -5 }} />
                 <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
                 <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
                 <Area type="monotone" dataKey="balance" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} strokeWidth={2} name="Outstanding Balance" />
                 <Area type="monotone" dataKey="totalInterest" stroke={THEME.rust} fill={THEME.rust} fillOpacity={0.12} strokeWidth={2} name="Cumulative Interest" />
               </AreaChart>
@@ -260,8 +260,8 @@ export const LoanAmortizationTab = ({ state }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
                 <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-                <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ stroke: THEME.line }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-                <Legend />
+                <Tooltip formatter={(v) => fmtINRFull(v)} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
                 <Bar dataKey="principal" name="Principal" fill={THEME.sage} stackId="a" radius={[0, 0, 0, 0]} />
                 <Bar dataKey="interest" name="Interest" fill={THEME.rust} stackId="a" radius={[4, 4, 0, 0]} />
               </BarChart>

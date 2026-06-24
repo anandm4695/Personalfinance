@@ -207,7 +207,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               <XAxis dataKey="category" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
               <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
               <Tooltip formatter={(v) => `${v.toFixed(1)}%`} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
-              <Legend wrapperStyle={{ color: THEME.ink }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12, color: THEME.ink }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
               <Bar dataKey="yours" name="Your Return" fill="var(--accent)" radius={[6, 6, 0, 0]} />
               <Bar dataKey="benchmark" name="Benchmark" fill={THEME.muted} radius={[6, 6, 0, 0]} />
             </BarChart>

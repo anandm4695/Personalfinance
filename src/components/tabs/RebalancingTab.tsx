@@ -299,7 +299,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                 <Tooltip formatter={(v) => `${v}%`} contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} cursor={{ fill: THEME.line, opacity: 0.4 }} />
                 <Bar dataKey="Current" fill="#6366F1" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Target" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
               </BarChart>
             </ResponsiveContainer>
           </div>
