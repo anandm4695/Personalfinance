@@ -319,7 +319,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             <div
               style={{
                 height: 12,
-                background: THEME.line,
+                background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
                 borderRadius: 6,
                 overflow: "hidden",
                 marginBottom: 16,
@@ -399,7 +399,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                       <div
                         style={{
                           height: 6,
-                          background: THEME.line,
+                          background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
                           borderRadius: 3,
                           marginBottom: 12,
                           overflow: "hidden",

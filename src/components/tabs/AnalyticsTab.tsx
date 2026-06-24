@@ -3113,11 +3113,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               className="bento-col-12"
               style={{
                 padding: "32px 40px",
-                background: isDark ? "#1e293b" : "#0F172A",
+                background: isDark ? "var(--surface-2)" : "#0F172A",
                 color: "#fff",
                 position: "relative",
                 overflow: "hidden",
-                border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none",
+                border: isDark ? `1px solid ${THEME.line}` : "none",
               }}
             >
               {/* ── Decorative large ₹ watermark — gold, visible on dark & light ── */}
@@ -6085,8 +6085,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {/* Combined Family Net Worth */}
                 <div style={{
                   padding: "16px 20px", borderRadius: 12,
-                  background: isDark ? "#1e293b" : "#0F172A", marginBottom: 20, textAlign: "center",
-                  border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none",
+                  background: isDark ? "var(--surface-2)" : "#0F172A", marginBottom: 20, textAlign: "center",
+                  border: isDark ? `1px solid ${THEME.line}` : "none",
                 }}>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 4, fontWeight: 700 }}>
                     Combined Family Net Worth
@@ -7428,29 +7428,29 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   label: "Rental / Mo",
                   value: passiveIncomeData.rentalMonthly,
                   icon: Building2,
-                  color: "#059669",
-                  bg: "#05966915",
+                  color: THEME.sage,
+                  bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                 },
                 {
                   label: "FD Yield / Mo",
                   value: passiveIncomeData.fdMonthly,
                   icon: Landmark,
-                  color: "#d97706",
-                  bg: "#d9770615",
+                  color: THEME.gold,
+                  bg: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
                 },
                 {
                   label: "RD Yield / Mo",
                   value: passiveIncomeData.rdMonthly,
                   icon: Activity,
-                  color: "#0891b2",
-                  bg: "#0891b215",
+                  color: "#22D3EE",
+                  bg: "color-mix(in srgb, #22D3EE 8%, transparent)",
                 },
                 {
                   label: "Savings Int. / Mo",
                   value: passiveIncomeData.savingsMonthly,
                   icon: Receipt,
-                  color: "#10b981",
-                  bg: "#10b98115",
+                  color: THEME.sage,
+                  bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                 },
                 {
                   label: "Stock Divs / Mo",
@@ -11497,7 +11497,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           className="tab-content-enter"
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
-          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: isDark ? "#1e293b" : "#0F172A", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: isDark ? "var(--surface-2)" : "#0F172A", border: isDark ? `1px solid ${THEME.line}` : "none" }}>
             {/* Thin accent stripe — identifies current theme color */}
             <div
               style={{
@@ -11822,8 +11822,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </div>
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {[
-                  ["#10b981", "Saved"],
-                  ["#ef4444", "Deficit"],
+                  [THEME.sage, "Saved"],
+                  [THEME.rust, "Deficit"],
                   [THEME.line, "No data"],
                 ].map(([color, label]) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -11852,18 +11852,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   style={{
                     borderRadius: 10,
                     overflow: "hidden",
-                    border: `1.5px solid ${m.hasData ? (m.saved ? "#10b98133" : "#ef444433") : THEME.line}`,
+                    border: `1.5px solid ${m.hasData ? (m.saved ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`) : THEME.line}`,
                     background: m.hasData
                       ? m.saved
-                        ? "#10b98108"
-                        : "#ef444408"
+                        ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)`
+                        : `color-mix(in srgb, ${THEME.rust} 5%, transparent)`
                       : "var(--surface-0)",
                   }}
                 >
                   <div
                     style={{
                       height: 5,
-                      background: m.hasData ? (m.saved ? "#10b981" : "#ef4444") : THEME.line,
+                      background: m.hasData ? (m.saved ? THEME.sage : THEME.rust) : THEME.line,
                     }}
                   />
                   <div style={{ padding: "9px 8px" }}>
@@ -11871,7 +11871,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         fontSize: 10,
                         fontWeight: 800,
-                        color: m.hasData ? (m.saved ? "#059669" : "#dc2626") : THEME.muted,
+                        color: m.hasData ? (m.saved ? THEME.sage : THEME.rust) : THEME.muted,
                       }}
                     >
                       {m.label}
@@ -11908,11 +11908,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "11px 13px",
                       borderRadius: 12,
                       background: complete
-                        ? "#10b98110"
+                        ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
                         : inProg
-                          ? "#6366f108"
+                          ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)`
                           : "var(--surface-0)",
-                      border: `1px solid ${complete ? "#10b98140" : inProg ? "#6366f125" : THEME.line}`,
+                      border: `1px solid ${complete ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : inProg ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : THEME.line}`,
                     }}
                   >
                     <div
@@ -11927,7 +11927,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: complete ? "#059669" : THEME.ink,
+                          color: complete ? THEME.sage : THEME.ink,
                           lineHeight: 1.2,
                         }}
                       >
@@ -11937,7 +11937,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           fontSize: 10,
                           fontWeight: 800,
-                          color: complete ? "#059669" : inProg ? "#d97706" : THEME.muted,
+                          color: complete ? THEME.sage : inProg ? THEME.gold : THEME.muted,
                         }}
                       >
                         {data.earnedCount}/{data.total}
@@ -11955,7 +11955,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           height: "100%",
                           width: `${pct}%`,
-                          background: complete ? "#10b981" : inProg ? "#f59e0b" : THEME.line,
+                          background: complete ? THEME.sage : inProg ? THEME.gold : THEME.line,
                           borderRadius: 99,
                           transition: "width 0.5s ease",
                         }}
@@ -11994,9 +11994,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{
                       padding: "14px 16px",
                       borderRadius: 14,
-                      background: i === 0 ? "#6366f10c" : "var(--surface-0)",
-                      border: `1px solid ${i === 0 ? "#6366f128" : THEME.line}`,
-                      borderLeft: `3px solid ${i === 0 ? "#6366f1" : i === 1 ? "#d97706" : THEME.line}`,
+                      background: i === 0 ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+                      border: `1px solid ${i === 0 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : THEME.line}`,
+                      borderLeft: `3px solid ${i === 0 ? THEME.accent : i === 1 ? THEME.gold : THEME.line}`,
                       display: "flex",
                       gap: 12,
                       alignItems: "flex-start",
@@ -12015,11 +12015,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             style={{
                               fontSize: 9,
                               fontWeight: 800,
-                              color: "#6366f1",
-                              background: "#6366f114",
+                              color: THEME.accent,
+                              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                               padding: "2px 7px",
                               borderRadius: 99,
-                              border: "1px solid #6366f125",
+                              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                             }}
                           >
                             TOP PRIORITY
@@ -12041,7 +12041,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>
                               {tip.progress.label}
                             </span>
-                            <span style={{ fontSize: 9, color: "#6366f1", fontWeight: 800 }}>
+                            <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 800 }}>
                               {tip.pct}%
                             </span>
                           </div>
@@ -12057,7 +12057,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               style={{
                                 height: "100%",
                                 width: `${tip.pct}%`,
-                                background: "#6366f1",
+                                background: THEME.accent,
                                 borderRadius: 99,
                                 transition: "width 0.4s ease",
                               }}
@@ -12096,16 +12096,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         padding: "2px 8px",
                         borderRadius: 99,
                         color: allEarned
-                          ? "#059669"
+                          ? THEME.sage
                           : catData.earnedCount > 0
-                            ? "#d97706"
+                            ? THEME.gold
                             : THEME.muted,
                         background: allEarned
-                          ? "#10b98114"
+                          ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
                           : catData.earnedCount > 0
-                            ? "#f59e0b14"
+                            ? `color-mix(in srgb, ${THEME.gold} 8%, transparent)`
                             : "var(--surface-0)",
-                        border: `1px solid ${allEarned ? "#10b98140" : catData.earnedCount > 0 ? "#f59e0b33" : THEME.line}`,
+                        border: `1px solid ${allEarned ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : catData.earnedCount > 0 ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)` : THEME.line}`,
                       }}
                     >
                       {catData.earnedCount}/{catData.total}
@@ -12115,12 +12115,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <span
                       style={{
                         fontSize: 10,
-                        color: "#059669",
+                        color: THEME.sage,
                         fontWeight: 800,
-                        background: "#10b98114",
+                        background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                         padding: "2px 10px",
                         borderRadius: 99,
-                        border: "1px solid #10b98133",
+                        border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                       }}
                     >
                       ✓ Complete
@@ -12145,9 +12145,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       height: "100%",
                       width: `${catPct}%`,
                       background: allEarned
-                        ? "#10b981"
+                        ? THEME.sage
                         : catData.earnedCount > 0
-                          ? "#f59e0b"
+                          ? THEME.gold
                           : THEME.line,
                       borderRadius: 99,
                       transition: "width 0.5s ease",
@@ -12176,25 +12176,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           padding: "16px 14px",
                           borderRadius: 16,
                           background: isEarned
-                            ? "linear-gradient(145deg, #10b98118, var(--t-paper))"
+                            ? `linear-gradient(145deg, color-mix(in srgb, ${THEME.sage} 10%, transparent), var(--t-paper))`
                             : isActive
-                              ? "linear-gradient(145deg, #6366f10d, var(--t-paper))"
+                              ? `linear-gradient(145deg, color-mix(in srgb, ${THEME.accent} 5%, transparent), var(--t-paper))`
                               : "var(--surface-0)",
                           border: isEarned
-                            ? "1.5px solid #10b98155"
+                            ? `1.5px solid color-mix(in srgb, ${THEME.sage} 33%, transparent)`
                             : isActive
-                              ? "1.5px solid #6366f135"
+                              ? `1.5px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`
                               : `1px solid ${THEME.line}`,
                           opacity: b.status === "locked" ? 0.4 : 1,
                           display: "flex",
                           flexDirection: "column",
                           gap: 7,
                           position: "relative",
-                          boxShadow: isEarned
-                            ? "0 4px 18px #10b98112"
-                            : isActive
-                              ? "0 2px 10px #6366f110"
-                              : "none",
+                          boxShadow: "var(--shadow-sm)",
                           transition: "box-shadow 0.2s ease",
                         }}
                       >
@@ -12205,9 +12201,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             right: 9,
                             fontSize: 8,
                             fontWeight: 900,
-                            color: isEarned ? "#059669" : THEME.muted,
-                            background: isEarned ? "#10b98118" : "var(--surface-0)",
-                            border: `1px solid ${isEarned ? "#10b98144" : THEME.line}`,
+                            color: isEarned ? THEME.sage : THEME.muted,
+                            background: isEarned ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : "var(--surface-0)",
+                            border: `1px solid ${isEarned ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : THEME.line}`,
                             padding: "1px 5px",
                             borderRadius: 6,
                           }}
@@ -12228,7 +12224,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           style={{
                             fontSize: 11,
                             fontWeight: 800,
-                            color: isEarned ? "#059669" : isActive ? THEME.ink : THEME.muted,
+                            color: isEarned ? THEME.sage : isActive ? THEME.ink : THEME.muted,
                             lineHeight: 1.2,
                             paddingRight: 32,
                           }}
@@ -12246,12 +12242,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             style={{
                               fontSize: 9,
                               fontWeight: 900,
-                              color: "#059669",
-                              background: "#10b98114",
+                              color: THEME.sage,
+                              background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
                               padding: "3px 8px",
                               borderRadius: 99,
                               alignSelf: "flex-start",
-                              border: "1px solid #10b98130",
+                              border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
                             }}
                           >
                             ✓ Earned
@@ -12263,7 +12259,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>
                                 {b.progress.label}
                               </span>
-                              <span style={{ fontSize: 9, color: "#6366f1", fontWeight: 900 }}>
+                              <span style={{ fontSize: 9, color: THEME.accent, fontWeight: 900 }}>
                                 {pct}%
                               </span>
                             </div>
@@ -12279,7 +12275,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 style={{
                                   height: "100%",
                                   width: `${pct}%`,
-                                  background: "linear-gradient(90deg, #6366f1, #818cf8)",
+                                  background: `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #fff))`,
                                   borderRadius: 99,
                                   transition: "width 0.4s ease",
                                 }}
@@ -12292,12 +12288,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             style={{
                               fontSize: 9,
                               fontWeight: 800,
-                              color: "#6366f1",
-                              background: "#6366f113",
+                              color: THEME.accent,
+                              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
                               padding: "3px 8px",
                               borderRadius: 99,
                               alignSelf: "flex-start",
-                              border: "1px solid #6366f128",
+                              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                             }}
                           >
                             Next up →

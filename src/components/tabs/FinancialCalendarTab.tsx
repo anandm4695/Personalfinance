@@ -43,10 +43,10 @@ const formatDate = (dateStr) => {
 };
 
 const getUrgencyColor = (days) => {
-  if (days < 0) return "#EF4444";
-  if (days <= 7) return "#F97316";
-  if (days <= 30) return "#EAB308";
-  if (days <= 90) return "#3B82F6";
+  if (days < 0) return THEME.rust;
+  if (days <= 7) return THEME.gold;
+  if (days <= 30) return THEME.gold;
+  if (days <= 90) return THEME.accent;
   return THEME.sage;
 };
 
@@ -415,11 +415,11 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
 
       {/* Stats Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <StatCard label="This Week" value={String(stats.upcoming7)} icon={<Clock />} color="#F97316" />
-        <StatCard label="Next 30 Days" value={String(stats.upcoming30)} icon={<Calendar />} color="#3B82F6" />
-        <StatCard label="Overdue" value={String(stats.overdue)} icon={<AlertTriangle />} color="#EF4444" />
-        <StatCard label="Expected Inflows" value={fmtINRFull(stats.totalInflows)} icon={<TrendingUp />} color="#10B981" />
-        <StatCard label="Expected Outflows" value={fmtINRFull(stats.totalOutflows)} icon={<Coins />} color="#EF4444" />
+        <StatCard label="This Week" value={String(stats.upcoming7)} icon={<Clock />} color={THEME.gold} />
+        <StatCard label="Next 30 Days" value={String(stats.upcoming30)} icon={<Calendar />} color={THEME.accent} />
+        <StatCard label="Overdue" value={String(stats.overdue)} icon={<AlertTriangle />} color={THEME.rust} />
+        <StatCard label="Expected Inflows" value={fmtINRFull(stats.totalInflows)} icon={<TrendingUp />} color={THEME.sage} />
+        <StatCard label="Expected Outflows" value={fmtINRFull(stats.totalOutflows)} icon={<Coins />} color={THEME.rust} />
       </div>
 
       {/* Monthly Summary Bar */}
@@ -438,12 +438,12 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                       <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>{MONTH_NAMES[parseInt(m) - 1]} {y}</div>
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{data.events} events</div>
                       {data.inflow > 0 && (
-                        <div style={{ fontSize: 12, color: "#10B981", fontWeight: 600, marginTop: 6 }}>
+                        <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, marginTop: 6 }}>
                           +<Prv>{fmtINRFull(data.inflow)}</Prv>
                         </div>
                       )}
                       {data.outflow > 0 && (
-                        <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600, marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 2 }}>
                           -<Prv>{fmtINRFull(data.outflow)}</Prv>
                         </div>
                       )}

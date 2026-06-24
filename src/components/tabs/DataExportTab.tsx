@@ -179,9 +179,9 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Total Records" value={totalRecords} icon={<Database />} color="var(--accent)" />
-        <StatCard label="Selected for Export" value={selectedRecords} icon={<CheckCircle />} color="#10B981" />
-        <StatCard label="Data Sections" value={dataCounts.filter((d) => d.count > 0).length} icon={<FileText />} color="#3B82F6" />
-        {lastExport && <StatCard label="Last Export" value={lastExport} icon={<Clock />} color="#F59E0B" />}
+        <StatCard label="Selected for Export" value={selectedRecords} icon={<CheckCircle />} color={THEME.sage} />
+        <StatCard label="Data Sections" value={dataCounts.filter((d) => d.count > 0).length} icon={<FileText />} color={THEME.accent} />
+        {lastExport && <StatCard label="Last Export" value={lastExport} icon={<Clock />} color={THEME.gold} />}
       </div>
 
       {/* Export Panel */}
@@ -241,7 +241,7 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
         </h3>
         <div style={{ padding: 16, borderRadius: 12, background: "#F59E0B10", border: "1px solid #F59E0B30", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <AlertTriangle size={16} color="#F59E0B" />
+            <AlertTriangle size={16} color={THEME.gold} />
             <span style={{ fontSize: 13, fontWeight: 600, color: "#F59E0B" }}>Warning</span>
           </div>
           <span style={{ fontSize: 13, color: THEME.textSecondary }}>
@@ -256,10 +256,10 @@ export const DataExportTab = ({ state, exportJSON, onRestoreBackup, showToast })
       <Card style={{ padding: 24 }}>
         <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Backup Tips</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: THEME.textSecondary }}>
-          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color="#10B981" /> Export a JSON backup regularly — it contains all your data</div>
-          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color="#10B981" /> CSV exports are great for sharing with your CA or financial advisor</div>
-          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color="#10B981" /> Store backups in a secure location (Google Drive, encrypted folder)</div>
-          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color="#10B981" /> Your data is also synced to Supabase if you're logged in</div>
+          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color={THEME.sage} /> Export a JSON backup regularly — it contains all your data</div>
+          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color={THEME.sage} /> CSV exports are great for sharing with your CA or financial advisor</div>
+          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color={THEME.sage} /> Store backups in a secure location (Google Drive, encrypted folder)</div>
+          <div style={{ display: "flex", gap: 8 }}><Shield size={14} color={THEME.sage} /> Your data is also synced to Supabase if you're logged in</div>
         </div>
       </Card>
     </div>

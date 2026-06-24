@@ -174,7 +174,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
         border: `1px solid ${THEME.line}`,
         borderRadius: 10,
         padding: "10px 14px",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+        boxShadow: "var(--shadow-md)",
         fontSize: 12,
       }}
     >
@@ -480,7 +480,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               width: 64,
               height: 64,
               borderRadius: 20,
-              background: `linear-gradient(135deg, ${THEME.accent}, #818cf8)`,
+              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #fff))`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -742,7 +742,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                             border: `1px solid ${THEME.line}`,
                             borderRadius: 10,
                             padding: "10px 14px",
-                            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                            boxShadow: "var(--shadow-md)",
                             fontSize: 12,
                           }}
                         >
@@ -1090,7 +1090,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         border: `1px solid ${THEME.line}`,
                         borderRadius: 10,
                         padding: "10px 14px",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                        boxShadow: "var(--shadow-md)",
                         fontSize: 12,
                       }}
                     >

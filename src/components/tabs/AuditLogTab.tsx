@@ -21,13 +21,13 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 
 const ACTION_COLORS = {
-  ADD: "#10B981",
-  UPDATE: "#3B82F6",
-  DELETE: "#EF4444",
-  UPDATE_SETTINGS: "#8B5CF6",
-  UPDATE_PROFILE: "#F59E0B",
-  IMPORT: "#EC4899",
-  EXPORT: "#14B8A6",
+  ADD: THEME.sage,
+  UPDATE: THEME.accent,
+  DELETE: THEME.rust,
+  UPDATE_SETTINGS: "#A78BFA",
+  UPDATE_PROFILE: THEME.gold,
+  IMPORT: "#F472B6",
+  EXPORT: "#2DD4BF",
 };
 
 const ACTION_ICONS = {
@@ -137,9 +137,9 @@ export const AuditLogTab = ({ session }) => {
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Total Actions" value={logs.length} icon={<Activity />} color="var(--accent)" />
-        <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color="#10B981" />
-        <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={<Edit2 />} color="#3B82F6" />
-        <StatCard label="Deletes" value={actionStats.DELETE || 0} icon={<Trash2 />} color="#EF4444" />
+        <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color={THEME.sage} />
+        <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={<Edit2 />} color={THEME.accent} />
+        <StatCard label="Deletes" value={actionStats.DELETE || 0} icon={<Trash2 />} color={THEME.rust} />
       </div>
 
       {/* Activity heatmap (last 7 days) */}

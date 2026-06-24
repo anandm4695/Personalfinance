@@ -20,10 +20,10 @@ import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const getHealthColor = (months) => {
-  if (months >= 12) return "#10B981";
-  if (months >= 6) return "#3B82F6";
-  if (months >= 3) return "#F59E0B";
-  return "#EF4444";
+  if (months >= 12) return THEME.sage;
+  if (months >= 6) return THEME.accent;
+  if (months >= 3) return THEME.gold;
+  return THEME.rust;
 };
 
 const getHealthLabel = (months) => {
