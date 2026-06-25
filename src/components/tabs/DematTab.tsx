@@ -1262,58 +1262,58 @@ export function DematTab({
       <SectionTitle
         sub="Live portfolio tracking and brokerage management"
         rightElement={
-          <div style={{ display: "flex", gap: 12 }}>
-            <div
-              style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <Button
+              variant="secondary"
+              icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}
+              onClick={handleRefresh}
+              disabled={fetchingPrices}
             >
-              <Button
-                variant="ghost"
-                icon={<RefreshCw size={13} className={fetchingPrices ? "spin" : ""} />}
-                onClick={handleRefresh}
-                disabled={fetchingPrices}
-                style={{ minWidth: 120, justifyContent: "center" }}
-              >
-                {fetchingPrices ? "Updating…" : "Live Refresh"}
-              </Button>
-              {marketDataTs && !fetchingPrices && (
-                <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
-                  {(() => {
-                    const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
-                    if (diffMin < 1) return "Updated just now";
-                    if (diffMin === 1) return "Updated 1 min ago";
-                    if (diffMin < 60) return `Updated ${diffMin} min ago`;
-                    const hrs = Math.floor(diffMin / 60);
-                    return `Updated ${hrs}h ago`;
-                  })()}
-                </span>
-              )}
-            </div>
+              {fetchingPrices ? "Updating…" : "Refresh"}
+            </Button>
             {state.stocks.length > 0 && (
-              <>
-                <Button
-                  variant="ghost"
-                  icon={<Upload size={14} />}
-                  onClick={() => setShowBrokerImport(true)}
-                >
-                  Import Trades
-                </Button>
-                <Button
-                  variant="accent"
-                  icon={<Plus size={14} />}
-                  onClick={() => {
-                    setStockDefaults(null);
-                    setShowStock(true);
-                  }}
-                >
-                  Add Scrip
-                </Button>
-              </>
+              <Button
+                variant="secondary"
+                icon={<Upload size={14} />}
+                onClick={() => setShowBrokerImport(true)}
+              >
+                Import Trades
+              </Button>
             )}
+            <Button
+              variant="accent"
+              icon={<Plus size={14} />}
+              onClick={() => {
+                if (state.demat.length === 0) {
+                  setShowDemat(true);
+                } else {
+                  setStockDefaults(null);
+                  setShowStock(true);
+                }
+              }}
+            >
+              {state.demat.length === 0 ? "Add Account" : "Add Scrip"}
+            </Button>
           </div>
         }
       >
         Demat & Stocks
       </SectionTitle>
+      {/* Refresh timestamp */}
+      {marketDataTs && !fetchingPrices && (
+        <div style={{ marginTop: -24, marginBottom: 20 }}>
+          <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+            {(() => {
+              const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
+              if (diffMin < 1) return "Updated just now";
+              if (diffMin === 1) return "Updated 1 min ago";
+              if (diffMin < 60) return `Updated ${diffMin} min ago`;
+              const hrs = Math.floor(diffMin / 60);
+              return `Updated ${hrs}h ago`;
+            })()}
+          </span>
+        </div>
+      )}
 
       {/* ── MIGRATION BANNER: shown when corporate_actions table is missing in Supabase ── */}
       {missingTables.includes("corporate_actions") && (
@@ -1387,54 +1387,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       )}
 
       {/* ── VIEW SWITCHER: Holdings | Analytics | Watchlist ── */}
-      <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${THEME.line}`, marginBottom: 0 }}>
-        {(["holdings", "analytics", "watchlist"] as const).map((view) => {
-          const active = dematView === view;
+      <div className="demat-portfolio-bar no-scrollbar">
+        {([
+          { id: "holdings" as const, label: "Holdings", Icon: BarChart3 },
+          { id: "analytics" as const, label: "Analytics", Icon: Activity },
+          { id: "watchlist" as const, label: "Watchlist", Icon: Star },
+        ]).map(({ id, label, Icon }) => {
+          const active = dematView === id;
           return (
             <button
-              key={view}
-              onClick={() => setDematView(view)}
-              style={{
-                padding: "12px 24px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active ? `3px solid ${THEME.accent}` : "3px solid transparent",
-                color: active ? THEME.accent : THEME.muted,
-                fontWeight: active ? 800 : 600,
-                fontSize: 14,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: -2,
-                borderRadius: 0,
-                transition: "color 0.2s, border-color 0.2s",
-              }}
+              key={id}
+              onClick={() => setDematView(id)}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
             >
-              {view === "holdings" ? (
-                <BarChart3 size={16} />
-              ) : view === "analytics" ? (
-                <Activity size={16} />
-              ) : (
-                <Star size={16} />
-              )}
-              {view === "holdings" ? (
-                "Holdings"
-              ) : view === "analytics" ? (
-                "Analytics"
-              ) : (
-                "Watchlist"
-              )}
-              {view === "watchlist" && wishlists.length > 0 && (
+              <Icon size={14} />
+              {label}
+              {id === "watchlist" && wishlists.length > 0 && (
                 <span style={{
-                  background: active ? `${THEME.accent}18` : `${THEME.muted}15`,
-                  color: active ? THEME.accent : THEME.muted,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "2px 8px",
-                  borderRadius: 10,
-                  minWidth: 20,
-                  textAlign: "center",
+                  padding: "1px 6px",
+                  borderRadius: 20,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  background: `${THEME.accent}22`,
+                  color: THEME.accent,
                 }}>
                   {wishlists.length}
                 </span>
@@ -1446,7 +1421,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
       {/* ── BROKER FILTER BAR — shown for Holdings & Analytics tabs ── */}
       {(dematView === "holdings" || dematView === "analytics") && (
-        <div className="demat-portfolio-bar no-scrollbar" style={{ marginTop: 16 }}>
+        <div className="demat-portfolio-bar no-scrollbar">
           <button
             onClick={() => setSelectedDematId(null)}
             className={`demat-portfolio-pill ${selectedDematId === null ? "active" : ""}`}
@@ -1525,86 +1500,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 20,
-            gap: 16,
-          }}
-        >
-          <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
-            <input
-              placeholder="Search stocks or sectors..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                ...input,
-                paddingLeft: 40,
-                borderRadius: 14,
-                height: 44,
-                border: `1.5px solid ${THEME.line}`,
-              }}
-            />
-            <div style={{ position: "absolute", left: 14, top: 13, color: THEME.muted }}>
-              <Search size={18} />
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                background: "var(--surface-0)",
-                padding: "0 12px",
-                borderRadius: 12,
-                border: `1px solid ${THEME.line}`,
-                height: 40,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Sort by:
-              </span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  outline: "none",
-                  cursor: "pointer",
-                  height: "100%",
-                }}
-              >
-                <option value="value">Highest Value</option>
-                <option value="pnl">Best Returns (%)</option>
-                <option value="change">Day Gainers (%)</option>
-                <option value="name">Symbol (A-Z)</option>
-              </select>
-            </div>
-            <Button
-              variant="ghost"
-              icon={<Plus size={14} />}
-              style={{ height: 40, borderRadius: 12 }}
-              onClick={() => setShowDemat(true)}
-            >
-              Add Account
-            </Button>
-          </div>
-        </div>
+        {/* Broker Account Cards */}
         <Grid>
           {state.demat.length === 0 && (
             <div style={{ ...card, gridColumn: "1 / -1" }}>
@@ -1699,6 +1595,80 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             );
           })}
         </Grid>
+
+        {/* Search & Sort Bar */}
+        {state.stocks.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+              gap: 16,
+            }}
+          >
+            <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+              <input
+                placeholder="Search stocks or sectors..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  ...input,
+                  paddingLeft: 40,
+                  borderRadius: 14,
+                  height: 44,
+                  border: `1.5px solid ${THEME.line}`,
+                }}
+              />
+              <div style={{ position: "absolute", left: 14, top: 13, color: THEME.muted }}>
+                <Search size={18} />
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "var(--surface-0)",
+                padding: "0 12px",
+                borderRadius: 12,
+                border: `1px solid ${THEME.line}`,
+                height: 40,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Sort by:
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: THEME.ink,
+                  outline: "none",
+                  cursor: "pointer",
+                  height: "100%",
+                }}
+              >
+                <option value="value">Highest Value</option>
+                <option value="pnl">Best Returns (%)</option>
+                <option value="change">Day Gainers (%)</option>
+                <option value="name">Symbol (A-Z)</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         {state.stocks.length === 0 ? (
           <div style={card}>
