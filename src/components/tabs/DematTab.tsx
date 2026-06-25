@@ -788,6 +788,7 @@ export function DematTab({
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
   const [lotSortDir, setLotSortDir] = useState<Record<string, "asc" | "desc">>({});
   const [fetchingChart, setFetchingChart] = useState<string | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<Record<string, string>>({});
   const [sellLot, setSellLot] = useState<any>(null);
   const [fifoSellGroup, setFifoSellGroup] = useState<any>(null);
   const [splitBonusGroup, setSplitBonusGroup] = useState<any>(null);
@@ -886,23 +887,32 @@ export function DematTab({
     }
   };
 
-  const fetchIntradayChart = async (yfSym: string) => {
-    if (chartData[yfSym] || fetchingChart === yfSym) return;
+  const CHART_PERIODS = ["1d", "5d", "1m", "6m", "ytd", "1y", "3y", "5y", "max"] as const;
+  const CHART_PERIOD_LABELS: Record<string, string> = {
+    "1d": "1D", "5d": "5D", "1m": "1M", "6m": "6M", "ytd": "YTD",
+    "1y": "1Y", "3y": "3Y", "5y": "5Y", "max": "All",
+  };
+
+  const fetchChart = async (yfSym: string, range: string = "1d") => {
+    const cacheKey = `${yfSym}__${range}`;
+    if (chartData[cacheKey] || fetchingChart === yfSym) return;
     setFetchingChart(yfSym);
     try {
-      const res = await fetch(`/api/stock-chart?symbol=${encodeURIComponent(yfSym)}`);
+      const res = await fetch(`/api/stock-chart?symbol=${encodeURIComponent(yfSym)}&range=${range}`);
       if (res.ok) {
         const data = await res.json();
         const entry = Array.isArray(data) ? { date: null, points: data } : data;
-        setChartData((prev: any) => ({ ...prev, [yfSym]: entry }));
+        setChartData((prev: any) => ({ ...prev, [cacheKey]: entry }));
       } else {
-        setChartData((prev: any) => ({ ...prev, [yfSym]: { date: null, points: [] } }));
+        setChartData((prev: any) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
       }
     } catch (_) {
-      setChartData((prev: any) => ({ ...prev, [yfSym]: { date: null, points: [] } }));
+      setChartData((prev: any) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
     }
     setFetchingChart(null);
   };
+
+  const fetchIntradayChart = (yfSym: string) => fetchChart(yfSym, chartPeriod[yfSym] || "1d");
 
   const toggleExpand = (yfSym: string) => {
     setExpandedSymbols((prev) => {
@@ -1819,7 +1829,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   })();
                   const isExpanded = expandedSymbols.has(yfSym);
                   const isLive = !!md;
-                  const chartEntry = chartData[yfSym];
+                  const activePeriod = chartPeriod[yfSym] || "1d";
+                  const chartEntry = chartData[`${yfSym}__${activePeriod}`];
                   const charts: any[] | null = chartEntry
                     ? (chartEntry.points ?? chartEntry)
                     : null;
@@ -2040,22 +2051,48 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               className="demat-drawer-content"
                               style={{ display: "flex", gap: 32, flexWrap: "wrap" }}
                             >
-                              {/* Left Panel: Session sparkline chart */}
-                              {isLive && charts && charts.length > 2 && (
+                              {/* Left Panel: Price chart with period selector */}
+                              {isLive && (
                                 <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                  <div
-                                    style={{
-                                      fontSize: 11,
-                                      color: THEME.muted,
-                                      marginBottom: 8,
-                                      fontWeight: 700,
-                                      textTransform: "uppercase",
-                                      letterSpacing: "0.05em",
-                                    }}
-                                  >
-                                    {chartDate
-                                      ? `Session Sparkline — ${chartDate}`
-                                      : "Live Intraday Chart"}
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: THEME.muted,
+                                        fontWeight: 700,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                      }}
+                                    >
+                                      {activePeriod === "1d" && chartDate
+                                        ? `Intraday — ${chartDate}`
+                                        : `${CHART_PERIOD_LABELS[activePeriod]} Chart`}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 2 }}>
+                                      {CHART_PERIODS.map((p) => (
+                                        <button
+                                          key={p}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setChartPeriod((prev) => ({ ...prev, [yfSym]: p }));
+                                            fetchChart(yfSym, p);
+                                          }}
+                                          style={{
+                                            padding: "3px 7px",
+                                            fontSize: 10,
+                                            fontWeight: activePeriod === p ? 800 : 600,
+                                            border: "none",
+                                            borderRadius: 4,
+                                            cursor: "pointer",
+                                            background: activePeriod === p ? THEME.accent : "transparent",
+                                            color: activePeriod === p ? "#fff" : THEME.muted,
+                                            transition: "all 0.15s ease",
+                                          }}
+                                        >
+                                          {CHART_PERIOD_LABELS[p]}
+                                        </button>
+                                      ))}
+                                    </div>
                                   </div>
                                   <div
                                     style={{
@@ -2066,114 +2103,123 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       boxSizing: "border-box",
                                     }}
                                   >
-                                    <ResponsiveContainer width="100%" height={150}>
-                                      <AreaChart
-                                        data={charts}
-                                        margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-                                      >
-                                        <defs>
-                                          <linearGradient
-                                            id={`ig-${base}`}
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
+                                    {charts && charts.length > 2 ? (
+                                      <>
+                                        <ResponsiveContainer width="100%" height={150}>
+                                          <AreaChart
+                                            data={charts}
+                                            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
                                           >
-                                            <stop
-                                              offset="5%"
-                                              stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
-                                              stopOpacity={0.35}
+                                            <defs>
+                                              <linearGradient
+                                                id={`ig-${base}`}
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                              >
+                                                <stop
+                                                  offset="5%"
+                                                  stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
+                                                  stopOpacity={0.35}
+                                                />
+                                                <stop
+                                                  offset="95%"
+                                                  stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
+                                                  stopOpacity={0.02}
+                                                />
+                                              </linearGradient>
+                                            </defs>
+                                            <XAxis
+                                              dataKey="t"
+                                              tick={{ fontSize: 9, fill: "var(--t-muted)" }}
+                                              interval="preserveStartEnd"
+                                              axisLine={false}
+                                              tickLine={false}
                                             />
-                                            <stop
-                                              offset="95%"
-                                              stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
-                                              stopOpacity={0.02}
+                                            <YAxis hide domain={["auto", "auto"]} />
+                                            <Tooltip
+                                              cursor={{ stroke: THEME.line }}
+                                              contentStyle={{
+                                                fontSize: 12,
+                                                background: "var(--surface-0)",
+                                                border: `1px solid ${THEME.line}`,
+                                                borderRadius: 6,
+                                                color: THEME.ink,
+                                              }}
+                                              labelStyle={{ color: THEME.ink }}
+                                              itemStyle={{ color: THEME.ink }}
+                                              formatter={(v: any) => [
+                                                `₹${Number(v).toFixed(2)}`,
+                                                "Price",
+                                              ]}
                                             />
-                                          </linearGradient>
-                                        </defs>
-                                        <XAxis
-                                          dataKey="t"
-                                          tick={{ fontSize: 9, fill: "var(--t-muted)" }}
-                                          interval="preserveStartEnd"
-                                          axisLine={false}
-                                          tickLine={false}
-                                        />
-                                        <YAxis hide domain={["auto", "auto"]} />
-                                        <Tooltip
-                                          cursor={{ stroke: THEME.line }}
-                                          contentStyle={{
+                                            <Area
+                                              type="monotone"
+                                              dataKey="p"
+                                              stroke={changeAmt >= 0 ? THEME.sage : THEME.rust}
+                                              strokeWidth={1.5}
+                                              fill={`url(#ig-${base})`}
+                                              dot={false}
+                                            />
+                                          </AreaChart>
+                                        </ResponsiveContainer>
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: "10px 16px",
+                                            marginTop: 12,
                                             fontSize: 12,
-                                            background: "var(--surface-0)",
-                                            border: `1px solid ${THEME.line}`,
-                                            borderRadius: 6,
-                                            color: THEME.ink,
+                                            borderTop: `1px solid ${THEME.line}`,
+                                            paddingTop: 10,
                                           }}
-                                          labelStyle={{ color: THEME.ink }}
-                                          itemStyle={{ color: THEME.ink }}
-                                          formatter={(v: any) => [
-                                            `₹${Number(v).toFixed(2)}`,
-                                            "Price",
-                                          ]}
-                                        />
-                                        <Area
-                                          type="monotone"
-                                          dataKey="p"
-                                          stroke={changeAmt >= 0 ? THEME.sage : THEME.rust}
-                                          strokeWidth={1.5}
-                                          fill={`url(#ig-${base})`}
-                                          dot={false}
-                                        />
-                                      </AreaChart>
-                                    </ResponsiveContainer>
-                                    {/* Scrip details pill list */}
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: "10px 16px",
-                                        marginTop: 12,
-                                        fontSize: 12,
-                                        borderTop: `1px solid ${THEME.line}`,
-                                        paddingTop: 10,
-                                      }}
-                                    >
-                                      {md.prevClose != null && (
-                                        <span>
-                                          <span style={{ color: THEME.muted }}>Prev Close: </span>
-                                          <b>₹{md.prevClose.toFixed(2)}</b>
+                                        >
+                                          {md.prevClose != null && (
+                                            <span>
+                                              <span style={{ color: THEME.muted }}>Prev Close: </span>
+                                              <b>₹{md.prevClose.toFixed(2)}</b>
+                                            </span>
+                                          )}
+                                          {md.dayHigh != null && (
+                                            <span>
+                                              <span style={{ color: THEME.muted }}>Day High/Low: </span>
+                                              <b style={{ color: THEME.sage }}>
+                                                ₹{md.dayHigh.toFixed(2)}
+                                              </b>{" "}
+                                              /{" "}
+                                              <b style={{ color: THEME.rust }}>
+                                                ₹{md.dayLow?.toFixed(2) ?? "—"}
+                                              </b>
+                                            </span>
+                                          )}
+                                          {md.weekHigh52 != null && (
+                                            <span>
+                                              <span style={{ color: THEME.muted }}>52W H/L: </span>
+                                              <b style={{ color: THEME.sage }}>
+                                                ₹{md.weekHigh52.toFixed(2)}
+                                              </b>{" "}
+                                              /{" "}
+                                              <b style={{ color: THEME.rust }}>
+                                                ₹{md.weekLow52?.toFixed(2) ?? "—"}
+                                              </b>
+                                            </span>
+                                          )}
+                                          {md.volume != null && (
+                                            <span>
+                                              <span style={{ color: THEME.muted }}>Volume: </span>
+                                              <b>{fmtVol(md.volume)}</b>
+                                            </span>
+                                          )}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div style={{ height: 150, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <span style={{ color: THEME.muted, fontSize: 12 }}>
+                                          {fetchingChart === yfSym ? "Loading chart…" : "No chart data available"}
                                         </span>
-                                      )}
-                                      {md.dayHigh != null && (
-                                        <span>
-                                          <span style={{ color: THEME.muted }}>Day High/Low: </span>
-                                          <b style={{ color: THEME.sage }}>
-                                            ₹{md.dayHigh.toFixed(2)}
-                                          </b>{" "}
-                                          /{" "}
-                                          <b style={{ color: THEME.rust }}>
-                                            ₹{md.dayLow?.toFixed(2) ?? "—"}
-                                          </b>
-                                        </span>
-                                      )}
-                                      {md.weekHigh52 != null && (
-                                        <span>
-                                          <span style={{ color: THEME.muted }}>52W H/L: </span>
-                                          <b style={{ color: THEME.sage }}>
-                                            ₹{md.weekHigh52.toFixed(2)}
-                                          </b>{" "}
-                                          /{" "}
-                                          <b style={{ color: THEME.rust }}>
-                                            ₹{md.weekLow52?.toFixed(2) ?? "—"}
-                                          </b>
-                                        </span>
-                                      )}
-                                      {md.volume != null && (
-                                        <span>
-                                          <span style={{ color: THEME.muted }}>Volume: </span>
-                                          <b>{fmtVol(md.volume)}</b>
-                                        </span>
-                                      )}
-                                    </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -3472,7 +3518,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   : null;
                                 const gapColor = gap === null ? THEME.muted : gap >= 0 ? THEME.sage : THEME.rust;
                                 const isItemExpanded = expandedWatchlistItems.has(it.id);
-                                const chartEntry = chartData[yfSym];
+                                const wlActivePeriod = chartPeriod[yfSym] || "1d";
+                                const chartEntry = chartData[`${yfSym}__${wlActivePeriod}`];
                                 const charts: any[] | null = chartEntry ? (chartEntry.points ?? chartEntry) : null;
                                 const chartDate: string | null = chartEntry?.date ?? null;
                                 const changeAmt = md?.change ?? 0;
@@ -3489,7 +3536,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     }
                                     return next;
                                   });
-                                  if (isExpanding) fetchIntradayChart(yfSym);
+                                  if (isExpanding) fetchChart(yfSym, chartPeriod[yfSym] || "1d");
                                 };
 
                                 return (
@@ -3595,86 +3642,93 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       <tr style={{ background: `${THEME.accent}08` }}>
                                         <td colSpan={7} style={{ padding: "20px 24px", borderBottom: `1px solid ${THEME.line}` }}>
                                           <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
-                                            {/* Intraday sparkline */}
+                                            {/* Price chart with period selector */}
                                             {md && charts && charts.length > 2 ? (
                                               <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                                  {chartDate ? `Session Sparkline — ${chartDate}` : "Live Intraday Chart"}
-                                                </div>
-                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
-                                                  <ResponsiveContainer width="100%" height={150}>
-                                                    <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                                                      <defs>
-                                                        <linearGradient id={`wl-ig-${it.symbol}`} x1="0" y1="0" x2="0" y2="1">
-                                                          <stop offset="5%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} />
-                                                          <stop offset="95%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} />
-                                                        </linearGradient>
-                                                      </defs>
-                                                      <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
-                                                      <YAxis hide domain={["auto", "auto"]} />
-                                                      <Tooltip
-                                                        cursor={{ stroke: THEME.line }}
-                                                        contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6, color: THEME.ink }}
-                                                        labelStyle={{ color: THEME.ink }}
-                                                        itemStyle={{ color: THEME.ink }}
-                                                        formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]}
-                                                      />
-                                                      <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#wl-ig-${it.symbol})`} dot={false} />
-                                                    </AreaChart>
-                                                  </ResponsiveContainer>
-                                                  {/* Market data pills */}
-                                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
-                                                    {md.prevClose != null && (
-                                                      <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>
-                                                    )}
-                                                    {md.dayHigh != null && (
-                                                      <span>
-                                                        <span style={{ color: THEME.muted }}>Day High/Low: </span>
-                                                        <b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b>{" / "}
-                                                        <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b>
-                                                      </span>
-                                                    )}
-                                                    {md.weekHigh52 != null && (
-                                                      <span>
-                                                        <span style={{ color: THEME.muted }}>52W H/L: </span>
-                                                        <b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b>{" / "}
-                                                        <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b>
-                                                      </span>
-                                                    )}
-                                                    {md.volume != null && (
-                                                      <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>
-                                                    )}
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                                                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                    {wlActivePeriod === "1d" && chartDate
+                                                      ? `Intraday — ${chartDate}`
+                                                      : `${CHART_PERIOD_LABELS[wlActivePeriod]} Chart`}
+                                                  </div>
+                                                  <div style={{ display: "flex", gap: 2 }}>
+                                                    {CHART_PERIODS.map((p) => (
+                                                      <button
+                                                        key={p}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setChartPeriod((prev) => ({ ...prev, [yfSym]: p }));
+                                                          fetchChart(yfSym, p);
+                                                        }}
+                                                        style={{
+                                                          padding: "3px 7px",
+                                                          fontSize: 10,
+                                                          fontWeight: wlActivePeriod === p ? 800 : 600,
+                                                          border: "none",
+                                                          borderRadius: 4,
+                                                          cursor: "pointer",
+                                                          background: wlActivePeriod === p ? THEME.accent : "transparent",
+                                                          color: wlActivePeriod === p ? "#fff" : THEME.muted,
+                                                          transition: "all 0.15s ease",
+                                                        }}
+                                                      >
+                                                        {CHART_PERIOD_LABELS[p]}
+                                                      </button>
+                                                    ))}
                                                   </div>
                                                 </div>
-                                              </div>
-                                            ) : md && (!charts || charts.length <= 2) ? (
-                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                                  Market Data
-                                                </div>
-                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "16px 14px", display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 12 }}>
-                                                  {md.prevClose != null && (
-                                                    <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>
-                                                  )}
-                                                  {md.dayHigh != null && (
-                                                    <span>
-                                                      <span style={{ color: THEME.muted }}>Day High/Low: </span>
-                                                      <b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b>{" / "}
-                                                      <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b>
-                                                    </span>
-                                                  )}
-                                                  {md.weekHigh52 != null && (
-                                                    <span>
-                                                      <span style={{ color: THEME.muted }}>52W H/L: </span>
-                                                      <b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b>{" / "}
-                                                      <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b>
-                                                    </span>
-                                                  )}
-                                                  {md.volume != null && (
-                                                    <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>
-                                                  )}
-                                                  {!md.prevClose && !md.dayHigh && !md.weekHigh52 && !md.volume && (
-                                                    <span style={{ color: THEME.muted, fontStyle: "italic" }}>Intraday chart unavailable — market may be closed</span>
+                                                <div style={{ background: "var(--surface-0)", border: `1.5px solid ${THEME.line}`, borderRadius: 12, padding: "12px 14px", boxSizing: "border-box" }}>
+                                                  {charts && charts.length > 2 ? (
+                                                    <>
+                                                      <ResponsiveContainer width="100%" height={150}>
+                                                        <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                                                          <defs>
+                                                            <linearGradient id={`wl-ig-${it.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                              <stop offset="5%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.35} />
+                                                              <stop offset="95%" stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.02} />
+                                                            </linearGradient>
+                                                          </defs>
+                                                          <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} interval="preserveStartEnd" axisLine={false} tickLine={false} />
+                                                          <YAxis hide domain={["auto", "auto"]} />
+                                                          <Tooltip
+                                                            cursor={{ stroke: THEME.line }}
+                                                            contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 6, color: THEME.ink }}
+                                                            labelStyle={{ color: THEME.ink }}
+                                                            itemStyle={{ color: THEME.ink }}
+                                                            formatter={(v: any) => [`₹${Number(v).toFixed(2)}`, "Price"]}
+                                                          />
+                                                          <Area type="monotone" dataKey="p" stroke={changeAmt >= 0 ? THEME.sage : THEME.rust} strokeWidth={1.5} fill={`url(#wl-ig-${it.symbol})`} dot={false} />
+                                                        </AreaChart>
+                                                      </ResponsiveContainer>
+                                                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12, fontSize: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                                                        {md.prevClose != null && (
+                                                          <span><span style={{ color: THEME.muted }}>Prev Close: </span><b>₹{md.prevClose.toFixed(2)}</b></span>
+                                                        )}
+                                                        {md.dayHigh != null && (
+                                                          <span>
+                                                            <span style={{ color: THEME.muted }}>Day High/Low: </span>
+                                                            <b style={{ color: THEME.sage }}>₹{md.dayHigh.toFixed(2)}</b>{" / "}
+                                                            <b style={{ color: THEME.rust }}>₹{md.dayLow?.toFixed(2) ?? "—"}</b>
+                                                          </span>
+                                                        )}
+                                                        {md.weekHigh52 != null && (
+                                                          <span>
+                                                            <span style={{ color: THEME.muted }}>52W H/L: </span>
+                                                            <b style={{ color: THEME.sage }}>₹{md.weekHigh52.toFixed(2)}</b>{" / "}
+                                                            <b style={{ color: THEME.rust }}>₹{md.weekLow52?.toFixed(2) ?? "—"}</b>
+                                                          </span>
+                                                        )}
+                                                        {md.volume != null && (
+                                                          <span><span style={{ color: THEME.muted }}>Volume: </span><b>{fmtVol(md.volume)}</b></span>
+                                                        )}
+                                                      </div>
+                                                    </>
+                                                  ) : (
+                                                    <div style={{ height: 150, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                      <span style={{ color: THEME.muted, fontSize: 12 }}>
+                                                        {fetchingChart === yfSym ? "Loading chart…" : "No chart data available"}
+                                                      </span>
+                                                    </div>
                                                   )}
                                                 </div>
                                               </div>
