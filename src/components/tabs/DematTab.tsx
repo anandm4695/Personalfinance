@@ -1281,18 +1281,21 @@ export function DematTab({
               </Button>
             )}
             <Button
+              variant="secondary"
+              icon={<Briefcase size={14} />}
+              onClick={() => setShowDemat(true)}
+            >
+              Add Account
+            </Button>
+            <Button
               variant="accent"
               icon={<Plus size={14} />}
               onClick={() => {
-                if (state.demat.length === 0) {
-                  setShowDemat(true);
-                } else {
-                  setStockDefaults(null);
-                  setShowStock(true);
-                }
+                setStockDefaults(null);
+                setShowStock(true);
               }}
             >
-              {state.demat.length === 0 ? "Add Account" : "Add Scrip"}
+              Add Scrip
             </Button>
           </div>
         }
