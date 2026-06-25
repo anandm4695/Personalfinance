@@ -78,6 +78,12 @@ const ACCOUNT_TYPE_THEMES: Record<string, { color: string; bg: string; icon: str
   other: { color: THEME.muted, bg: `${THEME.line}40`, icon: "🏦" },
 };
 
+const CHART_PALETTE = [
+  "#0284c7", "#059669", "#7c3aed", "#d97706", "#ea580c",
+  "#0891b2", "#db2777", "#4f46e5", "#65a30d", "#dc2626",
+  "#0d9488", "#a855f7", "#ca8a04", "#2563eb", "#e11d48",
+];
+
 function getAccountTheme(type: string) {
   const t = (type || "savings").toLowerCase();
   if (t.includes("salary")) return ACCOUNT_TYPE_THEMES.salary;
@@ -646,16 +652,15 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       .map((a: any) => {
         const bal = getDisplayBalance(a);
         const share = totalAssetBal > 0 && bal > 0 ? (bal / totalAssetBal) * 100 : 0;
-        const theme = getAccountTheme(a.type);
         return {
           id: a.id,
           name: accountLabel(a),
           balance: bal,
           share,
-          color: theme.color,
         };
       })
-      .sort((a, b) => b.share - a.share);
+      .sort((a, b) => b.share - a.share)
+      .map((w, i) => ({ ...w, color: CHART_PALETTE[i % CHART_PALETTE.length] }));
 
     return {
       monthlySavingsRate: savingsRate,
