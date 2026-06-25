@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Database,
   User,
@@ -965,12 +965,29 @@ function ProfileSection({ state, updateProfile }: any) {
     []
   );
 
-  // Dynamic FY list: 2 years back, current + 2 ahead
-  const currentYear = new Date().getFullYear();
-  const fyOptions: string[] = [];
-  for (let y = currentYear - 2; y <= currentYear + 2; y++) {
-    fyOptions.push(`${y}-${String(y + 1).slice(-2)}`);
-  }
+  // Dynamic FY list: built from actual data + always current FY
+  const fyOptions = useMemo(() => {
+    const fySet = new Set<number>();
+    const addDate = (d: string) => {
+      if (!d) return;
+      const dt = new Date(d + "T00:00:00");
+      fySet.add(dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1);
+    };
+    (state?.income || []).forEach((i: any) => addDate(i.date));
+    (state?.transactions || []).forEach((t: any) => addDate(t.date));
+    (state?.stockSells || []).forEach((s: any) => addDate(s.sellDate));
+    (state?.mfSells || []).forEach((m: any) => addDate(m.sellDate));
+    (state?.stocks || []).forEach((s: any) => addDate(s.buyDate));
+    (state?.mutualFunds || []).forEach((m: any) => addDate(m.buyDate || m.purchaseDate));
+    (state?.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+    const now = new Date();
+    const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    fySet.add(currentFYStart);
+    fySet.add(currentFYStart + 1);
+    return Array.from(fySet)
+      .sort((a, b) => b - a)
+      .map((y) => `${y}-${String(y + 1).slice(-2)}`);
+  }, [state?.income, state?.transactions, state?.stockSells, state?.mfSells, state?.stocks, state?.mutualFunds, state?.taxPayments]);
 
   const inp = {
     width: "100%",

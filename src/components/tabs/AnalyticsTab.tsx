@@ -44,6 +44,7 @@ import {
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
 import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent, calculateEpfBalance } from "../../utils/finance";
+import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -1793,7 +1794,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   const taxData80C = useMemo(() => {
     const limit = 150000;
-    const fyParts = (state.profile?.fy || "").split("-");
+    const fyParts = (getCurrentFY() || "").split("-");
     const fyStartYear = Number(fyParts[0]) || new Date().getFullYear() - 1;
     const fyStartStr = `${fyStartYear}-04-01`;
     const fyEndStr = `${fyStartYear + 1}-03-31`;
@@ -1846,7 +1847,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       limit,
       progress: total > 0 ? (total / limit) * 100 : 0,
     };
-  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, state.profile?.fy]);
+  }, [state.mutualFunds, state.ppf, state.ppfLedger, state.lic, state.epf, getCurrentFY()]);
 
   // ── Habits & Rewards: badge evaluation ───────────────────────────────────
   const habitsBadges = useMemo(() => {
@@ -2050,7 +2051,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       );
     if (has80CAsset) earned.add("tax1");
     // Compute 80C total for current FY using same logic as taxData80C
-    const fyParts80C = (state.profile?.fy || "").split("-");
+    const fyParts80C = (getCurrentFY() || "").split("-");
     const fyStart80C = Number(fyParts80C[0]) || new Date().getFullYear() - 1;
     const fyStartStr80C = `${fyStart80C}-04-01`;
     const fyEndStr80C = `${fyStart80C + 1}-03-31`;
@@ -2692,7 +2693,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     let labelStart: string;
 
     if (ytdMode === "fy") {
-      const fyParts = (state.profile?.fy || "").split("-");
+      const fyParts = (getCurrentFY() || "").split("-");
       // FY "2025-26" starts April 1 2025; if no profile FY, infer from current month
       const fyStartYear =
         Number(fyParts[0]) || (now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1);
@@ -2742,7 +2743,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       monthName,
       labelStart,
     };
-  }, [state.transactions, state.income, state.rentedProperties, state.profile?.fy, ytdMode]);
+  }, [state.transactions, state.income, state.rentedProperties, getCurrentFY(), ytdMode]);
 
   const goalHealth = useMemo(() => {
     const now = new Date();

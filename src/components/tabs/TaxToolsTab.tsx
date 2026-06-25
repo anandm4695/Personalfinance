@@ -26,6 +26,32 @@ import { Prv } from "../../context/PrivacyContext";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+const buildFYList = (state: any): string[] => {
+  const fySet = new Set<number>();
+  const addDate = (d: string) => {
+    if (!d) return;
+    const dt = new Date(d + "T00:00:00");
+    fySet.add(dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1);
+  };
+  (state.income || []).forEach((i: any) => addDate(i.date));
+  (state.transactions || []).forEach((t: any) => addDate(t.date));
+  (state.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+  const now = new Date();
+  fySet.add(now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1);
+  return Array.from(fySet).sort((a, b) => b - a).map((y) => `${y}-${String(y + 1).slice(-2)}`);
+};
+
+const FYSelector = ({ fy, setFy, fyList }: { fy: string; setFy: (v: string) => void; fyList: string[] }) => (
+  <select
+    className="form-input"
+    value={fy}
+    onChange={(e) => setFy(e.target.value)}
+    style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130, marginBottom: 16 }}
+  >
+    {fyList.map((f) => <option key={f} value={f}>FY {f}</option>)}
+  </select>
+);
+
 // ── Advance Tax Calculator (B3) ─────────────────────────────────────────────
 
 const ADVANCE_TAX_DEADLINES = [
@@ -36,7 +62,8 @@ const ADVANCE_TAX_DEADLINES = [
 ];
 
 const AdvanceTaxSection = ({ state, metrics }) => {
-  const fy = state.profile?.fy || "2025-26";
+  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
   const regime = state.profile?.regime || "new";
   const fyStart = parseInt(fy.split("-")[0]);
 
@@ -82,8 +109,11 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
-        <Calculator size={18} style={{ color: THEME.accent }} /> Advance Tax Calculator
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+          <Calculator size={18} style={{ color: THEME.accent }} /> Advance Tax Calculator
+        </div>
+        <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
       </div>
       <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
         FY {fy} • {regime === "new" ? "New" : "Old"} Regime
@@ -221,7 +251,8 @@ const HraReceiptSection = ({ state }) => {
   const [tenantName, setTenantName] = useState(state.profile?.name || "");
   const [showPreview, setShowPreview] = useState(false);
 
-  const fy = state.profile?.fy || "2025-26";
+  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
   const fyStart = parseInt(fy.split("-")[0]);
 
   const rentedProps = state.rentedProperties || [];
@@ -325,8 +356,11 @@ const HraReceiptSection = ({ state }) => {
 
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
-        <Home size={18} style={{ color: THEME.accent }} /> HRA Rent Receipt Generator
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+          <Home size={18} style={{ color: THEME.accent }} /> HRA Rent Receipt Generator
+        </div>
+        <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
       </div>
       <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>Generate printable rent receipts for HRA tax exemption — FY {fy}</div>
 
@@ -494,7 +528,8 @@ const Form26ASSection = ({ state }) => {
   const [entries, setEntries] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
-  const fy = state.profile?.fy || "2025-26";
+  const fyList = useMemo(() => buildFYList(state), [state.income, state.transactions, state.taxPayments]);
+  const [fy, setFy] = useState(state.profile?.fy || fyList[0] || "2025-26");
 
   const taxPayments = useMemo(() => {
     return (state.taxPayments || []).filter((t) => t.fy === fy);
@@ -516,8 +551,11 @@ const Form26ASSection = ({ state }) => {
 
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
-        <FileText size={18} style={{ color: THEME.accent }} /> Form 26AS / AIS Reconciliation
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 17, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+          <FileText size={18} style={{ color: THEME.accent }} /> Form 26AS / AIS Reconciliation
+        </div>
+        <FYSelector fy={fy} setFy={setFy} fyList={fyList} />
       </div>
       <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 20 }}>
         Compare your recorded TDS entries against Form 26AS / AIS data — FY {fy}

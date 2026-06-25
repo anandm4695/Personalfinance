@@ -31,6 +31,7 @@ import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+import { getCurrentFY } from "../../utils/appConstants";
 import {
   RentalPropertyModal,
   RentedInPropertyModal,
@@ -143,7 +144,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
   const propertiesOut = state.rentalProperties || [];
   const propertiesIn = state.rentedProperties || [];
 
-  const fyLabel = state.profile.fy;
+  const fyLabel = state.profile?.fy || getCurrentFY();
   const fyStart = fyLabel.split("-")[0] + "-04-01";
   const fyEnd = parseInt(fyLabel.split("-")[0]) + 1 + "-03-31";
 

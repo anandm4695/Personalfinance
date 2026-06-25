@@ -10,6 +10,7 @@ import {
   calcTaxOld,
   getTaxDueForDashboard,
 } from "../utils/finance";
+import { getCurrentFY } from "../utils/appConstants";
 
 export function useMetrics(
   state: any,
@@ -272,7 +273,7 @@ export function useMetrics(
       rentPaidThisMonth;
 
     // Annual income from income ledger
-    const fyStart = new Date(`${sState.profile.fy.split("-")[0]}-04-01`);
+    const fyStart = new Date(`${(sState.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
     const explicitIncome = sState.income
       .filter((i: any) => new Date(i.date) >= fyStart)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);

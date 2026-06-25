@@ -1,4 +1,5 @@
 import { STORAGE_KEY } from "./constants";
+import { getCurrentFY } from "./appConstants";
 
 export const loadState = () => {
   try {
@@ -636,7 +637,7 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
 };
 
 export const getTaxDueForDashboard = (state: any, annualIncome: number): number => {
-  const fy = state.profile?.fy || "2025-26";
+  const fy = state.profile?.fy || getCurrentFY();
   const regime = state.profile?.regime || "new";
 
   if (regime === "new") {

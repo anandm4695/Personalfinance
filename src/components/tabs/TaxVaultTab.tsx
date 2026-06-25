@@ -882,8 +882,26 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
 
-  /* ── FY parsing ─────────────────────────────────────────────── */
-  const fy = state.profile?.fy || "2025-26";
+  /* ── FY selection (local — independent of global profile.fy) ── */
+  const availableFYs = useMemo(() => {
+    const fySet = new Set<number>();
+    const addDate = (d: string) => {
+      if (!d) return;
+      const dt = new Date(d + "T00:00:00");
+      fySet.add(dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1);
+    };
+    (state.income || []).forEach((i: any) => addDate(i.date));
+    (state.transactions || []).forEach((t: any) => addDate(t.date));
+    (state.stockSells || []).forEach((s: any) => addDate(s.sellDate));
+    (state.mfSells || []).forEach((m: any) => addDate(m.sellDate));
+    (state.taxPayments || []).forEach((t: any) => { if (t.fy) { const y = Number(t.fy.split("-")[0]); if (y) fySet.add(y); } });
+    const now = new Date();
+    const cur = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    fySet.add(cur);
+    return Array.from(fySet).sort((a, b) => b - a).map((y) => `${y}-${String(y + 1).slice(-2)}`);
+  }, [state.income, state.transactions, state.stockSells, state.mfSells, state.taxPayments]);
+
+  const [fy, setFy] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
   const fyParts = fy.split("-");
   const fyStartYear = Number(fyParts[0]) || 2025;
   const fyStartStr = `${fyStartYear}-04-01`;
@@ -1626,24 +1644,36 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             : `FY ${fy} · Reconcile Form 26AS with your income & TDS records`
         }
         rightElement={
-          subTab === "income" && hasNewRegime ? (
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                size="sm"
-                variant={activeRegime === "new" ? "accent" : "ghost"}
-                onClick={() => handleRegimeChange("new")}
-              >
-                New Regime
-              </Button>
-              <Button
-                size="sm"
-                variant={activeRegime === "old" ? "accent" : "ghost"}
-                onClick={() => handleRegimeChange("old")}
-              >
-                Old Regime
-              </Button>
-            </div>
-          ) : undefined
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select
+              className="form-input"
+              value={fy}
+              onChange={(e) => setFy(e.target.value)}
+              style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
+            >
+              {availableFYs.map((f) => (
+                <option key={f} value={f}>FY {f}</option>
+              ))}
+            </select>
+            {subTab === "income" && hasNewRegime && (
+              <>
+                <Button
+                  size="sm"
+                  variant={activeRegime === "new" ? "accent" : "ghost"}
+                  onClick={() => handleRegimeChange("new")}
+                >
+                  New Regime
+                </Button>
+                <Button
+                  size="sm"
+                  variant={activeRegime === "old" ? "accent" : "ghost"}
+                  onClick={() => handleRegimeChange("old")}
+                >
+                  Old Regime
+                </Button>
+              </>
+            )}
+          </div>
         }
       >
         Tax Vault
