@@ -1868,6 +1868,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
       {showImport && (
         <CsvImportModal
           accounts={state.bankAccounts}
+          existingTransactions={state.transactions || []}
           onClose={() => setShowImport(false)}
           onImport={(rows: any) => {
             rows.forEach((v: any) => addItem("transactions", v));

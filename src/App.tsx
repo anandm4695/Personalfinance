@@ -96,7 +96,7 @@ import { NomineeTrackerTab } from "./components/tabs/NomineeTrackerTab";
 import { DocumentVaultTab } from "./components/tabs/DocumentVaultTab";
 import { RebalancingTab } from "./components/tabs/RebalancingTab";
 import { NetWorthTimelineTab } from "./components/tabs/NetWorthTimelineTab";
-import { BankStatementParserTab } from "./components/tabs/BankStatementParserTab";
+
 import { CASImportTab } from "./components/tabs/CASImportTab";
 import { LoanAmortizationTab } from "./components/tabs/LoanAmortizationTab";
 import { FIREPlannerTab } from "./components/tabs/FIREPlannerTab";
@@ -3792,9 +3792,7 @@ function FinanceDashboard() {
               {tab === "nwtimeline" && (
                 <NetWorthTimelineTab state={filteredState} metrics={metrics} />
               )}
-              {tab === "bankparser" && (
-                <BankStatementParserTab state={filteredState} addItem={addItem} />
-              )}
+
               {tab === "casimport" && (
                 <CASImportTab state={filteredState} addItem={addItem} updateItem={updateItem} />
               )}

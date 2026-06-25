@@ -38,7 +38,6 @@ import {
   Flame,
   ClipboardList,
   LineChart,
-  Upload,
   Gem,
   GraduationCap,
   Database,
@@ -314,7 +313,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "optimizer", label: "Payoff Optimizer", icon: Sparkles },
       { id: "amortization", label: "Loan Amortization", icon: Calculator },
       { id: "calculators", label: "Financial Calculators", icon: Hash },
-      { id: "bankparser", label: "Bank Statement Parser", icon: Upload },
+
       { id: "casimport", label: "CAS Import", icon: Briefcase },
       { id: "dataexport", label: "Data Export & Backup", icon: Database },
     ],

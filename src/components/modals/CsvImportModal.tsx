@@ -1,12 +1,13 @@
 // @ts-nocheck
 import React, { useState, useRef } from "react";
-import { Download, Upload, Zap, FileText } from "lucide-react";
+import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, uid } from "../../utils/finance";
 
 interface CsvImportModalProps {
   accounts: any[];
+  existingTransactions?: any[];
   onClose: () => void;
   onImport: (data: any[]) => void;
 }
@@ -64,6 +65,14 @@ const BANK_PROFILES = [
     credit: ["cr", "credit", "deposit"],
     balance: ["bal", "balance"],
   },
+  {
+    bank: "Kotak",
+    date: ["date", "transaction date", "value date"],
+    desc: ["description", "narration", "particulars"],
+    debit: ["debit", "withdrawal", "dr"],
+    credit: ["credit", "deposit", "cr"],
+    balance: ["balance", "closing balance"],
+  },
 ];
 
 /* Generic fallback keywords */
@@ -81,17 +90,17 @@ const categorizeByNarration = (narration: string): string => {
   if (/\b(SALARY|SAL\b|PAYROLL)/.test(n)) return "Salary";
   if (/\b(RENT)\b/.test(n)) return "Rent";
   if (/\b(EMI|LOAN)\b/.test(n)) return "EMI";
-  if (/\b(SWIGGY|ZOMATO|FOOD|RESTAURANT|CAFE|DINING)/.test(n)) return "Food";
-  if (/\b(AMAZON|FLIPKART|MYNTRA|AJIO|SHOPPING)/.test(n)) return "Shopping";
-  if (/\b(MUTUAL FUND|SIP|MF PURCHASE|BSE|NSE)/.test(n)) return "Investment";
+  if (/\b(SWIGGY|ZOMATO|FOOD|RESTAURANT|CAFE|DINING|DOMINOS|MCDONALDS)/.test(n)) return "Food";
+  if (/\b(AMAZON|FLIPKART|MYNTRA|AJIO|MEESHO|NYKAA|SHOPPING)/.test(n)) return "Shopping";
+  if (/\b(MUTUAL FUND|SIP|MF PURCHASE|BSE|NSE|ZERODHA|GROWW|KUVERA|NPS|PPF)/.test(n)) return "Investment";
   if (/\b(ATM|CASH WITHDRAWAL|CASH WDL)/.test(n)) return "Cash";
   if (/\b(UPI|IMPS|NEFT|RTGS)/.test(n)) return "Transfer";
-  if (/\b(ELECTRIC|WATER|GAS|BROADBAND|WIFI|INTERNET|MOBILE|RECHARGE|DTH)/.test(n)) return "Utilities";
+  if (/\b(ELECTRIC|WATER|GAS|BROADBAND|WIFI|INTERNET|MOBILE|RECHARGE|DTH|JIO|AIRTEL|BSNL)/.test(n)) return "Utilities";
   if (/\b(INSURANCE|LIC|PREMIUM)/.test(n)) return "Bills";
-  if (/\b(HOSPITAL|MEDICAL|PHARMACY|DOCTOR|HEALTH)/.test(n)) return "Medical";
-  if (/\b(NETFLIX|HOTSTAR|SPOTIFY|MOVIE|THEATRE)/.test(n)) return "Entertainment";
-  if (/\b(UBER|OLA|METRO|PETROL|FUEL|DIESEL|PARKING|TOLL)/.test(n)) return "Transport";
-  if (/\b(GROCER|BIGBASKET|BLINKIT|DMART|INSTAMART)/.test(n)) return "Groceries";
+  if (/\b(HOSPITAL|MEDICAL|PHARMACY|DOCTOR|HEALTH|APOLLO|1MG|NETMEDS|PRACTO)/.test(n)) return "Medical";
+  if (/\b(NETFLIX|HOTSTAR|SPOTIFY|MOVIE|THEATRE|BOOKMYSHOW)/.test(n)) return "Entertainment";
+  if (/\b(UBER|OLA|METRO|PETROL|FUEL|DIESEL|PARKING|TOLL|RAPIDO)/.test(n)) return "Transport";
+  if (/\b(GROCER|BIGBASKET|BLINKIT|DMART|INSTAMART|ZEPTO|RELIANCE.*FRESH)/.test(n)) return "Groceries";
   if (/\b(TAX|TDS|GST|IT DEPT|INCOME TAX)/.test(n)) return "Tax";
   return "Other";
 };
@@ -108,7 +117,14 @@ const parseSmartDate = (dateStr: string): string | null => {
   const dmy = d.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
 
-  // DD-Mon-YYYY or DD/Mon/YYYY
+  // DD-MM-YY (two-digit year)
+  const dmy2 = d.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+  if (dmy2) {
+    const yr = parseInt(dmy2[3]) > 50 ? `19${dmy2[3]}` : `20${dmy2[3].padStart(2, "0")}`;
+    return `${yr}-${dmy2[2].padStart(2, "0")}-${dmy2[1].padStart(2, "0")}`;
+  }
+
+  // DD-Mon-YYYY or DD/Mon/YYYY or DD Mon YYYY
   const MONTHS: Record<string, string> = {
     jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
     jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
@@ -122,14 +138,38 @@ const parseSmartDate = (dateStr: string): string | null => {
     }
   }
 
+  // DD MMM YYYY (space-separated)
+  const dMonYSpace = dateStr.trim().match(/^(\d{1,2})\s+(\w{3})\s+(\d{2,4})$/i);
+  if (dMonYSpace) {
+    const month = MONTHS[dMonYSpace[2].toLowerCase()];
+    if (month) {
+      const year = dMonYSpace[3].length === 2 ? "20" + dMonYSpace[3] : dMonYSpace[3];
+      return `${year}-${month}-${dMonYSpace[1].padStart(2, "0")}`;
+    }
+  }
+
   // Fallback: try native Date parse
   const parsed = new Date(dateStr.trim());
   if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
   return null;
 };
 
-export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClose, onImport }) => {
-  const [mode, setMode] = useState<"template" | "smart">("template");
+/* ── Proper CSV row parser (handles quoted commas) ────────────────── */
+const splitCSVRow = (line: string, delimiter = ","): string[] => {
+  const vals: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (const ch of line) {
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (ch === delimiter && !inQuotes) { vals.push(current.trim()); current = ""; continue; }
+    current += ch;
+  }
+  vals.push(current.trim());
+  return vals;
+};
+
+export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existingTransactions = [], onClose, onImport }) => {
+  const [mode, setMode] = useState<"template" | "smart">("smart");
   const [csvText, setCsvText] = useState("");
   const [preview, setPreview] = useState<any[]>([]);
   const [error, setError] = useState("");
@@ -198,14 +238,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
         setError("Paste at least one row.");
         return;
       }
-      // Skip header row if present
       const dataLines = lines[0].toLowerCase().startsWith("date") ? lines.slice(1) : lines;
       if (dataLines.length === 0) {
         setError("No data rows found — paste rows below the header.");
         return;
       }
       const rows = dataLines.map((line, i) => {
-        const parts = line.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+        const parts = splitCSVRow(line);
         if (parts.length < 4)
           throw new Error(`Row ${i + 1}: need at least date, amount, type, category`);
         const date = parts[0];
@@ -251,6 +290,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
     }
   };
 
+  /* ── Duplicate detection ─────────────────────────────────────────── */
+  const isDuplicate = (row: any): boolean => {
+    return existingTransactions.some(
+      (e) => e.date === row.date && Math.abs(Number(e.amount) - Number(row.amount)) < 1 && e.type === row.type
+    );
+  };
+
   /* ── Smart Import: parse uploaded bank CSV ─────────────────────── */
   const parseSmartCSV = (text: string) => {
     setSmartError("");
@@ -258,20 +304,15 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
     setDetectedBank("");
 
     try {
-      const rawLines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       if (rawLines.length < 2) {
         setSmartError("CSV must have a header row and at least one data row.");
         return;
       }
 
-      // Parse header — handle both comma and tab delimiters
       const delimiter = rawLines[0].includes("\t") ? "\t" : ",";
-      const splitRow = (line: string) =>
-        line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
+      const headers = splitCSVRow(rawLines[0], delimiter).map((h) => h.toLowerCase().trim());
 
-      const headers = splitRow(rawLines[0]).map((h) => h.toLowerCase().trim());
-
-      // Try to match a bank profile
       let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1;
       let matchedBank = "";
 
@@ -291,7 +332,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
         }
       }
 
-      // Fallback to generic keyword matching
       if (dateIdx < 0) {
         dateIdx = headers.findIndex((h) => GENERIC_KEYWORDS.date.some((k) => h.includes(k)));
         descIdx = headers.findIndex((h) => GENERIC_KEYWORDS.desc.some((k) => h.includes(k)));
@@ -319,16 +359,15 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       const dataLines = rawLines.slice(1);
       const rows: any[] = [];
       for (let i = 0; i < dataLines.length; i++) {
-        const cols = splitRow(dataLines[i]);
+        const cols = splitCSVRow(dataLines[i], delimiter);
         const rawDate = cols[dateIdx] || "";
         const isoDate = parseSmartDate(rawDate);
-        if (!isoDate) continue; // skip unparseable rows
+        if (!isoDate) continue;
 
         const narration = cols[descIdx] || "";
         const debitVal = debitIdx >= 0 ? parseFloat((cols[debitIdx] || "0").replace(/,/g, "")) : 0;
         const creditVal = creditIdx >= 0 ? parseFloat((cols[creditIdx] || "0").replace(/,/g, "")) : 0;
 
-        // Skip rows with no amount
         if ((isNaN(debitVal) || debitVal === 0) && (isNaN(creditVal) || creditVal === 0)) continue;
 
         const isCredit = creditVal > 0 && (debitVal === 0 || isNaN(debitVal));
@@ -336,7 +375,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
 
         const category = categorizeByNarration(narration);
 
-        rows.push({
+        const row = {
           date: isoDate,
           amount: String(Math.abs(amount)),
           type: isCredit ? "credit" : "debit",
@@ -345,7 +384,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
           narration,
           referenceNumber: "",
           accountId: smartAccountId || firstAccountId,
-        });
+          selected: true,
+          isDuplicate: false,
+        };
+
+        row.isDuplicate = isDuplicate(row);
+        if (row.isDuplicate) row.selected = false;
+
+        rows.push(row);
       }
 
       if (rows.length === 0) {
@@ -373,6 +419,26 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       prev.map((r, i) => (i === idx ? { ...r, category: cat } : r))
     );
   };
+
+  const toggleRow = (idx: number) => {
+    setSmartPreview((prev) =>
+      prev.map((r, i) => (i === idx && !r.isDuplicate ? { ...r, selected: !r.selected } : r))
+    );
+  };
+
+  const selectAll = () => {
+    setSmartPreview((prev) => prev.map((r) => ({ ...r, selected: !r.isDuplicate })));
+  };
+
+  const deselectAll = () => {
+    setSmartPreview((prev) => prev.map((r) => ({ ...r, selected: false })));
+  };
+
+  const selectedCount = smartPreview.filter((r) => r.selected && !r.isDuplicate).length;
+  const duplicateCount = smartPreview.filter((r) => r.isDuplicate).length;
+  const selectedForImport = smartPreview.filter((r) => r.selected && !r.isDuplicate);
+  const totalCredits = selectedForImport.filter((r) => r.type === "credit").reduce((s, r) => s + Number(r.amount), 0);
+  const totalDebits = selectedForImport.filter((r) => r.type === "debit").reduce((s, r) => s + Number(r.amount), 0);
 
   const labelStyle = {
     display: "block",
@@ -418,8 +484,20 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
     fontFamily: "inherit",
   });
 
+  const handleImport = () => {
+    if (mode === "smart") {
+      const rows = smartPreview
+        .filter((r) => r.selected && !r.isDuplicate)
+        .map(({ selected, isDuplicate, ...rest }) => rest);
+      if (rows.length > 0) onImport(rows);
+    } else {
+      if (preview.length > 0) onImport(preview);
+    }
+  };
+
   const activePreview = mode === "smart" ? smartPreview : preview;
   const activeError = mode === "smart" ? smartError : error;
+  const importCount = mode === "smart" ? selectedCount : preview.length;
 
   return (
     <Modal title="Import Transactions (CSV)" onClose={onClose}>
@@ -623,8 +701,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
             </div>
             <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
               Download a CSV from your bank's net banking portal, then upload it here.
-              Columns are auto-detected for SBI, HDFC, ICICI, Axis, and generic bank formats.
-              Transactions are auto-categorized by narration keywords.
+              Columns are auto-detected for SBI, HDFC, ICICI, Axis, Kotak, and generic bank formats.
+              Transactions are auto-categorized by narration keywords. Duplicates are auto-flagged.
             </div>
           </div>
 
@@ -636,7 +714,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
               value={smartAccountId}
               onChange={(e) => {
                 setSmartAccountId(e.target.value);
-                // Re-assign account ID to all smart preview rows
                 setSmartPreview((prev) => prev.map((r) => ({ ...r, accountId: e.target.value })));
               }}
             >
@@ -669,20 +746,39 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
           </div>
 
           {detectedBank && (
-            <div
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                background: `${THEME.sage}10`,
-                border: `1px solid ${THEME.sage}22`,
-                fontSize: 11,
-                fontWeight: 600,
-                color: THEME.sage,
-                marginBottom: 12,
-                display: "inline-block",
-              }}
-            >
-              Detected format: {detectedBank}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 6,
+                  background: `${THEME.sage}10`,
+                  border: `1px solid ${THEME.sage}22`,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: THEME.sage,
+                  display: "inline-block",
+                }}
+              >
+                Detected format: {detectedBank}
+              </span>
+              {duplicateCount > 0 && (
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    background: "rgba(245,158,11,0.06)",
+                    border: "1px solid rgba(245,158,11,0.15)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#F59E0B",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <AlertTriangle size={12} /> {duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""} detected
+                </span>
+              )}
             </div>
           )}
 
@@ -703,8 +799,24 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
 
           {smartPreview.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: THEME.sage }}>
-                {smartPreview.length} transactions detected — review categories before importing:
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
+                  {smartPreview.length} transactions detected — {selectedCount} selected for import
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    style={{ ...btnStyle, padding: "4px 10px", fontSize: 11 }}
+                    onClick={selectAll}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    style={{ ...btnStyle, padding: "4px 10px", fontSize: 11 }}
+                    onClick={deselectAll}
+                  >
+                    Deselect All
+                  </button>
+                </div>
               </div>
               <div
                 style={{
@@ -717,17 +829,27 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
+                      <th style={{ padding: "8px 6px", borderBottom: `1px solid ${THEME.line}`, width: 30 }}>✓</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, whiteSpace: "nowrap" }}>Date</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Narration</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Category</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Amount</th>
+                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "center" }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {smartPreview.map((r, i) => (
-                      <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                      <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: r.isDuplicate ? 0.45 : 1 }}>
+                        <td style={{ padding: "8px 6px" }}>
+                          <input
+                            type="checkbox"
+                            checked={r.selected && !r.isDuplicate}
+                            disabled={r.isDuplicate}
+                            onChange={() => toggleRow(i)}
+                          />
+                        </td>
                         <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: THEME.muted }}>{r.date}</td>
-                        <td style={{ padding: "8px 10px", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
+                        <td style={{ padding: "8px 10px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
                           {r.narration || "—"}
                         </td>
                         <td style={{ padding: "8px 10px" }}>
@@ -762,6 +884,21 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
                           {r.type === "credit" ? "+" : "-"}
                           {fmtINRFull(r.amount)}
                         </td>
+                        <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                          {r.isDuplicate ? (
+                            <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(245,158,11,0.1)", color: "#F59E0B" }}>
+                              Duplicate
+                            </span>
+                          ) : r.type === "credit" ? (
+                            <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(16,185,129,0.1)", color: "#10B981" }}>
+                              CR
+                            </span>
+                          ) : (
+                            <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(239,68,68,0.1)", color: "#EF4444" }}>
+                              DR
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -781,15 +918,21 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
                 <span>
                   Credits:{" "}
                   <b style={{ color: THEME.sage }}>
-                    {fmtINRFull(smartPreview.filter((r) => r.type === "credit").reduce((s, r) => s + Number(r.amount), 0))}
+                    {fmtINRFull(totalCredits)}
                   </b>
                 </span>
                 <span>
                   Debits:{" "}
                   <b style={{ color: THEME.rust }}>
-                    {fmtINRFull(smartPreview.filter((r) => r.type === "debit").reduce((s, r) => s + Number(r.amount), 0))}
+                    {fmtINRFull(totalDebits)}
                   </b>
                 </span>
+                {duplicateCount > 0 && (
+                  <span>
+                    Skipping:{" "}
+                    <b style={{ color: "#F59E0B" }}>{duplicateCount} duplicate{duplicateCount !== 1 ? "s" : ""}</b>
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -797,9 +940,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, onClos
       )}
 
       <ModalActions
-        onSave={() => activePreview.length > 0 && onImport(activePreview)}
+        onSave={handleImport}
         onClose={onClose}
-        saveLabel={`Import ${activePreview.length} Row${activePreview.length !== 1 ? "s" : ""}`}
+        saveLabel={`Import ${importCount} Row${importCount !== 1 ? "s" : ""}`}
       />
     </Modal>
   );
