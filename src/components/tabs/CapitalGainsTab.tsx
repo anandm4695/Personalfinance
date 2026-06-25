@@ -372,7 +372,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
   }, [state.stockSells, state.mfSells, fyStartYear]);
 
   /* ── Compute Totals by Type ──────────────────────────────────── */
-  const { byType, totalTax, ltcgExemptionUsed } = useMemo(() => {
+  const { byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate } = useMemo(() => {
     const groups: Record<GainType, ClassifiedSell[]> = {
       EQUITY_STCG: [],
       EQUITY_LTCG: [],
