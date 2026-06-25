@@ -44,6 +44,7 @@ import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 
@@ -515,7 +516,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 color: THEME.ink,
                 display: "flex",
                 alignItems: "center",
-                justifyCenter: "center",
+                justifyContent: "center",
                 gap: 6,
               }}
             >
@@ -850,7 +851,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                   },
                   {
                     label: "Savings Rate",
-                    value: savingsRate !== null ? `${Math.max(0, savingsRate).toFixed(1)}%` : "—",
+                    value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : "—",
                     sub:
                       selectedMonthIncome > 0
                         ? `Income: ${fmtINRFull(selectedMonthIncome)}`

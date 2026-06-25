@@ -22,6 +22,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
+import { Prv } from "../../context/PrivacyContext";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { MFLogo } from "./InvestmentsTab";
 

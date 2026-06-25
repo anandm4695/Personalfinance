@@ -23,6 +23,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
+import { Prv } from "../../context/PrivacyContext";
 
 const SUB_LOGOS: Record<string, string> = {
   netflix: "netflix.com",
@@ -158,7 +159,7 @@ function getRenewalInfo(renewalDate: string | undefined) {
   if (!renewalDate) return { days: null, label: "No date set", color: THEME.muted, urgent: false };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const rd = new Date(renewalDate);
+  const rd = new Date(renewalDate + "T00:00:00");
   rd.setHours(0, 0, 0, 0);
   const days = Math.ceil((rd.getTime() - today.getTime()) / 86400000);
   if (days < 0)

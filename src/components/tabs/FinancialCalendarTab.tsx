@@ -31,8 +31,8 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 const getDaysUntil = (dateStr) => {
   if (!dateStr) return Infinity;
-  const target = new Date(dateStr);
-  const now = new Date(today());
+  const target = new Date(dateStr + "T00:00:00");
+  const now = new Date(today() + "T00:00:00");
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };
 
@@ -208,7 +208,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             type: "insurance_premium",
             category: "Insurance",
             icon: Heart,
-            name: `${p.policyName || p.provider || label} — Premium Due`,
+            name: `${p.planName || p.insurer || p.policyName || p.provider || label} — Premium Due`,
             date: nextDueStr,
             days,
             amount: premium,

@@ -802,9 +802,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const fdAdds = (state.fixedDeposits || [])
         .filter((fd: any) => fd.startDate && fd.startDate >= fyStartStr && fd.startDate <= fyEndStr)
         .reduce((s: number, fd: any) => s + Number(fd.principal || 0), 0);
-      const ppfAdds = (state.ppfLedger || [])
-        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
-        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const ppfAdds = (state.ppf || []).reduce((sum: number, p: any) =>
+        sum + (p.transactions || [])
+          .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+        0);
       const investmentAdditions = stockBuys + mfBuys + fdAdds + ppfAdds;
 
       // Net worth at end of FY (March of startYear+1)
@@ -838,7 +840,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         { name: "Savings", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.savings, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.savings },
       ],
     };
-  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppfLedger, state.netWorthHistory]);
+  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppf, state.netWorthHistory]);
 
   // ── Estate Planning — Nomination Coverage Audit ──
   const nominationAudit = useMemo(() => {

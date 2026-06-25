@@ -76,7 +76,9 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       const inflatedCost = Number(e.estimatedCost || 0) * Math.pow(1 + evType.inflationRate / 100, yearsAway);
       const saved = Number(e.currentSaved || 0);
       const gap = Math.max(0, inflatedCost - saved);
-      const monthlySIP = yearsAway > 0 ? gap / (yearsAway * 12) : gap;
+      const r = 0.10 / 12; // assume 10% p.a. return
+      const n = Math.round(yearsAway * 12);
+      const monthlySIP = yearsAway > 0 && r > 0 ? (gap * r) / (Math.pow(1 + r, n) - 1) : gap;
       const progress = inflatedCost > 0 ? (saved / inflatedCost) * 100 : 0;
       const isPast = targetDate < now;
 

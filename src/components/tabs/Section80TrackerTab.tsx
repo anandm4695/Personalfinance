@@ -42,7 +42,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
-      return s + txns.filter((t) => t.type === "employee").reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      return s + txns.filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution").reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
     }, 0);
     const homeLoanPrincipal = (state.loansTaken || [])
       .filter((l) => (l.type || "").toLowerCase().includes("home"))

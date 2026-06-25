@@ -182,10 +182,10 @@ export const EmergencyFundTab = ({ state, metrics }) => {
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 16 }}>
-        <StatCard label="Liquid Assets" value={fmtINRFull(data.totalLiquid)} icon={<IndianRupee />} color={THEME.sage} />
-        <StatCard label="Monthly Expenses" value={fmtINRFull(data.monthlyExpense)} icon={<Wallet />} color={THEME.gold} />
-        <StatCard label="6-Month Target" value={fmtINRFull(data.targetAmount)} icon={<Target />} color="#3B82F6" />
-        <StatCard label="Gap to Fill" value={data.gap > 0 ? fmtINRFull(data.gap) : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? THEME.rust : THEME.sage} />
+        <StatCard label="Liquid Assets" value={<Prv>{fmtINRFull(data.totalLiquid)}</Prv>} icon={<IndianRupee />} color={THEME.sage} />
+        <StatCard label="Monthly Expenses" value={<Prv>{fmtINRFull(data.monthlyExpense)}</Prv>} icon={<Wallet />} color={THEME.gold} />
+        <StatCard label="6-Month Target" value={<Prv>{fmtINRFull(data.targetAmount)}</Prv>} icon={<Target />} color="#3B82F6" />
+        <StatCard label="Gap to Fill" value={data.gap > 0 ? <Prv>{fmtINRFull(data.gap)}</Prv> : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? THEME.rust : THEME.sage} />
       </div>
 
       {/* Liquid Assets Breakdown */}

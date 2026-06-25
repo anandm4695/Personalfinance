@@ -296,7 +296,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             <Field label="Owner">
               <select value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }}>
-                {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </Field>
             <Field label="Notes">

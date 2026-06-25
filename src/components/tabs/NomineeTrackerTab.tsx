@@ -46,9 +46,9 @@ const assetTypes = [
   { key: "ppf", label: "PPF", nameField: "institution", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
   { key: "nps", label: "NPS", nameField: "fundManager", valueField: "balance", idLabel: (a: any) => a.pran || "" },
   { key: "epf", label: "EPF", nameField: "employer", valueField: "balance", idLabel: (a: any) => a.uan || "" },
-  { key: "lic", label: "LIC Policy", nameField: "policyName", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
-  { key: "termPlans", label: "Term Plan", nameField: "provider", valueField: "coverAmount", idLabel: (a: any) => a.policyNumber || "" },
-  { key: "investmentPlans", label: "Investment Plan", nameField: "provider", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
+  { key: "lic", label: "LIC Policy", nameField: "planName", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
+  { key: "termPlans", label: "Term Plan", nameField: "insurer", valueField: "coverAmount", idLabel: (a: any) => a.policyNumber || "" },
+  { key: "investmentPlans", label: "Investment Plan", nameField: "insurer", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
   { key: "realEstateProperties", label: "Real Estate", nameField: "name", valueField: "marketValue", idLabel: (a: any) => a.location || "" },
   { key: "vehicles", label: "Vehicle", nameField: "name", valueField: "currentValue", idLabel: (a: any) => a.registration || "" },
 ];

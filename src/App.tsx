@@ -690,7 +690,7 @@ function FinanceDashboard() {
             ? { dismissedAlerts: sett.data.master_data._dismissedAlerts }
             : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
-          ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data) } : {}),
+          ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data).map((b: any) => ({ ...b, type: b.accountType || b.type || "Savings" })) } : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
           ...(!mfs.error && mfs.data != null
             ? {
@@ -744,8 +744,8 @@ function FinanceDashboard() {
           ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
           ...(!lns.error && lns.data != null
             ? {
-                loansTaken: snakeToCamel(lns.data.filter((x) => !x.is_lent)),
-                loansGiven: snakeToCamel(lns.data.filter((x) => x.is_lent)),
+                loansTaken: snakeToCamel(lns.data.filter((x) => !x.is_lent)).map((l: any) => ({ ...l, lender: l.lenderBorrower || l.lender || "" })),
+                loansGiven: snakeToCamel(lns.data.filter((x) => x.is_lent)).map((l: any) => ({ ...l, borrower: l.lenderBorrower || l.borrower || "", lender: l.lenderBorrower || l.lender || "" })),
               }
             : {}),
           ...(!gls.error && gls.data != null ? { goals: snakeToCamel(gls.data) } : {}),
@@ -1478,12 +1478,21 @@ function FinanceDashboard() {
       const table = TABLE_MAP[key];
       if (table) {
         // Specific field mapping for various modules to match Supabase schema
+        if (key === "bankAccounts") {
+          finalItem.account_type = item.type || "Savings";
+          delete finalItem.type;
+        }
         if (key === "creditCards") {
           finalItem.card_limit = item.limit;
           delete finalItem.limit;
         }
-        if (key === "loansTaken" || key === "loansGiven") {
+        if (key === "loansTaken") {
           finalItem.lender_borrower = item.lender;
+          delete finalItem.lender;
+        }
+        if (key === "loansGiven") {
+          finalItem.lender_borrower = item.borrower || item.lender;
+          delete finalItem.borrower;
           delete finalItem.lender;
         }
 
@@ -1860,14 +1869,23 @@ function FinanceDashboard() {
         }
 
         // Specific field mapping for updates
+        if (key === "bankAccounts" && patch.type !== undefined) {
+          finalPatch.account_type = patch.type;
+          delete finalPatch.type;
+        }
         if (key === "creditCards") {
           if (patch.limit !== undefined) {
             finalPatch.card_limit = patch.limit;
           }
           delete finalPatch.limit;
         }
-        if ((key === "loansTaken" || key === "loansGiven") && patch.lender) {
+        if (key === "loansTaken" && patch.lender) {
           finalPatch.lender_borrower = patch.lender;
+          delete finalPatch.lender;
+        }
+        if (key === "loansGiven" && (patch.borrower || patch.lender)) {
+          finalPatch.lender_borrower = patch.borrower || patch.lender;
+          delete finalPatch.borrower;
           delete finalPatch.lender;
         }
         if (key === "ppf" && patch.institution !== undefined) {

@@ -1764,7 +1764,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           borderTop,
                         }}
                       >
-                        {net >= 0 ? "+" : ""}{fmtINRFull(Math.abs(net))}
+                        {net >= 0 ? "+" : "-"}{fmtINRFull(Math.abs(net))}
                       </td>
                     </tr>
                   </tfoot>

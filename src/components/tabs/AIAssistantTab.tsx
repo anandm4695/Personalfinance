@@ -558,7 +558,7 @@ export const AIAssistantTab: React.FC<AIAssistantTabProps> = ({ state, metrics }
     }
 
     // NPS/PPF tax saving opportunity
-    const npsContrib = 0; // TODO: pull actual NPS contributions
+    const npsContrib = (state.nps || []).reduce((s: number, n: any) => s + Number(n.yearContribution || 0), 0);
     const remaining80CCD = 50000 - npsContrib;
     if (remaining80CCD > 0) {
       insights.push({
@@ -945,8 +945,8 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     const used80C = Math.min(elss + ppf + lic + epfContrib, 150000);
     const remaining80C = Math.max(0, 150000 - used80C);
     const rentPaid = (state.rentedProperties || []).reduce((s: number, p: any) => s + Number(p.monthlyRent || 0) * 12, 0);
-    const npsContrib = 0;
-    const remaining80CCD = 50000 - npsContrib;
+    const npsContrib = (state.nps || []).reduce((s: number, n: any) => s + Number(n.yearContribution || 0), 0);
+    const remaining80CCD = Math.max(0, 50000 - npsContrib);
     return {
       fy,
       regime: state.profile?.regime || "new",

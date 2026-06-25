@@ -45,6 +45,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Prv } from "../../context/PrivacyContext";
 
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {
@@ -1133,7 +1134,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                 {
                   label: "Total Limit",
                   sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
-                  value: fmtINRFull(totalLimit),
+                  value: <Prv>{fmtINRFull(totalLimit)}</Prv>,
                   color: THEME.accent,
                   borderColor: "var(--t-accent)",
                   iconBg: `${THEME.accent}1f`,
@@ -1156,7 +1157,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                 {
                   label: "Outstanding",
                   sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
-                  value: fmtINRFull(totalOutstandingCC),
+                  value: <Prv>{fmtINRFull(totalOutstandingCC)}</Prv>,
                   color: THEME.rust,
                   borderColor: "var(--t-rust)",
                   iconBg: `${THEME.rust}1f`,
@@ -1184,7 +1185,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                       : activeCards.length === 0 && state.creditCards.length > 0
                         ? "All cards closed"
                         : "No cards yet",
-                  value: fmtINRFull(totalAvailable),
+                  value: <Prv>{fmtINRFull(totalAvailable)}</Prv>,
                   color: THEME.sage,
                   borderColor: "var(--t-sage)",
                   iconBg: `${THEME.sage}1f`,
@@ -1208,7 +1209,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                       {
                         label: "Annual Fees / yr",
                         sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
-                        value: fmtINRFull(totalAnnualFees),
+                        value: <Prv>{fmtINRFull(totalAnnualFees)}</Prv>,
                         color: THEME.gold,
                         borderColor: "var(--t-gold)",
                         iconBg: `${THEME.gold}1f`,
@@ -1945,7 +1946,8 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               now.getDate() < dd
                 ? new Date(now.getFullYear(), now.getMonth(), dd)
                 : new Date(now.getFullYear(), now.getMonth() + 1, dd);
-            const daysLeft = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const daysLeft = Math.ceil((dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
             const urgentColor =
               daysLeft <= 3 ? "#ff8080" : daysLeft <= 7 ? "#fbbf24" : "rgba(245,239,227,0.55)";
             const label =
@@ -2306,10 +2308,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           card={selectedCard}
           onClose={() => setSelectedLedger(null)}
           onUpdate={(newTransactions: any) => {
-            const newOutstanding = newTransactions.reduce(
-              (acc: any, t: any) => acc + Number(t.amount),
+            const newOutstanding = Math.max(0, newTransactions.reduce(
+              (acc: number, t: any) => acc + Number(t.amount),
               0
-            );
+            ));
             onUpdateCard(selectedLedger, {
               transactions: newTransactions,
               outstanding: String(newOutstanding),
@@ -2518,14 +2520,14 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
         {[
           {
             label: "Total Charges",
-            value: fmtINRFull(totalCharges),
+            value: <Prv>{fmtINRFull(totalCharges)}</Prv>,
             color: THEME.rust,
             bg: `${THEME.rust}15`,
             border: `${THEME.rust}33`,
           },
           {
             label: "Net Outstanding",
-            value: fmtINRFull(totalOutstanding),
+            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             color: totalOutstanding > 0 ? THEME.rust : THEME.sage,
             bg: totalOutstanding > 0 ? `${THEME.rust}15` : `${THEME.sage}15`,
             border: totalOutstanding > 0 ? `${THEME.rust}33` : `${THEME.sage}33`,
@@ -3679,21 +3681,21 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
         {[
           {
             label: "Total Loaded",
-            value: fmtINRFull(totalLoaded),
+            value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
             color: THEME.sage,
             bg: `${THEME.sage}15`,
             border: `${THEME.sage}33`,
           },
           {
             label: "Total Spent",
-            value: fmtINRFull(totalSpent),
+            value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
             color: THEME.rust,
             bg: `${THEME.rust}15`,
             border: `${THEME.rust}33`,
           },
           {
             label: "Balance",
-            value: fmtINRFull(balance),
+            value: <Prv>{fmtINRFull(balance)}</Prv>,
             color: balance >= 0 ? THEME.sage : THEME.rust,
             bg: balance >= 0 ? `${THEME.sage}15` : `${THEME.rust}15`,
             border: balance >= 0 ? `${THEME.sage}33` : `${THEME.rust}33`,
@@ -4468,21 +4470,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         {[
           {
             label: "Total Borrowed",
-            value: fmtINRFull(totalPrincipal),
+            value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
             sub: `${items.length} loan${items.length !== 1 ? "s" : ""}`,
             color: THEME.muted,
             Icon: TrendingDown,
           },
           {
             label: "Outstanding",
-            value: fmtINRFull(totalOutstanding),
+            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Balance remaining" : "All paid off",
             color: THEME.rust,
             Icon: Wallet,
           },
           {
             label: "Monthly EMI",
-            value: fmtINRFull(totalEMI),
+            value: <Prv>{fmtINRFull(totalEMI)}</Prv>,
             sub: "Combined monthly payment",
             color: THEME.accent,
             Icon: Calendar,
@@ -4911,14 +4913,14 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
         {[
           {
             label: "Total Lent",
-            value: fmtINRFull(totalLent),
+            value: <Prv>{fmtINRFull(totalLent)}</Prv>,
             sub: `${items.length} loan${items.length !== 1 ? "s" : ""} given`,
             color: THEME.sage,
             Icon: TrendingUp,
           },
           {
             label: "Outstanding",
-            value: fmtINRFull(totalOutstanding),
+            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered",
             color: totalOutstanding > 0 ? THEME.gold : THEME.sage,
             Icon: IndianRupee,
@@ -5581,21 +5583,21 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
         {[
           {
             label: isBorrowed ? "Total Borrowed" : "Total Lent",
-            value: fmtINRFull(totalBorrowed),
+            value: <Prv>{fmtINRFull(totalBorrowed)}</Prv>,
             sub: "Principal amount",
             color: isBorrowed ? THEME.rust : THEME.sage,
             Icon: isBorrowed ? TrendingDown : TrendingUp,
           },
           {
             label: isBorrowed ? "Total Repaid" : "Received Back",
-            value: fmtINRFull(totalPaid),
+            value: <Prv>{fmtINRFull(totalPaid)}</Prv>,
             sub: "Payment history",
             color: THEME.sage,
             Icon: CheckCircle2,
           },
           {
             label: "Outstanding",
-            value: fmtINRFull(totalOutstanding),
+            value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled",
             color: totalOutstanding > 0 ? accentColor : THEME.sage,
             Icon: Wallet,

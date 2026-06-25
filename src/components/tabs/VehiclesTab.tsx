@@ -33,6 +33,7 @@ import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import { Prv } from "../../context/PrivacyContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vehicle make → company domain (for logo fetching)
@@ -1123,7 +1124,7 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
 
           <div style={{ textAlign: "right" }}>
             <div style={{ fontWeight: 900, fontSize: 20, color: THEME.accent, letterSpacing: "-0.03em" }}>
-              {fmtINRFull(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}
+              <Prv>{fmtINRFull(Number(vehicle.currentValue || vehicle.purchasePrice || 0))}</Prv>
             </div>
             {deprPct !== null && (
               <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 }}>
@@ -1611,8 +1612,8 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           />
           <StatCard
             label="Current Value"
-            value={fmtINRFull(totalCurrentValue)}
-            sub={totalPurchasePrice ? `Bought for ${fmtINRFull(totalPurchasePrice)}` : undefined}
+            value={<Prv>{fmtINRFull(totalCurrentValue)}</Prv>}
+            sub={totalPurchasePrice ? <Prv>Bought for {fmtINRFull(totalPurchasePrice)}</Prv> : undefined}
             subColor={totalPurchasePrice && totalCurrentValue < totalPurchasePrice ? "#ef4444" : undefined}
             icon={<IndianRupee />}
             color="#10b981"

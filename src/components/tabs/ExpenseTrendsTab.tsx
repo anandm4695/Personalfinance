@@ -137,7 +137,8 @@ function getDateRange(period: Period, customStart: string, customEnd: string): [
       return [dateStr(d), todayStr];
     }
     case "ytd": {
-      return [`${now.getFullYear()}-01-01`, todayStr];
+      const fyStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      return [`${fyStart}-04-01`, todayStr];
     }
     case "custom": {
       return [customStart || todayStr, customEnd || todayStr];
@@ -409,7 +410,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   const topMerchants = useMemo(() => {
     const merchantMap: Record<string, number> = {};
     expenses.forEach((t: any) => {
-      const merchant = extractMerchant(t.narration || "");
+      const merchant = extractMerchant(t.narration || t.note || t.description || "");
       merchantMap[merchant] = (merchantMap[merchant] || 0) + Number(t.amount || 0);
     });
 
@@ -1009,7 +1010,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                         marginBottom: 2,
                                       }}
                                     >
-                                      {t.narration || "No description"}
+                                      {t.narration || t.note || t.description || "No description"}
                                     </div>
                                     <div style={{ color: THEME.muted, fontSize: 11 }}>
                                       {new Date(t.date + "T00:00:00").toLocaleDateString(
@@ -1211,7 +1212,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       Large transaction: <Prv>{fmtINRFull(t.amount)}</Prv>
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                      {t.narration || "No description"} &middot;{" "}
+                      {t.narration || t.note || t.description || "No description"} &middot;{" "}
                       {new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",

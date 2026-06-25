@@ -252,7 +252,7 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
               {projectionPresets.map((p, i) => (
                 <button key={i} onClick={() => setSelectedPreset(i)}
                   style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${i === selectedPreset ? THEME.accent : THEME.line}`,
-                    background: i === selectedPreset ? THEME.accent : "var(--t-card-bg)", color: i === selectedPreset ? "var(--t-darkInk)" : THEME.ink,
+                    background: i === selectedPreset ? THEME.accent : "var(--t-card-bg)", color: i === selectedPreset ? "#fff" : THEME.ink,
                     fontSize: 13, cursor: "pointer", fontWeight: i === selectedPreset ? 600 : 400 }}>
                   {p.label} ({p.returnRate}%)
                 </button>

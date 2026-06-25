@@ -675,7 +675,7 @@ function PropertyCard({
             {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"} {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
           </span>
           <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 8 }}>
-            (Total cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? ` · Net sale: ${fmtINRFull(saleProceeds)}` : ""})
+            (Total cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? <> · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv></> : ""})
           </span>
         </div>
       )}

@@ -17,6 +17,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
+import { Prv } from "../../context/PrivacyContext";
 
 const th = {
   textAlign: "left" as const,

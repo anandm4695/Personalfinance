@@ -145,7 +145,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
     return progress >= expectedPct - 10;
   }).length;
 
-  const behindCount = state.goals.length - completedCount - onTrackCount;
+  const behindCount = Math.max(0, state.goals.length - completedCount - onTrackCount);
 
   const priBreakdown = (["High", "Medium", "Low"] as const).map((p) => {
     const gs = state.goals.filter((g: any) => (g.priority || "Medium") === p);
@@ -759,14 +759,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     {/* Tinted stat tiles */}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                       {[
-                        { label: "Saved", value: fmtINRFull(g.currentAmount), color: THEME.sage },
-                        { label: "Remaining", value: fmtINRFull(remaining), color: THEME.rust },
+                        { label: "Saved", value: <Prv>{fmtINRFull(g.currentAmount)}</Prv>, color: THEME.sage },
+                        { label: "Remaining", value: <Prv>{fmtINRFull(remaining)}</Prv>, color: THEME.rust },
                         ...(g.targetDate
                           ? [
                               {
-                                label: "Months Left",
-                                value: String(monthsLeft),
-                                color: isBehind ? THEME.rust : THEME.accent,
+                                label: rawMonthsLeft < 0 ? "Overdue" : "Months Left",
+                                value: rawMonthsLeft < 0 ? `${Math.abs(rawMonthsLeft)}m` : String(monthsLeft),
+                                color: rawMonthsLeft < 0 ? THEME.rust : isBehind ? THEME.rust : THEME.accent,
                               },
                             ]
                           : []),
@@ -917,9 +917,11 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                               {[10, 12, 15].map((rate) => {
                                 const r = rate / 100 / 12;
                                 const n = effectiveMonths;
+                                const fvCurrent = Number(g.currentAmount || 0) * Math.pow(1 + r, n);
+                                const gap = Math.max(0, effectiveTarget - fvCurrent);
                                 const sip =
                                   n > 0 && r > 0
-                                    ? (remaining * r) / (Math.pow(1 + r, n) - 1)
+                                    ? (gap * r) / (Math.pow(1 + r, n) - 1)
                                     : monthlyNeeded;
                                 return (
                                   <div

@@ -156,7 +156,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       nwDelta: currentNW - lastYearNW,
       categoryComps,
     };
-  }, [state, currentFYStart, lastFYStart, metrics, now]);
+  }, [state, currentFYStart, lastFYStart, metrics]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const comp = compMode === "mom" ? momComparison : yoyComparison;
 

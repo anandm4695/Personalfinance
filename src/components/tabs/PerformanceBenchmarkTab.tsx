@@ -90,7 +90,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     const ppfValue = ppfAccs.reduce((s, p) => s + Number(p.balance || 0), 0);
 
     // Gold returns
-    const goldValue = goldHoldings.reduce((s, g) => s + Number(g.grams || 0) * 7200, 0); // approximate
+    const goldPricePerGram = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
+    const goldValue = goldHoldings.reduce((s, g) => s + Number(g.grams || 0) * goldPricePerGram, 0);
     const goldInvested = goldHoldings.reduce((s, g) => s + Number(g.purchasePrice || 0), 0);
 
     const equityReturn = equityInvested > 0 ? ((equityCurrent - equityInvested) / equityInvested) * 100 : 0;
@@ -114,16 +115,17 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
   // Comparison chart data
   const comparisonData = useMemo(() => {
     const bm = BENCHMARKS;
+    const key = period === "3y" ? "return3Y" : period === "5y" ? "return5Y" : "return1Y";
     const items = [
       { name: "Your Portfolio", return: portfolioReturns.overall.return, color: "var(--accent)" },
-      { name: bm.nifty50.label, return: bm.nifty50.return1Y, color: bm.nifty50.color },
-      { name: bm.niftyMidcap.label, return: bm.niftyMidcap.return1Y, color: bm.niftyMidcap.color },
-      { name: bm.fdRate.label, return: bm.fdRate.return1Y, color: bm.fdRate.color },
-      { name: bm.gold.label, return: bm.gold.return1Y, color: bm.gold.color },
-      { name: bm.inflation.label, return: bm.inflation.return1Y, color: bm.inflation.color },
+      { name: bm.nifty50.label, return: bm.nifty50[key], color: bm.nifty50.color },
+      { name: bm.niftyMidcap.label, return: bm.niftyMidcap[key], color: bm.niftyMidcap.color },
+      { name: bm.fdRate.label, return: bm.fdRate[key], color: bm.fdRate.color },
+      { name: bm.gold.label, return: bm.gold[key], color: bm.gold.color },
+      { name: bm.inflation.label, return: bm.inflation[key], color: bm.inflation.color },
     ];
     return items;
-  }, [portfolioReturns]);
+  }, [portfolioReturns, period]);
 
   // Asset class comparison
   const assetComparison = useMemo(() => {
@@ -180,12 +182,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
 
       {/* Benchmark Comparison */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Your Returns vs Benchmarks</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Your Returns vs Benchmarks</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={comparisonData} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-            <XAxis type="number" tick={{ fontSize: 11, fill: THEME.textSecondary }} tickFormatter={(v) => `${v}%`} />
-            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12, fill: THEME.textSecondary }} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: THEME.inkSecondary }} tickFormatter={(v) => `${v}%`} />
+            <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12, fill: THEME.inkSecondary }} />
             <Tooltip formatter={(v) => `${v.toFixed(1)}%`} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
             <Bar dataKey="return" name="Return %" radius={[0, 6, 6, 0]}
               shape={(props) => {
@@ -200,12 +202,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       {/* Asset-wise comparison */}
       {assetComparison.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Asset Class Performance</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Asset Class Performance</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={assetComparison}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="category" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
-              <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+              <XAxis dataKey="category" tick={{ fontSize: 12, fill: THEME.inkSecondary }} />
+              <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: THEME.inkSecondary }} />
               <Tooltip formatter={(v) => `${v.toFixed(1)}%`} cursor={{ fill: THEME.line, opacity: 0.4 }} contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 12, color: THEME.ink }} labelStyle={{ color: THEME.ink }} itemStyle={{ color: THEME.ink }} />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12, color: THEME.ink }} formatter={(value: string) => <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>} />
               <Bar dataKey="yours" name="Your Return" fill="var(--accent)" radius={[6, 6, 0, 0]} />
@@ -217,12 +219,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
 
       {/* Financial Health Radar */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Financial Health Radar</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Financial Health Radar</h3>
         <ResponsiveContainer width="100%" height={350}>
           <RadarChart data={healthScore} cx="50%" cy="50%" outerRadius="80%">
             <PolarGrid stroke={THEME.muted} strokeOpacity={0.3} />
-            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: THEME.textSecondary }} />
-            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: THEME.textSecondary }} />
+            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: THEME.inkSecondary }} />
+            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: THEME.inkSecondary }} />
             <Radar name="Your Score" dataKey="score" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} strokeWidth={2} />
           </RadarChart>
         </ResponsiveContainer>
@@ -230,14 +232,14 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
 
       {/* Detailed Scores */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Score Breakdown</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Score Breakdown</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 12 }}>
           {healthScore.map((h) => {
             const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? THEME.gold : THEME.rust;
             return (
               <div key={h.metric} style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: THEME.text }}>{h.metric}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: THEME.ink }}>{h.metric}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color }}>{Math.round(h.score)}/100</span>
                 </div>
                 <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`, overflow: "hidden" }}>

@@ -191,6 +191,16 @@ export function useMetrics(
       0
     );
 
+    // Gold & SGBs: value at current gold price (stored in localStorage), fallback to purchase price
+    const goldPrice = (() => {
+      try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; }
+    })();
+    const goldValue = (sState.goldHoldings || []).reduce((s: number, h: any) => {
+      const grams = Number(h.grams || 0);
+      const currentValue = grams * goldPrice;
+      return s + currentValue;
+    }, 0);
+
     // Real estate: owned + under-construction properties counted at market value (or agreement value)
     const realEstateAsset = (sState.realEstateProperties || [])
       .filter((p: any) => p.status !== "sold")
@@ -230,7 +240,8 @@ export function useMetrics(
       informalLentValue +
       rentalPropertiesAsset +
       realEstateAsset +
-      vehicleAsset;
+      vehicleAsset +
+      goldValue;
     const totalLiabilities =
       ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue + realEstateOutstanding;
     const netWorth = totalAssets - totalLiabilities;
@@ -297,10 +308,17 @@ export function useMetrics(
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 
-    // Credit utilization: cc outstanding / cc total limit
-    const totalCCLimit = (sState.creditCards || [])
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0);
+    // Credit utilization: cc outstanding / cc total limit (shared-pool deduplication)
+    const activeCC = (sState.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed");
+    const ccGroupPools: Record<string, number> = {};
+    activeCC.forEach((c: any) => {
+      if (c.sharedGroup) {
+        ccGroupPools[c.sharedGroup] = Math.max(ccGroupPools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+      }
+    });
+    const totalCCLimit =
+      activeCC.filter((c: any) => !c.sharedGroup).reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0) +
+      (Object.values(ccGroupPools) as number[]).reduce((s: number, v: number) => s + v, 0);
     const creditUtilization = totalCCLimit > 0 ? (ccOutstanding / totalCCLimit) * 100 : 0;
 
     // Compute FY-aware tax liability with auto-detected deductions and manual overrides
@@ -377,6 +395,7 @@ export function useMetrics(
       informalLentValue,
       informalBorrowedValue,
       rentalPropertiesAsset,
+      goldValue,
       savingsRate,
       debtToAssetRatio,
       taxDue,
@@ -458,6 +477,7 @@ export function useMetrics(
         { name: "Prepaid Cards", value: metrics.prepaidValue },
         { name: "Real Estate", value: metrics.realEstateAsset },
         { name: "Vehicles", value: metrics.vehicleAsset },
+        { name: "Gold & SGBs", value: metrics.goldValue },
       ].filter((x) => x.value > 0),
     [metrics]
   );

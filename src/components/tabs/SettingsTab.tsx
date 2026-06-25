@@ -938,7 +938,7 @@ function ProfileSection({ state, updateProfile }: any) {
   // Sync if parent profile changes (e.g., DB load after mount). Keyed on name only so
   // in-progress edits aren't wiped on every keystroke that triggers a parent re-render.
   useEffect(() => {
-    setProf((p) => ({ ...state.profile, ...p }));
+    setProf((p) => ({ ...p, ...state.profile }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.profile?.name]);
 
@@ -1292,9 +1292,9 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
   };
 
   const saveEdit = (doc: any) => {
-    // Remove old, add updated (since we only have addItem/removeItem)
     removeItem("documents", doc.id);
     addItem("documents", {
+      id: doc.id,
       name: editName.trim(),
       category: editCategory,
       tags: editTags.split(",").map((t: string) => t.trim()).filter(Boolean),

@@ -39,6 +39,7 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { Prv } from "../../context/PrivacyContext";
 
 interface CalculatorsTabProps {
   metrics: any;

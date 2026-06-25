@@ -85,7 +85,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
     }, 0);
 
     // Rental income
-    const rentalIncome = (state.rentalProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0) * 12, 0);
+    const rentalIncome = (state.rentedProperties || []).reduce((s, p) => s + Number(p.monthlyRent || 0) * 12, 0);
 
     // Dividend income
     const dividendIncome = (state.dividends || [])
@@ -107,14 +107,14 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
 
   const deductions = useMemo(() => {
     // 80C
-    const ppfContrib = (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || p.balance || 0), 0);
+    const ppfContrib = (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0), 0);
     const elss = (state.mutualFunds || [])
       .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss"))
       .reduce((s, m) => s + Number(m.invested || 0), 0);
     const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s, e) => {
       const txns = e.transactions || [];
-      const empContrib = txns.filter((t) => t.type === "employee").reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const empContrib = txns.filter((t) => t.type === "employee_contribution" || t.type === "monthly_contribution").reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
       return s + empContrib;
     }, 0);
     const sec80C = Math.min(150000, ppfContrib + elss + licPremium + epfContrib);

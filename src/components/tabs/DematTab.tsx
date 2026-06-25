@@ -1535,7 +1535,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           const portfolioCagr = oldestBuyDate ? calcCAGR(totalInvested, totalValue, oldestBuyDate) : null;
           const absoluteReturnPct = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
 
-          // Hardcoded benchmark annual returns
+          // Hardcoded benchmark annual returns (CAGR for each period)
           const benchmarks = [
             { name: "Nifty 50",       "1Y": 8.5,  "3Y": 11.2, "5Y": 14.8, "10Y": 12.1, color: "#3b82f6" },
             { name: "Sensex",         "1Y": 8.2,  "3Y": 10.9, "5Y": 14.5, "10Y": 12.0, color: "#64748b" },
@@ -1543,9 +1543,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             { name: "Nifty Smallcap", "1Y": 12.1, "3Y": 20.5, "5Y": 18.9, "10Y": 15.8, color: "#f59e0b" },
           ];
 
-          // Alpha vs Nifty 50 (use 1Y as default comparison)
-          const nifty1Y = 8.5;
-          const alpha = portfolioCagr !== null ? portfolioCagr - nifty1Y : null;
+          // Match benchmark period to portfolio holding period
+          const holdingYears = oldestBuyDate ? (Date.now() - new Date(oldestBuyDate).getTime()) / (365.25 * 24 * 3600 * 1000) : 1;
+          const benchmarkPeriod: "1Y" | "3Y" | "5Y" | "10Y" = holdingYears >= 7 ? "10Y" : holdingYears >= 4 ? "5Y" : holdingYears >= 2 ? "3Y" : "1Y";
+          const niftyBenchmark = benchmarks[0][benchmarkPeriod];
+          const alpha = portfolioCagr !== null ? portfolioCagr - niftyBenchmark : null;
 
           // Performance rating
           let ratingLabel = "Underperforming";
@@ -1555,12 +1557,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             else if (alpha >= 0) { ratingLabel = "Market Pace"; ratingColor = THEME.gold; }
           }
 
-          // Bar chart comparison data
+          // Bar chart comparison data — use period-matched benchmark returns
           const barChartData = [
             { name: "Your Portfolio", return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0, fill: THEME.accent },
-            { name: "Nifty 50", return: nifty1Y, fill: "#3b82f6" },
-            { name: "Nifty Midcap", return: 15.3, fill: "#8b5cf6" },
-            { name: "Nifty Smallcap", return: 12.1, fill: "#f59e0b" },
+            { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: "#3b82f6" },
+            { name: "Nifty Midcap", return: benchmarks[2][benchmarkPeriod], fill: "#8b5cf6" },
+            { name: "Nifty Smallcap", return: benchmarks[3][benchmarkPeriod], fill: "#f59e0b" },
           ];
 
           return (
@@ -1569,7 +1571,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 Portfolio vs Benchmark
               </div>
               <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
-                Compare your portfolio returns against major Indian market indices
+                Compare your portfolio CAGR against {benchmarkPeriod} benchmark returns ({holdingYears.toFixed(1)}y holding period)
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
@@ -4754,7 +4756,7 @@ function SplitBonusModal({ group, onClose, onApply }: any) {
           </span>
           <span style={{ marginLeft: 20 }}>
             <span style={{ color: THEME.muted }}>Avg Price: </span>
-            <b style={{ color: THEME.muted }}>₹{(totalInv / totalQty).toFixed(2)}</b> →{" "}
+            <b style={{ color: THEME.muted }}>₹{(totalQty > 0 ? totalInv / totalQty : 0).toFixed(2)}</b> →{" "}
             <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
           </span>
         </div>

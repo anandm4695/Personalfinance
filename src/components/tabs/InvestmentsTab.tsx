@@ -1187,13 +1187,13 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           },
           {
             label: "Net Returns",
-            value: `${netGain >= 0 ? "+" : ""}${fmtINRFull(Math.abs(netGain))}`,
+            value: `${netGain >= 0 ? "+" : "-"}${fmtINRFull(Math.abs(netGain))}`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: netGain >= 0 ? TrendingUp : TrendingDown,
           },
           {
             label: "Return %",
-            value: `${netGain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`,
+            value: `${netGain >= 0 ? "+" : "-"}${Math.abs(gainPct).toFixed(1)}%`,
             color: netGain >= 0 ? THEME.sage : THEME.rust,
             Icon: Activity,
           },
@@ -6272,10 +6272,13 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
               const estIntEr = estTxs
                 .filter((x) => x.type === "interest_credit")
                 .reduce((s, x) => s + Number(x.employerShare || 0), 0);
+              const estPenInt = estTxs
+                .filter((x) => x.type === "interest_credit")
+                .reduce((s, x) => s + Number(x.pensionShare || 0), 0);
               const estTransIn = estTxs
                 .filter((x) => x.type === "transfer_in")
                 .reduce((s, x) => s + Number(x.amount || 0), 0);
-              const estClosing = estEmpC + estErC + estPenC + estIntEmp + estIntEr + estTransIn;
+              const estClosing = estEmpC + estErC + estPenC + estIntEmp + estIntEr + estPenInt + estTransIn;
               const estHasTxs = estTxs.length > 0;
 
               /* transfer-in already recorded for this establishment */
@@ -6423,7 +6426,7 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
                         {[
                           { label: "Emp PF",  value: estEmpC + estIntEmp, color: THEME.accent, bg: "rgba(99,102,241,0.07)",  border: "rgba(99,102,241,0.2)" },
                           { label: "Er PF",   value: estErC + estIntEr,   color: "#0ea5e9",    bg: "rgba(14,165,233,0.07)",  border: "rgba(14,165,233,0.2)" },
-                          { label: "Pension", value: estPenC,             color: THEME.gold,   bg: "rgba(234,179,8,0.07)",   border: "rgba(234,179,8,0.2)" },
+                          { label: "Pension", value: estPenC + estPenInt,  color: THEME.gold,   bg: "rgba(234,179,8,0.07)",   border: "rgba(234,179,8,0.2)" },
                         ].map(({ label, value, color, bg, border }) => (
                           <div key={label} style={{ padding: "7px 10px", borderRadius: 8, background: bg, border: `1px solid ${border}`, textAlign: "center" as const }}>
                             <div style={{ fontSize: 8, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 2 }}>{label}</div>
@@ -9626,13 +9629,15 @@ const YieldTracker = ({ state }: any) => {
   const EPF_RATE = 8.25;
   const RD_NOTE = "based on current interest rate";
 
-  // FD: only count active (non-matured) FDs
+  // FD: only count active (non-matured) FDs — compound quarterly (Indian standard)
   const fdInterest = (state.fixedDeposits || []).reduce((s: number, f: any) => {
     if (f.maturityDate) {
       const [y, m, d] = String(f.maturityDate).split("-").map(Number);
       if (new Date(y, m - 1, d) < new Date()) return s; // skip matured
     }
-    return s + (Number(f.principal) * Number(f.rate || 0)) / 100;
+    const principal = Number(f.principal || 0);
+    const rate = Number(f.rate || 0);
+    return s + (fdMaturity(principal, rate, 1) - principal);
   }, 0);
 
   // Bond coupon — only active (non-matured) bonds
@@ -9674,11 +9679,13 @@ const YieldTracker = ({ state }: any) => {
     return s + (calculateEpfBalance(e) * EPF_RATE) / 100;
   }, 0);
 
-  // NPS: rough 10% annual growth (mixed equity/debt)
-  const npsGrowth = (state.nps || []).reduce(
-    (s: number, n: any) => s + (Number(n.balance) * 10) / 100,
-    0
-  );
+  // NPS: rough 10% annual growth (mixed equity/debt) — fallback to transaction-derived corpus
+  const npsGrowth = (state.nps || []).reduce((s: number, n: any) => {
+    const bal = Number(n.balance || 0);
+    const txCorpus = (n.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const corpus = bal > 0 ? bal : txCorpus;
+    return s + (corpus * 10) / 100;
+  }, 0);
 
   const streams = [
     {
@@ -9980,7 +9987,7 @@ const YieldTracker = ({ state }: any) => {
               lineHeight: 1.6,
             }}
           >
-            <b style={{ color: THEME.ink }}>Note:</b> FD uses simple interest × principal. Bond uses
+            <b style={{ color: THEME.ink }}>Note:</b> FD uses quarterly compounding. Bond uses
             coupon on face value. RD uses annualised interest over full tenure. PPF @ {PPF_RATE}%,
             EPF @ {EPF_RATE}%. NPS is a rough estimate at 10% blended return — actual performance
             varies. All figures are pre-tax.

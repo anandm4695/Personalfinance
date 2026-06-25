@@ -51,8 +51,8 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   const taxLiability = useMemo(() => {
     if (!income) return 0;
-    if (regime === "new") return calcTaxNew ? calcTaxNew(income) : 0;
-    return calcTaxOld ? calcTaxOld(income, 0) : 0;
+    if (regime === "new") return calcTaxNew ? calcTaxNew(income).total : 0;
+    return calcTaxOld ? calcTaxOld(income, 0).total : 0;
   }, [income, regime]);
 
   const tdsPaid = useMemo(() => {
@@ -63,7 +63,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   const advanceTaxPaid = useMemo(() => {
     return (state.taxPayments || [])
-      .filter((t) => t.fy === fy && (t.taxType === "Advance Tax" || t.type === "advance"))
+      .filter((t) => t.fy === fy && (t.taxType === "Advance Tax" || t.type === "Advance Tax"))
       .reduce((s, t) => s + Number(t.amount || 0), 0);
   }, [state.taxPayments, fy]);
 

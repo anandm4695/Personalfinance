@@ -44,6 +44,7 @@ import { Field, Input, Select } from "../ui/Form";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Prv } from "../../context/PrivacyContext";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
@@ -567,7 +568,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
                 <Hash size={12} />
                 <span style={{ color: THEME.ink, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {doc.documentNumber}
+                  <Prv>{doc.documentNumber}</Prv>
                 </span>
               </div>
             )}
@@ -718,7 +719,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
             {doc.category}
             {doc.subcategory ? ` / ${doc.subcategory}` : ""}
-            {doc.documentNumber ? ` | ${doc.documentNumber}` : ""}
+            {doc.documentNumber ? <> | <Prv>{doc.documentNumber}</Prv></> : ""}
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>

@@ -26,7 +26,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, rdMaturity, calculateEpfBalance } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -62,7 +62,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
     const equityMF = (state.mutualFunds || []).reduce((s, m) => {
       const cat = (m.category || m.type || "").toLowerCase();
-      const isEquity = ["equity", "elss", "flexi", "large", "mid", "small", "multi", "focused", "sectoral", "thematic", "index", "hybrid"].some((k) => cat.includes(k));
+      const isEquity = ["equity", "elss", "flexi", "large", "mid", "small", "multi", "focused", "sectoral", "thematic", "index"].some((k) => cat.includes(k));
       if (!isEquity && cat) return s;
       return s + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
     }, 0);
@@ -75,11 +75,17 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     }, 0);
 
     const fd = (state.fixedDeposits || []).reduce((s, f) => s + Number(f.principal || 0), 0);
-    const rd = (state.recurringDeposits || []).reduce((s, r) => s + Number(r.monthly || 0) * Number(r.tenureMonths || 0), 0);
+    const rd = (state.recurringDeposits || []).reduce((s, r) => {
+      const now = new Date();
+      const start = r.startDate ? new Date(r.startDate + "T00:00:00") : now;
+      const totalMonths = Number(r.tenureMonths || 0);
+      const elapsed = Math.min(totalMonths, Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())));
+      return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
+    }, 0);
     const bonds = (state.bonds || []).reduce((s, b) => s + Number(b.totalPrincipalAmount || b.faceValue || 0), 0);
     const ppf = (state.ppf || []).reduce((s, p) => s + Number(p.balance || 0), 0);
     const nps = (state.nps || []).reduce((s, n) => s + Number(n.balance || 0), 0);
-    const epf = (state.epf || []).reduce((s, e) => s + Number(e.balance || 0), 0);
+    const epf = (state.epf || []).reduce((s, e) => s + calculateEpfBalance(e), 0);
     const cash = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
     const lic = (state.lic || []).reduce((s, l) => s + Number(l.premiumPaid || 0), 0);
     const investPlans = (state.investmentPlans || []).reduce((s, ip) => s + Number(ip.premiumPaid || 0), 0);

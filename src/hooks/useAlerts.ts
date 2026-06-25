@@ -107,7 +107,7 @@ export function useAlerts(state: any, metrics: any): Alert[] {
       `${advFyStart + 1}-03-15`,
     ];
     advDates.forEach((d) => {
-      const days = Math.ceil((new Date(d).getTime() - now.getTime()) / 86400000);
+      const days = Math.ceil((new Date(d + "T00:00:00").getTime() - todayMidnight) / 86400000);
       if (days >= 0 && days <= 30)
         list.push({
           level: "info",
@@ -234,9 +234,8 @@ export function useAlerts(state: any, metrics: any): Alert[] {
     }
     // Tax regime switch alert — if switching saves >₹5,000 suggest it
     if (metrics.annualIncome > 0) {
-      const stdDedNew = 75000;
-      const taxableNew = Math.max(0, metrics.annualIncome - stdDedNew);
-      const taxNewAmt = calcTaxNew(taxableNew).total;
+      // calcTaxNew already applies stdDed internally — pass gross income
+      const taxNewAmt = calcTaxNew(metrics.annualIncome).total;
       const taxOldAmt = calcTaxOld(metrics.annualIncome, 50000).total;
       const saving = Math.abs(taxNewAmt - taxOldAmt);
       const betterRegime = taxOldAmt < taxNewAmt ? "Old" : "New";
@@ -367,19 +366,6 @@ export function useAlerts(state: any, metrics: any): Alert[] {
         });
       }
     });
-    // Subscription renewal in 7 days
-    (state.subscriptions || []).forEach((sub: any) => {
-      if (sub.paused || !sub.renewalDate) return;
-      const days = Math.ceil((new Date(sub.renewalDate + "T00:00:00").getTime() - todayMidnight) / 86400000);
-      if (days >= 0 && days <= 7) {
-        list.push({
-          level: "info",
-          title: `${sub.name} renewing in ${days}d`,
-          detail: `Amount: ${fmtINRFull(sub.amount)} / ${sub.cycle}`,
-          tab: "subs",
-        });
-      }
-    });
     // Dividend tracker reminder (quarterly check)
     const dividendStocks = (state.stocks || []).length;
     const dividendsRecorded = (state.dividends || []).length;
@@ -418,6 +404,11 @@ export function useAlerts(state: any, metrics: any): Alert[] {
     metrics.savingsRate,
     state.dismissedAlerts,
     state.profile?.regime,
+    state.fixedDeposits,
+    state.sips,
+    state.mutualFunds,
+    state.stocks,
+    state.dividends,
   ]);
 
   return alerts;

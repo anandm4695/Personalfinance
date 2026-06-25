@@ -17,6 +17,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
+import { Prv } from "../../context/PrivacyContext";
 
 const MF_CATEGORY_MAP = {
   equity: "Equity",
@@ -228,9 +229,9 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           category: f.category,
           folio: f.folio,
           units: f.units,
-          buyNav: f.nav,
+          buyNav: f.costValue && f.units ? (f.costValue / f.units) : "",
           currentNav: f.nav,
-          invested: f.value,
+          invested: f.costValue || "",
         });
       }
     }

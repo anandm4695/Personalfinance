@@ -253,7 +253,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
     // 3. Subscriptions
     const subTotal = (state.subscriptions || []).reduce((sum: number, s: any) => {
-      if ((s.status || "").toLowerCase() === "cancelled" || (s.status || "").toLowerCase() === "inactive")
+      if (s.paused || (s.status || "").toLowerCase() === "cancelled" || (s.status || "").toLowerCase() === "inactive")
         return sum;
       const amt = Number(s.amount || s.price || 0);
       return sum + freqToMonthly(s.frequency || s.billing || "monthly", amt);
@@ -269,12 +269,12 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     if (recurringTotal > 0)
       sources.push({ name: "Recurring Expenses", monthly: recurringTotal, icon: Activity, category: "Recurring" });
 
-    // 5. Credit Card Bills
-    const ccTotal = (state.creditCards || [])
+    // 5. Credit Card Minimum Dues (only include minimum_due which is the actual monthly obligation)
+    const ccMinDue = (state.creditCards || [])
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((sum: number, c: any) => sum + Number(c.outstanding || c.lastBill || 0), 0);
-    if (ccTotal > 0)
-      sources.push({ name: "Credit Card Bills", monthly: ccTotal, icon: CreditCard, category: "Credit Cards" });
+      .reduce((sum: number, c: any) => sum + Number(c.minimumDue || c.lastBill || 0), 0);
+    if (ccMinDue > 0)
+      sources.push({ name: "Credit Card Dues", monthly: ccMinDue, icon: CreditCard, category: "Credit Cards" });
 
     // 6. Rent Paid
     const rentPaid = (state.rentedProperties || []).reduce(

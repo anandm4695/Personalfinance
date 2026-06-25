@@ -24,6 +24,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
+import { Prv } from "../../context/PrivacyContext";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 const INSURER_LOGOS: Record<string, string> = {

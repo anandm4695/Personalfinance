@@ -30,6 +30,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Prv } from "../../context/PrivacyContext";
 import { Modal, ModalActions } from "../ui/Modal";
 
 /* ══════════════════════════════════════════════════════════════════
@@ -53,7 +54,8 @@ const fmtL = (n: number) => `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)
 
 /** Estimate marginal slab rate for old regime based on taxable income */
 const oldMarginalRate = (taxable: number) => {
-  if (taxable <= 500_000) return 0;
+  if (taxable <= 250_000) return 0;
+  if (taxable <= 500_000) return 0.05;
   if (taxable <= 1_000_000) return 0.2;
   return 0.3;
 };

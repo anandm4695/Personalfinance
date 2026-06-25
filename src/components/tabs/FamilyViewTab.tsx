@@ -32,7 +32,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -86,10 +86,16 @@ const memberAssets = (state, owner) => {
 
   const cash = filter(state.bankAccounts).reduce((s, a) => s + Number(a.balance || 0), 0);
   const fd = filter(state.fixedDeposits).reduce((s, f) => s + Number(f.principal || 0), 0);
-  const rd = filter(state.recurringDeposits).reduce(
-    (s, r) => s + Number(r.monthly || 0) * Number(r.tenureMonths || 0),
-    0
-  );
+  const rd = filter(state.recurringDeposits).reduce((s, r) => {
+    const now = new Date();
+    const start = r.startDate ? new Date(r.startDate + "T00:00:00") : now;
+    const totalMonths = Number(r.tenureMonths || 0);
+    const elapsed = Math.min(
+      totalMonths,
+      Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()))
+    );
+    return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
+  }, 0);
   const stocks = filter(state.stocks).reduce(
     (s, st) => s + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0),
     0
@@ -200,9 +206,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         .reduce((s, t) => s + Number(t.coverAmount || 0), 0);
       const totalLifeCover = licCover + termCover;
 
-      const memberIncome = (state.income || [])
+      const ownerIncome = (state.income || [])
         .filter((i) => i.owner === p.id)
-        .reduce((s, i) => s + Number(i.amount || 0) * 12, 0);
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      const latestMonthlyIncome = ownerIncome.length > 0 ? Number(ownerIncome[0].amount || 0) : 0;
+      const memberIncome = latestMonthlyIncome * 12;
 
       return {
         ...p, ...assets, topHoldings, allocation, color,
