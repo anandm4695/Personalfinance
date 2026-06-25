@@ -54,7 +54,27 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
     const saved = state.masterData?._taxChecklist || {};
     return saved;
   });
-  const [selectedFY, setSelectedFY] = useState(state.profile?.fy || "2025-26");
+
+  const availableFYs = useMemo(() => {
+    const fySet = new Set<number>();
+    const addDate = (d: string) => {
+      if (!d) return;
+      const dt = new Date(d + "T00:00:00");
+      fySet.add(dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1);
+    };
+    (state.income || []).forEach((i: any) => addDate(i.date));
+    (state.transactions || []).forEach((t: any) => addDate(t.date));
+    (state.stockSells || []).forEach((s: any) => addDate(s.sellDate));
+    (state.mfSells || []).forEach((m: any) => addDate(m.sellDate));
+    const now = new Date();
+    const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    fySet.add(currentFYStart);
+    return Array.from(fySet)
+      .sort((a, b) => b - a)
+      .map((y) => `${y}-${String(y + 1).slice(-2)}`);
+  }, [state.income, state.transactions, state.stockSells, state.mfSells]);
+
+  const [selectedFY, setSelectedFY] = useState(state.profile?.fy || availableFYs[0] || "2025-26");
 
   const toggleCheck = (id) => {
     setCheckedItems((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -175,7 +195,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
         <SectionTitle sub="Pre-filled summary, checklist & advance tax tracker">Income Tax Filing Helper</SectionTitle>
         <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)}
           style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 14 }}>
-          {["2024-25", "2025-26", "2026-27"].map((fy) => <option key={fy} value={fy}>FY {fy}</option>)}
+          {availableFYs.map((fy) => <option key={fy} value={fy}>FY {fy}</option>)}
         </select>
       </div>
 

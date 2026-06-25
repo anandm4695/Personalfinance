@@ -52,18 +52,32 @@ const fmtDate = (d: string) => {
   return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
-/** Build FY options from 2023-24 to current + 1 */
-const buildFYOptions = (): { label: string; startYear: number }[] => {
-  const now = new Date();
-  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  const opts: { label: string; startYear: number }[] = [];
-  for (let y = 2023; y <= currentFYStart + 1; y++) {
-    opts.push({ label: `FY ${y}-${String(y + 1).slice(2)}`, startYear: y });
-  }
-  return opts.reverse();
+/** Derive FY year from a date string */
+const dateToFYStart = (d: string): number => {
+  const dt = new Date(d);
+  return dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
 };
 
-const FY_OPTIONS = buildFYOptions();
+/** Build FY options dynamically from sell data — covers all FYs with transactions */
+const buildFYOptions = (stockSells: any[], mfSells: any[]): { label: string; startYear: number }[] => {
+  const fySet = new Set<number>();
+  const now = new Date();
+  const currentFYStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  fySet.add(currentFYStart);
+
+  for (const s of stockSells) {
+    if (s.sellDate) fySet.add(dateToFYStart(s.sellDate));
+    if (s.buyDate) fySet.add(dateToFYStart(s.buyDate));
+  }
+  for (const m of mfSells) {
+    if (m.sellDate) fySet.add(dateToFYStart(m.sellDate));
+    if (m.buyDate) fySet.add(dateToFYStart(m.buyDate));
+  }
+
+  return Array.from(fySet)
+    .sort((a, b) => b - a)
+    .map((y) => ({ label: `FY ${y}-${String(y + 1).slice(2)}`, startYear: y }));
+};
 
 /** Check if a date falls within a financial year (Apr 1 to Mar 31) */
 const isInFY = (dateStr: string, fyStartYear: number): boolean => {
@@ -74,13 +88,12 @@ const isInFY = (dateStr: string, fyStartYear: number): boolean => {
   return d >= fyStart && d <= fyEnd;
 };
 
-/* ── Tax Rate Constants (Post Budget 2024) ─────────────────────── */
-const EQUITY_STCG_RATE = 0.20;         // 20%
-const EQUITY_LTCG_RATE = 0.125;        // 12.5%
-const EQUITY_LTCG_EXEMPTION = 125000;  // Rs 1.25L
+/* ── Tax Rate helpers (FY-aware: Budget 2024 rates from FY 2024-25) ── */
+const getEquitySTCGRate = (fy: number) => (fy >= 2024 ? 0.20 : 0.15);
+const getEquityLTCGRate = (fy: number) => (fy >= 2024 ? 0.125 : 0.10);
+const getEquityLTCGExemption = (fy: number) => (fy >= 2024 ? 125000 : 100000);
 const DEBT_STCG_SLAB_RATE = 0.30;      // assumed highest slab for estimate
 const DEBT_LTCG_RATE = 0.20;           // 20% with indexation (pre-Apr 2023)
-// Post Apr 2023 debt MF purchases: always taxed at slab rate (no LTCG benefit)
 
 /* ── Classification Types ──────────────────────────────────────── */
 type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
@@ -260,6 +273,11 @@ const TransactionTable = ({ rows, title }: { rows: ClassifiedSell[]; title: stri
    ══════════════════════════════════════════════════════════════════ */
 
 export const CapitalGainsTab = ({ state }: { state: any }) => {
+  const fyOptions = useMemo(
+    () => buildFYOptions(state.stockSells || [], state.mfSells || []),
+    [state.stockSells, state.mfSells]
+  );
+
   const [fyStartYear, setFyStartYear] = useState(() => {
     const now = new Date();
     return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -283,7 +301,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const profit = s.profit != null ? Number(s.profit) : sellTotal - buyTotal;
       const isLTCG = months >= 12;
       const gainType: GainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
-      const taxRate = isLTCG ? EQUITY_LTCG_RATE : EQUITY_STCG_RATE;
+      const taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
 
       result.push({
         name: s.symbol || s.name || "Unknown Stock",
@@ -318,7 +336,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       if (equity) {
         const isLTCG = months >= 12;
         gainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
-        taxRate = isLTCG ? EQUITY_LTCG_RATE : EQUITY_STCG_RATE;
+        taxRate = isLTCG ? getEquityLTCGRate(fyStartYear) : getEquitySTCGRate(fyStartYear);
       } else {
         // Debt MF: post-Apr 2023 purchases have no LTCG benefit
         const buyDate = new Date(m.buyDate);
@@ -374,12 +392,14 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       DEBT_LTCG: groups.DEBT_LTCG.reduce((s, r) => s + r.profit, 0),
     };
 
-    // LTCG exemption of 1.25L (only on net positive equity LTCG gains)
+    const ltcgExemptionLimit = getEquityLTCGExemption(fyStartYear);
+    const stcgRate = getEquitySTCGRate(fyStartYear);
+    const ltcgRate = getEquityLTCGRate(fyStartYear);
+
     const netEquityLTCG = Math.max(0, totals.EQUITY_LTCG);
-    const exemptionUsed = Math.min(netEquityLTCG, EQUITY_LTCG_EXEMPTION);
+    const exemptionUsed = Math.min(netEquityLTCG, ltcgExemptionLimit);
     const taxableEquityLTCG = Math.max(0, netEquityLTCG - exemptionUsed);
 
-    // Compute estimated tax for each row (distribute exemption proportionally for LTCG)
     const ltcgGains = groups.EQUITY_LTCG.filter((r) => r.profit > 0);
     const totalLTCGProfit = ltcgGains.reduce((s, r) => s + r.profit, 0);
 
@@ -387,7 +407,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       if (r.gainType === "EQUITY_LTCG" && r.profit > 0 && totalLTCGProfit > 0) {
         const share = r.profit / totalLTCGProfit;
         const taxableShare = taxableEquityLTCG * share;
-        r.estimatedTax = Math.round(taxableShare * EQUITY_LTCG_RATE);
+        r.estimatedTax = Math.round(taxableShare * ltcgRate);
       } else if (r.profit > 0) {
         r.estimatedTax = Math.round(r.profit * r.taxRate);
       } else {
@@ -395,10 +415,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       }
     }
 
-    // Equity STCG tax
-    const equitySTCGTax = Math.max(0, totals.EQUITY_STCG) * EQUITY_STCG_RATE;
-    // Equity LTCG tax (after exemption)
-    const equityLTCGTax = taxableEquityLTCG * EQUITY_LTCG_RATE;
+    const equitySTCGTax = Math.max(0, totals.EQUITY_STCG) * stcgRate;
+    const equityLTCGTax = taxableEquityLTCG * ltcgRate;
     // Debt STCG tax
     const debtSTCGTax = Math.max(0, totals.DEBT_STCG) * DEBT_STCG_SLAB_RATE;
     // Debt LTCG tax
@@ -410,8 +428,11 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       byType: { groups, totals },
       totalTax: total,
       ltcgExemptionUsed: exemptionUsed,
+      ltcgExemptionLimit,
+      stcgRate,
+      ltcgRate,
     };
-  }, [classified]);
+  }, [classified, fyStartYear]);
 
   /* ── Unrealized Gains ────────────────────────────────────────── */
   const unrealized = useMemo(() => {
@@ -494,7 +515,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
   const harvestingSuggestions = useMemo(() => {
     const losses = unrealized.filter((h) => h.unrealizedPL < 0);
     const realizedSTCG = Math.max(0, byType.totals.EQUITY_STCG);
-    const realizedLTCG = Math.max(0, byType.totals.EQUITY_LTCG - EQUITY_LTCG_EXEMPTION);
+    const realizedLTCG = Math.max(0, byType.totals.EQUITY_LTCG - ltcgExemptionLimit);
 
     return losses.map((h) => {
       const absLoss = Math.abs(h.unrealizedPL);
@@ -502,13 +523,13 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
       const isSTCG = h.wouldBeType === "EQUITY_STCG" || h.wouldBeType === "DEBT_STCG";
       const canOffset = isSTCG ? realizedSTCG + realizedLTCG : realizedLTCG;
       const usableLoss = Math.min(absLoss, canOffset);
-      const taxRate = isSTCG ? EQUITY_STCG_RATE : EQUITY_LTCG_RATE;
-      const potentialSaving = Math.round(usableLoss * taxRate);
+      const rate = isSTCG ? stcgRate : ltcgRate;
+      const potentialSaving = Math.round(usableLoss * rate);
 
       return { ...h, usableLoss, potentialSaving };
     }).filter((h) => h.potentialSaving > 0)
       .sort((a, b) => b.potentialSaving - a.potentialSaving);
-  }, [unrealized, byType.totals]);
+  }, [unrealized, byType.totals, ltcgExemptionLimit, stcgRate, ltcgRate]);
 
   /* ── CSV Export ──────────────────────────────────────────────── */
   const handleExport = () => {
@@ -611,7 +632,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
                 outline: "none",
               }}
             >
-              {FY_OPTIONS.map((fy) => (
+              {fyOptions.map((fy) => (
                 <option key={fy.startYear} value={fy.startYear}>
                   {fy.label}
                 </option>
@@ -634,7 +655,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={TrendingUp}
           label="Equity STCG"
           value={byType.totals.EQUITY_STCG}
-          sub={`Tax @ 20%: ${fmtINRFull(Math.max(0, byType.totals.EQUITY_STCG) * EQUITY_STCG_RATE)}`}
+          sub={`Tax @ ${(stcgRate * 100)}%: ${fmtINRFull(Math.max(0, byType.totals.EQUITY_STCG) * stcgRate)}`}
           color={byType.totals.EQUITY_STCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #D97706, #FBBF24)"
         />
@@ -642,7 +663,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
           icon={TrendingUp}
           label="Equity LTCG"
           value={byType.totals.EQUITY_LTCG}
-          sub={`Tax @ 12.5% (above ₹1.25L): ${fmtINRFull(Math.max(0, byType.totals.EQUITY_LTCG - EQUITY_LTCG_EXEMPTION) * EQUITY_LTCG_RATE)}`}
+          sub={`Tax @ ${(ltcgRate * 100)}% (above ${fmtINRFull(ltcgExemptionLimit)}): ${fmtINRFull(Math.max(0, byType.totals.EQUITY_LTCG - ltcgExemptionLimit) * ltcgRate)}`}
           color={byType.totals.EQUITY_LTCG >= 0 ? THEME.sage : THEME.rust}
           gradient="linear-gradient(135deg, #059669, #34D399)"
         />
@@ -712,7 +733,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
             <span style={{ fontSize: 22, fontWeight: 800, color: THEME.sage, letterSpacing: "-0.02em" }}>
               <Prv>{fmtINRFull(ltcgExemptionUsed)}</Prv>
             </span>
-            <span style={{ fontSize: 13, color: THEME.muted }}>/ {fmtINRFull(EQUITY_LTCG_EXEMPTION)}</span>
+            <span style={{ fontSize: 13, color: THEME.muted }}>/ {fmtINRFull(ltcgExemptionLimit)}</span>
           </div>
           {/* Exemption progress bar */}
           <div
@@ -727,7 +748,7 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
             <div
               style={{
                 height: "100%",
-                width: `${Math.min(100, (ltcgExemptionUsed / EQUITY_LTCG_EXEMPTION) * 100)}%`,
+                width: `${Math.min(100, (ltcgExemptionUsed / ltcgExemptionLimit) * 100)}%`,
                 borderRadius: 3,
                 background: "linear-gradient(90deg, #059669, #34D399)",
                 transition: "width 0.5s ease",
@@ -735,9 +756,9 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
             />
           </div>
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-            {ltcgExemptionUsed >= EQUITY_LTCG_EXEMPTION
+            {ltcgExemptionUsed >= ltcgExemptionLimit
               ? "Exemption fully utilized"
-              : `${fmtINRFull(EQUITY_LTCG_EXEMPTION - ltcgExemptionUsed)} remaining exemption`}
+              : `${fmtINRFull(ltcgExemptionLimit - ltcgExemptionUsed)} remaining exemption`}
           </div>
         </Card>
       </div>
@@ -1007,8 +1028,8 @@ export const CapitalGainsTab = ({ state }: { state: any }) => {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           <Info size={14} color={THEME.muted} style={{ marginTop: 2, flexShrink: 0 }} />
           <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.6 }}>
-            <strong>Disclaimer:</strong> Tax estimates are approximate and based on Budget 2024 rates.
-            Equity STCG is taxed at 20%, Equity LTCG at 12.5% above the ₹1.25L exemption.
+            <strong>Disclaimer:</strong> Tax estimates are approximate.
+            For {fyLabel}: Equity STCG at {(stcgRate * 100)}%, Equity LTCG at {(ltcgRate * 100)}% above {fmtINRFull(ltcgExemptionLimit)} exemption.
             Debt MFs purchased after 1 Apr 2023 are taxed at slab rate regardless of holding period.
             Actual liability may vary based on your income slab, surcharge, cess, and indexation benefits.
             Consult a tax professional for ITR filing.
