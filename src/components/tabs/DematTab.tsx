@@ -4448,7 +4448,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                         color: THEME.muted,
                       }}
                     >
-                      ₹{fmt(a.consume * a.buyPrice)}
+                      ₹{fmt2(a.consume * a.buyPrice)}
                     </td>
                     <td
                       style={{
@@ -4460,7 +4460,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                         color: a.pnl >= 0 ? THEME.sage : THEME.rust,
                       }}
                     >
-                      {a.pnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(a.pnl))}
+                      {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
                     </td>
                     <td
                       style={{
@@ -4559,7 +4559,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     STCG
                   </span>
                   <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {stcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(stcgPnl))}
+                    {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
                   </b>
                 </span>
               )}
@@ -4579,7 +4579,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
                     LTCG
                   </span>
                   <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    {ltcgPnl >= 0 ? "+" : "−"}₹{fmt(Math.abs(ltcgPnl))}
+                    {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
                   </b>
                 </span>
               )}
