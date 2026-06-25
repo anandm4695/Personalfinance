@@ -669,6 +669,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
     };
   }, [monthlyIncome, monthlyExpense, monthlyTxns, state.bankAccounts, txnNetByAccount]);
 
+  const chartColorById = useMemo(() => {
+    const map: Record<string, string> = {};
+    liquidityWeights.forEach((w) => { map[w.id] = w.color; });
+    return map;
+  }, [liquidityWeights]);
+
   return (
     <div>
       <div
@@ -981,6 +987,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         )}
         {state.bankAccounts.map((a: any) => {
           const theme = getAccountTheme(a.type);
+          const accentColor = chartColorById[a.id] || theme.color;
           return (
             <div
               key={a.id}
@@ -995,7 +1002,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                   left: 0,
                   bottom: 0,
                   width: 4,
-                  background: theme.color,
+                  background: accentColor,
                 }}
               />
 
@@ -1034,8 +1041,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                         fontWeight: 700,
                         letterSpacing: "0.05em",
                         textTransform: "uppercase",
-                        color: theme.color,
-                        background: theme.bg,
+                        color: accentColor,
+                        background: `${accentColor}15`,
                         padding: "2px 8px",
                         borderRadius: 20,
                         display: "inline-flex",
