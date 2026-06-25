@@ -568,7 +568,7 @@ type FifoAlloc = {
   fullyConsumed: boolean;
 };
 
-function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number): FifoAlloc[] {
+function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number, sellDate?: string): FifoAlloc[] {
   const sorted = [...lots].sort((a: any, b: any) => {
     if (!a.buyDate && !b.buyDate) return 0;
     if (!a.buyDate) return 1;
@@ -577,13 +577,13 @@ function computeFifoAlloc(lots: any[], sellQty: number, sellPrice: number): Fifo
   });
   const result: FifoAlloc[] = [];
   let remaining = sellQty;
-  const now = Date.now();
+  const refTime = sellDate ? new Date(sellDate).getTime() : Date.now();
   for (const lot of sorted) {
     if (remaining <= 0) break;
     const available = Number(lot.qty);
     const consume = Math.min(available, remaining);
     const buyPrice = Number(lot.avgPrice);
-    const isLTCG = lot.buyDate ? now - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000 : false;
+    const isLTCG = lot.buyDate ? refTime - new Date(lot.buyDate).getTime() > 365 * 86400 * 1000 : false;
     result.push({
       lot,
       consume,
@@ -4216,7 +4216,7 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave }: any) {
   const sellPriceNum = Number(f.sellPrice) || 0;
   const allocs: FifoAlloc[] =
     sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalQty
-      ? computeFifoAlloc(group.lots, sellQtyNum, sellPriceNum)
+      ? computeFifoAlloc(group.lots, sellQtyNum, sellPriceNum, f.sellDate)
       : [];
 
   const totalProceeds = sellQtyNum * sellPriceNum;
