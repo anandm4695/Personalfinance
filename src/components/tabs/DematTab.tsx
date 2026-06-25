@@ -1387,60 +1387,65 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
       )}
 
       {/* ── VIEW SWITCHER: Holdings | Analytics | Watchlist ── */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 0, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 0 }}>
-        {(["holdings", "analytics", "watchlist"] as const).map((view) => (
-          <button
-            key={view}
-            onClick={() => setDematView(view)}
-            style={{
-              padding: "10px 20px",
-              background: "transparent",
-              border: "none",
-              borderBottom: dematView === view ? `2.5px solid ${THEME.accent}` : "2.5px solid transparent",
-              color: dematView === view ? THEME.accent : THEME.muted,
-              fontWeight: dematView === view ? 800 : 600,
-              fontSize: 14,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginBottom: -1,
-              borderRadius: 0,
-              transition: "color 0.15s",
-            }}
-          >
-            {view === "holdings" ? (
-              <BarChart3 size={15} />
-            ) : view === "analytics" ? (
-              <Activity size={15} />
-            ) : (
-              <Star size={15} />
-            )}
-            {view === "holdings" ? (
-              "Holdings"
-            ) : view === "analytics" ? (
-              "Portfolio Score"
-            ) : (
-              "Watchlist"
-            )}
-            {view === "watchlist" && wishlists.length > 0 && (
-              <span style={{
-                background: `${THEME.accent}20`,
-                color: THEME.accent,
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "1px 6px",
-                borderRadius: 10,
-              }}>
-                {wishlists.length}
-              </span>
-            )}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${THEME.line}`, marginBottom: 0 }}>
+        {(["holdings", "analytics", "watchlist"] as const).map((view) => {
+          const active = dematView === view;
+          return (
+            <button
+              key={view}
+              onClick={() => setDematView(view)}
+              style={{
+                padding: "12px 24px",
+                background: "transparent",
+                border: "none",
+                borderBottom: active ? `3px solid ${THEME.accent}` : "3px solid transparent",
+                color: active ? THEME.accent : THEME.muted,
+                fontWeight: active ? 800 : 600,
+                fontSize: 14,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: -2,
+                borderRadius: 0,
+                transition: "color 0.2s, border-color 0.2s",
+              }}
+            >
+              {view === "holdings" ? (
+                <BarChart3 size={16} />
+              ) : view === "analytics" ? (
+                <Activity size={16} />
+              ) : (
+                <Star size={16} />
+              )}
+              {view === "holdings" ? (
+                "Holdings"
+              ) : view === "analytics" ? (
+                "Analytics"
+              ) : (
+                "Watchlist"
+              )}
+              {view === "watchlist" && wishlists.length > 0 && (
+                <span style={{
+                  background: active ? `${THEME.accent}18` : `${THEME.muted}15`,
+                  color: active ? THEME.accent : THEME.muted,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: 10,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}>
+                  {wishlists.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── BROKER FILTER BAR — only shown for Holdings tab ── */}
-      {dematView === "holdings" && (
+      {/* ── BROKER FILTER BAR — shown for Holdings & Analytics tabs ── */}
+      {(dematView === "holdings" || dematView === "analytics") && (
         <div className="demat-portfolio-bar no-scrollbar" style={{ marginTop: 16 }}>
           <button
             onClick={() => setSelectedDematId(null)}
@@ -1483,6 +1488,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             label="Portfolio Value"
             value={fmtINRFull(totalValue)}
             color={THEME.accent}
+            borderColor={THEME.accent}
             sub={`Invested ${fmtINRFull(totalInvested)}`}
           />
           <StatCard
@@ -1490,6 +1496,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             label="Day's P&L"
             value={fmtINRFull(totalDaysPnL)}
             color={totalDaysPnL >= 0 ? THEME.sage : THEME.rust}
+            borderColor="#f59e0b"
             sub={
               totalDaysPnL !== 0
                 ? `${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}% today`
@@ -1501,6 +1508,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             label="Unrealized P&L"
             value={fmtINRFull(pnl)}
             color={pnl >= 0 ? THEME.sage : THEME.rust}
+            borderColor={pnl >= 0 ? THEME.sage : THEME.rust}
             sub={
               totalInvested
                 ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
@@ -1508,212 +1516,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             }
           />
           <StatCard
-            icon={<Percent />}
-            label="Net Return"
-            value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
-            color={pnl >= 0 ? THEME.sage : THEME.rust}
-            sub="Absolute portfolio performance"
-          />
-          <StatCard
             icon={<TrendingUp />}
             label="Overall XIRR"
             value={overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
             color={overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}
+            borderColor="#8b5cf6"
             sub="Annualized rate of return"
           />
         </div>
-
-        {/* ── BENCHMARK COMPARISON SECTION ── */}
-        {filteredStocks.length > 0 && (() => {
-          // Compute portfolio CAGR from oldest buy date
-          const oldestBuyDate = filteredStocks.reduce((oldest: string | null, st: any) => {
-            if (!st.buyDate) return oldest;
-            if (!oldest) return st.buyDate;
-            return new Date(st.buyDate).getTime() < new Date(oldest).getTime() ? st.buyDate : oldest;
-          }, null as string | null);
-
-          const portfolioCagr = oldestBuyDate ? calcCAGR(totalInvested, totalValue, oldestBuyDate) : null;
-          const absoluteReturnPct = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
-
-          // Hardcoded benchmark annual returns (CAGR for each period)
-          const benchmarks = [
-            { name: "Nifty 50",       "1Y": 8.5,  "3Y": 11.2, "5Y": 14.8, "10Y": 12.1, color: "#3b82f6" },
-            { name: "Sensex",         "1Y": 8.2,  "3Y": 10.9, "5Y": 14.5, "10Y": 12.0, color: "#64748b" },
-            { name: "Nifty Midcap",   "1Y": 15.3, "3Y": 18.7, "5Y": 19.2, "10Y": 16.5, color: "#8b5cf6" },
-            { name: "Nifty Smallcap", "1Y": 12.1, "3Y": 20.5, "5Y": 18.9, "10Y": 15.8, color: "#f59e0b" },
-          ];
-
-          // Match benchmark period to portfolio holding period
-          const holdingYears = oldestBuyDate ? (Date.now() - new Date(oldestBuyDate).getTime()) / (365.25 * 24 * 3600 * 1000) : 1;
-          const benchmarkPeriod: "1Y" | "3Y" | "5Y" | "10Y" = holdingYears >= 7 ? "10Y" : holdingYears >= 4 ? "5Y" : holdingYears >= 2 ? "3Y" : "1Y";
-          const niftyBenchmark = benchmarks[0][benchmarkPeriod];
-          const alpha = portfolioCagr !== null ? portfolioCagr - niftyBenchmark : null;
-
-          // Performance rating
-          let ratingLabel = "Underperforming";
-          let ratingColor = THEME.rust;
-          if (alpha !== null) {
-            if (alpha > 5) { ratingLabel = "Outperforming"; ratingColor = THEME.sage; }
-            else if (alpha >= 0) { ratingLabel = "Market Pace"; ratingColor = THEME.gold; }
-          }
-
-          // Bar chart comparison data — use period-matched benchmark returns
-          const barChartData = [
-            { name: "Your Portfolio", return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0, fill: THEME.accent },
-            { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: "#3b82f6" },
-            { name: "Nifty Midcap", return: benchmarks[2][benchmarkPeriod], fill: "#8b5cf6" },
-            { name: "Nifty Smallcap", return: benchmarks[3][benchmarkPeriod], fill: "#f59e0b" },
-          ];
-
-          return (
-            <Card style={{ padding: 24, marginBottom: 24 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>
-                Portfolio vs Benchmark
-              </div>
-              <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
-                Compare your portfolio CAGR against {benchmarkPeriod} benchmark returns ({holdingYears.toFixed(1)}y holding period)
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-
-                {/* Left: Portfolio Returns Summary */}
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
-                    Your Portfolio Returns
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Total Invested</span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalInvested)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Current Value</span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalValue)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Absolute Return</span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: absoluteReturnPct >= 0 ? THEME.sage : THEME.rust }}>
-                        {absoluteReturnPct >= 0 ? "+" : ""}{absoluteReturnPct.toFixed(2)}%
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}0d` : `${THEME.rust}0d`, border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}30` : `${THEME.rust}30`}` }}>
-                      <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Portfolio CAGR</span>
-                      <span style={{ fontSize: 16, fontWeight: 900, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }}>
-                        {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%` : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Alpha indicator + performance rating */}
-                  {alpha !== null && (
-                    <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                      <div style={{
-                        padding: "8px 14px",
-                        borderRadius: 10,
-                        background: alpha >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
-                        border: `1.5px solid ${alpha >= 0 ? `${THEME.sage}40` : `${THEME.rust}40`}`,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}>
-                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Alpha vs Nifty 50:</span>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: alpha >= 0 ? THEME.sage : THEME.rust }}>
-                          {alpha >= 0 ? "+" : ""}{alpha.toFixed(1)}%
-                        </span>
-                      </div>
-                      <span style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        padding: "5px 12px",
-                        borderRadius: 20,
-                        background: `color-mix(in srgb, ${ratingColor} 15%, transparent)`,
-                        color: ratingColor,
-                        border: `1px solid color-mix(in srgb, ${ratingColor} 30%, transparent)`,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}>
-                        {ratingLabel}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right: Visual bar chart comparison */}
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
-                    Annualized Return Comparison
-                  </div>
-                  <div style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 12, padding: "16px 12px" }}>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={barChartData} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 10 }}>
-                        <XAxis type="number" tick={{ fontSize: 11, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} domain={[0, "auto"]} unit="%" />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }} axisLine={false} tickLine={false} width={110} />
-                        <Tooltip
-                          cursor={{ fill: THEME.line, opacity: 0.4 }}
-                          contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }}
-                          labelStyle={{ color: THEME.ink }}
-                          itemStyle={{ color: THEME.ink }}
-                          formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "CAGR"]}
-                        />
-                        <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
-                          {barChartData.map((entry, index) => (
-                            <Cell key={`bar-${index}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              {/* Benchmark comparison table */}
-              <div style={{ marginTop: 24 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-                  Index Returns (Historical Annualized)
-                </div>
-                <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: "var(--surface-0)" }}>
-                        <th style={{ ...th, paddingLeft: 16 }}>Index</th>
-                        <th style={{ ...th, textAlign: "right" }}>1Y</th>
-                        <th style={{ ...th, textAlign: "right" }}>3Y</th>
-                        <th style={{ ...th, textAlign: "right" }}>5Y</th>
-                        <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>10Y</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* User's portfolio row */}
-                      <tr style={{ background: `${THEME.accent}0a` }}>
-                        <td style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.accent }}>
-                          Your Portfolio
-                        </td>
-                        <td style={{ ...td, textAlign: "right", fontWeight: 800, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }} colSpan={4}>
-                          <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginRight: 8 }}>CAGR:</span>
-                          {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(1)}%` : "N/A"}
-                        </td>
-                      </tr>
-                      {benchmarks.map((b) => (
-                        <tr key={b.name}>
-                          <td style={{ ...td, paddingLeft: 16 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
-                              <span style={{ fontWeight: 700, color: THEME.ink }}>{b.name}</span>
-                            </div>
-                          </td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["1Y"]}%</td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["3Y"]}%</td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["5Y"]}%</td>
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600, paddingRight: 16 }}>{b["10Y"]}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </Card>
-          );
-        })()}
 
         <div
           style={{
@@ -3028,7 +2838,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         )}
       </div>}
 
-      {/* ── PORTFOLIO SCORE & HEALTH ANALYTICS VIEW ── */}
+      {/* ── ANALYTICS VIEW ── */}
       {dematView === "analytics" && (
         <div style={{ width: "100%", marginTop: 24 }}>
           {filteredStocks.length === 0 ? (
@@ -3037,8 +2847,51 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             </Card>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {/* Top Summary Card */}
+              {/* Stat Cards Overview */}
+              <div className="demat-stats-grid">
+                <StatCard
+                  icon={<BarChart3 />}
+                  label="Portfolio Value"
+                  value={fmtINRFull(totalValue)}
+                  color={THEME.accent}
+                  borderColor={THEME.accent}
+                  sub={`Invested ${fmtINRFull(totalInvested)}`}
+                />
+                <StatCard
+                  icon={<TrendingUp />}
+                  label="Unrealized P&L"
+                  value={fmtINRFull(pnl)}
+                  color={pnl >= 0 ? THEME.sage : THEME.rust}
+                  borderColor={pnl >= 0 ? THEME.sage : THEME.rust}
+                  sub={
+                    totalInvested
+                      ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
+                      : undefined
+                  }
+                />
+                <StatCard
+                  icon={<Percent />}
+                  label="Net Return"
+                  value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
+                  color={pnl >= 0 ? THEME.sage : THEME.rust}
+                  borderColor="#f59e0b"
+                  sub="Absolute portfolio performance"
+                />
+                <StatCard
+                  icon={<TrendingUp />}
+                  label="Overall XIRR"
+                  value={overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
+                  color={overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}
+                  borderColor="#8b5cf6"
+                  sub="Annualized rate of return"
+                />
+              </div>
+
+              {/* Portfolio Health Score Card */}
               <Card style={{ padding: 24 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10, marginBottom: 20 }}>
+                  Portfolio Health Score
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
                   
                   {/* Circular Radial Score Gauge */}
@@ -3247,6 +3100,187 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   </div>
                 </Card>
               </div>
+
+              {/* ── BENCHMARK COMPARISON SECTION ── */}
+              {(() => {
+                const oldestBuyDate = filteredStocks.reduce((oldest: string | null, st: any) => {
+                  if (!st.buyDate) return oldest;
+                  if (!oldest) return st.buyDate;
+                  return new Date(st.buyDate).getTime() < new Date(oldest).getTime() ? st.buyDate : oldest;
+                }, null as string | null);
+
+                const portfolioCagr = oldestBuyDate ? calcCAGR(totalInvested, totalValue, oldestBuyDate) : null;
+                const absoluteReturnPct = totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
+
+                const benchmarks = [
+                  { name: "Nifty 50",       "1Y": 8.5,  "3Y": 11.2, "5Y": 14.8, "10Y": 12.1, color: "#3b82f6" },
+                  { name: "Sensex",         "1Y": 8.2,  "3Y": 10.9, "5Y": 14.5, "10Y": 12.0, color: "#64748b" },
+                  { name: "Nifty Midcap",   "1Y": 15.3, "3Y": 18.7, "5Y": 19.2, "10Y": 16.5, color: "#8b5cf6" },
+                  { name: "Nifty Smallcap", "1Y": 12.1, "3Y": 20.5, "5Y": 18.9, "10Y": 15.8, color: "#f59e0b" },
+                ];
+
+                const holdingYears = oldestBuyDate ? (Date.now() - new Date(oldestBuyDate).getTime()) / (365.25 * 24 * 3600 * 1000) : 1;
+                const benchmarkPeriod: "1Y" | "3Y" | "5Y" | "10Y" = holdingYears >= 7 ? "10Y" : holdingYears >= 4 ? "5Y" : holdingYears >= 2 ? "3Y" : "1Y";
+                const niftyBenchmark = benchmarks[0][benchmarkPeriod];
+                const alpha = portfolioCagr !== null ? portfolioCagr - niftyBenchmark : null;
+
+                let ratingLabel = "Underperforming";
+                let ratingColor = THEME.rust;
+                if (alpha !== null) {
+                  if (alpha > 5) { ratingLabel = "Outperforming"; ratingColor = THEME.sage; }
+                  else if (alpha >= 0) { ratingLabel = "Market Pace"; ratingColor = THEME.gold; }
+                }
+
+                const barChartData = [
+                  { name: "Your Portfolio", return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0, fill: THEME.accent },
+                  { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: "#3b82f6" },
+                  { name: "Nifty Midcap", return: benchmarks[2][benchmarkPeriod], fill: "#8b5cf6" },
+                  { name: "Nifty Smallcap", return: benchmarks[3][benchmarkPeriod], fill: "#f59e0b" },
+                ];
+
+                return (
+                  <Card style={{ padding: 24 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10, marginBottom: 20 }}>
+                      Portfolio vs Benchmark
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
+                      Compare your portfolio CAGR against {benchmarkPeriod} benchmark returns ({holdingYears.toFixed(1)}y holding period)
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                          Your Portfolio Returns
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Total Invested</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalInvested)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Current Value</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>{fmtINRFull(totalValue)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
+                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Absolute Return</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: absoluteReturnPct >= 0 ? THEME.sage : THEME.rust }}>
+                              {absoluteReturnPct >= 0 ? "+" : ""}{absoluteReturnPct.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}0d` : `${THEME.rust}0d`, border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `${THEME.sage}30` : `${THEME.rust}30`}` }}>
+                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Portfolio CAGR</span>
+                            <span style={{ fontSize: 16, fontWeight: 900, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }}>
+                              {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%` : "N/A"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {alpha !== null && (
+                          <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                            <div style={{
+                              padding: "8px 14px",
+                              borderRadius: 10,
+                              background: alpha >= 0 ? `${THEME.sage}12` : `${THEME.rust}12`,
+                              border: `1.5px solid ${alpha >= 0 ? `${THEME.sage}40` : `${THEME.rust}40`}`,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}>
+                              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>Alpha vs Nifty 50:</span>
+                              <span style={{ fontSize: 15, fontWeight: 900, color: alpha >= 0 ? THEME.sage : THEME.rust }}>
+                                {alpha >= 0 ? "+" : ""}{alpha.toFixed(1)}%
+                              </span>
+                            </div>
+                            <span style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              padding: "5px 12px",
+                              borderRadius: 20,
+                              background: `color-mix(in srgb, ${ratingColor} 15%, transparent)`,
+                              color: ratingColor,
+                              border: `1px solid color-mix(in srgb, ${ratingColor} 30%, transparent)`,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}>
+                              {ratingLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+                          Annualized Return Comparison
+                        </div>
+                        <div style={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 12, padding: "16px 12px" }}>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={barChartData} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 10 }}>
+                              <XAxis type="number" tick={{ fontSize: 11, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} domain={[0, "auto"]} unit="%" />
+                              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }} axisLine={false} tickLine={false} width={110} />
+                              <Tooltip
+                                cursor={{ fill: THEME.line, opacity: 0.4 }}
+                                contentStyle={{ fontSize: 12, background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, color: THEME.ink }}
+                                labelStyle={{ color: THEME.ink }}
+                                itemStyle={{ color: THEME.ink }}
+                                formatter={(value: any) => [`${Number(value).toFixed(1)}%`, "CAGR"]}
+                              />
+                              <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
+                                {barChartData.map((entry, index) => (
+                                  <Cell key={`bar-${index}`} fill={entry.fill} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 24 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+                        Index Returns (Historical Annualized)
+                      </div>
+                      <div style={{ borderRadius: 12, border: `1px solid ${THEME.line}`, overflow: "hidden" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: "var(--surface-0)" }}>
+                              <th style={{ ...th, paddingLeft: 16 }}>Index</th>
+                              <th style={{ ...th, textAlign: "right" }}>1Y</th>
+                              <th style={{ ...th, textAlign: "right" }}>3Y</th>
+                              <th style={{ ...th, textAlign: "right" }}>5Y</th>
+                              <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>10Y</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr style={{ background: `${THEME.accent}0a` }}>
+                              <td style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.accent }}>
+                                Your Portfolio
+                              </td>
+                              <td style={{ ...td, textAlign: "right", fontWeight: 800, color: portfolioCagr !== null ? (portfolioCagr >= 0 ? THEME.sage : THEME.rust) : THEME.muted }} colSpan={4}>
+                                <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginRight: 8 }}>CAGR:</span>
+                                {portfolioCagr !== null ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(1)}%` : "N/A"}
+                              </td>
+                            </tr>
+                            {benchmarks.map((b) => (
+                              <tr key={b.name}>
+                                <td style={{ ...td, paddingLeft: 16 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
+                                    <span style={{ fontWeight: 700, color: THEME.ink }}>{b.name}</span>
+                                  </div>
+                                </td>
+                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["1Y"]}%</td>
+                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["3Y"]}%</td>
+                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{b["5Y"]}%</td>
+                                <td style={{ ...td, textAlign: "right", fontWeight: 600, paddingRight: 16 }}>{b["10Y"]}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })()}
 
               {/* Actionable Financial Insights checklist */}
               <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
