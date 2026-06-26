@@ -54,12 +54,6 @@ export function useTheme(settings: {
       "--t-radius": radiuses[radiusKey] || "12px",
       "--t-font": fonts[fontKey] || "'Inter', sans-serif",
       "--t-transition": `${anims[animSpeed] || "0.4s"} cubic-bezier(0.4, 0, 0.2, 1)`,
-      "--t-card-bg": vars["--t-darkInk"],
-      "--t-card-shadow": darkMode
-        ? "0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.03)"
-        : "0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02), inset 0 1px 0 rgba(255,255,255,0.8)",
-      "--t-card-blur": "none",
-      "--t-card-border": `1px solid ${vars["--t-line"]}`,
     };
 
     Object.entries(merged).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
