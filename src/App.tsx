@@ -3669,6 +3669,7 @@ function FinanceDashboard() {
                   marketDataTs={marketDataTs}
                   wishlists={state.wishlists || []}
                   wishlistItems={state.wishlistItems || []}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "txnhistory" && (

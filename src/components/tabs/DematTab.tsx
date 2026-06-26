@@ -766,6 +766,7 @@ export function DematTab({
   marketDataTs,
   wishlists = [],
   wishlistItems = [],
+  activeProfile = "all",
 }: any) {
   const [showDemat, setShowDemat] = useState(false);
   const [editDematId, setEditDematId] = useState<string | null>(null);
@@ -3811,6 +3812,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
       {showDemat && (
         <DematModal
+          activeProfile={activeProfile}
           onClose={() => setShowDemat(false)}
           onSave={(v: any) => {
             addItem("demat", v);
@@ -3832,6 +3834,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         <StockModal
           demats={state.demat}
           defaults={stockDefaults}
+          activeProfile={activeProfile}
           onClose={() => {
             setShowStock(false);
             setStockDefaults(null);
@@ -3981,8 +3984,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
   );
 }
 
-function DematModal({ onClose, onSave, initial = null }: any) {
-  const [f, setF] = useState(initial || { broker: "", dpId: "", clientId: "", owner: "self" });
+function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: any) {
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
+  const [f, setF] = useState(initial || { broker: "", dpId: "", clientId: "", owner: defaultOwner });
   return (
     <Modal title={initial ? "Edit Demat Account" : "Add Demat Account"} onClose={onClose}>
       <Field label="Owner / Profile">
@@ -4027,7 +4031,8 @@ function DematModal({ onClose, onSave, initial = null }: any) {
   );
 }
 
-function StockModal({ demats, onClose, onSave, initial = null, defaults = null }: any) {
+function StockModal({ demats, onClose, onSave, initial = null, defaults = null, activeProfile = "all" }: any) {
+  const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
     initial || {
       symbol: defaults?.symbol || "",
@@ -4037,7 +4042,7 @@ function StockModal({ demats, onClose, onSave, initial = null, defaults = null }
       avgPrice: "",
       currentPrice: "",
       buyDate: "",
-      owner: "self",
+      owner: defaultOwner,
     }
   );
   return (
