@@ -56,7 +56,10 @@ export function useTheme(settings: {
       "--t-transition": `${anims[animSpeed] || "0.4s"} cubic-bezier(0.4, 0, 0.2, 1)`,
     };
 
-    Object.entries(merged).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+    Object.entries(merged).forEach(([k, v]) => {
+      document.documentElement.style.setProperty(k, v);
+      document.body.style.setProperty(k, v);
+    });
     // Drive the CSS class-based dark theme so styles.css vars activate
     document.documentElement.classList.toggle("dark-theme", darkMode);
     document.body.classList.toggle("dark-theme", darkMode);
