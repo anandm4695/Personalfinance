@@ -2988,7 +2988,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: "linear-gradient(135deg,#0ea5e9,#3b82f6)",
+              background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

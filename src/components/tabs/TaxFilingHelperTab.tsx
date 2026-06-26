@@ -204,7 +204,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
         <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Income Summary — FY {selectedFY}</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
           {[
-            { label: "Salary Income", value: incomeSummary.salaryIncome, color: "#3B82F6" },
+            { label: "Salary Income", value: incomeSummary.salaryIncome, color: THEME.accent },
             { label: "Rental Income", value: incomeSummary.rentalIncome, color: "#10B981" },
             { label: "Bank/FD Interest", value: incomeSummary.bankInterest, color: "#F59E0B" },
             { label: "Dividend Income", value: incomeSummary.dividendIncome, color: "#8B5CF6" },
@@ -247,7 +247,7 @@ export const TaxFilingHelperTab = ({ state, metrics }) => {
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 80D — Health Insurance</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#3B82F6" }}><Prv>{fmtINRFull(deductions.sec80D)}</Prv></div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: THEME.accent }}><Prv>{fmtINRFull(deductions.sec80D)}</Prv></div>
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
             <div style={{ fontSize: 12, color: THEME.textSecondary }}>Section 24 — Home Loan Interest</div>

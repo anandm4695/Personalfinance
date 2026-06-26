@@ -179,7 +179,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
         <Card style={{ padding: 24 }}>
           <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 600, color: THEME.text }}>Section 80C Breakdown</h3>
           <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 16 }}>Limit: ₹1,50,000</div>
-          <ProgressBar used={data.sec80C.used} limit={data.sec80C.limit} color="#3B82F6" />
+          <ProgressBar used={data.sec80C.used} limit={data.sec80C.limit} color={THEME.accent} />
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
             {data.sec80C.items.map((item) => (
               <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: THEME.bg }}>

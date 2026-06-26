@@ -305,7 +305,7 @@ export const CASImportTab = ({ state, addItem, updateItem }) => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
             <StatCard label="Funds Found" value={parsedFunds.length} icon={<Briefcase />} color="var(--accent)" />
             <StatCard label="Selected" value={stats.count} icon={<CheckCircle />} color="#10B981" />
-            <StatCard label="Total Value" value={fmtINRFull(stats.totalValue)} icon={<IndianRupee />} color="#3B82F6" />
+            <StatCard label="Total Value" value={fmtINRFull(stats.totalValue)} icon={<IndianRupee />} color={THEME.accent} />
           </div>
 
           {/* Category Breakdown */}

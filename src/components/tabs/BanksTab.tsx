@@ -2051,7 +2051,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
     const sel = accounts.find((a: any) => a.id === accId);
     if (!sel) return null;
     const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
-    const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+    const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : THEME.accent;
     return (
       <div
         style={{
@@ -2115,7 +2115,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
           const sel = accounts.find((a: any) => a.id === f.accountId);
           if (!sel) return null;
           const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
-          const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+          const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : THEME.accent;
           return (
             <div
               style={{
@@ -2338,7 +2338,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
         const sel = accounts.find((a: any) => a.id === f.accountId);
         if (!sel) return null;
         const bal = getDisplayBalance ? getDisplayBalance(sel) : Number(sel.balance || 0);
-        const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : "#3B82F6";
+        const color = bal > 0 ? THEME.sage : bal < 0 ? THEME.rust : THEME.accent;
         return (
           <div
             style={{

@@ -2154,8 +2154,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                     >
                       <defs>
                         <linearGradient id="gSwpBalance" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={swpResult.isSustainable ? "#22c55e" : "#6366f1"} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={swpResult.isSustainable ? "#22c55e" : "#6366f1"} stopOpacity={0} />
+                          <stop offset="0%" stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent} stopOpacity={0.35} />
+                          <stop offset="100%" stopColor={swpResult.isSustainable ? "#22c55e" : THEME.accent} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="gSwpWithdrawn" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
@@ -2185,7 +2185,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                         type="monotone"
                         dataKey="balance"
                         name="Corpus Balance"
-                        stroke={swpResult.isSustainable ? "#22c55e" : "#6366f1"}
+                        stroke={swpResult.isSustainable ? "#22c55e" : THEME.accent}
                         strokeWidth={2.5}
                         fill="url(#gSwpBalance)"
                       />

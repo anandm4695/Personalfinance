@@ -184,7 +184,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginTop: 16 }}>
         <StatCard label="Liquid Assets" value={<Prv>{fmtINRFull(data.totalLiquid)}</Prv>} icon={<IndianRupee />} color={THEME.sage} />
         <StatCard label="Monthly Expenses" value={<Prv>{fmtINRFull(data.monthlyExpense)}</Prv>} icon={<Wallet />} color={THEME.gold} />
-        <StatCard label="6-Month Target" value={<Prv>{fmtINRFull(data.targetAmount)}</Prv>} icon={<Target />} color="#3B82F6" />
+        <StatCard label="6-Month Target" value={<Prv>{fmtINRFull(data.targetAmount)}</Prv>} icon={<Target />} color={THEME.accent} />
         <StatCard label="Gap to Fill" value={data.gap > 0 ? <Prv>{fmtINRFull(data.gap)}</Prv> : "None!"} icon={data.gap > 0 ? <AlertTriangle /> : <CheckCircle2 />} color={data.gap > 0 ? THEME.rust : THEME.sage} />
       </div>
 
@@ -196,7 +196,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
-              { label: "Bank Balances (Savings + Current)", value: data.bankBalance, icon: Landmark, color: "#3B82F6" },
+              { label: "Bank Balances (Savings + Current)", value: data.bankBalance, icon: Landmark, color: THEME.accent },
               { label: "Liquid / Money Market MFs", value: data.liquidMF, icon: TrendingUp, color: THEME.sage },
               { label: "Prepaid Card Balances", value: data.prepaidBalance, icon: Wallet, color: "#8B5CF6" },
             ].filter((r) => r.value > 0).map((r, i) => {
@@ -267,7 +267,7 @@ export const EmergencyFundTab = ({ state, metrics }) => {
             )}
             {data.monthsCovered >= 3 && data.monthsCovered < 6 && (
               <div style={{ display: "flex", gap: 10, padding: "10px 14px", borderRadius: 8, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
-                <Shield size={16} style={{ color: "#3B82F6", flexShrink: 0, marginTop: 2 }} />
+                <Shield size={16} style={{ color: THEME.accent, flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 13, color: THEME.ink }}>
                   <strong>Good progress:</strong> You're building a buffer. Target 6 months for a solid safety net. Split between savings account (1-2 months) and liquid MF (rest).
                 </div>

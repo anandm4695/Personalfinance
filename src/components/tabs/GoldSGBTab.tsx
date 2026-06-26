@@ -38,7 +38,7 @@ import { Prv } from "../../context/PrivacyContext";
 const GOLD_TYPES = [
   { id: "physical", label: "Physical Gold", color: "#F59E0B" },
   { id: "sgb", label: "Sovereign Gold Bond (SGB)", color: "#10B981" },
-  { id: "digital", label: "Digital Gold", color: "#3B82F6" },
+  { id: "digital", label: "Digital Gold", color: THEME.accent },
   { id: "etf", label: "Gold ETF", color: "#8B5CF6" },
   { id: "mf", label: "Gold Mutual Fund", color: "#EC4899" },
 ];
@@ -155,7 +155,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
       {holdings.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
           <StatCard label="Total Gold" value={`${stats.totalGrams.toFixed(2)}g`} icon={<Coins />} color="#F59E0B" />
-          <StatCard label="Current Value" value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>} icon={<IndianRupee />} color="#3B82F6" />
+          <StatCard label="Current Value" value={<Prv>{fmtINRFull(stats.totalValue)}</Prv>} icon={<IndianRupee />} color={THEME.accent} />
           <StatCard label="P&L" value={<Prv>{fmtINRFull(stats.totalPnL)}</Prv>} icon={<TrendingUp />}
             color={stats.totalPnL >= 0 ? "#10B981" : "#EF4444"} />
           {stats.totalInterest > 0 && (

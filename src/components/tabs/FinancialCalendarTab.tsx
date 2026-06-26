@@ -92,7 +92,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           amount: Number(fd.principal || 0),
           maturityAmount: maturityAmt,
           rate: fd.rate,
-          color: "#3B82F6",
+          color: THEME.accent,
           detail: `${fd.rate}% p.a. • Principal: ${fmtINRFull(fd.principal)}`,
         });
       }
@@ -266,7 +266,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           date: feeDateStr,
           days,
           amount: feeAmt,
-          color: "#6366F1",
+          color: THEME.accent,
           detail: `Annual Fee: ${fmtINRFull(feeAmt)}`,
         });
       }

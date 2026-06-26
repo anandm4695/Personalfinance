@@ -156,7 +156,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
           { label: "Estimated Tax", value: fmtINRFull(taxLiability), color: THEME.accent },
           { label: "TDS Already Paid", value: fmtINRFull(tdsPaid), color: "#10B981" },
           { label: "Net Tax Due", value: fmtINRFull(netTaxDue), color: "#F97316" },
-          { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: "#3B82F6" },
+          { label: "Advance Tax Paid", value: fmtINRFull(totalPaid), color: THEME.accent },
           { label: "Remaining to Pay", value: fmtINRFull(remaining), color: remaining > 0 ? "#EF4444" : "#10B981" },
         ].map((s, i) => (
           <Card key={i}>
@@ -318,7 +318,7 @@ const HraReceiptSection = ({ state }) => {
       </style></head>
       <body>
         <div class="no-print" style="text-align:center;margin-bottom:20px;">
-          <button onclick="window.print()" style="padding:10px 30px;font-size:16px;cursor:pointer;background:#4F46E5;color:#fff;border:none;border-radius:8px;">Print / Save PDF</button>
+          <button onclick="window.print()" style="padding:10px 30px;font-size:16px;cursor:pointer;background:var(--t-accent);color:#fff;border:none;border-radius:8px;">Print / Save PDF</button>
         </div>
         ${receipts.map((r) => `
           <div class="receipt">
@@ -572,7 +572,7 @@ const Form26ASSection = ({ state }) => {
         <Card>
           <div style={{ padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>App Records</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#3B82F6" }}><Prv>{fmtINRFull(totalApp)}</Prv></div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}><Prv>{fmtINRFull(totalApp)}</Prv></div>
           </div>
         </Card>
         <Card>

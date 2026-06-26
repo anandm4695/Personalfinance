@@ -157,7 +157,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
   if (historicalData.length < 3) {
     return (
       <EmptyState icon={TrendingUp} title="Not Enough Data"
-        gradient="linear-gradient(135deg, var(--accent), #3B82F6)"
+        gradient={`linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`}
         dotColor="var(--accent)"
         description="Add at least 3 months of transactions to see expense forecasts and patterns."
         pills={["Track spending", "Predict trends", "Seasonal patterns"]}
@@ -172,7 +172,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <StatCard label="Annual Projection" value={fmtINRFull(annualProjection)} icon={<Calendar />} color="var(--accent)" />
-        <StatCard label="Monthly Average" value={fmtINRFull(Math.round(annualProjection / 12))} icon={<BarChart3 />} color="#3B82F6" />
+        <StatCard label="Monthly Average" value={fmtINRFull(Math.round(annualProjection / 12))} icon={<BarChart3 />} color={THEME.accent} />
         <StatCard label="Trending Up" value={`${trendingUp} categories`} icon={<ArrowUp />} color="#EF4444" />
         <StatCard label="Trending Down" value={`${trendingDown} categories`} icon={<ArrowDown />} color="#10B981" />
       </div>
@@ -196,7 +196,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
             <Area type="monotone" dataKey="upper" stroke="none" fill={THEME.rust} fillOpacity={0.1} name="Upper Bound" />
             <Area type="monotone" dataKey="lower" stroke="none" fill={THEME.sage} fillOpacity={0.1} name="Lower Bound" />
             <Area type="monotone" dataKey="predicted" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.1} strokeWidth={2} name="Predicted" />
-            <Area type="monotone" dataKey="total" stroke="#3B82F6" fill="none" strokeWidth={2} name="Actual" />
+            <Area type="monotone" dataKey="total" stroke="var(--t-accent)" fill="none" strokeWidth={2} name="Actual" />
           </AreaChart>
         </ResponsiveContainer>
       </Card>

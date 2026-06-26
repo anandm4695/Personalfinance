@@ -12487,7 +12487,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     ]}
                   />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20, color: THEME.ink }} iconType="circle" />
-                  <Bar dataKey="You" fill="#6366f1" radius={[5, 5, 0, 0]} maxBarSize={36} />
+                  <Bar dataKey="You" fill="var(--t-accent)" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Top10" fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
                 </BarChart>
