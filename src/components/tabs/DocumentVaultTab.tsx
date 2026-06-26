@@ -6,26 +6,17 @@ import {
   Pencil,
   Trash2,
   Search,
-  Filter,
   Grid,
   List,
   AlertTriangle,
-  CheckCircle,
   Clock,
-  Shield,
-  CreditCard,
-  Home,
-  Car,
-  Scale,
   Folder,
   FolderOpen,
-  Eye,
   ExternalLink,
   RefreshCw,
   ChevronDown,
   ChevronUp,
   Link2,
-  User,
   Calendar,
   Hash,
   Building,
@@ -34,8 +25,10 @@ import {
   Fingerprint,
   Landmark,
   ShieldCheck,
-  FileCheck,
-  Briefcase,
+  Home,
+  Car,
+  Scale,
+  X,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { uid, today as todayFn } from "../../utils/finance";
@@ -253,12 +246,27 @@ const EMPTY_DOC = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Shared inline style helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+const actionBtnBase: React.CSSProperties = {
+  padding: 6,
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  borderRadius: 6,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  transition: "background 0.15s, color 0.15s",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => {
   const documents: any[] = state.documents || [];
-  const todayStr = todayFn();
 
   // ── UI State ────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
@@ -271,6 +279,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [expiryFilter, setExpiryFilter] = useState<"all" | "30" | "60" | "90">("all");
   const [expandedAlerts, setExpandedAlerts] = useState(true);
+  const [renewDoc, setRenewDoc] = useState<any>(null);
+  const [renewDate, setRenewDate] = useState("");
 
   // ── Computed ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -308,12 +318,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   const filteredDocs = useMemo(() => {
     let list = [...documents];
 
-    // Category filter
     if (filterCategory !== "all") {
       list = list.filter((d) => d.category === filterCategory);
     }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -325,7 +333,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       );
     }
 
-    // Sort
     list.sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
@@ -348,7 +355,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     return list;
   }, [documents, filterCategory, searchQuery, sortBy, sortDir]);
 
-  // Quick links: check which asset types have linked documents
   const quickLinks = useMemo(() => {
     const links: { type: string; label: string; total: number; linked: number }[] = [];
     const assetMap: Record<string, { key: string; label: string }> = {
@@ -440,10 +446,16 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     }
   };
 
-  const handleRenew = (doc: any) => {
-    const newExpiry = prompt("Enter new expiry date (YYYY-MM-DD):", "");
-    if (newExpiry && /^\d{4}-\d{2}-\d{2}$/.test(newExpiry)) {
-      updateItem("documents", doc.id, { expiryDate: newExpiry });
+  const openRenewModal = (doc: any) => {
+    setRenewDoc(doc);
+    setRenewDate("");
+  };
+
+  const handleRenewSave = () => {
+    if (renewDoc && renewDate && /^\d{4}-\d{2}-\d{2}$/.test(renewDate)) {
+      updateItem("documents", renewDoc.id, { expiryDate: renewDate });
+      setRenewDoc(null);
+      setRenewDate("");
     }
   };
 
@@ -459,9 +471,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   const setField = (key: string, val: string) => {
     setForm((prev) => {
       const next = { ...prev, [key]: val };
-      // Reset subcategory when category changes
       if (key === "category") next.subcategory = "";
-      // Reset linked asset when type changes
       if (key === "linkedAssetType") next.linkedAsset = "";
       return next;
     });
@@ -522,11 +532,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     const status = getDocStatus(doc.expiryDate);
     const badge = statusBadge(status);
     const days = daysUntilExpiry(doc.expiryDate);
-    const Icon = getCategoryIcon(doc.category);
     const catColor = getCategoryColor(doc.category);
 
     return (
       <Card
+        className="card-lift"
         style={{
           padding: 0,
           overflow: "hidden",
@@ -551,7 +561,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               >
                 {doc.name}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 <Badge variant={badge.variant} style={{ fontSize: 10 }}>
                   {badge.label}
                 </Badge>
@@ -566,7 +576,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12 }}>
             {doc.documentNumber && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-                <Hash size={12} />
+                <Hash size={12} style={{ flexShrink: 0 }} />
                 <span style={{ color: THEME.ink, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                   <Prv>{doc.documentNumber}</Prv>
                 </span>
@@ -574,12 +584,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             )}
             {doc.issuer && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-                <Building size={12} />
-                <span>{doc.issuer}</span>
+                <Building size={12} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.issuer}</span>
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: THEME.muted }}>
-              <Calendar size={12} />
+              <Calendar size={12} style={{ flexShrink: 0 }} />
               <span>
                 {doc.issueDate ? formatDate(doc.issueDate) : "--"}
                 {doc.expiryDate ? ` to ${formatDate(doc.expiryDate)}` : ""}
@@ -599,7 +609,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
           {/* Owner */}
           {doc.owner && (
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 10 }}>
               <Badge variant="muted" style={{ fontSize: 10, textTransform: "capitalize" }}>
                 {PROFILES.find((p) => p.id === doc.owner)?.name || doc.owner}
               </Badge>
@@ -618,19 +628,21 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           {doc.url && (
             <button
               onClick={() => window.open(doc.url, "_blank")}
+              className="card-lift"
               style={{
                 flex: 1,
-                padding: "8px 0",
+                padding: "9px 0",
                 border: "none",
                 background: "transparent",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 4,
+                gap: 5,
                 fontSize: 11,
                 fontWeight: 600,
                 color: THEME.accent,
+                transition: "background 0.15s",
               }}
             >
               <ExternalLink size={12} />
@@ -639,9 +651,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           )}
           <button
             onClick={() => openEditModal(doc)}
+            className="card-lift"
             style={{
               flex: 1,
-              padding: "8px 0",
+              padding: "9px 0",
               border: "none",
               borderLeft: doc.url ? `1px solid ${THEME.line}` : "none",
               background: "transparent",
@@ -649,10 +662,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
+              gap: 5,
               fontSize: 11,
               fontWeight: 600,
               color: THEME.muted,
+              transition: "background 0.15s",
             }}
           >
             <Pencil size={12} />
@@ -660,9 +674,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
+            className="card-lift"
             style={{
               flex: 1,
-              padding: "8px 0",
+              padding: "9px 0",
               border: "none",
               borderLeft: `1px solid ${THEME.line}`,
               background: "transparent",
@@ -670,10 +685,11 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
+              gap: 5,
               fontSize: 11,
               fontWeight: 600,
               color: THEME.rust,
+              transition: "background 0.15s",
             }}
           >
             <Trash2 size={12} />
@@ -688,7 +704,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   function DocRow({ doc }: { doc: any }) {
     const status = getDocStatus(doc.expiryDate);
     const badge = statusBadge(status);
-    const days = daysUntilExpiry(doc.expiryDate);
 
     return (
       <div
@@ -722,7 +737,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             {doc.documentNumber ? <> | <Prv>{doc.documentNumber}</Prv></> : ""}
           </div>
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
+        {/* Desktop-only columns */}
+        <div className="doc-vault-list-meta" style={{ textAlign: "right", flexShrink: 0 }}>
           <div style={{ fontSize: 11, color: THEME.muted }}>{doc.issuer || "--"}</div>
           <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
             {doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}
@@ -731,45 +747,27 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         <Badge variant={badge.variant} style={{ fontSize: 10, flexShrink: 0 }}>
           {badge.label}
         </Badge>
-        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
           {doc.url && (
             <button
               onClick={() => window.open(doc.url, "_blank")}
-              style={{
-                padding: 6,
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                color: THEME.accent,
-                borderRadius: 6,
-              }}
+              aria-label="Open link"
+              style={{ ...actionBtnBase, color: THEME.accent }}
             >
               <ExternalLink size={14} />
             </button>
           )}
           <button
             onClick={() => openEditModal(doc)}
-            style={{
-              padding: 6,
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              color: THEME.muted,
-              borderRadius: 6,
-            }}
+            aria-label="Edit document"
+            style={{ ...actionBtnBase, color: THEME.muted }}
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => handleDelete(doc.id)}
-            style={{
-              padding: 6,
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              color: THEME.rust,
-              borderRadius: 6,
-            }}
+            aria-label="Delete document"
+            style={{ ...actionBtnBase, color: THEME.rust }}
           >
             <Trash2 size={14} />
           </button>
@@ -778,7 +776,43 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
     );
   }
 
-  // ── Modal ───────────────────────────────────────────────────────────────
+  // ── Renew Modal ────────────────────────────────────────────────────────
+  function renderRenewModal() {
+    if (!renewDoc) return null;
+    return (
+      <Modal
+        title="Renew Document"
+        onClose={() => { setRenewDoc(null); setRenewDate(""); }}
+        maxWidth={400}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 4 }}>Document</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>{renewDoc.name}</div>
+          {renewDoc.expiryDate && (
+            <div style={{ fontSize: 12, color: THEME.rust, marginTop: 4 }}>
+              Current expiry: {formatDate(renewDoc.expiryDate)}
+            </div>
+          )}
+        </div>
+        <Field label="New Expiry Date">
+          <Input
+            type="date"
+            value={renewDate}
+            onChange={(e) => setRenewDate(e.target.value)}
+            autoFocus
+          />
+        </Field>
+        <ModalActions
+          onSave={handleRenewSave}
+          onClose={() => { setRenewDoc(null); setRenewDate(""); }}
+          saveLabel="Update Expiry"
+          disabled={!renewDate}
+        />
+      </Modal>
+    );
+  }
+
+  // ── Main Modal ─────────────────────────────────────────────────────────
   function renderModal() {
     const subcats = CATEGORIES[form.category as CategoryKey]?.subcategories || [];
 
@@ -788,7 +822,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         onClose={() => setShowModal(false)}
         maxWidth={620}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+        <div className="doc-vault-form-grid">
           {/* Name - full width */}
           <Field label="Document Name" style={{ gridColumn: "1 / -1" }}>
             <Input
@@ -928,6 +962,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 fontWeight: 500,
                 resize: "vertical",
                 fontFamily: "inherit",
+                borderRadius: "var(--radius-md, 8px)",
+                border: `1.5px solid ${THEME.line}`,
+                background: "transparent",
+                color: THEME.ink,
+                outline: "none",
+                transition: "border-color 0.2s",
               }}
             />
           </Field>
@@ -945,6 +985,90 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 0" }}>
+      <style>{`
+        .doc-vault-form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0 16px;
+        }
+        .doc-vault-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 14px;
+          margin-bottom: 24px;
+        }
+        .doc-vault-cat-pills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .doc-vault-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .doc-vault-toolbar-search {
+          flex: 1;
+          min-width: 200px;
+          position: relative;
+        }
+        .doc-vault-sort-group {
+          display: flex;
+          gap: 4px;
+        }
+        .doc-vault-doc-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 16px;
+        }
+        .doc-vault-coverage-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 12px;
+        }
+        .doc-vault-alert-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 20px;
+          border-bottom: 1px solid ${THEME.line};
+        }
+        .doc-vault-alert-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .doc-vault-list-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 16px;
+          border-bottom: 2px solid ${THEME.line};
+          font-size: 11px;
+          font-weight: 700;
+          color: ${THEME.muted};
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        @media (max-width: 768px) {
+          .doc-vault-form-grid { grid-template-columns: 1fr; }
+          .doc-vault-form-grid [style*="grid-column"] { grid-column: auto !important; }
+          .doc-vault-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .doc-vault-toolbar { flex-wrap: wrap; gap: 8px; }
+          .doc-vault-toolbar-search { min-width: 100%; order: -1; }
+          .doc-vault-sort-group { flex-wrap: wrap; }
+          .doc-vault-doc-grid { grid-template-columns: 1fr; gap: 12px; }
+          .doc-vault-coverage-grid { grid-template-columns: repeat(2, 1fr); }
+          .doc-vault-alert-row { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+          .doc-vault-alert-meta { width: 100%; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+          .doc-vault-list-meta { display: none !important; }
+          .doc-vault-list-header { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .doc-vault-stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+          .doc-vault-sort-group { gap: 3px; }
+          .doc-vault-coverage-grid { grid-template-columns: 1fr; }
+          .doc-vault-cat-pills { gap: 6px; }
+        }
+      `}</style>
+
       {/* Section Title */}
       <SectionTitle
         sub="Store, organize and track all your important documents in one secure vault."
@@ -958,14 +1082,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       </SectionTitle>
 
       {/* ── Dashboard Stats ──────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
-        }}
-      >
+      <div className="doc-vault-stats-grid">
         <StatCard
           label="Total Documents"
           value={String(stats.total)}
@@ -1010,13 +1127,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         >
           Categories
         </div>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 10,
-          }}
-        >
+        <div className="doc-vault-cat-pills">
           <button
             onClick={() => setFilterCategory("all")}
             style={{
@@ -1097,7 +1208,6 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               </Badge>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* Expiry range filter */}
               <select
                 value={expiryFilter}
                 onChange={(e) => { e.stopPropagation(); setExpiryFilter(e.target.value as any); }}
@@ -1113,7 +1223,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                   cursor: "pointer",
                 }}
               >
-                <option value="all">Next 90 days</option>
+                <option value="all">All Alerts</option>
                 <option value="90">Next 90 days</option>
                 <option value="60">Next 60 days</option>
                 <option value="30">Next 30 days</option>
@@ -1127,19 +1237,10 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 const days = daysUntilExpiry(doc.expiryDate);
                 const isExpired = days !== null && days < 0;
                 return (
-                  <div
-                    key={doc.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "10px 20px",
-                      borderBottom: `1px solid ${THEME.line}`,
-                    }}
-                  >
+                  <div key={doc.id} className="doc-vault-alert-row">
                     <CategoryIconBadge category={doc.category} size={28} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {doc.name}
                       </div>
                       <div style={{ fontSize: 11, color: THEME.muted }}>
@@ -1161,30 +1262,20 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                         )}
                       </div>
                     </div>
-                    <Badge variant={isExpired ? "rust" : "gold"} style={{ fontSize: 10, flexShrink: 0 }}>
-                      {isExpired ? "Expired" : "Expiring"}
-                    </Badge>
-                    <button
-                      onClick={() => handleRenew(doc)}
-                      title="Mark as renewed"
-                      style={{
-                        padding: "5px 10px",
-                        border: `1px solid ${THEME.line}`,
-                        background: "transparent",
-                        cursor: "pointer",
-                        borderRadius: 6,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "#059669",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <RefreshCw size={12} />
-                      Renew
-                    </button>
+                    <div className="doc-vault-alert-meta">
+                      <Badge variant={isExpired ? "rust" : "gold"} style={{ fontSize: 10 }}>
+                        {isExpired ? "Expired" : "Expiring"}
+                      </Badge>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<RefreshCw size={12} />}
+                        onClick={() => openRenewModal(doc)}
+                        style={{ color: "#059669", borderColor: "#059669" }}
+                      >
+                        Renew
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -1210,13 +1301,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             <Link2 size={16} color={THEME.accent} />
             Asset Document Coverage
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <div className="doc-vault-coverage-grid">
             {quickLinks.map((link) => {
               const pct = link.total > 0 ? Math.round((link.linked / link.total) * 100) : 0;
               return (
@@ -1264,23 +1349,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
       )}
 
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="doc-vault-toolbar">
         {/* Search */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 200,
-            position: "relative",
-          }}
-        >
+        <div className="doc-vault-toolbar-search">
           <Search
             size={14}
             style={{
@@ -1289,6 +1360,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               top: "50%",
               transform: "translateY(-50%)",
               color: THEME.muted,
+              pointerEvents: "none",
             }}
           />
           <input
@@ -1306,12 +1378,36 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               background: "transparent",
               color: THEME.ink,
               outline: "none",
+              transition: "border-color 0.2s",
             }}
+            onFocus={(e) => { e.target.style.borderColor = THEME.accent; }}
+            onBlur={(e) => { e.target.style.borderColor = ""; }}
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                padding: 4,
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: THEME.muted,
+                display: "flex",
+                alignItems: "center",
+                borderRadius: 4,
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* Sort buttons */}
-        <div style={{ display: "flex", gap: 4 }}>
+        <div className="doc-vault-sort-group">
           {(
             [
               { key: "name", label: "Name" },
@@ -1335,6 +1431,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
                 display: "flex",
                 alignItems: "center",
                 gap: 3,
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
               }}
             >
               {s.label}
@@ -1350,10 +1448,12 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
             borderRadius: 8,
             border: `1px solid ${THEME.line}`,
             overflow: "hidden",
+            flexShrink: 0,
           }}
         >
           <button
             onClick={() => setViewMode("grid")}
+            aria-label="Grid view"
             style={{
               padding: "6px 10px",
               border: "none",
@@ -1362,12 +1462,14 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              transition: "all 0.15s",
             }}
           >
             <Grid size={14} />
           </button>
           <button
             onClick={() => setViewMode("list")}
+            aria-label="List view"
             style={{
               padding: "6px 10px",
               border: "none",
@@ -1377,6 +1479,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              transition: "all 0.15s",
             }}
           >
             <List size={14} />
@@ -1384,51 +1487,57 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </div>
       </div>
 
+      {/* ── Results count ────────────────────────────────────────────────── */}
+      {(filterCategory !== "all" || searchQuery) && (
+        <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12, fontWeight: 500 }}>
+          {filteredDocs.length} document{filteredDocs.length !== 1 ? "s" : ""} found
+          {filterCategory !== "all" && (
+            <Badge
+              variant="accent"
+              style={{ fontSize: 10, marginLeft: 8, cursor: "pointer" }}
+              onClick={() => setFilterCategory("all")}
+            >
+              {filterCategory} <X size={10} style={{ marginLeft: 2 }} />
+            </Badge>
+          )}
+          {searchQuery && (
+            <Badge
+              variant="muted"
+              style={{ fontSize: 10, marginLeft: 6, cursor: "pointer" }}
+              onClick={() => setSearchQuery("")}
+            >
+              "{searchQuery}" <X size={10} style={{ marginLeft: 2 }} />
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* ── Document Grid / List ─────────────────────────────────────────── */}
       {filteredDocs.length === 0 ? (
-        <Card style={{ padding: "40px 24px", textAlign: "center" }}>
-          <Search size={32} color={THEME.muted} style={{ marginBottom: 12, opacity: 0.4 }} />
-          <div style={{ fontSize: 14, fontWeight: 600, color: THEME.muted }}>
+        <Card style={{ padding: "48px 24px", textAlign: "center" }}>
+          <Search size={36} color={THEME.muted} style={{ marginBottom: 14, opacity: 0.3 }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
             No documents found
           </div>
-          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 300, margin: "0 auto" }}>
             Try adjusting your search or filter criteria
           </div>
         </Card>
       ) : viewMode === "grid" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="doc-vault-doc-grid">
           {filteredDocs.map((doc) => (
             <DocCard key={doc.id} doc={doc} />
           ))}
         </div>
       ) : (
         <Card style={{ padding: 0, overflow: "hidden" }}>
-          {/* List header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "10px 16px",
-              borderBottom: `2px solid ${THEME.line}`,
-              fontSize: 11,
-              fontWeight: 700,
-              color: THEME.muted,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
+          {/* List header — hidden on mobile via CSS */}
+          <div className="doc-vault-list-header">
             <div style={{ width: 32 }} />
             <div style={{ flex: 1 }}>Document</div>
-            <div style={{ width: 120, textAlign: "right" }}>Issuer / Expiry</div>
-            <div style={{ width: 80, textAlign: "center" }}>Status</div>
-            <div style={{ width: 100 }}>Actions</div>
+            <div style={{ width: 140, textAlign: "right" }}>Issuer / Expiry</div>
+            <div style={{ width: 90, textAlign: "center" }}>Status</div>
+            <div style={{ width: 90, textAlign: "center" }}>Actions</div>
           </div>
           {filteredDocs.map((doc) => (
             <DocRow key={doc.id} doc={doc} />
@@ -1436,8 +1545,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </Card>
       )}
 
-      {/* ── Modal ────────────────────────────────────────────────────────── */}
+      {/* ── Modals ───────────────────────────────────────────────────────── */}
       {showModal && renderModal()}
+      {renderRenewModal()}
     </div>
   );
 };
