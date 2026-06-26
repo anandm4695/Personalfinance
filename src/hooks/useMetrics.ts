@@ -69,6 +69,7 @@ export function useMetrics(
       corporateActions: filterByOwner(state.corporateActions || []),
       goldHoldings: filterByOwner(state.goldHoldings || []),
       lifeEvents: filterByOwner(state.lifeEvents || []),
+      netWorthHistory: [],
     };
   }, [state, activeProfile]);
 

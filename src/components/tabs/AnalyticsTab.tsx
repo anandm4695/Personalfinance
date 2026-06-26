@@ -515,6 +515,7 @@ interface AnalyticsTabProps {
   setTab?: any;
   dashboardWidgets?: Record<string, boolean>;
   onUpdateWidgets?: (widgets: Record<string, boolean>) => void;
+  activeProfile?: string;
 }
 
 const DASHBOARD_WIDGET_DEFS = [
@@ -545,6 +546,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   setTab,
   dashboardWidgets,
   onUpdateWidgets,
+  activeProfile = "all",
 }) => {
   const isDark = state.settings?.darkMode ?? false;
   const [sub, setSub] = useState("dashboard");
@@ -810,10 +812,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         0);
       const investmentAdditions = stockBuys + mfBuys + fdAdds + ppfAdds;
 
-      // Net worth at end of FY (March of startYear+1)
-      const marchKey = `${startYear + 1}-03`;
-      const nwEntry = (state.netWorthHistory || []).find((h: any) => h.month === marchKey);
-      const netWorth = nwEntry ? Number(nwEntry.netWorth || 0) : 0;
+      // Net worth at end of FY (March of startYear+1) — only valid for "all" profile
+      let netWorth = 0;
+      if (activeProfile === "all") {
+        const marchKey = `${startYear + 1}-03`;
+        const nwEntry = (state.netWorthHistory || []).find((h: any) => h.month === marchKey);
+        netWorth = nwEntry ? Number(nwEntry.netWorth || 0) : 0;
+      }
 
       return { totalIncome, totalExpense, savings, savingsRate, investmentAdditions, netWorth };
     };
@@ -841,7 +846,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         { name: "Savings", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.savings, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.savings },
       ],
     };
-  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppf, state.netWorthHistory]);
+  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppf, state.netWorthHistory, activeProfile]);
 
   // ── Estate Planning — Nomination Coverage Audit ──
   const nominationAudit = useMemo(() => {
@@ -1308,7 +1313,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ];
 
   const netWorthTrend = useMemo(() => {
-    // Build from saved snapshots, sorted oldest→newest.
+    if (activeProfile !== "all") {
+      if (metrics.netWorth <= 0) return [];
+      const now = new Date();
+      const label = now.toLocaleString("en-IN", { month: "short", year: "2-digit" });
+      const todayYM = now.toISOString().slice(0, 7);
+      return [{ month: label, ym: todayYM, value: metrics.netWorth }];
+    }
     const hist = [...(state.netWorthHistory || [])].sort((a: any, b: any) =>
       a.month.localeCompare(b.month)
     );
@@ -1318,9 +1329,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const label = d.toLocaleString("en-IN", { month: "short", year: "2-digit" });
       return { month: label, ym: h.month, value: h.netWorth };
     });
-    // Always append the current live net worth as "Today" if it isn't already the latest snapshot.
-    // This ensures the hero sparkline renders even when the user has only 1–2 saved snapshots.
-    const todayYM = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const todayYM = new Date().toISOString().slice(0, 7);
     const lastYM = points.length > 0 ? points[points.length - 1].ym : "";
     if (lastYM !== todayYM && metrics.netWorth > 0) {
       const now = new Date();
@@ -1328,7 +1337,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       points.push({ month: label, ym: todayYM, value: metrics.netWorth });
     }
     return points;
-  }, [state.netWorthHistory, metrics.netWorth]);
+  }, [state.netWorthHistory, metrics.netWorth, activeProfile]);
 
   const filteredNetWorthTrend = useMemo(() => {
     if (trendPeriod === "All") return netWorthTrend;
@@ -1651,6 +1660,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   ]);
 
   const momNetWorthDelta = useMemo(() => {
+    if (activeProfile !== "all") return null;
     if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
     const sorted = [...state.netWorthHistory].sort((a: any, b: any) =>
       a.month.localeCompare(b.month)
@@ -1662,9 +1672,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const delta = latestVal - prevVal;
     const pct = prevVal !== 0 ? (delta / Math.abs(prevVal)) * 100 : 0;
     return { delta, pct };
-  }, [state.netWorthHistory]);
+  }, [state.netWorthHistory, activeProfile]);
 
   const wealthVelocity = useMemo(() => {
+    if (activeProfile !== "all") return null;
     if (!state.netWorthHistory || state.netWorthHistory.length < 2) return null;
     const sorted = [...state.netWorthHistory]
       .sort((a: any, b: any) => a.month.localeCompare(b.month))
@@ -1680,7 +1691,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const latest = changes[changes.length - 1] ?? 0;
     const accel = changes.length >= 2 ? latest - changes[changes.length - 2] : 0;
     return { avg, latest, accel, months: changes.length };
-  }, [state.netWorthHistory]);
+  }, [state.netWorthHistory, activeProfile]);
 
   // Spending breakdown for the user-selected month (supports navigation)
   const spendingData = useMemo(() => {

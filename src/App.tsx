@@ -3599,6 +3599,7 @@ function FinanceDashboard() {
                   setTab={setTab}
                   dashboardWidgets={state.masterData?.dashboardWidgets}
                   onUpdateWidgets={(widgets) => updateMasterData("dashboardWidgets", widgets)}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "investments" && (
