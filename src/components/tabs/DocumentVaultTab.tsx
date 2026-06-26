@@ -485,7 +485,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (documents.length === 0) {
     return (
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 0" }}>
+      <div>
         <SectionTitle sub="Store, organize and track all your important documents in one secure vault.">
           Document Vault
         </SectionTitle>
@@ -984,7 +984,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 0" }}>
+    <div>
       <style>{`
         .doc-vault-form-grid {
           display: grid;
