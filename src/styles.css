@@ -84,19 +84,10 @@
 }
 
 /* ── Dark Theme — Bloomberg Terminal Aesthetic ─────────────────── */
-.dark-theme,
-html.dark-theme,
-body.dark-theme {
-  --t-ink: #e2e8f0;
-  --t-paper: #0b0f1a;
-  --t-accent: #818cf8;
-  --t-gold: #fbbf24;
-  --t-sage: #34d399;
-  --t-rust: #fb7185;
-  --t-muted: #94a3b8;
-  --t-line: #1e293b;
-  --t-darkInk: #0f172a;
-
+/* Core --t-* color tokens are set dynamically by useTheme.ts on both
+   html and body (supports per-preset accent colors). Only surface,
+   shadow, and card variables that don't change between presets live here. */
+.dark-theme {
   --surface-0: #111827;
   --surface-1: #0b0f1a;
   --surface-2: #1e293b;
@@ -443,7 +434,7 @@ tbody tr:hover td {
 .hero-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%) !important;
+  background: linear-gradient(145deg, var(--t-darkInk) 0%, color-mix(in srgb, var(--t-accent) 15%, var(--t-darkInk)) 50%, var(--t-darkInk) 100%) !important;
   border-radius: var(--radius-xl);
   padding: clamp(24px, 4vw, 40px);
   color: #fff !important;
@@ -459,7 +450,7 @@ tbody tr:hover td {
   right: -25%;
   width: 70%;
   height: 200%;
-  background: radial-gradient(ellipse at center, rgba(129, 140, 248, 0.12) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--t-accent) 12%, transparent) 0%, transparent 60%);
   pointer-events: none;
   animation: glow-pulse 6s ease-in-out infinite;
 }
@@ -467,7 +458,7 @@ tbody tr:hover td {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 75% 15%, rgba(129, 140, 248, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 75% 15%, color-mix(in srgb, var(--t-accent) 10%, transparent) 0%, transparent 45%),
     radial-gradient(circle at 25% 85%, rgba(52, 211, 153, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.02) 0%, transparent 60%);
   pointer-events: none;
@@ -590,7 +581,7 @@ tbody tr:hover td {
   background: linear-gradient(
     90deg,
     var(--t-accent),
-    color-mix(in srgb, var(--t-accent) 80%, #818cf8)
+    color-mix(in srgb, var(--t-accent) 65%, white)
   );
   transition: width 0.8s var(--ease-premium);
   position: relative;
@@ -997,7 +988,7 @@ tbody tr:hover td {
   background: linear-gradient(
     135deg,
     var(--t-accent) 0%,
-    color-mix(in srgb, var(--t-accent) 50%, #818cf8) 100%
+    color-mix(in srgb, var(--t-accent) 50%, white) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
