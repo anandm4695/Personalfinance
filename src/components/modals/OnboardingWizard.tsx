@@ -68,7 +68,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}>
       <div style={{ maxWidth: 560, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${THEME.accent}, #818CF8)`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
             <Sparkles size={28} color="#fff" />
           </div>
           <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", marginBottom: 8 }}>

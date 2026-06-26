@@ -541,7 +541,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
               the template.
             </div>
             <button
-              style={{ ...btnStyle, borderColor: "#6366f1", color: "#6366f1" }}
+              style={{ ...btnStyle, borderColor: "var(--t-accent)", color: "var(--t-accent)" }}
               onClick={downloadTemplate}
             >
               <Download size={13} /> Download Template CSV

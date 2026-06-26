@@ -8502,7 +8502,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
-                    color: "#818CF8",
+                    color: THEME.accent,
                     textTransform: "uppercase" as const,
                     letterSpacing: "0.08em",
                     marginBottom: 12,
@@ -11340,7 +11340,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   const targetDay = Math.min(sipDay, daysInMonth);
                   dueDays[targetDay] = (dueDays[targetDay] || []).concat({
                     label: `SIP: ${s.scheme || s.fund || "Fund"}`,
-                    color: "#818CF8",
+                    color: THEME.accent,
                   });
                 });
 
@@ -11498,7 +11498,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       maturity / Paid Rent
                     </span>
                     <span>
-                      <span style={{ color: "#818CF8", fontWeight: 700 }}>●</span> SIP deductions
+                      <span style={{ color: THEME.accent, fontWeight: 700 }}>●</span> SIP deductions
                     </span>
                   </div>
                 </>
@@ -12373,7 +12373,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         fontSize: 11,
                         fontWeight: 800,
-                        color: row.pct === 100 ? "#059669" : row.pct > 0 ? "#6366f1" : THEME.muted,
+                        color: row.pct === 100 ? "#059669" : row.pct > 0 ? THEME.accent : THEME.muted,
                       }}
                     >
                       {row.earned} / {row.possible} XP
@@ -12395,7 +12395,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           row.pct === 100
                             ? "linear-gradient(90deg, #10b981, #34d399)"
                             : row.pct > 50
-                              ? "linear-gradient(90deg, #6366f1, #818cf8)"
+                              ? `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
                               : row.pct > 0
                                 ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
                                 : THEME.line,

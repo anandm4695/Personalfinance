@@ -481,8 +481,8 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
         </SectionTitle>
         <EmptyState
           icon={FileText}
-          gradient="linear-gradient(135deg, #6366F1 0%, #818CF8 100%)"
-          dotColor="#6366F1"
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
+          dotColor={THEME.accent}
           title="No Documents Yet"
           description="Add your identity proofs, financial documents, insurance policies, property papers, and more. Track expiry dates and link documents to your assets."
           pills={["PAN Card", "Passport", "Sale Deeds", "Insurance", "RC Book", "ITR"]}

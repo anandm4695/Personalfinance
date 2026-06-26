@@ -1183,7 +1183,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
       {allReminders.length === 0 ? (
         <EmptyState
           icon={Bell}
-          gradient={`linear-gradient(135deg,${THEME.accent} 0%,#818cf8 100%)`}
+          gradient={`linear-gradient(135deg,${THEME.accent} 0%,color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
           dotColor={THEME.accent}
           title="No Reminders Yet"
           description="Reminders auto-populate from your credit cards, FDs, subscriptions, bonds, loans, and rented properties — just add those with due dates and they appear here automatically."
@@ -1255,7 +1255,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           {upcoming.length === 0 && past.length === 0 && completed.length === 0 && (
             <EmptyState
               icon={Bell}
-              gradient={`linear-gradient(135deg,${THEME.accent} 0%,#818cf8 100%)`}
+              gradient={`linear-gradient(135deg,${THEME.accent} 0%,color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
               dotColor={THEME.accent}
               title="No Active Reminders"
               description="You have no active or completed reminders."

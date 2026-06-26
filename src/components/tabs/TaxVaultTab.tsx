@@ -1840,7 +1840,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     height: 3,
                     background:
                       regimeVerdict.better === "new"
-                        ? `linear-gradient(90deg, ${THEME.accent}, #818CF8)`
+                        ? `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
                         : regimeVerdict.better === "old"
                           ? `linear-gradient(90deg, ${THEME.gold}, #FBBF24)`
                           : THEME.line,

@@ -44,7 +44,7 @@ export function EmptyState({
             width: 64,
             height: 64,
             borderRadius: 20,
-            background: gradient || "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            background: gradient || `linear-gradient(135deg, var(--t-accent), color-mix(in srgb, var(--t-accent) 65%, white))`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -96,7 +96,7 @@ export function EmptyState({
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: dotColor || "#6366f1",
+                background: dotColor || "var(--t-accent)",
                 display: "inline-block",
               }}
             />

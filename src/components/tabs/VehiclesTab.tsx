@@ -1632,7 +1632,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
       {vehicles.length === 0 && (
         <EmptyState
           icon={Car}
-          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, #818cf8 100%)`}
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
           dotColor={THEME.accent}
           title="No vehicles yet"
           description="Add your two-wheeler, four-wheeler, or any vehicle you own. Track service history, insurance, PUC, and current market value."

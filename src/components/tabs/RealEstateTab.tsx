@@ -970,7 +970,7 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
           <StatCard label="Portfolio Value" value={fmtINRFull(stats.portfolioValue)} icon={<TrendingUp />} color="#22c55e" />
           <StatCard label="Total Invested" value={fmtINRFull(stats.totalInvested)} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
-          <StatCard label="Total Paid" value={fmtINRFull(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color="#6366f1" />
+          <StatCard label="Total Paid" value={fmtINRFull(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color={THEME.accent} />
           <StatCard label="Outstanding" value={fmtINRFull(stats.outstanding)} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
         </div>
       )}
@@ -979,8 +979,8 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
       {properties.length === 0 ? (
         <EmptyState
           icon={Home}
-          gradient="linear-gradient(135deg, #6366f1, #22c55e)"
-          dotColor="#6366f1"
+          gradient={`linear-gradient(135deg, ${THEME.accent}, #22c55e)`}
+          dotColor={THEME.accent}
           title="No Properties Yet"
           description="Track all your real estate investments — purchases, demand letters, and payments in one place."
           pills={["Agreement Value", "Stamp Duty & TDS", "Demand Letters", "Payment History", "Market Value"]}

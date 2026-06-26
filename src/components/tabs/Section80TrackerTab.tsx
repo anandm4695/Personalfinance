@@ -206,7 +206,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
           <Card style={{ padding: 20 }}>
             <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: THEME.text }}>80CCD(2) — Employer NPS</h4>
             <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>No cap (up to 10% of basic salary)</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#6366F1" }}><Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv></div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: THEME.accent }}><Prv>{fmtINRFull(data.sec80CCD2.total)}</Prv></div>
           </Card>
         )}
 

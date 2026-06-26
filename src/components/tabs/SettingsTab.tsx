@@ -1388,7 +1388,7 @@ function DocumentVaultSection({ state, addItem, removeItem }: any) {
               width: 64,
               height: 64,
               borderRadius: 20,
-              background: "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)",
+              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

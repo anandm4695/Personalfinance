@@ -2337,7 +2337,7 @@ function FinanceDashboard() {
                 background: "rgba(255,255,255,0.08)",
                 padding: "2px 6px",
                 borderRadius: 4,
-                color: "#818CF8",
+                color: THEME.accent,
               }}
             >
               VITE_SUPABASE_URL
@@ -2348,7 +2348,7 @@ function FinanceDashboard() {
                 background: "rgba(255,255,255,0.08)",
                 padding: "2px 6px",
                 borderRadius: 4,
-                color: "#818CF8",
+                color: THEME.accent,
               }}
             >
               VITE_SUPABASE_ANON_KEY

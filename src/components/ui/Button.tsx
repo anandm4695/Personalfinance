@@ -26,7 +26,7 @@ export const Button: React.FC<ButtonProps> = ({
         };
       case "accent":
         return {
-          background: `linear-gradient(135deg, ${THEME.accent} 0%, #818cf8 100%)`,
+          background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
           color: "#fff",
           border: "none",
           boxShadow: `0 4px 12px ${THEME.accent}59`,

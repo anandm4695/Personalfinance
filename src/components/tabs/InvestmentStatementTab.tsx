@@ -588,8 +588,8 @@ export const InvestmentStatementTab = ({
         </SectionTitle>
         <EmptyState
           icon={FileText}
-          gradient="linear-gradient(135deg, #4F46E5 0%, #818cf8 100%)"
-          dotColor="#4F46E5"
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
+          dotColor={THEME.accent}
           title="No Investments Yet"
           description="Add investments across Fixed Deposits, Mutual Funds, Stocks, PPF, NPS, EPF and more to see your consolidated statement."
           pills={["Stocks", "Mutual Funds", "FDs", "PPF", "NPS", "EPF"]}

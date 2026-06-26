@@ -316,9 +316,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
               width: 64,
               height: 64,
               borderRadius: 20,
-              background: dark
-                ? "linear-gradient(135deg, #818CF8 0%, #A78BFA 100%)"
-                : "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -534,7 +532,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       >
         <StatCard label="Total Assets" value={fmtINRFull(totalAssets)} icon={<TrendingUp />} color={THEME.sage} />
         <StatCard label="Liabilities" value={fmtINRFull(totalLiabilities)} icon={<CreditCard />} color={totalLiabilities > 0 ? THEME.rust : THEME.sage} />
-        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color={dark ? "#818CF8" : "#4F46E5"} />
+        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color={THEME.accent} />
         <StatCard label="Debt Ratio" value={`${debtToAssetRatio.toFixed(1)}%`} icon={<Percent />} color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} />
         {totalLifeCover > 0 && (
           <StatCard label="Life Cover" value={fmtINRFull(totalLifeCover)} icon={<Shield />} color={dark ? "#A78BFA" : "#7C3AED"} />

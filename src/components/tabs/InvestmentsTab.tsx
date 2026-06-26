@@ -2929,7 +2929,7 @@ function BondSection({ items, removeItem, updateItem, onAdd }: any) {
           >
             <StatCard label="Total Invested" value={fmtINRFull(totalInvested)} icon={<IndianRupee />} color={BOND_AMBER} />
             <StatCard label="Annual Coupon" value={fmtINRFull(annualIncome)} icon={<Coins />} color="#059669" />
-            <StatCard label="Bonds Held" value={String(items.length)} icon={<BarChart3 />} color="#4F46E5" />
+            <StatCard label="Bonds Held" value={String(items.length)} icon={<BarChart3 />} color={THEME.accent} />
           </div>
 
           {/* Bond cards */}

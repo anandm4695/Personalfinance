@@ -252,7 +252,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </SectionTitle>
         <EmptyState
           icon={Shield}
-          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, #818cf8 100%)`}
+          gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
           dotColor={THEME.accent}
           title="No assets found"
           description="Add bank accounts, investments, insurance policies and other assets first, then come back to track nominee assignments."
@@ -705,7 +705,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               width: 52,
               height: 52,
               borderRadius: 16,
-              background: `linear-gradient(135deg, ${THEME.accent} 0%, #818cf8 100%)`,
+              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
