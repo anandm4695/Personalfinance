@@ -2681,7 +2681,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 {
                   icon: "💰",
                   title: "Net Worth Snapshot",
-                  desc: "Total wealth with asset breakdown",
+                  desc: "Assets vs liabilities with full breakdown",
                   color: THEME.sage,
                 },
                 {
@@ -2693,14 +2693,32 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 {
                   icon: "📈",
                   title: "Investment Portfolio",
-                  desc: "MF, stocks, FD, PPF, NPS values",
+                  desc: "MF, stocks, FD, RD, PPF, NPS, EPF, bonds, LIC",
                   color: THEME.sage,
+                },
+                {
+                  icon: "🏦",
+                  title: "Other Assets",
+                  desc: "Real estate, vehicles, loans given, deposits",
+                  color: THEME.sage,
+                },
+                {
+                  icon: "📋",
+                  title: "Liabilities",
+                  desc: "Loans, CC dues, borrowings with total",
+                  color: THEME.rust,
                 },
                 {
                   icon: "💳",
                   title: "Credit Card Status",
                   desc: "Outstanding + utilization % per card",
                   color: THEME.rust,
+                },
+                {
+                  icon: "📊",
+                  title: "Budget Health",
+                  desc: "Category budgets with progress bars",
+                  color: THEME.gold,
                 },
                 {
                   icon: "🛍️",
@@ -2723,7 +2741,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 {
                   icon: "⚡",
                   title: "Smart Alerts",
-                  desc: "Over-budget, high credit util, overdue",
+                  desc: "FD maturity, emergency fund, debt ratio + more",
                   color: THEME.rust,
                 },
               ].map((item) => (

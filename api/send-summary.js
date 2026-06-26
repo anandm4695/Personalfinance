@@ -582,18 +582,72 @@ function computeSummary(state) {
   if (savingsPct < 20 && monthIncome > 0)
     alerts.push({ type: "info", msg: `Savings rate this month: ${savingsPct}% — aim for 20%+` });
 
+  // Emergency fund check: bank balance < 3 months expenses
+  if (monthExpense > 0 && bankTotal < monthExpense * 3)
+    alerts.push({
+      type: "warn",
+      msg: `Emergency fund low: bank balance (${fmtINR(bankTotal)}) covers only ${Math.round(bankTotal / monthExpense)} month(s) of expenses — aim for 3-6 months`,
+    });
+
+  // High debt ratio
+  if (totalAssets > 0 && totalLiabilities > totalAssets * 0.5)
+    alerts.push({
+      type: "alert",
+      msg: `Debt ratio at ${Math.round((totalLiabilities / totalAssets) * 100)}% of assets — liabilities are ${fmtINR(totalLiabilities)}`,
+    });
+
+  // FDs maturing within 30 days
+  const todayStr = today();
+  (state.fixedDeposits || []).forEach((fd) => {
+    if (fd.maturityDate) {
+      const daysToMaturity = Math.round(
+        (new Date(fd.maturityDate).getTime() - new Date(todayStr).getTime()) / 86400000
+      );
+      if (daysToMaturity >= 0 && daysToMaturity <= 30)
+        alerts.push({
+          type: "info",
+          msg: `FD of ${fmtINR(fd.principal)} at ${fd.bank || "bank"} matures in ${daysToMaturity} day(s) — plan for reinvestment`,
+        });
+    }
+  });
+
+  // Large informal lending outstanding
+  if (informalLentTotal > 0 && informalLentTotal > bankTotal * 0.3)
+    alerts.push({
+      type: "info",
+      msg: `${fmtINR(informalLentTotal)} lent informally — ${Math.round((informalLentTotal / totalAssets) * 100)}% of total assets`,
+    });
+
   return {
     netWorth,
+    totalAssets,
+    totalLiabilities,
     bankTotal,
     investTotal,
     mfTotal,
     stockTotal,
     fdTotal,
     rdTotal,
+    ppfTotal,
+    npsTotal,
+    epfTotal,
+    bondsTotal,
+    licTotal,
+    investmentTotalPlans,
+    loansGivenTotal,
+    prepaidTotal,
+    rentedDepositAsset,
+    informalLentTotal,
+    rentalPropertiesAsset,
+    realEstateAsset,
+    vehicleAsset,
     creditOutstanding,
     creditLimit,
     creditUtil,
     loanOutstanding,
+    rentalDepositLiability,
+    informalBorrowedTotal,
+    realEstateOutstanding,
     monthExpense,
     monthIncome,
     netSavings,
@@ -612,14 +666,33 @@ function computeSummary(state) {
 function generateHTML(summary, frequency, recipientName) {
   const {
     netWorth,
+    totalAssets,
+    totalLiabilities,
     bankTotal,
     investTotal,
     mfTotal,
     stockTotal,
     fdTotal,
     rdTotal,
+    ppfTotal,
+    npsTotal,
+    epfTotal,
+    bondsTotal,
+    licTotal,
+    investmentTotalPlans,
+    loansGivenTotal,
+    prepaidTotal,
+    rentedDepositAsset,
+    informalLentTotal,
+    rentalPropertiesAsset,
+    realEstateAsset,
+    vehicleAsset,
     creditOutstanding,
     creditUtil,
+    loanOutstanding,
+    rentalDepositLiability,
+    informalBorrowedTotal,
+    realEstateOutstanding,
     activeCardCount,
     activeCards,
     monthExpense,
@@ -680,10 +753,10 @@ function generateHTML(summary, frequency, recipientName) {
   function sectionHeader(title, emoji) {
     return `
       <tr><td style="padding:28px 28px 12px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">${emoji}</span>
-          <span style="font-size:13px;font-weight:800;color:${textMuted};text-transform:uppercase;letter-spacing:0.12em;">${title}</span>
-        </div>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:16px;padding-right:8px;vertical-align:middle;">${emoji}</td>
+          <td style="font-size:13px;font-weight:800;color:${textMuted};text-transform:uppercase;letter-spacing:0.12em;vertical-align:middle;">${title}</td>
+        </tr></table>
         <div style="height:1px;background:${borderColor};margin-top:10px;"></div>
       </td></tr>`;
   }
@@ -788,7 +861,65 @@ function generateHTML(summary, frequency, recipientName) {
   const savColor = savingsPct >= 30 ? posColor : savingsPct >= 15 ? warnColor : negColor;
   const netSavColor = netSavings >= 0 ? posColor : negColor;
 
-  const subjectEmoji = frequency === "daily" ? "📅" : frequency === "weekly" ? "📊" : "📈";
+  // ── Row helper for breakdown lists ──────────────────────────────────────────
+  function listRow(label, value, icon) {
+    return `
+    <tr><td style="padding:7px 28px;border-bottom:1px solid #f8fafc;">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="font-size:13px;color:${textPrimary};font-weight:500;">${icon ? icon + " " : ""}${label}</td>
+        <td style="font-size:13px;font-weight:700;color:${textPrimary};text-align:right;">${value}</td>
+      </tr></table>
+    </td></tr>`;
+  }
+
+  // ── Investment portfolio rows (all types) ─────────────────────────────────
+  const investRows = [
+    mfTotal > 0 && listRow("Mutual Funds", `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(mfTotal, investTotal)}%)</span>`),
+    stockTotal > 0 && listRow("Stocks", `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(stockTotal, investTotal)}%)</span>`),
+    fdTotal > 0 && listRow("Fixed Deposits", `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(fdTotal, investTotal)}%)</span>`),
+    rdTotal > 0 && listRow("Recurring Deposits", `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(rdTotal, investTotal)}%)</span>`),
+    ppfTotal > 0 && listRow("PPF", `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(ppfTotal, investTotal)}%)</span>`),
+    npsTotal > 0 && listRow("NPS", `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(npsTotal, investTotal)}%)</span>`),
+    epfTotal > 0 && listRow("EPF", `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(epfTotal, investTotal)}%)</span>`),
+    bondsTotal > 0 && listRow("Bonds & Debentures", `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(bondsTotal, investTotal)}%)</span>`),
+    licTotal > 0 && listRow("LIC / Insurance", `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(licTotal, investTotal)}%)</span>`),
+    investmentTotalPlans > 0 && listRow("Investment Plans", `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`),
+  ].filter(Boolean).join("");
+
+  // ── Other assets rows ─────────────────────────────────────────────────────
+  const otherAssetItems = [
+    realEstateAsset > 0 && listRow("Real Estate", fmtINR(realEstateAsset), "🏠"),
+    vehicleAsset > 0 && listRow("Vehicles", fmtINR(vehicleAsset), "🚗"),
+    rentalPropertiesAsset > 0 && listRow("Rental Properties", fmtINR(rentalPropertiesAsset), "🏢"),
+    loansGivenTotal > 0 && listRow("Loans Given", fmtINR(loansGivenTotal), "🤝"),
+    informalLentTotal > 0 && listRow("Informal Lending", fmtINR(informalLentTotal), "💰"),
+    prepaidTotal > 0 && listRow("Prepaid Cards", fmtINR(prepaidTotal), "💳"),
+    rentedDepositAsset > 0 && listRow("Security Deposits", fmtINR(rentedDepositAsset), "🔑"),
+  ].filter(Boolean).join("");
+
+  // ── Liabilities rows ──────────────────────────────────────────────────────
+  const liabilityItems = [
+    loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding), "🏦"),
+    creditOutstanding > 0 && listRow("Credit Card Dues", fmtINR(creditOutstanding), "💳"),
+    informalBorrowedTotal > 0 && listRow("Informal Borrowings", fmtINR(informalBorrowedTotal), "🤝"),
+    rentalDepositLiability > 0 && listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability), "🔑"),
+    realEstateOutstanding > 0 && listRow("Real Estate Dues", fmtINR(realEstateOutstanding), "🏗️"),
+  ].filter(Boolean).join("");
+
+  // ── Budget health rows ────────────────────────────────────────────────────
+  const budgetRows = budgetStatus.slice(0, 6).map((b) => {
+    const barColor = b.over ? negColor : b.pct >= 80 ? warnColor : posColor;
+    return `
+    <tr><td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px;font-weight:500;color:${textPrimary};">${b.category}</td>
+          <td style="font-size:12px;font-weight:700;color:${barColor};text-align:right;">${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)</td>
+        </tr>
+      </table>
+      ${progressBar(Math.min(b.pct, 100), barColor, 5)}
+    </td></tr>`;
+  }).join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -823,22 +954,24 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%);padding:28px;">
     <div style="font-size:11px;font-weight:700;color:rgba(165,180,252,0.8);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;">Total Net Worth</div>
     <div style="font-size:38px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
-    <div style="margin-top:20px;display:flex;gap:0;">
-      <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="padding:0 16px 0 0;border-right:1px solid rgba(255,255,255,0.12);">
-          <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Cash & Banks</div>
-          <div style="font-size:17px;font-weight:700;color:#fff;margin-top:3px;">${fmtINR(bankTotal)}</div>
-        </td>
-        <td style="padding:0 16px;border-right:1px solid rgba(255,255,255,0.12);">
-          <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Investments</div>
-          <div style="font-size:17px;font-weight:700;color:#a5b4fc;margin-top:3px;">${fmtINR(investTotal)}</div>
-        </td>
-        <td style="padding:0 0 0 16px;">
-          <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Credit Due</div>
-          <div style="font-size:17px;font-weight:700;color:#fca5a5;margin-top:3px;">${fmtINR(creditOutstanding)}</div>
-        </td>
-      </tr></table>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr>
+      <td style="padding:0 12px 0 0;border-right:1px solid rgba(255,255,255,0.12);">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Total Assets</div>
+        <div style="font-size:17px;font-weight:700;color:${posColor};margin-top:3px;">${fmtINR(totalAssets)}</div>
+      </td>
+      <td style="padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Total Liabilities</div>
+        <div style="font-size:17px;font-weight:700;color:#fca5a5;margin-top:3px;">${fmtINR(totalLiabilities)}</div>
+      </td>
+      <td style="padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Cash & Banks</div>
+        <div style="font-size:17px;font-weight:700;color:#fff;margin-top:3px;">${fmtINR(bankTotal)}</div>
+      </td>
+      <td style="padding:0 0 0 12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Investments</div>
+        <div style="font-size:17px;font-weight:700;color:#a5b4fc;margin-top:3px;">${fmtINR(investTotal)}</div>
+      </td>
+    </tr></table>
   </td></tr>
 
   <!-- CASHFLOW -->
@@ -855,25 +988,54 @@ function generateHTML(summary, frequency, recipientName) {
       monthIncome > 0
         ? `
     <div style="padding:0 0 4px;">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:${textMuted};margin-bottom:4px;">
-        <span>Savings rate</span><span style="color:${savColor};font-weight:700;">${savingsPct}%</span>
-      </div>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="font-size:11px;color:${textMuted};">Savings rate</td>
+        <td style="font-size:11px;color:${savColor};font-weight:700;text-align:right;">${savingsPct}%</td>
+      </tr></table>
       ${progressBar(savingsPct, savColor, 5)}
     </div>`
         : ""
     }
   </td></tr>
 
-  <!-- INVESTMENTS BREAKDOWN -->
+  <!-- INVESTMENT PORTFOLIO (FULL BREAKDOWN) -->
   ${
     investTotal > 0
       ? `
   ${sectionHeader("Investment Portfolio", "📈")}
-  <tr><td style="background:${cardBg};padding:0 28px 20px;">
+  <tr><td style="padding:0 28px 8px;background:${cardBg};">
+    <div style="font-size:22px;font-weight:800;color:${accentColor};letter-spacing:-0.02em;">${fmtINRFull(investTotal)}</div>
+    <div style="font-size:11px;color:${textMuted};margin-top:2px;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter(v => v > 0).length} categories</div>
+  </td></tr>
+  <tr><td style="background:${cardBg};">
+    ${investRows}
+  </td></tr>`
+      : ""
+  }
+
+  <!-- OTHER ASSETS -->
+  ${
+    otherAssetItems
+      ? `
+  ${sectionHeader("Other Assets", "🏦")}
+  <tr><td style="background:${cardBg};">
+    ${otherAssetItems}
+  </td></tr>`
+      : ""
+  }
+
+  <!-- LIABILITIES -->
+  ${
+    liabilityItems
+      ? `
+  ${sectionHeader("Liabilities", "📋")}
+  <tr><td style="background:${cardBg};">
+    ${liabilityItems}
+  </td></tr>
+  <tr><td style="padding:10px 28px;background:#fef2f2;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      ${mfTotal > 0 ? statBox("Mutual Funds", fmtINR(mfTotal), `${pct(mfTotal, investTotal)}% of portfolio`) : ""}
-      ${stockTotal > 0 ? statBox("Stocks", fmtINR(stockTotal), `${pct(stockTotal, investTotal)}% of portfolio`) : ""}
-      ${fdRdTotal > 0 ? statBox("FDs & RDs", fmtINR(fdRdTotal), "Fixed income") : ""}
+      <td style="font-size:13px;font-weight:700;color:${negColor};">Total Liabilities</td>
+      <td style="font-size:14px;font-weight:800;color:${negColor};text-align:right;">${fmtINRFull(totalLiabilities)}</td>
     </tr></table>
   </td></tr>`
       : ""
@@ -886,6 +1048,17 @@ function generateHTML(summary, frequency, recipientName) {
   ${sectionHeader(`Credit Cards (${creditUtil}% utilized)`, "💳")}
   <tr><td style="background:${cardBg};">
     ${ccRows}
+  </td></tr>`
+      : ""
+  }
+
+  <!-- BUDGET HEALTH -->
+  ${
+    budgetRows
+      ? `
+  ${sectionHeader("Budget Health", "📊")}
+  <tr><td style="background:${cardBg};">
+    ${budgetRows}
   </td></tr>`
       : ""
   }
@@ -917,19 +1090,16 @@ function generateHTML(summary, frequency, recipientName) {
     dues.length > 0
       ? `
   ${sectionHeader("Upcoming Dues — Next 7 Days", "📅")}
-  <tr><td style="background:${cardBg};">
-    <tr><td style="padding:8px 28px 4px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr style="background:#f8fafc;">
-          <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;">Item</td>
-          <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:center;">Date</td>
-          <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:right;">Amount</td>
-        </tr>
-      </table>
-    </td></tr>
-    ${dueRows}
-    ${dues.length === 0 ? `<tr><td style="padding:16px 28px;font-size:13px;color:${textMuted};">No upcoming dues in the next 7 days ✓</td></tr>` : ""}
-  </td></tr>`
+  <tr><td style="padding:8px 28px 4px;background:${cardBg};">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr style="background:#f8fafc;">
+        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;">Item</td>
+        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:center;">Date</td>
+        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:right;">Amount</td>
+      </tr>
+    </table>
+  </td></tr>
+  ${dueRows}`
       : ""
   }
 
