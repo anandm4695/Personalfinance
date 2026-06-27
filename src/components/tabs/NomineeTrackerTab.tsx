@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, monthsBetween, rdMaturity } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -40,9 +40,15 @@ import { Field, Input, Select } from "../ui/Form";
 const assetTypes = [
   { key: "bankAccounts", label: "Bank Account", nameField: "bankName", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
   { key: "fixedDeposits", label: "Fixed Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINRFull(a.principal)} @ ${a.rate}%` },
-  { key: "recurringDeposits", label: "Recurring Deposit", nameField: "bank", valueField: "principal", idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo` },
+  { key: "recurringDeposits", label: "Recurring Deposit", nameField: "bank", valueField: null, calcValue: (a: any) => {
+    const elapsed = a.startDate ? Math.min(Number(a.tenureMonths || 0), Math.max(0, monthsBetween(a.startDate, today()))) : Number(a.tenureMonths || 0);
+    return rdMaturity(Number(a.monthly || 0), Number(a.rate || 0), elapsed);
+  }, idLabel: (a: any) => `${fmtINRFull(a.monthly)}/mo` },
   { key: "mutualFunds", label: "Mutual Fund", nameField: "name", valueField: null, calcValue: (a: any) => (a.units || 0) * (a.currentNav || a.buyNav || 0), idLabel: (a: any) => a.folio || "" },
   { key: "stocks", label: "Stock Holding", nameField: "symbol", valueField: null, calcValue: (a: any) => (a.qty || 0) * (a.currentPrice || a.avgPrice || 0), idLabel: (a: any) => a.exchange || "" },
+  { key: "bonds", label: "Bond", nameField: "name", valueField: null, calcValue: (a: any) => Number(a.totalInvestmentAmount || a.totalPrincipalAmount || a.faceValue || 0), idLabel: (a: any) => a.isin || "" },
+  { key: "goldHoldings", label: "Gold / SGB", nameField: "type", valueField: null, calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0), idLabel: (a: any) => a.subType || a.form || "" },
+  { key: "demat", label: "Demat Account", nameField: "broker", valueField: null, calcValue: () => 0, idLabel: (a: any) => a.accountId || a.dpId || "" },
   { key: "ppf", label: "PPF", nameField: "institution", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
   { key: "nps", label: "NPS", nameField: "fundManager", valueField: "balance", idLabel: (a: any) => a.pran || "" },
   { key: "epf", label: "EPF", nameField: "employer", valueField: "balance", idLabel: (a: any) => a.uan || "" },

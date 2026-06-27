@@ -17,7 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today, monthsBetween } from "../../utils/finance";
+import { fmtINRFull, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -53,7 +53,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           level: "warn",
           category: "spending",
           title: "Spending is higher than usual",
-          detail: `This month: ${fmtINRFull(thisMonthSpend)} vs 6-month avg: ${fmtINRFull(avg)} (${((thisMonthSpend / avg - 1) * 100).toFixed(0)}% higher)`,
+          detail: `This month: ${fmtINRFull(thisMonthSpend)} vs avg: ${fmtINRFull(avg)} (${((thisMonthSpend / avg - 1) * 100).toFixed(0)}% higher)`,
           icon: TrendingUp,
           action: "Review your expenses",
         });
@@ -117,22 +117,60 @@ export const SmartAlertsTab = ({ state, metrics }) => {
       }
     });
 
-    // 4. Insurance premium due
-    [...(state.lic || []), ...(state.termPlans || []), ...(state.investmentPlans || [])].forEach((p) => {
-      if (p.nextPremiumDate || p.renewalDate) {
-        const dueDate = p.nextPremiumDate || p.renewalDate;
-        const days = Math.ceil((new Date(dueDate).getTime() - now.getTime()) / 86400000);
+    // 3b. Bond maturing soon
+    (state.bonds || []).forEach((b) => {
+      if (b.maturityDate) {
+        const days = Math.ceil((new Date(b.maturityDate).getTime() - now.getTime()) / 86400000);
         if (days >= 0 && days <= 30) {
           alerts.push({
-            id: `insurance_due_${p.id}`,
+            id: `bond_mature_${b.id}`,
             level: days <= 7 ? "error" : "warn",
-            category: "insurance",
-            title: `Insurance premium due in ${days} days`,
-            detail: `${p.name || p.policyName || p.insurer || "Policy"} — Premium: ${fmtINRFull(p.annualPremium || p.premium)}`,
-            icon: Shield,
-            action: "Pay premium to avoid lapse",
+            category: "investments",
+            title: `Bond maturing in ${days} days`,
+            detail: `${b.name || "Bond"} — Face Value: ${fmtINRFull(b.faceValue || b.totalInvestmentAmount)}`,
+            icon: Clock,
+            action: "Decide: reinvest or withdraw",
           });
         }
+      }
+    });
+
+    // 4. Insurance premium due (anniversary-based, matching RemindersTab logic)
+    const insurancePolicies = [
+      ...(state.lic || []).map((p) => ({ ...p, _startField: p.commencementDate, _matField: p.maturityDate, _termField: p.policyTerm })),
+      ...(state.termPlans || []).map((p) => ({ ...p, _startField: p.startDate, _matField: p.expiryDate, _termField: p.premiumPayingTerm || p.term })),
+      ...(state.investmentPlans || []).map((p) => ({ ...p, _startField: p.commencementDate, _matField: p.maturityDate, _termField: p.premiumPayingTerm || p.policyTerm })),
+    ];
+    insurancePolicies.forEach((p) => {
+      if (!p._startField) return;
+      const comm = new Date(p._startField);
+      if (isNaN(comm.getTime())) return;
+      const currentYear = now.getFullYear();
+      let anniversary = new Date(currentYear, comm.getMonth(), comm.getDate());
+      if (anniversary < new Date(todayStr + "T00:00:00")) {
+        anniversary = new Date(currentYear + 1, comm.getMonth(), comm.getDate());
+      }
+      let isExpired = false;
+      if (p._matField) {
+        const mat = new Date(p._matField);
+        if (!isNaN(mat.getTime()) && anniversary > mat) isExpired = true;
+      }
+      const payTerm = p._termField ? parseInt(p._termField, 10) : null;
+      if (payTerm && !isNaN(payTerm)) {
+        if (anniversary.getFullYear() - comm.getFullYear() >= payTerm) isExpired = true;
+      }
+      if (isExpired) return;
+      const days = Math.ceil((anniversary.getTime() - now.getTime()) / 86400000);
+      if (days >= 0 && days <= 30) {
+        alerts.push({
+          id: `insurance_due_${p.id}`,
+          level: days <= 7 ? "error" : "warn",
+          category: "insurance",
+          title: `Insurance premium due in ${days} days`,
+          detail: `${p.planName || p.policyName || p.insurer || "Policy"} — Premium: ${fmtINRFull(p.annualPremium || p.premium)}`,
+          icon: Shield,
+          action: "Pay premium to avoid lapse",
+        });
       }
     });
 
@@ -206,12 +244,13 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
 
     // 9. Credit utilization high
-    if (metrics.creditUtilization > 30) {
+    const ccUtil = Number(metrics.creditUtilization) || 0;
+    if (ccUtil > 30) {
       alerts.push({
         id: "credit_util_high",
-        level: metrics.creditUtilization > 70 ? "error" : "warn",
+        level: ccUtil > 70 ? "error" : "warn",
         category: "credit",
-        title: `Credit utilization at ${metrics.creditUtilization.toFixed(0)}%`,
+        title: `Credit utilization at ${ccUtil.toFixed(0)}%`,
         detail: "Keep credit utilization below 30% for a healthy credit score",
         icon: AlertTriangle,
         action: "Pay down credit card outstanding",
@@ -238,12 +277,13 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
 
     // 11. Loan EMI to income ratio
-    if (metrics.foir > 40) {
+    const foirVal = Number(metrics.foir) || 0;
+    if (foirVal > 40) {
       alerts.push({
         id: "foir_high",
-        level: metrics.foir > 50 ? "error" : "warn",
+        level: foirVal > 50 ? "error" : "warn",
         category: "credit",
-        title: `EMI-to-income ratio at ${metrics.foir?.toFixed(0)}%`,
+        title: `EMI-to-income ratio at ${foirVal.toFixed(0)}%`,
         detail: "Banks consider >50% FOIR risky. Try to keep it below 40%.",
         icon: AlertTriangle,
         action: "Consider prepaying high-interest loans",
