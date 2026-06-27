@@ -37,7 +37,7 @@ import {
 } from "recharts";
 import { THEME, PROFILES } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
-import { fmtINRFull, today, uid } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, uid } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -1913,7 +1913,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           <div>
             Fee:{" "}
             <strong>
-              {fmtINRFull(c.annualFee)}
+              {fmtINRExact(c.annualFee)}
               {c.feeMonth
                 ? ` · ${Number(c.feeDay) || 1} ${MONTH_NAMES[Number(c.feeMonth) - 1]}`
                 : ""}
@@ -1982,10 +1982,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               daysLeft <= 7 ? "#ff8080" : daysLeft <= 30 ? "#fbbf24" : "rgba(245,239,227,0.55)";
             const label =
               daysLeft === 0
-                ? `⚠ Annual fee ${fmtINRFull(c.annualFee)} due today!`
+                ? `⚠ Annual fee ${fmtINRExact(c.annualFee)} due today!`
                 : daysLeft === 1
-                  ? `⚠ Annual fee ${fmtINRFull(c.annualFee)} due tomorrow!`
-                  : `Annual fee ${fmtINRFull(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
+                  ? `⚠ Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
+                  : `Annual fee ${fmtINRExact(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
             return (
               <div
                 style={{
@@ -2929,7 +2929,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                           }}
                         >
                           {Number(r.amount) >= 0 ? "+" : ""}
-                          {fmtINRFull(r.amount)}
+                          {fmtINRExact(r.amount)}
                         </td>
                       </tr>
                     ))}
@@ -3066,7 +3066,7 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
                         color: Number(t.amount) >= 0 ? THEME.rust : THEME.sage,
                       }}
                     >
-                      {fmtINRFull(t.amount)}
+                      {fmtINRExact(t.amount)}
                     </td>
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -4110,7 +4110,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                           }}
                         >
                           {r.type === "load" ? "+" : "−"}
-                          {fmtINRFull(r.amount)}
+                          {fmtINRExact(r.amount)}
                         </td>
                       </tr>
                     ))}
@@ -4323,7 +4323,7 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
                       }}
                     >
                       {t.type === "load" ? "+" : "−"}
-                      {fmtINRFull(t.amount)}
+                      {fmtINRExact(t.amount)}
                     </td>
                     <td style={{ padding: "11px 10px" }}>
                       <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
@@ -4663,16 +4663,16 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               {/* Stat cells */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                 {[
-                  { k: "Principal", v: fmtINRFull(l.principal), color: THEME.muted },
-                  { k: "EMI", v: `${fmtINRFull(emi)}/mo`, color: THEME.accent },
+                  { k: "Principal", v: fmtINRExact(l.principal), color: THEME.muted },
+                  { k: "EMI", v: `${fmtINRExact(emi)}/mo`, color: THEME.accent },
                   { k: "Rate", v: `${l.rate}%`, color: THEME.muted },
                   { k: "Months Left", v: months > 0 ? String(months) : "—", color: THEME.ink },
                   ...(payoffDate ? [{ k: "Payoff By", v: payoffDate, color: THEME.sage }] : []),
                   ...(paid > 0
-                    ? [{ k: "Principal Paid", v: fmtINRFull(paid), color: THEME.sage }]
+                    ? [{ k: "Principal Paid", v: fmtINRExact(paid), color: THEME.sage }]
                     : []),
                   ...(interestRemaining > 0
-                    ? [{ k: "Interest Left", v: fmtINRFull(interestRemaining), color: THEME.rust }]
+                    ? [{ k: "Interest Left", v: fmtINRExact(interestRemaining), color: THEME.rust }]
                     : []),
                 ].map(({ k, v, color }) => (
                   <div
@@ -4797,7 +4797,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   color: THEME.sage,
                                 }}
                               >
-                                Full payoff! Save {fmtINRFull(interestRemaining)} in interest & close
+                                Full payoff! Save {fmtINRExact(interestRemaining)} in interest & close
                                 loan today.
                               </div>
                             );
@@ -4832,7 +4832,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                 },
                                 {
                                   label: "Interest Saved",
-                                  value: fmtINRFull(interestSaved),
+                                  value: fmtINRExact(interestSaved),
                                   color: THEME.sage,
                                 },
                                 {
@@ -5808,7 +5808,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   color: accentColor,
                                 }}
                               >
-                                {fmtINRFull(t.amount)}
+                                {fmtINRExact(t.amount)}
                               </td>
                               <td style={{ ...td, color: THEME.muted }}>{t.note || "—"}</td>
                               <td style={td}>
@@ -5836,7 +5836,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                 color: accentColor,
                               }}
                             >
-                              {fmtINRFull(totalT)}
+                              {fmtINRExact(totalT)}
                             </td>
                             <td colSpan={2} style={td}></td>
                           </tr>
@@ -5898,7 +5898,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                   color: THEME.sage,
                                 }}
                               >
-                                {fmtINRFull(p.amount)}
+                                {fmtINRExact(p.amount)}
                               </td>
                               <td style={{ ...td, color: THEME.muted }}>{p.note || "—"}</td>
                               <td style={td}>
@@ -5926,7 +5926,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                                 color: THEME.sage,
                               }}
                             >
-                              {fmtINRFull(totalP)}
+                              {fmtINRExact(totalP)}
                             </td>
                             <td colSpan={2} style={td}></td>
                           </tr>
@@ -6520,7 +6520,7 @@ function DebtPayoffOptimizer({ state }: any) {
               >
                 <label style={{ fontSize: 13, fontWeight: 700 }}>Extra Monthly Repayment (₹)</label>
                 <span style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>
-                  {fmtINRFull(extraMonthly)}/mo
+                  {fmtINRExact(extraMonthly)}/mo
                 </span>
               </div>
               <input
@@ -6634,7 +6634,7 @@ function DebtPayoffOptimizer({ state }: any) {
                 letterSpacing: "-0.03em",
               }}
             >
-              {fmtINRFull(interestSaved)}
+              {fmtINRExact(interestSaved)}
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
               Debt-Free:{" "}
@@ -6655,7 +6655,7 @@ function DebtPayoffOptimizer({ state }: any) {
                   Standard Interest
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>
-                  {fmtINRFull(standardInterest)}
+                  {fmtINRExact(standardInterest)}
                 </div>
               </div>
               <div>
@@ -6663,7 +6663,7 @@ function DebtPayoffOptimizer({ state }: any) {
                   Simulated Interest
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>
-                  {fmtINRFull(currentInterest)}
+                  {fmtINRExact(currentInterest)}
                 </div>
               </div>
             </div>
@@ -6808,7 +6808,7 @@ function DebtPayoffOptimizer({ state }: any) {
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Balance: {fmtINRFull(l.outstanding)} · EMI: {fmtINRFull(l.emi)}/mo
+                      Balance: {fmtINRExact(l.outstanding)} · EMI: {fmtINRExact(l.emi)}/mo
                     </div>
                   </div>
 

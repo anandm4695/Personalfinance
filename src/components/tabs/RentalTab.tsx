@@ -20,6 +20,7 @@ import {
 import { THEME } from "../../utils/constants";
 import {
   fmtINRFull,
+  fmtINRExact,
   today,
   getEffectiveRent,
   getCurrentTierIndex,
@@ -699,7 +700,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                             {" · "}
                             <span style={{ color: THEME.accent }}>
-                              {fmtINRFull(getEffectiveRent(p))}/mo
+                              {fmtINRExact(getEffectiveRent(p))}/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -749,7 +750,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       border: isCurrent ? `1px solid ${col}44` : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINRFull(tier.amount)}
+                                    Y{ti + 1}: {fmtINRExact(tier.amount)}
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -798,7 +799,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                         flexShrink: 0,
                                       }}
                                     />
-                                    {t.name || `T${ti + 1}`}: {fmtINRFull(t.monthlyRent)}/mo
+                                    {t.name || `T${ti + 1}`}: {fmtINRExact(t.monthlyRent)}/mo
                                   </span>
                                 );
                               })}
@@ -921,7 +922,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
                               Agreed:{" "}
-                              <span style={{ color: THEME.gold }}>{fmtINRFull(p.securityDeposit || 0)}</span>
+                              <span style={{ color: THEME.gold }}>{fmtINRExact(p.securityDeposit || 0)}</span>
                             </div>
                           ) : p.depositReceivedDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
@@ -1431,7 +1432,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                                 color: THEME.sage,
                                               }}
                                             >
-                                              +{fmtINRFull(r.amount)}
+                                              +{fmtINRExact(r.amount)}
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -1500,7 +1501,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                       >
-                                        +{fmtINRFull(r.amount)}
+                                        +{fmtINRExact(r.amount)}
                                       </span>
                                       <button
                                         onClick={() =>
@@ -1673,7 +1674,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}
                                     >
-                                      +{fmtINRFull(r.amount)}
+                                      +{fmtINRExact(r.amount)}
                                     </span>
                                     <button
                                       onClick={() => handleRemoveDepositOut(p, r.id)}
@@ -1761,7 +1762,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                     >
-                                      -{fmtINRFull(r.amount)}
+                                      -{fmtINRExact(r.amount)}
                                     </span>
                                     <button
                                       onClick={() =>
@@ -2068,7 +2069,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                             )}
                             {" · "}
                             <span style={{ color: THEME.rust }}>
-                              {fmtINRFull(getEffectiveRent(p))}/mo
+                              {fmtINRExact(getEffectiveRent(p))}/mo
                             </span>
                             {p.escalationTiers?.length > 1 && (
                               <span
@@ -2122,7 +2123,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       border: isCurrent ? `1px solid ${col}44` : "none",
                                     }}
                                   >
-                                    Y{ti + 1}: {fmtINRFull(tier.amount)}
+                                    Y{ti + 1}: {fmtINRExact(tier.amount)}
                                     {isCurrent && mNext !== null && mNext <= 3 && (
                                       <span style={{ marginLeft: 4, color: THEME.gold }}>
                                         · escalates in {mNext}mo
@@ -2266,7 +2267,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                           {p.depositTransactions && p.depositTransactions.length > 0 ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
                               Agreed:{" "}
-                              <span style={{ color: THEME.sage }}>{fmtINRFull(p.securityDeposit || 0)}</span>
+                              <span style={{ color: THEME.sage }}>{fmtINRExact(p.securityDeposit || 0)}</span>
                             </div>
                           ) : p.depositPaidDate ? (
                             <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700, marginTop: 2 }}>
@@ -2780,7 +2781,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                                 color: THEME.rust,
                                               }}
                                             >
-                                              -{fmtINRFull(r.amount)}
+                                              -{fmtINRExact(r.amount)}
                                             </td>
                                             <td style={{ padding: "6px 10px", color: THEME.muted }}>
                                               {r.note || "—"}
@@ -2849,7 +2850,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                       <span
                                         style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}
                                       >
-                                        -{fmtINRFull(r.amount)}
+                                        -{fmtINRExact(r.amount)}
                                       </span>
                                       <button
                                         onClick={() =>
@@ -3022,7 +3023,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({ state, addItem, removeItem
                                     <span
                                       style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}
                                     >
-                                      -{fmtINRFull(r.amount)}
+                                      -{fmtINRExact(r.amount)}
                                     </span>
                                     <button
                                       onClick={() =>

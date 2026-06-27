@@ -17,7 +17,7 @@ import {
   Target,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -53,7 +53,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           level: "warn",
           category: "spending",
           title: "Spending is higher than usual",
-          detail: `This month: ${fmtINRFull(thisMonthSpend)} vs avg: ${fmtINRFull(avg)} (${((thisMonthSpend / avg - 1) * 100).toFixed(0)}% higher)`,
+          detail: `This month: ${fmtINRExact(thisMonthSpend)} vs avg: ${fmtINRExact(avg)} (${((thisMonthSpend / avg - 1) * 100).toFixed(0)}% higher)`,
           icon: TrendingUp,
           action: "Review your expenses",
         });
@@ -64,7 +64,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           level: "info",
           category: "spending",
           title: "Spending is unusually low",
-          detail: `This month: ${fmtINRFull(thisMonthSpend)} vs avg: ${fmtINRFull(avg)} — are all expenses logged?`,
+          detail: `This month: ${fmtINRExact(thisMonthSpend)} vs avg: ${fmtINRExact(avg)} — are all expenses logged?`,
           icon: TrendingDown,
           action: "Check if transactions are missing",
         });
@@ -91,7 +91,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
             level: "warn",
             category: "spending",
             title: `${cat} spending spiked`,
-            detail: `${fmtINRFull(thisMonth)} this month vs avg ${fmtINRFull(avg)} — ${((thisMonth / avg - 1) * 100).toFixed(0)}% higher`,
+            detail: `${fmtINRExact(thisMonth)} this month vs avg ${fmtINRExact(avg)} — ${((thisMonth / avg - 1) * 100).toFixed(0)}% higher`,
             icon: AlertTriangle,
             action: `Review ${cat} transactions`,
           });
@@ -109,7 +109,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
             level: days <= 7 ? "error" : "warn",
             category: "investments",
             title: `FD maturing in ${days} days`,
-            detail: `${fd.bank || "FD"} — Principal: ${fmtINRFull(fd.principal)} @ ${fd.rate}%`,
+            detail: `${fd.bank || "FD"} — Principal: ${fmtINRExact(fd.principal)} @ ${fd.rate}%`,
             icon: Clock,
             action: "Decide: reinvest or withdraw",
           });
@@ -127,7 +127,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
             level: days <= 7 ? "error" : "warn",
             category: "investments",
             title: `Bond maturing in ${days} days`,
-            detail: `${b.name || "Bond"} — Face Value: ${fmtINRFull(b.faceValue || b.totalInvestmentAmount)}`,
+            detail: `${b.name || "Bond"} — Face Value: ${fmtINRExact(b.faceValue || b.totalInvestmentAmount)}`,
             icon: Clock,
             action: "Decide: reinvest or withdraw",
           });
@@ -167,7 +167,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           level: days <= 7 ? "error" : "warn",
           category: "insurance",
           title: `Insurance premium due in ${days} days`,
-          detail: `${p.planName || p.policyName || p.insurer || "Policy"} — Premium: ${fmtINRFull(p.annualPremium || p.premium)}`,
+          detail: `${p.planName || p.policyName || p.insurer || "Policy"} — Premium: ${fmtINRExact(p.annualPremium || p.premium)}`,
           icon: Shield,
           action: "Pay premium to avoid lapse",
         });
@@ -221,7 +221,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
           level: days <= 30 ? "error" : "warn",
           category: "goals",
           title: `Goal "${g.name}" deadline in ${days} days`,
-          detail: `Progress: ${progress.toFixed(0)}% — Need ${fmtINRFull(Number(g.targetAmount) - Number(g.currentAmount))} more`,
+          detail: `Progress: ${progress.toFixed(0)}% — Need ${fmtINRExact(Number(g.targetAmount) - Number(g.currentAmount))} more`,
           icon: Target,
           action: "Accelerate savings",
         });
@@ -237,7 +237,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
         level: bankBalance < monthlyExpense ? "error" : "warn",
         category: "safety",
         title: "Emergency fund below 3 months",
-        detail: `Bank balance: ${fmtINRFull(bankBalance)} covers ${(bankBalance / monthlyExpense).toFixed(1)} months of expenses`,
+        detail: `Bank balance: ${fmtINRExact(bankBalance)} covers ${(bankBalance / monthlyExpense).toFixed(1)} months of expenses`,
         icon: Shield,
         action: "Build up your emergency fund",
       });
@@ -270,7 +270,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
         level: "info",
         category: "spending",
         title: "Subscriptions are 15%+ of expenses",
-        detail: `${fmtINRFull(monthlySubs)}/month on subscriptions. Review for unused ones.`,
+        detail: `${fmtINRExact(monthlySubs)}/month on subscriptions. Review for unused ones.`,
         icon: Zap,
         action: "Review subscriptions",
       });

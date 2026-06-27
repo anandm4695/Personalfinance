@@ -25,7 +25,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -203,7 +203,7 @@ export const LoanAmortizationTab = ({ state }) => {
       {loanData.principal > 0 && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-            <StatCard label="Monthly EMI" value={<Prv>{fmtINRFull(baseAmort.emi)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
+            <StatCard label="Monthly EMI" value={<Prv>{fmtINRExact(baseAmort.emi)}</Prv>} icon={<IndianRupee />} color="var(--accent)" />
             <StatCard label="Total Interest" value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>} icon={<TrendingDown />} color={THEME.rust} />
             <StatCard label="Total Payment" value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>} icon={<Calculator />} color={THEME.accent} />
             <StatCard label="Loan Closes In" value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`} icon={<Calendar />} color={THEME.sage} />
@@ -294,10 +294,10 @@ export const LoanAmortizationTab = ({ state }) => {
                     {baseAmort.schedule.map((row) => (
                       <tr key={row.month} style={{ borderBottom: `1px solid ${THEME.border}` }}>
                         <td style={{ padding: 8, textAlign: "center", color: THEME.textSecondary }}>{row.month}</td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.text }}>{fmtINRFull(row.emi)}</td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.sage }}>{fmtINRFull(row.principal)}</td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.rust }}>{fmtINRFull(row.interest)}</td>
-                        <td style={{ padding: 8, textAlign: "right", fontWeight: 600, color: THEME.text }}>{fmtINRFull(row.balance)}</td>
+                        <td style={{ padding: 8, textAlign: "right", color: THEME.text }}>{fmtINRExact(row.emi)}</td>
+                        <td style={{ padding: 8, textAlign: "right", color: THEME.sage }}>{fmtINRExact(row.principal)}</td>
+                        <td style={{ padding: 8, textAlign: "right", color: THEME.rust }}>{fmtINRExact(row.interest)}</td>
+                        <td style={{ padding: 8, textAlign: "right", fontWeight: 600, color: THEME.text }}>{fmtINRExact(row.balance)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -24,7 +24,7 @@ import {
   BellRing,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -238,7 +238,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           list.push({
             id: "cc-" + c.id,
             title: (c.issuer || "Card") + " — Bill Due",
-            subtitle: c.outstanding ? "Outstanding: " + fmtINRFull(c.outstanding) : "Active card",
+            subtitle: c.outstanding ? "Outstanding: " + fmtINRExact(c.outstanding) : "Active card",
             date: dueDate,
             type: "Credit Card",
             amount: Number(c.outstanding || 0),
@@ -267,7 +267,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "ccfee-" + c.id,
           title: (c.issuer || "Card") + " — Annual Fee",
-          subtitle: `Yearly charge · ${fmtINRFull(c.annualFee)}`,
+          subtitle: `Yearly charge · ${fmtINRExact(c.annualFee)}`,
           date: `${yyyy}-${mm}-${dd}`,
           type: "Credit Card",
           amount: Number(c.annualFee),
@@ -283,7 +283,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           list.push({
             id: "sub-" + s.id,
             title: s.name + " Renewal",
-            subtitle: (s.cycle || s.billingCycle || "Monthly") + " · " + fmtINRFull(s.amount),
+            subtitle: (s.cycle || s.billingCycle || "Monthly") + " · " + fmtINRExact(s.amount),
             date: s.renewalDate,
             type: "Subscription",
             amount: Number(s.amount || 0),
@@ -297,7 +297,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "fd-" + f.id,
           title: "FD Maturity — " + (f.bank || f.bankName || "Bank"),
-          subtitle: "Principal: " + fmtINRFull(f.principal),
+          subtitle: "Principal: " + fmtINRExact(f.principal),
           date: f.maturityDate,
           type: "Fixed Deposit",
           amount: Number(f.principal || 0),
@@ -311,7 +311,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "bond-" + b.id,
           title: "Bond Maturity — " + b.name,
-          subtitle: "Face Value: " + fmtINRFull(b.faceValue),
+          subtitle: "Face Value: " + fmtINRExact(b.faceValue),
           date: b.maturityDate,
           type: "Bond",
           amount: 0,
@@ -325,7 +325,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "lic-" + l.id,
           title: "LIC Maturity — " + l.planName,
-          subtitle: "Annual Premium: " + fmtINRFull(l.annualPremium),
+          subtitle: "Annual Premium: " + fmtINRExact(l.annualPremium),
           date: l.maturityDate,
           type: "LIC",
           amount: 0,
@@ -355,7 +355,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             list.push({
               id: "lic-prem-" + l.id,
               title: `LIC Premium — ${l.planName}`,
-              subtitle: `Policy: ${l.policyNumber || "N/A"} · Premium: ${fmtINRFull(l.annualPremium)}`,
+              subtitle: `Policy: ${l.policyNumber || "N/A"} · Premium: ${fmtINRExact(l.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "LIC Premium",
               amount: Number(l.annualPremium || 0),
@@ -372,7 +372,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "term-" + t.id,
           title: "Term Plan Expiry — " + t.planName,
-          subtitle: "Cover: " + fmtINRFull(t.coverAmount),
+          subtitle: "Cover: " + fmtINRExact(t.coverAmount),
           date: t.expiryDate,
           type: "Term Plan",
           amount: 0,
@@ -406,7 +406,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             list.push({
               id: "term-prem-" + t.id,
               title: `Term Premium — ${t.planName || "Plan"}`,
-              subtitle: `Insurer: ${t.insurer || "N/A"} · Premium: ${fmtINRFull(t.annualPremium)}`,
+              subtitle: `Insurer: ${t.insurer || "N/A"} · Premium: ${fmtINRExact(t.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "Term Premium",
               amount: Number(t.annualPremium || 0),
@@ -423,7 +423,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "invest-" + ip.id,
           title: "Investment Maturity — " + ip.planName,
-          subtitle: "Expected Maturity: " + fmtINRFull(ip.expectedMaturityAmount),
+          subtitle: "Expected Maturity: " + fmtINRExact(ip.expectedMaturityAmount),
           date: ip.maturityDate,
           type: "Investment Plan",
           amount: 0,
@@ -458,7 +458,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             list.push({
               id: "invest-prem-" + ip.id,
               title: `Investment Premium — ${ip.planName || "Plan"}`,
-              subtitle: `Insurer: ${ip.insurer || "N/A"} · Premium: ${fmtINRFull(ip.annualPremium)}`,
+              subtitle: `Insurer: ${ip.insurer || "N/A"} · Premium: ${fmtINRExact(ip.annualPremium)}`,
               date: getLocalDateString(anniversary),
               type: "Investment Premium",
               amount: Number(ip.annualPremium || 0),
@@ -475,7 +475,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
         list.push({
           id: "loan-" + l.id,
           title: "Loan Recovery — " + (l.lender || l.name || "Borrower"),
-          subtitle: "Outstanding: " + fmtINRFull(l.outstanding),
+          subtitle: "Outstanding: " + fmtINRExact(l.outstanding),
           date: l.dueDate,
           type: "Loan Given",
           amount: Number(l.outstanding || 0),
@@ -502,7 +502,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
           list.push({
             id: "rent-" + p.id,
             title: `${p.propertyName || "Rent"} — Monthly Rent`,
-            subtitle: `Rent: ${fmtINRFull(p.monthlyRent)} · Due on ${dueDay}${["st", "nd", "rd"][((((dueDay + 90) % 100) - 10) % 10) - 1] || "th"} of month`,
+            subtitle: `Rent: ${fmtINRExact(p.monthlyRent)} · Due on ${dueDay}${["st", "nd", "rd"][((((dueDay + 90) % 100) - 10) % 10) - 1] || "th"} of month`,
             date: getLocalDateString(
               dueDay >= todayD.getDate() ? dueDate : new Date(currentYear, currentMonth + 1, dueDay)
             ),
@@ -524,7 +524,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
             list.push({
               id: "rent-next-" + p.id,
               title: `${p.propertyName || "Rent"} — Monthly Rent`,
-              subtitle: `Rent: ${fmtINRFull(p.monthlyRent)} · This month already paid ✓`,
+              subtitle: `Rent: ${fmtINRExact(p.monthlyRent)} · This month already paid ✓`,
               date: getLocalDateString(nextDueDate),
               type: "Rent",
               amount: Number(p.monthlyRent || 0),
@@ -536,7 +536,7 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
 
     // ── 10. MANUAL REMINDERS ──
     (state.reminders || []).forEach((r: any) => {
-      const noteParts = [r.note, r.amount ? `Amount: ${fmtINRFull(r.amount)}` : ""].filter(Boolean);
+      const noteParts = [r.note, r.amount ? `Amount: ${fmtINRExact(r.amount)}` : ""].filter(Boolean);
       list.push({
         id: r.id,
         title: r.title,

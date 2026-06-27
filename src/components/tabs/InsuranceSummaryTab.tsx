@@ -15,7 +15,7 @@ import {
   Clock,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, uid } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, uid } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
@@ -664,7 +664,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRFull(t.amount)}
+                          {fmtINRExact(t.amount)}
                         </span>
                         <Button
                           variant="ghost"
@@ -759,7 +759,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                 Expected Total:{" "}
                 <span style={{ color: THEME.ink, fontWeight: 800 }}>
                   {lic.annualPremium && lic.policyTerm
-                    ? fmtINRFull(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10))
+                    ? fmtINRExact(Number(lic.annualPremium) * parseInt(lic.policyTerm, 10))
                     : "—"}
                 </span>
               </span>
@@ -985,7 +985,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRFull(t.amount)}
+                          {fmtINRExact(t.amount)}
                         </span>
                         <Button
                           variant="ghost"
@@ -1289,7 +1289,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
                       <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          {fmtINRFull(t.amount)}
+                          {fmtINRExact(t.amount)}
                         </span>
                         <Button
                           variant="ghost"
@@ -1941,7 +1941,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRFull(l.annualPremium)}
+                        {fmtINRExact(l.annualPremium)}
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
@@ -2255,7 +2255,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRFull(t.annualPremium)}
+                        {fmtINRExact(t.annualPremium)}
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>
@@ -2575,7 +2575,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                           letterSpacing: "-0.01em",
                         }}
                       >
-                        {fmtINRFull(ip.annualPremium)}
+                        {fmtINRExact(ip.annualPremium)}
                         <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                           /yr
                         </span>

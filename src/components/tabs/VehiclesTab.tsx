@@ -27,7 +27,7 @@ import {
   Line,
 } from "recharts";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, today as todayFn } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
@@ -1179,8 +1179,8 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
             {[
               ["Owner", vehicle.owner || "self"],
               ["Purchase Date", fmtDate(vehicle.purchaseDate)],
-              ["Purchase Price", vehicle.purchasePrice ? fmtINRFull(vehicle.purchasePrice) : "—"],
-              ["Current Value", vehicle.currentValue ? fmtINRFull(vehicle.currentValue) : "—"],
+              ["Purchase Price", vehicle.purchasePrice ? fmtINRExact(vehicle.purchasePrice) : "—"],
+              ["Current Value", vehicle.currentValue ? fmtINRExact(vehicle.currentValue) : "—"],
               ["Insurance Expiry", fmtDate(vehicle.insuranceExpiry)],
               ["PUC Expiry", fmtDate(vehicle.pucExpiry)],
               ["Chassis No.", vehicle.chassisNumber || "—"],
@@ -1210,10 +1210,10 @@ function VehicleCard({ vehicle, expanded, onToggle, onEdit, onDelete, onAddServi
               <div>
                 <div style={{ fontSize: 11, color: "var(--t-muted, var(--text-muted))", marginBottom: 4 }}>Total Cost of Ownership</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
-                  {fmtINRFull(tco)}
+                  {fmtINRExact(tco)}
                 </div>
                 <div style={{ fontSize: 10, color: "var(--t-muted, var(--text-muted))", marginTop: 2 }}>
-                  Depreciation ({fmtINRFull(Math.max(0, depreciation))}) + Service spend ({fmtINRFull(totalServiceCost)})
+                  Depreciation ({fmtINRExact(Math.max(0, depreciation))}) + Service spend ({fmtINRExact(totalServiceCost)})
                 </div>
               </div>
               <div>

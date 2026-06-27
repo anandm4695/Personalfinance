@@ -1443,10 +1443,10 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       <td style={td}></td>
                       <td style={{ ...td, textAlign: "right" }}>
                         <div style={{ fontSize: 13, fontWeight: 900, color: THEME.sage }}>
-                          +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                          +₹{totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 900, color: THEME.rust }}>
-                          -₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                          -₹{totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                         </div>
                         <div
                           style={{
@@ -1460,7 +1460,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                         >
                           Net {cashNetFlow >= 0 ? "+" : ""}₹
                           {Math.abs(cashNetFlow).toLocaleString("en-IN", {
-                            maximumFractionDigits: 0,
+                            maximumFractionDigits: 2,
                           })}
                         </div>
                       </td>

@@ -17,7 +17,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, today, autoCateg, getLocalDateString } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -1665,7 +1665,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           fontWeight: 700,
                         }}
                       >
-                        {t.type === "debit" ? fmtINRFull(t.amount) : ""}
+                        {t.type === "debit" ? fmtINRExact(t.amount) : ""}
                       </td>
                       <td
                         style={{
@@ -1675,7 +1675,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {t.type === "credit" ? fmtINRFull(t.amount) : ""}
+                        {t.type === "credit" ? fmtINRExact(t.amount) : ""}
                       </td>
                       <td style={td}>
                         <div style={{ display: "flex", gap: 2 }}>
@@ -1752,7 +1752,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           borderTop,
                         }}
                       >
-                        -{fmtINRFull(totalDebit)}
+                        -{fmtINRExact(totalDebit)}
                       </td>
                       <td
                         style={{
@@ -1764,7 +1764,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           borderTop,
                         }}
                       >
-                        +{fmtINRFull(totalCredit)}
+                        +{fmtINRExact(totalCredit)}
                       </td>
                       <td
                         style={{
@@ -1776,7 +1776,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           borderTop,
                         }}
                       >
-                        {net >= 0 ? "+" : "-"}{fmtINRFull(Math.abs(net))}
+                        {net >= 0 ? "+" : "-"}{fmtINRExact(Math.abs(net))}
                       </td>
                     </tr>
                   </tfoot>

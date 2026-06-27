@@ -16,7 +16,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { SubModal } from "../modals/SubModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
@@ -474,7 +474,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                         : days < 0
                           ? `${Math.abs(days)}d overdue`
                           : `${days}d`}{" "}
-                      · {fmtINRFull(s.amount)}
+                      · {fmtINRExact(s.amount)}
                     </div>
                   </div>
                 </div>
@@ -602,7 +602,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                 }}
                               >
                                 <span style={{ color: THEME.accent, whiteSpace: "nowrap" }}>
-                                  {fmtINRFull(s.amount)}
+                                  {fmtINRExact(s.amount)}
                                 </span>
                                 <span style={{ opacity: 0.4 }}>·</span>
                                 <span style={{ textTransform: "capitalize", whiteSpace: "nowrap" }}>
@@ -660,7 +660,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
 
                             <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                                {fmtINRFull(monthly)}
+                                {fmtINRExact(monthly)}
                               </div>
                               <div
                                 style={{
@@ -685,13 +685,13 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                                     justifyContent: "flex-end",
                                     gap: 3,
                                   }}
-                                  title={`Actual renewal: ${fmtINRFull(s.amount)} every ${s.cycle}`}
+                                  title={`Actual renewal: ${fmtINRExact(s.amount)} every ${s.cycle}`}
                                 >
                                   <span style={{ fontSize: 9, opacity: 0.65, fontWeight: 600 }}>
                                     RENEWAL:
                                   </span>
                                   <span style={{ color: THEME.accent }}>
-                                    {fmtINRFull(s.amount)}
+                                    {fmtINRExact(s.amount)}
                                   </span>
                                 </div>
                               )}
@@ -826,12 +826,12 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                             </Badge>
                           </div>
                           <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                            {fmtINRFull(s.amount)} · {s.cycle}
+                            {fmtINRExact(s.amount)} · {s.cycle}
                           </div>
                         </div>
                         <div style={{ textAlign: "right", paddingRight: 4, flexShrink: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: THEME.muted }}>
-                            {fmtINRFull(monthly)}/mo
+                            {fmtINRExact(monthly)}/mo
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>

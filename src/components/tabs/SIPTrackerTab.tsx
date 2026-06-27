@@ -13,7 +13,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
-import { fmtINRFull, today, monthsBetween, getLocalDateString } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, monthsBetween, getLocalDateString } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -861,7 +861,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {fmtINRFull(sip.amount)}
+            {fmtINRExact(sip.amount)}
           </span>
           <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, marginLeft: 4 }}>
             /{sip.frequency === "quarterly" ? "qtr" : "mo"}

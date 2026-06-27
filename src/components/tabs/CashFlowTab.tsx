@@ -38,7 +38,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, getEffectiveRent } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today, getEffectiveRent } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -724,7 +724,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               color: THEME.sage,
                             }}
                           >
-                            <Prv>{fmtINRFull(Math.round(item.monthly))}</Prv>
+                            <Prv>{fmtINRExact(item.monthly)}</Prv>
                           </td>
                           <td
                             style={{
@@ -735,7 +735,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               color: THEME.muted,
                             }}
                           >
-                            <Prv>{fmtINRFull(Math.round(item.monthly * forecastMonths))}</Prv>
+                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
                           </td>
                         </tr>
                       );
@@ -759,7 +759,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           color: THEME.sage,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(totalMonthlyInflow))}</Prv>
+                        <Prv>{fmtINRExact(totalMonthlyInflow)}</Prv>
                       </td>
                       <td
                         style={{
@@ -770,7 +770,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           color: THEME.sage,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(totalInflow))}</Prv>
+                        <Prv>{fmtINRExact(totalInflow)}</Prv>
                       </td>
                     </tr>
                   </tbody>
@@ -855,7 +855,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               color: THEME.rust,
                             }}
                           >
-                            <Prv>{fmtINRFull(Math.round(item.monthly))}</Prv>
+                            <Prv>{fmtINRExact(item.monthly)}</Prv>
                           </td>
                           <td
                             style={{
@@ -866,7 +866,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                               color: THEME.muted,
                             }}
                           >
-                            <Prv>{fmtINRFull(Math.round(item.monthly * forecastMonths))}</Prv>
+                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
                           </td>
                         </tr>
                       );
@@ -890,7 +890,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           color: THEME.rust,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(totalMonthlyOutflow))}</Prv>
+                        <Prv>{fmtINRExact(totalMonthlyOutflow)}</Prv>
                       </td>
                       <td
                         style={{
@@ -901,7 +901,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                           color: THEME.rust,
                         }}
                       >
-                        <Prv>{fmtINRFull(Math.round(totalOutflow))}</Prv>
+                        <Prv>{fmtINRExact(totalOutflow)}</Prv>
                       </td>
                     </tr>
                   </tbody>
@@ -999,7 +999,7 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                       >
                         <Prv>
                           {isInflow ? "+" : "-"}
-                          {fmtINRFull(event.amount)}
+                          {fmtINRExact(event.amount)}
                         </Prv>
                       </div>
                     </div>

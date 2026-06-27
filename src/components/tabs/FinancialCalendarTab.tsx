@@ -18,7 +18,7 @@ import {
   Filter,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, fdMaturity, rdMaturity } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today, fdMaturity, rdMaturity } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -93,7 +93,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           maturityAmount: maturityAmt,
           rate: fd.rate,
           color: THEME.accent,
-          detail: `${fd.rate}% p.a. • Principal: ${fmtINRFull(fd.principal)}`,
+          detail: `${fd.rate}% p.a. • Principal: ${fmtINRExact(fd.principal)}`,
         });
       }
     });
@@ -143,7 +143,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(b.faceValue || b.totalPrincipalAmount || 0),
           color: "#0EA5E9",
-          detail: `Coupon: ${b.coupon || 0}% • Face Value: ${fmtINRFull(b.faceValue || b.totalPrincipalAmount)}`,
+          detail: `Coupon: ${b.coupon || 0}% • Face Value: ${fmtINRExact(b.faceValue || b.totalPrincipalAmount)}`,
         });
       }
     });
@@ -181,7 +181,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(lastDiv.amount || 0),
           color: "#10B981",
-          detail: `Based on last dividend of ${fmtINRFull(lastDiv.amount)} on ${formatDate(lastDiv.date)}`,
+          detail: `Based on last dividend of ${fmtINRExact(lastDiv.amount)} on ${formatDate(lastDiv.date)}`,
           projected: true,
         });
       }
@@ -213,7 +213,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
             days,
             amount: premium,
             color: "#EC4899",
-            detail: `Annual Premium: ${fmtINRFull(premium)}`,
+            detail: `Annual Premium: ${fmtINRExact(premium)}`,
           });
         }
       });
@@ -240,7 +240,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(l.outstanding || 0),
           color: "#F97316",
-          detail: `EMI: ${fmtINRFull(l.emi)} • Outstanding: ${fmtINRFull(l.outstanding)}`,
+          detail: `EMI: ${fmtINRExact(l.emi)} • Outstanding: ${fmtINRExact(l.outstanding)}`,
         });
       }
     });
@@ -267,7 +267,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: feeAmt,
           color: THEME.accent,
-          detail: `Annual Fee: ${fmtINRFull(feeAmt)}`,
+          detail: `Annual Fee: ${fmtINRExact(feeAmt)}`,
         });
       }
     });
@@ -287,7 +287,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(s.amount || 0),
           color: "#14B8A6",
-          detail: `${s.cycle} • ${fmtINRFull(s.amount)}`,
+          detail: `${s.cycle} • ${fmtINRExact(s.amount)}`,
         });
       }
     });
@@ -310,7 +310,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
           days,
           amount: Number(p.balance || 0),
           color: "#059669",
-          detail: `Balance: ${fmtINRFull(p.balance)}`,
+          detail: `Balance: ${fmtINRExact(p.balance)}`,
         });
       }
     });
@@ -439,12 +439,12 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                       <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{data.events} events</div>
                       {data.inflow > 0 && (
                         <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, marginTop: 6 }}>
-                          +<Prv>{fmtINRFull(data.inflow)}</Prv>
+                          +<Prv>{fmtINRExact(data.inflow)}</Prv>
                         </div>
                       )}
                       {data.outflow > 0 && (
                         <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginTop: 2 }}>
-                          -<Prv>{fmtINRFull(data.outflow)}</Prv>
+                          -<Prv>{fmtINRExact(data.outflow)}</Prv>
                         </div>
                       )}
                     </div>
@@ -538,7 +538,7 @@ export const FinancialCalendarTab = ({ state, metrics }) => {
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
-                              <Prv>{fmtINRFull(event.maturityAmount || event.amount)}</Prv>
+                              <Prv>{fmtINRExact(event.maturityAmount || event.amount)}</Prv>
                             </div>
                             <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>{formatDate(event.date)}</div>
                           </div>

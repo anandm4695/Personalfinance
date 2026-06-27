@@ -34,6 +34,13 @@ export const fmtINRFull = (n: number | string | null | undefined) => {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 };
 
+export const fmtINRExact = (n: number | string | null | undefined) => {
+  if (n === null || n === undefined || isNaN(Number(n))) return "₹0";
+  const num = Number(n);
+  const hasPaisa = num % 1 !== 0;
+  return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
+};
+
 export const uid = () => {
   if (typeof crypto !== "undefined" && (crypto as any).randomUUID) {
     return (crypto as any).randomUUID();
