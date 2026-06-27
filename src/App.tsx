@@ -2836,6 +2836,7 @@ function FinanceDashboard() {
             }}
           >
             <div
+              className="app-header-bar"
               style={{
                 padding: "14px 32px",
                 display: "flex",
@@ -2844,8 +2845,22 @@ function FinanceDashboard() {
                 gap: 12,
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Mobile logo — shown only on small screens */}
+              <img
+                src="/logo.png"
+                alt="Finance"
+                className="mobile-only"
+                style={{
+                  width: 32,
+                  height: 32,
+                  objectFit: "contain",
+                  flexShrink: 0,
+                  filter: "drop-shadow(0 2px 6px rgba(197,161,82,0.3))",
+                }}
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
                 <div
+                  className="desktop-only"
                   style={{
                     fontWeight: 800,
                     fontSize: 18,
@@ -2856,7 +2871,7 @@ function FinanceDashboard() {
                   {greeting.title}
                 </div>
                 {greeting.subtitle && (
-                  <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
+                  <div className="desktop-only" style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
                     {greeting.subtitle}
                   </div>
                 )}
@@ -2981,8 +2996,9 @@ function FinanceDashboard() {
                   flexShrink: 0,
                 }}
               >
-                {/* PROFILE SWITCHER — compact */}
+                {/* PROFILE SWITCHER — compact (hidden on mobile) */}
                 <select
+                  className="desktop-only"
                   style={{
                     ...input,
                     padding: "7px 10px",
@@ -3297,7 +3313,7 @@ function FinanceDashboard() {
 
                 <button
                   onClick={exportJSON}
-                  className="header-icon-btn"
+                  className="header-icon-btn desktop-only"
                   title="Export backup"
                   aria-label="Export backup"
                 >
@@ -3590,6 +3606,7 @@ function FinanceDashboard() {
           {/* Sync status pill in header area handled by header logic */}
 
           <main
+            className="app-main-content"
             style={{
               flex: 1,
               display: tab === "ai" ? "flex" : "block",
@@ -3960,6 +3977,7 @@ function FinanceDashboard() {
 
           {tab !== "ai" && (
             <footer
+              className="app-footer"
               style={{
                 textAlign: "center",
                 padding: "28px 20px 32px",

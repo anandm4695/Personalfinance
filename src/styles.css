@@ -1390,17 +1390,61 @@ input[type="date"].form-input {
   }
 }
 
-/* ── Responsive ────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE / TABLET / DESKTOP
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Mobile Drawer Animation ─────────────────────────────────── */
+@keyframes mobileDrawerSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ── Tablet (769px – 1024px) ─────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root {
+    --card-pad: 18px;
+    --section-gap: 24px;
+  }
+  .app-sidebar {
+    overflow: hidden !important;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Desktop (1025px+) ───────────────────────────────────────── */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* ── Mobile (max 768px) ──────────────────────────────────────── */
 @media (max-width: 768px) {
   :root {
-    --card-pad: 16px;
-    --section-gap: 20px;
+    --card-pad: 14px;
+    --section-gap: 16px;
     --app-font-size: 13px;
   }
+
+  /* Show bottom nav, hide sidebar & desktop nav */
   .mobile-bottom-nav {
     display: flex;
   }
-  /* Sidebar uses inline display:flex — override it on mobile so the full width goes to content */
   .app-sidebar {
     display: none !important;
   }
@@ -1410,63 +1454,247 @@ input[type="date"].form-input {
   .header-search {
     display: none !important;
   }
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Header: tighter padding */
+  .app-header-bar {
+    padding: 10px 16px !important;
+  }
+
+  /* Main content: reduced padding + bottom safe area for nav bar */
+  .app-main-content {
+    padding: 16px !important;
+    padding-bottom: 80px !important;
+  }
+
+  /* Footer: hide on mobile to save space */
+  .app-footer {
+    display: none !important;
+  }
+
+  /* Modals: slide up from bottom like iOS sheets */
   .modal-backdrop {
     padding: 0;
     align-items: flex-end;
   }
   .modal-panel {
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
     max-width: 100%;
+    animation: mobileDrawerSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
+  .modal-header {
+    padding: 16px 20px;
+  }
+  .modal-body {
+    padding: 16px 20px;
+  }
+
+  /* Alerts panel: full width */
   .alerts-panel {
-    width: calc(100vw - 24px);
-    right: 12px;
+    position: fixed !important;
+    top: auto !important;
+    bottom: 64px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 60vh;
+    border-radius: 16px;
+    z-index: 500 !important;
   }
+
+  /* Tables: smaller text, horizontal scroll */
   th {
     font-size: 10px;
-    padding: 8px 10px;
+    padding: 8px 8px;
+    white-space: nowrap;
   }
   td {
-    padding: 9px 10px;
+    padding: 8px 8px;
     font-size: 12px;
   }
-}
 
-@media (max-width: 480px) {
-  .modal-panel {
-    border-radius: 22px 22px 0 0;
-    max-height: 92vh;
+  /* Make tables horizontally scrollable */
+  .mobile-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -14px;
+    padding: 0 14px;
   }
+  .mobile-table-wrap table {
+    min-width: 600px;
+  }
+
+  /* Form grids: stack on mobile */
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hero card: compact */
   .hero-card {
-    padding: 20px;
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  /* Bento grid: single column */
+  .bento-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Stats grid: 2-column on phone */
+  .stats-grid-responsive {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Tile cards: tighter padding */
+  .tile-card {
+    padding: 14px;
+  }
+
+  /* Insight card: less padding */
+  .insight-card {
+    padding: 14px 14px 14px 18px;
+  }
+
+  /* Empty state: compact */
+  .empty-state {
+    padding: 36px 16px;
+  }
+  .empty-state-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .empty-state-title {
+    font-size: 14px;
+  }
+  .empty-state-sub {
+    font-size: 12px;
+  }
+
+  /* Amount display: smaller on mobile */
+  .amount-lg {
+    font-size: 22px;
+  }
+  .amount-md {
+    font-size: 17px;
+  }
+
+  /* Chip row: horizontal scroll on mobile */
+  .chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex-shrink: 0;
+  }
+
+  /* Section label */
+  .section-label {
+    font-size: 9px;
+    margin-bottom: 10px;
+  }
+
+  /* Profile menu: mobile-friendly */
+  .profile-dropdown-menu {
+    right: 0 !important;
+    left: auto;
+  }
+
+  /* Card base: reduce border radius on small screens */
+  .card-base {
+    border-radius: 14px;
+  }
+
+  /* Demat portfolio bar: scroll horizontally */
+  .demat-portfolio-bar {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding: 6px 14px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 }
 
-@media (min-width: 769px) {
-  .mobile-only {
-    display: none !important;
+/* ── Small phone (max 480px) ─────────────────────────────────── */
+@media (max-width: 480px) {
+  :root {
+    --card-pad: 12px;
+    --app-font-size: 12.5px;
+  }
+
+  .hero-card {
+    padding: 16px;
+  }
+
+  /* Stats: even tighter */
+  .stats-grid-responsive {
+    gap: 8px !important;
+  }
+
+  .amount-lg {
+    font-size: 20px;
+  }
+  .amount-md {
+    font-size: 16px;
+  }
+
+  /* Form inputs: slightly taller touch targets */
+  .form-input {
+    padding: 11px 12px;
+    font-size: 15px;
+  }
+  input, select, textarea {
+    font-size: 15px;
+  }
+
+  /* Tile card: minimal padding */
+  .tile-card {
+    padding: 12px;
   }
 }
 
 /* ── Sidebar collapse ───────────────────────────────────────────── */
-/* Smooth icon tooltip labels in compact mode */
 .app-sidebar button[title]:not([title=""]) {
   position: relative;
 }
 
-/* On tablet (769–1024px) auto-compact the sidebar */
+/* On tablet auto-compact the sidebar */
 @media (min-width: 769px) and (max-width: 1024px) {
   .app-sidebar {
-    /* Let inline width take over — just ensure smooth overflow */
     overflow: hidden !important;
   }
 }
 
-/* Hide sidebar toggle arrow on mobile (bottom nav is used instead) */
+/* Hide sidebar on mobile */
 @media (max-width: 768px) {
   .app-sidebar {
     display: none !important;
+  }
+}
+
+/* ── Safe area for devices with notch / home indicator ────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-bottom-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+  }
+  .mobile-nav-drawer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (max-width: 768px) {
+    .app-main-content {
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    }
   }
 }
 
@@ -1803,5 +2031,124 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
 
   .ins-form-row-4 {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE GRID UTILITIES — Mobile & Tablet
+   Inline styles with gridTemplateColumns can't be overridden by
+   media queries, so we use utility classes that components can adopt.
+   ══════════════════════════════════════════════════════════════════ */
+
+.resp-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.resp-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .resp-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .resp-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 580px) {
+  .resp-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .resp-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 380px) {
+  .resp-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Mobile-first overrides for inline-style grids ────────────── */
+@media (max-width: 768px) {
+  .app-main-content [style*="1fr 1fr 1fr"],
+  .app-main-content [style*="repeat(3"],
+  .app-main-content [style*="repeat(3,"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .app-main-content [style*="repeat(4"],
+  .app-main-content [style*="repeat(4,"],
+  .app-main-content [style*="1fr 1fr 1fr 1fr"],
+  .app-main-content [style*="2fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-main-content table {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main-content [style*="1fr 1fr 1fr"],
+  .app-main-content [style*="repeat(3"],
+  .app-main-content [style*="repeat(3,"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-main-content [style*="repeat(4"],
+  .app-main-content [style*="repeat(4,"],
+  .app-main-content [style*="1fr 1fr 1fr 1fr"],
+  .app-main-content [style*="2fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stack 2-column form grids on small phones */
+  .modal-body [style*="1fr 1fr"],
+  .app-main-content form [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Responsive section headers ──────────────────────────────── */
+@media (max-width: 768px) {
+  .app-main-content [style*="justifyContent: \"space-between\""] {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* ── Mobile horizontal scroll for pill containers ────────────── */
+@media (max-width: 768px) {
+  .demat-portfolio-bar {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* ── Mobile touch-optimized controls ─────────────────────────── */
+@media (max-width: 768px) {
+  .app-main-content button {
+    min-height: 36px;
+  }
+  .app-main-content .card-base {
+    border-radius: 14px;
   }
 }

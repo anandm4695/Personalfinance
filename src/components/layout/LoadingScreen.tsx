@@ -17,8 +17,8 @@ export function LoadingScreen() {
         src="/logo.png"
         alt="Personal Finance by Anand Mohta"
         style={{
-          width: 110,
-          height: 110,
+          width: "clamp(80px, 20vw, 110px)",
+          height: "clamp(80px, 20vw, 110px)",
           objectFit: "contain",
           filter: "drop-shadow(0 0 24px rgba(197,161,82,0.45))",
           animation: "pulse-logo 2.4s ease-in-out infinite",
