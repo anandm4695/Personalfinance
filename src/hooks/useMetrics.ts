@@ -299,7 +299,7 @@ export function useMetrics(
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
     const lockedAssets =
-      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset + vehicleAsset;
+      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset + vehicleAsset + goldValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 

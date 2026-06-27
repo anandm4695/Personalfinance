@@ -1608,15 +1608,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const now = new Date();
     for (let i = 1; i <= 24; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      // Use local date parts — toISOString() would return UTC which shifts month for IST (UTC+5:30)
       const ym2 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const txns = state.transactions.filter((t: any) => t.date && t.date.startsWith(ym2));
-      const inc = txns
+      const explicitInc = (state.income || [])
+        .filter((inc: any) => inc.date && inc.date.startsWith(ym2))
+        .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
+      const txnInc = txns
         .filter((t: any) => t.type === "credit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const exp = txns
+      const inc = explicitInc > 0 ? explicitInc : txnInc;
+      const txnExp = txns
         .filter((t: any) => t.type === "debit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+        return sum + (p.payments || [])
+          .filter((pay: any) => pay.date && pay.date.startsWith(ym2))
+          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      }, 0);
+      const exp = txnExp + rentExp;
       if (inc > exp && inc > 0) streak++;
       else break;
     }
@@ -2262,13 +2271,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const d = new Date(currentYear, i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const txns = (state.transactions || []).filter((t: any) => t.date && t.date.startsWith(ym));
-      const inc = txns
+      const explicitInc = (state.income || [])
+        .filter((inc: any) => inc.date && inc.date.startsWith(ym))
+        .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
+      const txnInc = txns
         .filter((t: any) => t.type === "credit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const exp = txns
+      const inc = explicitInc > 0 ? explicitInc : txnInc;
+      const txnExp = txns
         .filter((t: any) => t.type === "debit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const hasData = txns.length > 0;
+      const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+        return sum + (p.payments || [])
+          .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+      }, 0);
+      const exp = txnExp + rentExp;
+      const hasData = txns.length > 0 || inc > 0;
       return {
         label: d.toLocaleString("en-IN", { month: "short" }),
         year: d.getFullYear(),
@@ -2277,7 +2296,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         rate: inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0,
       };
     });
-  }, [state.transactions]);
+  }, [state.transactions, state.income, state.rentedProperties]);
 
   // ── XP breakdown by badge category ──
   const xpByCategory = useMemo(() => {
@@ -2515,11 +2534,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     }
 
     // Credit card utilization — above 30% can hurt credit score
-    const totalCCLimitSmart = (state.creditCards || [])
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((s: number, c: any) => s + Number(c.limit || c.cardLimit || 0), 0);
-    if (totalCCLimitSmart > 0 && metrics.ccOutstanding > 0) {
-      const utilPct = (metrics.ccOutstanding / totalCCLimitSmart) * 100;
+    if (metrics.totalCCLimit > 0 && metrics.ccOutstanding > 0) {
+      const utilPct = metrics.creditUtilization;
       if (utilPct > 50)
         insights.push({
           icon: AlertTriangle,
@@ -3347,7 +3363,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   (metrics.informalLentValue || 0) +
                   (metrics.rentalPropertiesAsset || 0) +
                   (metrics.rentedDepositAsset || 0) +
-                  (metrics.prepaidValue || 0);
+                  (metrics.prepaidValue || 0) +
+                  (metrics.vehicleAsset || 0) +
+                  (metrics.goldValue || 0);
                 // "Other Dues" catches every liability not shown individually
                 const otherDues =
                   (metrics.realEstateOutstanding || 0) +
