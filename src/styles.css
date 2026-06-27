@@ -2096,11 +2096,241 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
     grid-template-columns: 1fr !important;
   }
 
+  /* ── TABLES: global horizontal scroll ── */
+  /* Wrap ALL tables in a scrollable container behavior.
+     This catches the 30+ tables across tabs that lack overflowX: auto. */
   .app-main-content table {
     font-size: 12px;
   }
+  /* Cards/divs containing tables — force scroll */
+  .app-main-content .card-base,
+  .app-main-content [class*="card-base"] {
+    overflow: visible;
+  }
+  /* Every direct parent of a table that doesn't already scroll */
+  .app-main-content div:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-main-content table {
+    min-width: 480px;
+  }
+  /* Compact table cells on mobile */
+  .app-main-content th {
+    font-size: 10px;
+    padding: 8px 8px;
+    white-space: nowrap;
+  }
+  .app-main-content td {
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+
+  /* ── CHIP ROW: horizontal scroll ── */
+  .chip-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex-shrink: 0;
+  }
+
+  /* ── MODAL FORMS: stack 2-col grids ── */
+  .modal-body [style*="1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-body [style*="repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── HERO CARD: mobile sizing ── */
+  .hero-card {
+    padding: 18px !important;
+    border-radius: 16px !important;
+  }
+  .hero-card .amount-lg {
+    font-size: 22px;
+  }
+
+  /* ── SECTION HEADERS: wrap buttons ── */
+  .app-main-content div[style*="justify-content: space-between"] {
+    flex-wrap: wrap !important;
+    gap: 8px;
+  }
+
+  /* ── PILL/PORTFOLIO BAR: full bleed scroll ── */
+  .demat-portfolio-bar {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* ── CARD PADDING: tighter on mobile ── */
+  .app-main-content .card-base {
+    border-radius: 14px;
+  }
+
+  /* ── AMOUNT DISPLAYS: scale down ── */
+  .amount-lg {
+    font-size: 22px;
+  }
+  .amount-md {
+    font-size: 17px;
+  }
+
+  /* ── CHARTS: reduce height on mobile ── */
+  .recharts-wrapper {
+    max-height: 220px;
+  }
+
+  /* ── ALERTS PANEL: position above bottom nav ── */
+  .alerts-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 64px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-height: 55vh;
+    border-radius: 16px !important;
+    z-index: 500 !important;
+  }
+
+  /* ── PROFILE MENU: mobile fullwidth ── */
+  .app-header-bar div[style*="position: absolute"][style*="width: 240"] {
+    width: calc(100vw - 32px) !important;
+    right: -8px !important;
+  }
+
+  /* ── EMPTY STATE: compact ── */
+  .empty-state {
+    padding: 32px 16px;
+  }
+  .empty-state-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .empty-state-title {
+    font-size: 14px;
+  }
+  .empty-state-sub {
+    font-size: 12px;
+    max-width: 260px;
+  }
+
+  /* ── INFO BOXES: full width ── */
+  .info-box {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  /* ── SECTION LABEL: tighter ── */
+  .section-label {
+    font-size: 9px;
+    margin-bottom: 10px;
+  }
+
+  /* ── TILE CARD: tighter ── */
+  .tile-card {
+    padding: 14px;
+  }
+
+  /* ── INSIGHT CARD: tighter ── */
+  .insight-card {
+    padding: 14px 14px 14px 18px;
+  }
+
+  /* ── CARD HOVER: disable translateY on touch ── */
+  .card-hover:hover,
+  .card-interactive:hover,
+  .tile-card:hover,
+  .card-lift:hover {
+    transform: none;
+  }
+
+  /* ── BADGE: slightly larger touch ── */
+  .badge {
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+
+  /* ── PROGRESS TRACK: slightly taller on touch ── */
+  .progress-track {
+    height: 8px;
+  }
+
+  /* ── LARGE INLINE PADDINGS: clamp all oversized padding ── */
+  /* React renders inline padding as "padding: 48px 32px;" in the DOM */
+  .app-main-content [style*="padding: 48px"],
+  .app-main-content [style*="padding: 60px"] {
+    padding: 20px 16px !important;
+  }
+  .app-main-content [style*="padding: 40px"] {
+    padding: 18px 14px !important;
+  }
+  .app-main-content [style*="padding: 32px"] {
+    padding: 16px 12px !important;
+  }
+
+  /* ── LARGE FONT SIZES: scale down ── */
+  /* React renders fontSize: 48 as "font-size: 48px;" in the DOM */
+  .app-main-content [style*="font-size: 48px"],
+  .app-main-content [style*="font-size: 44px"],
+  .app-main-content [style*="font-size: 40px"] {
+    font-size: 26px !important;
+  }
+  .app-main-content [style*="font-size: 36px"],
+  .app-main-content [style*="font-size: 32px"] {
+    font-size: 22px !important;
+  }
+  .app-main-content [style*="font-size: 28px"],
+  .app-main-content [style*="font-size: 26px"] {
+    font-size: 20px !important;
+  }
+
+  /* ── MODAL: responsive maxWidth ── */
+  .modal-panel {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .modal-header h2 {
+    font-size: 16px !important;
+  }
+  .modal-footer {
+    padding: 12px 16px !important;
+  }
+
+  /* ── FLEX MINWIDTH: allow shrinking ── */
+  .app-main-content [style*="min-width: 320px"],
+  .app-main-content [style*="min-width: 300px"],
+  .app-main-content [style*="min-width: 450px"],
+  .app-main-content [style*="min-width: 480px"],
+  .app-main-content [style*="min-width: 580px"],
+  .app-main-content [style*="min-width: 600px"] {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* ── RECHARTS: scale down for mobile ── */
+  .recharts-cartesian-axis-tick-value {
+    font-size: 10px !important;
+  }
+  .recharts-legend-item-text {
+    font-size: 11px !important;
+  }
 }
 
+/* ── Small phone (max 480px) ─────────────────────────────────── */
 @media (max-width: 480px) {
   .app-main-content [style*="1fr 1fr 1fr"],
   .app-main-content [style*="repeat(3"],
@@ -2117,38 +2347,53 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
 
   /* Stack 2-column form grids on small phones */
   .modal-body [style*="1fr 1fr"],
-  .app-main-content form [style*="1fr 1fr"] {
+  .app-main-content [style*="1fr 1fr"]:not([style*="1fr 1fr 1fr"]) {
     grid-template-columns: 1fr !important;
   }
-}
 
-/* ── Responsive section headers ──────────────────────────────── */
-@media (max-width: 768px) {
-  .app-main-content [style*="justifyContent: \"space-between\""] {
-    flex-wrap: wrap;
-    gap: 8px;
+  /* ── HERO CARD: even tighter ── */
+  .hero-card {
+    padding: 14px !important;
   }
-}
 
-/* ── Mobile horizontal scroll for pill containers ────────────── */
-@media (max-width: 768px) {
-  .demat-portfolio-bar {
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+  /* ── TILE CARD: minimal ── */
+  .tile-card {
+    padding: 12px;
   }
-}
 
-/* ── Mobile touch-optimized controls ─────────────────────────── */
-@media (max-width: 768px) {
-  .app-main-content button {
-    min-height: 36px;
+  /* ── AMOUNTS: smaller ── */
+  .amount-lg {
+    font-size: 20px;
   }
-  .app-main-content .card-base {
-    border-radius: 14px;
+  .amount-md {
+    font-size: 15px;
+  }
+
+  /* ── INPUTS: iOS zoom prevention (16px min) ── */
+  .form-input,
+  .app-main-content input,
+  .app-main-content select,
+  .app-main-content textarea,
+  .modal-body input,
+  .modal-body select,
+  .modal-body textarea {
+    font-size: 16px !important;
+  }
+
+  /* ── BENTO GRID: tighter gap ── */
+  .bento-grid {
+    gap: 10px;
+  }
+
+  /* ── STATS GRID: 2-col with tight gap ── */
+  .demat-stats-grid,
+  .ins-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* ── CHARTS: even shorter ── */
+  .recharts-wrapper {
+    max-height: 180px;
   }
 }
