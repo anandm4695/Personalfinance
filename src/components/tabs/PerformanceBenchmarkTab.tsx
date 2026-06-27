@@ -99,7 +99,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     const goldReturn = goldInvested > 0 ? ((goldValue - goldInvested) / goldInvested) * 100 : 0;
 
     const totalInvested = equityInvested + mfInvested + fdValue + ppfValue + goldInvested;
-    const totalCurrent = equityCurrent + mfCurrent + fdValue * (1 + avgFDRate / 100) + ppfValue * 1.071 + goldValue;
+    const totalCurrent = equityCurrent + mfCurrent + fdValue + ppfValue + goldValue;
     const overallReturn = totalInvested > 0 ? ((totalCurrent - totalInvested) / totalInvested) * 100 : 0;
 
     return {

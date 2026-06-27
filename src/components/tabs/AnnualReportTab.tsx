@@ -435,13 +435,26 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
      (e) ASSET ALLOCATION
      ═══════════════════════════════════════════════════════════════ */
   const assetAllocation = useMemo(() => {
-    const equity = (metrics.stockValue || 0) + (metrics.mfValue || 0) * 0.7; // Rough: 70% MF as equity
+    const equityMFValue = (state.mutualFunds || [])
+      .filter((m: any) => {
+        const cat = (m.category || m.type || "").toLowerCase();
+        return !cat || ["equity", "elss", "flexi", "large", "mid", "small", "multi", "focused", "sectoral", "thematic", "index"].some((k) => cat.includes(k));
+      })
+      .reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0)), 0);
+    const debtMFValue = (state.mutualFunds || [])
+      .filter((m: any) => {
+        const cat = (m.category || m.type || "").toLowerCase();
+        return cat && ["debt", "liquid", "money market", "gilt", "corporate bond", "banking", "credit risk", "dynamic bond", "ultra short", "low duration", "medium", "long duration", "overnight", "floater"].some((k) => cat.includes(k));
+      })
+      .reduce((s: number, m: any) => s + (Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0)), 0);
+
+    const equity = (metrics.stockValue || 0) + equityMFValue;
     const debt = (metrics.fdValue || 0) + (metrics.rdValue || 0) + (metrics.bondValue || 0) +
       (metrics.ppfValue || 0) + (metrics.npsValue || 0) + (metrics.epfValue || 0) +
-      (metrics.licValue || 0) + (metrics.investmentValue || 0) + (metrics.mfValue || 0) * 0.3;
+      (metrics.licValue || 0) + (metrics.investmentValue || 0) + debtMFValue;
     const cash = metrics.cashInBanks || 0;
     const realEstate = (metrics.realEstateAsset || 0) + (metrics.rentalPropertiesAsset || 0);
-    const gold = 0; // Gold not separately tracked in current schema
+    const gold = metrics.goldValue || 0;
     const others = (metrics.vehicleAsset || 0) + (metrics.informalLentValue || 0);
 
     const alloc = [
@@ -449,6 +462,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
       { name: "Debt", value: Math.round(debt) },
       { name: "Cash", value: Math.round(cash) },
       { name: "Real Estate", value: Math.round(realEstate) },
+      { name: "Gold", value: Math.round(gold) },
       { name: "Others", value: Math.round(others) },
     ].filter((a) => a.value > 0);
 
@@ -460,7 +474,7 @@ export const AnnualReportTab = ({ state, metrics }: any) => {
     const prevNW = prevEntry ? Number(prevEntry.netWorth || 0) : 0;
 
     return { alloc, total, prevNW };
-  }, [metrics, state.netWorthHistory, selectedFY]);
+  }, [metrics, state.netWorthHistory, state.mutualFunds, selectedFY]);
 
   /* ═══════════════════════════════════════════════════════════════
      (f) DEBT SUMMARY

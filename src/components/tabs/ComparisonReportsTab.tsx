@@ -108,12 +108,21 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       .filter((t) => t.type === "debit" && inFY(t.date, lastFYStart))
       .reduce((s, t) => s + Number(t.amount || 0), 0);
 
-    const currentFYIncome = (state.income || [])
+    const currentFYIncomeFromLedger = (state.income || [])
       .filter((i) => inFY(i.date, currentFYStart))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
-    const lastFYIncome = (state.income || [])
+    const currentFYIncomeFromTxn = (state.transactions || [])
+      .filter((t) => t.type === "credit" && inFY(t.date, currentFYStart))
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const currentFYIncome = currentFYIncomeFromLedger > 0 ? currentFYIncomeFromLedger : currentFYIncomeFromTxn;
+
+    const lastFYIncomeFromLedger = (state.income || [])
       .filter((i) => inFY(i.date, lastFYStart))
       .reduce((s, i) => s + Number(i.amount || 0), 0);
+    const lastFYIncomeFromTxn = (state.transactions || [])
+      .filter((t) => t.type === "credit" && inFY(t.date, lastFYStart))
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const lastFYIncome = lastFYIncomeFromLedger > 0 ? lastFYIncomeFromLedger : lastFYIncomeFromTxn;
 
     // Category breakdown
     const catCurrent = {};

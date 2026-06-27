@@ -90,9 +90,16 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     const lic = (state.lic || []).reduce((s, l) => s + Number(l.premiumPaid || 0), 0);
     const investPlans = (state.investmentPlans || []).reduce((s, ip) => s + Number(ip.premiumPaid || 0), 0);
 
+    const goldPricePerGram = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
+    const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    const gold = (state.goldHoldings || []).reduce((s, g) => {
+      const grams = Number(g.grams || 0);
+      const purityMul = g.type === "physical" ? (PURITY_FACTOR[g.purity] || 1) : 1;
+      return s + grams * goldPricePerGram * purityMul;
+    }, 0);
+
     const equity = equityStocks + equityMF;
     const debt = debtMF + fd + rd + bonds + ppf + epf + lic + investPlans;
-    const gold = 0;
     const total = equity + debt + gold + cash + nps;
 
     return {
@@ -113,6 +120,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     const classes = [
       { name: "Equity", current: allocation.equityPct, target: target.equity, value: allocation.equity },
       { name: "Debt", current: allocation.debtPct, target: target.debt, value: allocation.debt + allocation.nps },
+      { name: "Gold", current: allocation.goldPct, target: target.gold || 0, value: allocation.gold },
       { name: "Cash", current: allocation.cashPct, target: target.cash, value: allocation.cash },
     ];
 
@@ -139,25 +147,29 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     if (!allocation.total) return 0;
     const d1 = Math.abs(allocation.equityPct - target.equity);
     const d2 = Math.abs(allocation.debtPct - target.debt);
-    const d3 = Math.abs(allocation.cashPct - target.cash);
-    return Math.max(0, 100 - (d1 + d2 + d3));
+    const d3 = Math.abs(allocation.goldPct - (target.gold || 0));
+    const d4 = Math.abs(allocation.cashPct - target.cash);
+    return Math.max(0, 100 - (d1 + d2 + d3 + d4));
   }, [allocation, target]);
 
   const pieData = [
     { name: "Equity", value: allocation.equity, color: "#6366F1" },
     { name: "Debt", value: allocation.debt + allocation.nps, color: "#10B981" },
+    { name: "Gold", value: allocation.gold, color: "#D97706" },
     { name: "Cash", value: allocation.cash, color: "#F59E0B" },
   ].filter((d) => d.value > 0);
 
   const targetPieData = [
     { name: "Equity", value: target.equity, color: "#6366F1" },
     { name: "Debt", value: target.debt, color: "#10B981" },
+    { name: "Gold", value: target.gold || 0, color: "#D97706" },
     { name: "Cash", value: target.cash, color: "#F59E0B" },
   ].filter((d) => d.value > 0);
 
   const comparisonData = [
     { name: "Equity", Current: Number(allocation.equityPct.toFixed(1)), Target: target.equity },
     { name: "Debt", Current: Number(allocation.debtPct.toFixed(1)), Target: target.debt },
+    { name: "Gold", Current: Number(allocation.goldPct.toFixed(1)), Target: target.gold || 0 },
     { name: "Cash", Current: Number(allocation.cashPct.toFixed(1)), Target: target.cash },
   ];
 
@@ -244,7 +256,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
             </button>
             {useCustom && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {["equity", "debt", "cash"].map((k) => (
+                {["equity", "debt", "gold", "cash"].map((k) => (
                   <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "capitalize" }}>{k}:</label>
                     <input
@@ -414,6 +426,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                   { label: "EPF", value: allocation.breakdown.epf, parent: "Debt" },
                   { label: "NPS", value: allocation.breakdown.nps, parent: "Debt" },
                   { label: "LIC / Insurance", value: allocation.breakdown.lic + allocation.breakdown.investPlans, parent: "Debt" },
+                  { label: "Gold & SGBs", value: allocation.gold, parent: "Gold" },
                   { label: "Bank Balance (Cash)", value: allocation.breakdown.cash, parent: "Cash" },
                 ].filter((r) => r.value > 0).map((row, i) => (
                   <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}` }}>

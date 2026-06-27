@@ -370,11 +370,26 @@ export const InvestmentStatementTab = ({
     );
 
     /* ── EPF ──────────────────────────────────────────────────────── */
-    const epfContributions = epfs.reduce(
+    const epfBalance = epfs.reduce(
       (s: number, x: any) => s + calculateEpfBalance(x),
       0
     );
-    const epfBalance = epfContributions; // EPF balance IS the computed balance
+    const epfContributions = epfs.reduce((s: number, x: any) => {
+      const txs = x.transactions || [];
+      const hasPassbook = txs.some(
+        (t: any) => t.type === "monthly_contribution" || t.type === "interest_credit" || t.type === "transfer_in"
+      );
+      if (!hasPassbook) return s + (Number(x.balance) || 0);
+      const monthlyRows = txs.filter((t: any) => t.type === "monthly_contribution");
+      const empContrib = txs.filter((t: any) => t.type === "employee_contribution").reduce((a: number, t: any) => a + Number(t.amount || 0), 0)
+        + monthlyRows.reduce((a: number, t: any) => a + Number(t.employeeShare || 0), 0);
+      const erContrib = txs.filter((t: any) => t.type === "employer_contribution").reduce((a: number, t: any) => a + Number(t.amount || 0), 0)
+        + monthlyRows.reduce((a: number, t: any) => a + Number(t.employerShare || 0), 0);
+      const penContrib = monthlyRows.reduce((a: number, t: any) => a + Number(t.pensionShare || 0), 0);
+      const transferIn = txs.filter((t: any) => t.type === "transfer_in").reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
+      const withdrawal = txs.filter((t: any) => t.type === "withdrawal").reduce((a: number, t: any) => a + Number(t.amount || 0), 0);
+      return s + empContrib + erContrib + penContrib + transferIn - withdrawal;
+    }, 0);
 
     /* ── LIC / Insurance Plans ────────────────────────────────────── */
     const licPremiums = licPolicies.reduce(
