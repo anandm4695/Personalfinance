@@ -17,7 +17,7 @@ import {
   IndianRupee,
   Building2,
 } from "lucide-react";
-import { THEME } from "../../utils/constants";
+import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, today } from "../../utils/finance";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -293,6 +293,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
       saleStampDuty: "",
       saleTds: "",
       notes: "",
+      owner: "self",
     }
   );
 
@@ -319,6 +320,11 @@ function PropertyModal({ existing, onClose, onSave }: any) {
             <option value="owned">Owned</option>
             <option value="under-construction">Under Construction</option>
             <option value="sold">Sold</option>
+          </select>
+        </Field>
+        <Field label="Owner">
+          <select style={input} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
+            {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>
         <Field label="Location" style={{ gridColumn: "1 / -1" }}>
@@ -968,10 +974,10 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
       {/* Stats */}
       {properties.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
-          <StatCard label="Portfolio Value" value={fmtINRFull(stats.portfolioValue)} icon={<TrendingUp />} color="#22c55e" />
-          <StatCard label="Total Invested" value={fmtINRFull(stats.totalInvested)} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
-          <StatCard label="Total Paid" value={fmtINRFull(stats.totalPaid)} sub="All payments" icon={<CheckCircle />} color={THEME.accent} />
-          <StatCard label="Outstanding" value={fmtINRFull(stats.outstanding)} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
+          <StatCard label="Portfolio Value" value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>} icon={<TrendingUp />} color="#22c55e" />
+          <StatCard label="Total Invested" value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
+          <StatCard label="Total Paid" value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>} sub="All payments" icon={<CheckCircle />} color={THEME.accent} />
+          <StatCard label="Outstanding" value={<Prv>{fmtINRFull(stats.outstanding)}</Prv>} sub="Demands pending" icon={<Clock />} color={stats.outstanding > 0 ? "#ef4444" : THEME.muted} />
         </div>
       )}
 

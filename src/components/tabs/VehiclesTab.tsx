@@ -1620,7 +1620,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem }: any) {
           />
           <StatCard
             label="Total Service Spend"
-            value={fmtINRFull(totalServiceSpend)}
+            value={<Prv>{fmtINRFull(totalServiceSpend)}</Prv>}
             sub="across all vehicles"
             icon={<Wrench />}
             color="#f59e0b"

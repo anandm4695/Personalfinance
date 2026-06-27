@@ -197,9 +197,11 @@ export function useMetrics(
     const goldPrice = (() => {
       try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; }
     })();
+    const PURITY_FACTOR: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
     const goldValue = (sState.goldHoldings || []).reduce((s: number, h: any) => {
       const grams = Number(h.grams || 0);
-      const currentValue = grams * goldPrice;
+      const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+      const currentValue = grams * goldPrice * purityMul;
       return s + currentValue;
     }, 0);
 

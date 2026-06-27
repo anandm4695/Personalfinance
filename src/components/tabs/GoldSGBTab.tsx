@@ -51,6 +51,8 @@ const EMPTY_GOLD = {
 // Approximate gold price per gram (user can refresh)
 const DEFAULT_GOLD_PRICE = 7200; // ₹ per gram for 24K
 
+const PURITY_FACTOR: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+
 export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -68,8 +70,9 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     return holdings.map((h) => {
       const grams = Number(h.grams || 0);
       const purchasePrice = Number(h.purchasePrice || 0);
-      const currentValue = grams * goldPrice;
-      const invested = purchasePrice > 0 ? purchasePrice : grams * goldPrice;
+      const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+      const currentValue = grams * goldPrice * purityMul;
+      const invested = purchasePrice > 0 ? purchasePrice : currentValue;
       const pnl = currentValue - invested;
       const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
 

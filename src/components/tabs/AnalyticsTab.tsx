@@ -1068,6 +1068,32 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       data.push({ name: "Real Estate", children: reChildren });
     }
 
+    // 6. Gold & SGBs
+    const gpTreemap = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
+    const PF_TM: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    const goldChildren = (state.goldHoldings || [])
+      .map((h: any) => {
+        const grams = Number(h.grams || 0);
+        const pMul = h.type === "physical" ? (PF_TM[h.purity] || 1) : 1;
+        return { name: h.name || h.type || "Gold", size: grams * gpTreemap * pMul, category: "Gold" };
+      })
+      .filter((c: any) => c.size > 0);
+    if (goldChildren.length > 0) {
+      data.push({ name: "Gold", children: goldChildren });
+    }
+
+    // 7. Vehicles
+    const vehChildren = (state.vehicles || [])
+      .map((v: any) => ({
+        name: `${v.make || ""} ${v.model || ""}`.trim() || "Vehicle",
+        size: Number(v.currentValue || v.purchasePrice || 0),
+        category: "Vehicles",
+      }))
+      .filter((c: any) => c.size > 0);
+    if (vehChildren.length > 0) {
+      data.push({ name: "Vehicles", children: vehChildren });
+    }
+
     return data;
   }, [state, metrics]);
 
@@ -1263,6 +1289,97 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             sub: l.rate ? `${l.rate}% Interest` : "Interest Free",
             value: Number(l.outstanding || 0),
           }))
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Gold & SGBs": {
+        const gp = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
+        const PF: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+        const GTYPES: Record<string, string> = { physical: "Physical", sgb: "SGB", digital: "Digital", etf: "ETF", mf: "MF" };
+        return (state.goldHoldings || [])
+          .map((h: any) => {
+            const grams = Number(h.grams || 0);
+            const pMul = h.type === "physical" ? (PF[h.purity] || 1) : 1;
+            return {
+              name: h.name || GTYPES[h.type] || "Gold",
+              sub: `${grams}g ${h.type === "physical" && h.purity ? h.purity : GTYPES[h.type] || ""}`,
+              value: grams * gp * pMul,
+            };
+          })
+          .sort((a: any, b: any) => b.value - a.value);
+      }
+
+      case "Vehicles":
+        return (state.vehicles || [])
+          .map((v: any) => ({
+            name: `${v.make || ""} ${v.model || ""}`.trim() || "Vehicle",
+            sub: `${v.year || ""} · ${v.registrationNumber || "No reg."}`,
+            value: Number(v.currentValue || v.purchasePrice || 0),
+          }))
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Real Estate":
+        return (state.realEstateProperties || [])
+          .filter((p: any) => p.status !== "sold")
+          .map((p: any) => ({
+            name: p.name || "Property",
+            sub: `${p.location || ""} · ${p.status === "under-construction" ? "Under Const." : "Owned"}`,
+            value: Number(p.marketValue || p.agreementValue || 0),
+          }))
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Rental Properties":
+        return (state.rentalProperties || [])
+          .map((r: any) => ({
+            name: r.propertyName || r.address || "Rental Property",
+            sub: r.tenantName ? `Tenant: ${r.tenantName}` : "Rental",
+            value: Number(r.propertyValue || 0),
+          }))
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Security Deposit":
+        return (state.rentedProperties || [])
+          .map((p: any) => {
+            const dep = p.depositTransactions?.length
+              ? p.depositTransactions.reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0)
+              : Number(p.securityDeposit || 0);
+            const returned = Number(p.depositReturned || 0);
+            return {
+              name: p.propertyName || p.address || "Rented Property",
+              sub: p.landlordName ? `Landlord: ${p.landlordName}` : "Deposit",
+              value: Math.max(0, dep - returned),
+            };
+          })
+          .filter((x: any) => x.value > 0)
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Informal Loans Given":
+        return (state.informalLent || [])
+          .map((person: any) => {
+            const totalT = (person.tranches || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            const totalP = (person.payments || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+            return {
+              name: person.name || "Person",
+              sub: person.relation || "Informal loan",
+              value: Math.max(0, totalT - totalP),
+            };
+          })
+          .filter((x: any) => x.value > 0)
+          .sort((a: any, b: any) => b.value - a.value);
+
+      case "Prepaid Cards":
+        return (state.prepaidCards || [])
+          .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
+          .map((p: any) => {
+            const txns = p.transactions || [];
+            const loaded = txns.filter((t: any) => t.type === "load").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            const spent = txns.filter((t: any) => t.type === "spend").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            return {
+              name: p.name || p.cardName || "Prepaid Card",
+              sub: p.cardNumber ? `****${p.cardNumber.slice(-4)}` : "Prepaid",
+              value: loaded - spent,
+            };
+          })
+          .filter((x: any) => x.value > 0)
           .sort((a: any, b: any) => b.value - a.value);
 
       default:
