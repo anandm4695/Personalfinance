@@ -11,6 +11,8 @@ import {
   Download,
   RefreshCw,
   FileText,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { THEME } from "../../utils/constants";
@@ -89,7 +91,8 @@ export const AuditLogTab = ({ session }) => {
       const term = searchTerm.toLowerCase();
       list = list.filter((l) =>
         (l.description || "").toLowerCase().includes(term) ||
-        (l.action_type || "").toLowerCase().includes(term)
+        (l.action_type || "").toLowerCase().includes(term) ||
+        (l.metadata && JSON.stringify(l.metadata).toLowerCase().includes(term))
       );
     }
     return list;
@@ -127,6 +130,104 @@ export const AuditLogTab = ({ session }) => {
   const getActionIcon = (action) => {
     const type = (action || "").split("_")[0];
     return ACTION_ICONS[type] || Activity;
+  };
+
+  const [expandedId, setExpandedId] = useState(null);
+
+  const SKIP_KEYS = new Set(["id", "user_id", "userId", "created_at", "updated_at", "createdAt", "updatedAt"]);
+
+  const LABEL_MAP = {
+    symbol: "Symbol", exchange: "Exchange", qty: "Quantity", buy_price: "Buy Price",
+    buyPrice: "Buy Price", buy_date: "Buy Date", buyDate: "Buy Date", name: "Name",
+    bank: "Bank", amount: "Amount", balance: "Balance", type: "Type",
+    accountType: "Account Type", account_type: "Account Type", description: "Description",
+    category: "Category", date: "Date", scheme: "Scheme", nav: "NAV", units: "Units",
+    invested: "Invested", current_value: "Current Value", currentValue: "Current Value",
+    maturity_date: "Maturity Date", maturityDate: "Maturity Date", interest_rate: "Interest Rate",
+    interestRate: "Interest Rate", principal: "Principal", tenure: "Tenure",
+    cardName: "Card Name", card_name: "Card Name", credit_limit: "Credit Limit",
+    creditLimit: "Credit Limit", outstanding: "Outstanding", due_date: "Due Date",
+    dueDate: "Due Date", lender: "Lender", borrower: "Borrower", emi: "EMI",
+    remaining: "Remaining", institution: "Institution", employer: "Employer",
+    insurer: "Insurer", premium: "Premium", sum_assured: "Sum Assured",
+    sumAssured: "Sum Assured", cover: "Cover", title: "Title", target: "Target",
+    current: "Current", frequency: "Frequency", owner: "Owner", broker: "Broker",
+    fundName: "Fund Name", fund_name: "Fund Name", folio: "Folio", folio_number: "Folio Number",
+    folioNumber: "Folio Number", pran: "PRAN", account_number: "Account Number",
+    accountNumber: "Account Number", brand: "Brand", model: "Model",
+    registrationNumber: "Reg Number", registration_number: "Reg Number",
+    weight: "Weight", purity: "Purity", address: "Address", person: "Person",
+    source: "Source", fundManager: "Fund Manager", fund_manager: "Fund Manager",
+    lenderBorrower: "Lender/Borrower", lender_borrower: "Lender/Borrower",
+    patch: "Changed Fields", fileName: "File Name",
+  };
+
+  const formatDetailValue = (val) => {
+    if (val === null || val === undefined || val === "") return "—";
+    if (typeof val === "boolean") return val ? "Yes" : "No";
+    if (typeof val === "number") return val.toLocaleString("en-IN");
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+      try { return new Date(val).toLocaleDateString("en-IN", { dateStyle: "medium" }); } catch { return val; }
+    }
+    if (Array.isArray(val)) return val.length ? val.join(", ") : "—";
+    if (typeof val === "object") return JSON.stringify(val);
+    return String(val);
+  };
+
+  const renderMetadataDetails = (metadata, actionType) => {
+    if (!metadata || typeof metadata !== "object") return null;
+
+    const isUpdate = (actionType || "").startsWith("UPDATE");
+    const entries = [];
+
+    if (isUpdate && metadata.patch && typeof metadata.patch === "object") {
+      Object.entries(metadata.patch).forEach(([k, v]) => {
+        if (!SKIP_KEYS.has(k)) entries.push([k, v]);
+      });
+    } else {
+      Object.entries(metadata).forEach(([k, v]) => {
+        if (!SKIP_KEYS.has(k) && typeof v !== "object") entries.push([k, v]);
+      });
+      Object.entries(metadata).forEach(([k, v]) => {
+        if (!SKIP_KEYS.has(k) && typeof v === "object" && v !== null && k !== "patch") entries.push([k, v]);
+      });
+    }
+
+    if (!entries.length) return null;
+
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: "4px 12px", padding: "10px 14px",
+        background: THEME.bg, borderRadius: 8, marginTop: 8, fontSize: 12 }}>
+        {isUpdate && (
+          <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: THEME.accent, marginBottom: 4,
+            textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Fields Changed
+          </div>
+        )}
+        {entries.map(([k, v]) => (
+          <React.Fragment key={k}>
+            <span style={{ color: THEME.textSecondary, fontWeight: 500 }}>{LABEL_MAP[k] || k}</span>
+            <span style={{ color: THEME.text, wordBreak: "break-word" }}>{formatDetailValue(v)}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
+  const getMetadataSummary = (metadata, actionType) => {
+    if (!metadata || typeof metadata !== "object") return null;
+
+    const isUpdate = (actionType || "").startsWith("UPDATE");
+    const source = isUpdate && metadata.patch ? metadata.patch : metadata;
+    const pairs = [];
+
+    Object.entries(source).forEach(([k, v]) => {
+      if (SKIP_KEYS.has(k) || typeof v === "object") return;
+      const label = LABEL_MAP[k] || k;
+      pairs.push(`${label}: ${formatDetailValue(v)}`);
+    });
+
+    return pairs.length ? pairs.slice(0, 3).join(" · ") : null;
   };
 
   return (
@@ -198,26 +299,41 @@ export const AuditLogTab = ({ session }) => {
             {filteredLogs.map((log, i) => {
               const Icon = getActionIcon(log.action_type);
               const color = getActionColor(log.action_type);
+              const logKey = log.id || i;
+              const isExpanded = expandedId === logKey;
+              const hasMetadata = log.metadata && typeof log.metadata === "object" && Object.keys(log.metadata).length > 0;
+              const summary = getMetadataSummary(log.metadata, log.action_type);
+
               return (
-                <div key={log.id || i} style={{ display: "flex", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${THEME.border}`,
-                  alignItems: "flex-start" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                    <Icon size={14} color={color} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{log.description || log.action_type}</span>
-                      <span style={{ fontSize: 11, color: THEME.textSecondary, flexShrink: 0, marginLeft: 8 }}>{formatDate(log.created_at)}</span>
+                <div key={logKey}
+                  style={{ borderBottom: `1px solid ${THEME.border}`, cursor: hasMetadata ? "pointer" : "default" }}
+                  onClick={() => hasMetadata && setExpandedId(isExpanded ? null : logKey)}>
+                  <div style={{ display: "flex", gap: 12, padding: "12px 20px", alignItems: "flex-start" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                      <Icon size={14} color={color} />
                     </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${color}15`, color }}>
-                        {log.action_type}
-                      </span>
-                      {log.metadata && (
-                        <span style={{ fontSize: 11, color: THEME.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {typeof log.metadata === "object" ? Object.keys(log.metadata).slice(0, 3).join(", ") : String(log.metadata).slice(0, 50)}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: THEME.text }}>{log.description || log.action_type}</span>
+                        <span style={{ fontSize: 11, color: THEME.textSecondary, flexShrink: 0, marginLeft: 8 }}>{formatDate(log.created_at)}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${color}15`, color }}>
+                          {log.action_type}
                         </span>
-                      )}
+                        {summary && !isExpanded && (
+                          <span style={{ fontSize: 11, color: THEME.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {summary}
+                          </span>
+                        )}
+                        {hasMetadata && (
+                          <span style={{ marginLeft: "auto", color: THEME.textSecondary, display: "flex", alignItems: "center", gap: 2, fontSize: 10, flexShrink: 0 }}>
+                            {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                            <span>{isExpanded ? "Less" : "Details"}</span>
+                          </span>
+                        )}
+                      </div>
+                      {isExpanded && renderMetadataDetails(log.metadata, log.action_type)}
                     </div>
                   </div>
                 </div>
