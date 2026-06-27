@@ -271,9 +271,9 @@ export function useMetrics(
       return sum + paymentsThisMonth;
     }, 0);
 
-    const monthExpense =
-      monthTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0) +
-      rentPaidThisMonth;
+    const txnDebitTotal = monthTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const hasRentTxn = monthTxns.some((t: any) => t.type === "debit" && t.category === "Rent");
+    const monthExpense = txnDebitTotal + (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
 
     // Annual income from income ledger
     const fyStart = new Date(`${(sState.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
@@ -509,7 +509,8 @@ export function useMetrics(
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       // Include rent paid via rental ledger (rentedProperties.payments) so the
       // trend chart stays consistent with the monthExpense metric on the dashboard.
-      const rentExp = (filteredState.rentedProperties || []).reduce((sum: number, p: any) => {
+      const hasRentTxnTrend = txns.some((t: any) => t.type === "debit" && t.category === "Rent");
+      const rentExp = hasRentTxnTrend ? 0 : (filteredState.rentedProperties || []).reduce((sum: number, p: any) => {
         return (
           sum +
           (p.payments || [])

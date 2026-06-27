@@ -21,8 +21,8 @@ export function useAlerts(state: any, metrics: any): Alert[] {
     const list: { level: "error" | "warn" | "info"; title: string; detail: string; tab: string }[] =
       [];
     const now = new Date();
-    // Over-budget categories
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // Over-budget categories (uses budget inheritance: current month → latest prior month → legacy)
+    const ym = today().slice(0, 7);
     const monthSpend: Record<string, number> = {};
     state.transactions
       .filter((t: any) => t.date && t.date.startsWith(ym) && t.type === "debit")
@@ -30,7 +30,27 @@ export function useAlerts(state: any, metrics: any): Alert[] {
         const cat = t.category || "Uncategorized";
         monthSpend[cat] = (monthSpend[cat] || 0) + Number(t.amount || 0);
       });
-    state.budgets.forEach((b: any) => {
+    const rentPaid = (state.rentedProperties || []).reduce((sum: number, p: any) => {
+      return sum + (p.payments || [])
+        .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+    }, 0);
+    if (rentPaid > 0 && !monthSpend["Rent"]) monthSpend["Rent"] = rentPaid;
+
+    const specificBudgets = state.budgets.filter((b: any) => b.budgetMonth === ym);
+    let budgetsForAlerts: any[];
+    if (specificBudgets.length > 0) {
+      budgetsForAlerts = specificBudgets;
+    } else {
+      const priorBudgets = state.budgets.filter((b: any) => b.budgetMonth && b.budgetMonth < ym);
+      if (priorBudgets.length > 0) {
+        const months = Array.from(new Set(priorBudgets.map((b: any) => b.budgetMonth))).sort() as string[];
+        budgetsForAlerts = state.budgets.filter((b: any) => b.budgetMonth === months[months.length - 1]);
+      } else {
+        budgetsForAlerts = state.budgets.filter((b: any) => !b.budgetMonth);
+      }
+    }
+    budgetsForAlerts.forEach((b: any) => {
       const spent = monthSpend[b.category] || 0;
       if (spent > Number(b.monthly || 0)) {
         list.push({

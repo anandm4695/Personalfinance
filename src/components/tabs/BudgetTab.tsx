@@ -137,8 +137,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       return sum + paymentsThisMonth;
     }, 0);
 
-    if (rentPaidThisMonth > 0) {
-      spending["Rent"] = (spending["Rent"] || 0) + rentPaidThisMonth;
+    if (rentPaidThisMonth > 0 && !spending["Rent"]) {
+      spending["Rent"] = rentPaidThisMonth;
     }
 
     return spending;
@@ -169,7 +169,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
       );
     }, 0);
-    if (prevRent > 0) spending["Rent"] = (spending["Rent"] || 0) + prevRent;
+    if (prevRent > 0 && !spending["Rent"]) spending["Rent"] = prevRent;
     return spending;
   }, [state.transactions, state.rentedProperties, selectedMonth]);
 
@@ -436,7 +436,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
       const delta = spent - prev;
       const deltaStr = prev > 0 ? (delta >= 0 ? `+${delta.toFixed(0)}` : delta.toFixed(0)) : "";
       const status =
-        spent > budget ? "Over Budget" : spent > budget * 0.9 ? "Near Limit" : "On Track";
+        spent > budget ? "Over Budget" : spent > budget * 0.8 ? "Near Limit" : "On Track";
       rows.push(
         [
           q(b.category),
@@ -797,7 +797,8 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
           {/* Summary Tiles */}
           {(() => {
-            const savingsAmt = selectedMonthIncome - totalSpent;
+            const allSpent = totalSpent + totalUnbudgetedSpent;
+            const savingsAmt = selectedMonthIncome - allSpent;
             const savingsRate =
               selectedMonthIncome > 0 ? (savingsAmt / selectedMonthIncome) * 100 : null;
             const savingsColor =
@@ -827,8 +828,9 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                   },
                   {
                     label: "Spent in Month",
-                    value: fmtINRFull(totalSpent),
-                    sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used`,
+                    value: fmtINRFull(allSpent),
+                    sub: `${totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : 0}% of budget used` +
+                      (totalUnbudgetedSpent > 0 ? ` · ${fmtINRFull(totalUnbudgetedSpent)} unbudgeted` : ""),
                     color: totalSpent > totalBudget ? THEME.rust : THEME.accent,
                     Icon: Receipt,
                   },
@@ -926,7 +928,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
           {totalBudget > 0 &&
             (() => {
               const now = new Date();
-              const currentMonthStr = now.toISOString().slice(0, 7);
+              const currentMonthStr = today().slice(0, 7);
               const isCurrentMonth = selectedMonth === currentMonthStr;
 
               const [selYear, selMonth] = selectedMonth.split("-").map(Number);
@@ -1124,7 +1126,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 const Icon = getCatIcon(b.category);
 
                 const now = new Date();
-                const currentMonthStr = now.toISOString().slice(0, 7);
+                const currentMonthStr = today().slice(0, 7);
                 const isCurrentMonth = selectedMonth === currentMonthStr;
 
                 const [selYear, selMonth] = selectedMonth.split("-").map(Number);
@@ -1581,7 +1583,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                 const hasPaid = !!match;
 
                 const now = new Date();
-                const curMonthStr = now.toISOString().slice(0, 7);
+                const curMonthStr = today().slice(0, 7);
                 const todayDay = now.getDate();
 
                 let statusText = "Upcoming";
@@ -1899,7 +1901,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
                       ? `Paid · ${fmtINRFull(paidThisMonth)}`
                       : isOverdue
                         ? `Overdue · ${fmtINRFull(effectiveRent)} due`
-                        : `Due on ${dueDay}${["st", "nd", "rd"][dueDay - 1] || "th"} · ${fmtINRFull(effectiveRent)}`;
+                        : `Due on ${dueDay}${(dueDay % 10 === 1 && dueDay !== 11) ? "st" : (dueDay % 10 === 2 && dueDay !== 12) ? "nd" : (dueDay % 10 === 3 && dueDay !== 13) ? "rd" : "th"} · ${fmtINRFull(effectiveRent)}`;
 
                     // Tier info
                     const tiers = p.escalationTiers;
