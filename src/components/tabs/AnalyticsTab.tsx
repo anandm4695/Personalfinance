@@ -2117,12 +2117,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (metrics.monthIncome > 0 && foirPct < 20) earned.add("d20");
     if (metrics.totalLiabilities === 0 && metrics.netWorth >= 0) earned.add("df");
 
-    // Credit Smart
+    // Credit Smart — deduplicate shared-pool limits (consistent with useMetrics)
     const activeCC = (state.creditCards || []).filter(
       (c: any) => (c.status || "").toLowerCase() !== "closed"
     );
     const ccOut = activeCC.reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
-    const ccLim = activeCC.reduce((s: number, c: any) => s + Number(c.limit || 0), 0);
+    const ccGroupPoolsBadge: Record<string, number> = {};
+    activeCC.forEach((c: any) => {
+      if (c.sharedGroup) {
+        ccGroupPoolsBadge[c.sharedGroup] = Math.max(ccGroupPoolsBadge[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+      }
+    });
+    const ccLim =
+      activeCC.filter((c: any) => !c.sharedGroup).reduce((s: number, c: any) => s + Number(c.limit || 0), 0) +
+      (Object.values(ccGroupPoolsBadge) as number[]).reduce((s: number, v: number) => s + v, 0);
     const ccUtil = ccLim > 0 ? (ccOut / ccLim) * 100 : 0;
     if (activeCC.length > 0 && ccOut === 0) earned.add("cc0");
     if (ccLim > 0 && ccUtil < 30) earned.add("cc30");
@@ -2628,7 +2636,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // FOIR: Fixed Obligation to Income Ratio — healthy lending threshold is <40%
     // Only count active loans (same filter as metrics.foir) to stay consistent with the FOIR tile
     const totalEMISmart = (state.loansTaken || [])
-      .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
+      .filter((l: any) => Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (metrics.monthIncome > 0 && totalEMISmart > 0) {
       const foirPct = (totalEMISmart / metrics.monthIncome) * 100;

@@ -308,7 +308,7 @@ export function useMetrics(
     // FOIR: total monthly EMI / monthly income -- safe lending threshold is <40%
     // Only include active loans (monthsRemaining unset OR > 0; explicitly 0 means fully paid)
     const totalMonthlyEMI = (sState.loansTaken || [])
-      .filter((l: any) => Number(l.monthsRemaining || 1) > 0)
+      .filter((l: any) => Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 

@@ -1121,7 +1121,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                 (acc: any, c: any) => acc + (Number(c.outstanding) || 0),
                 0
               );
-              const totalAvailable = totalLimit - totalOutstandingCC;
+              const totalAvailable = Math.max(0, totalLimit - totalOutstandingCC);
               const utilPct =
                 totalLimit > 0 ? Math.round((totalOutstandingCC / totalLimit) * 100) : 0;
 
@@ -1181,7 +1181,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                   label: "Available",
                   sub:
                     totalLimit > 0
-                      ? `${100 - utilPct}% of limit free`
+                      ? utilPct > 100
+                        ? `Over limit by ${utilPct - 100}%`
+                        : `${100 - utilPct}% of limit free`
                       : activeCards.length === 0 && state.creditCards.length > 0
                         ? "All cards closed"
                         : "No cards yet",
@@ -4455,7 +4457,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
 
   const totalPrincipal = items.reduce((s: number, l: any) => s + (Number(l.principal) || 0), 0);
   const totalOutstanding = items.reduce((s: number, l: any) => s + (Number(l.outstanding) || 0), 0);
-  const totalEMI = items.reduce((s: number, l: any) => s + (Number(l.emi) || 0), 0);
+  const totalEMI = items
+    .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
+    .reduce((s: number, l: any) => s + (Number(l.emi) || 0), 0);
 
   return (
     <div>
