@@ -1372,6 +1372,73 @@ function FinanceDashboard() {
 
   // ================== CRUD ==================
 
+  const fmtCurrency = (v: any) => {
+    const n = Number(v);
+    if (!n && n !== 0) return "";
+    return `₹${n.toLocaleString("en-IN")}`;
+  };
+
+  const describeItem = (key: string, item: any): string => {
+    const LABEL_MAP: Record<string, string> = {
+      bankAccounts: "Bank Account", transactions: "Transaction", mutualFunds: "Mutual Fund",
+      stocks: "Stock", demat: "Demat Account", fixedDeposits: "Fixed Deposit",
+      recurringDeposits: "Recurring Deposit", bonds: "Bond", ppf: "PPF", nps: "NPS", epf: "EPF",
+      creditCards: "Credit Card", prepaidCards: "Prepaid Card", loansTaken: "Loan Taken",
+      loansGiven: "Loan Given", goals: "Goal", budgets: "Budget", subscriptions: "Subscription",
+      reminders: "Reminder", recurringExpenses: "Recurring Expense", lic: "LIC Policy",
+      termPlans: "Term Plan", investmentPlans: "Investment Plan",
+      informalBorrowed: "Informal Loan (Borrowed)", informalLent: "Informal Loan (Lent)",
+      rentalProperties: "Rental Property (Given)", rentedProperties: "Rental Property (Taken)",
+      sips: "SIP", stockSells: "Stock Sale", mfSells: "MF Sale",
+      corporateActions: "Corporate Action", taxPayments: "Tax Payment",
+      income: "Income Entry", wishlists: "Watchlist", wishlistItems: "Watchlist Item",
+      realEstateProperties: "Real Estate", realEstateDemands: "Real Estate Demand",
+      realEstatePayments: "Real Estate Payment", vehicles: "Vehicle", dividends: "Dividend",
+      documents: "Document", goldHoldings: "Gold Holding", lifeEvents: "Life Event",
+    };
+    const label = LABEL_MAP[key] || key;
+    if (!item) return label;
+
+    const parts: string[] = [];
+
+    const name = item.name || item.bank || item.scheme || item.title || item.fundName
+      || item.insurer || item.lender || item.borrower || item.lenderBorrower
+      || item.person || item.source || item.institution || item.employer
+      || item.fundManager || item.broker || item.address || "";
+
+    if (key === "stocks" || key === "stockSells") {
+      if (item.symbol) parts.push(item.symbol + (item.exchange ? ` (${item.exchange})` : ""));
+      if (item.qty) parts.push(`${item.qty} shares`);
+    } else if (key === "transactions") {
+      if (item.description) parts.push(item.description);
+      if (item.amount) parts.push(fmtCurrency(item.amount));
+      if (item.type) parts.push(item.type);
+    } else if (key === "bankAccounts") {
+      if (item.bank) parts.push(item.bank);
+      if (item.type || item.accountType) parts.push(item.type || item.accountType);
+    } else if (key === "creditCards") {
+      if (item.bank) parts.push(item.bank);
+      if (item.cardName || item.name) parts.push(item.cardName || item.name);
+    } else if (key === "mutualFunds" || key === "mfSells") {
+      if (item.name || item.scheme) parts.push(item.name || item.scheme);
+    } else if (key === "vehicles") {
+      if (item.brand) parts.push(item.brand);
+      if (item.model) parts.push(item.model);
+      if (item.registrationNumber) parts.push(item.registrationNumber);
+    } else if (key === "dividends") {
+      if (item.symbol) parts.push(item.symbol);
+      if (item.amount) parts.push(fmtCurrency(item.amount));
+    } else if (key === "goldHoldings") {
+      if (item.type) parts.push(item.type);
+      if (item.weight) parts.push(`${item.weight}g`);
+    } else {
+      if (name) parts.push(name);
+      if (item.amount) parts.push(fmtCurrency(item.amount));
+    }
+
+    return parts.length ? `${label}: ${parts.join(" — ")}` : label;
+  };
+
   const addItem = async (key, item) => {
     const userId = session?.user?.id;
     // Auto-assign owner so items satisfy the DB NOT NULL constraint on ppf_nps
@@ -1660,11 +1727,12 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`ADD_${key.toUpperCase()}`, `Added new item to ${key}`, { ...item, id: newId });
+    logActivity(`ADD_${key.toUpperCase()}`, `Added ${describeItem(key, item)}`, { ...item, id: newId });
   };
 
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
+    const deletedItem = (state[key] || []).find((x: any) => x.id === id);
     const itemToDelete = key === "stocks" ? state.stocks.find((x: any) => x.id === id) : null;
     const txnToDelete =
       key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
@@ -1775,7 +1843,7 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`REMOVE_${key.toUpperCase()}`, `Removed item from ${key}`, { id });
+    logActivity(`REMOVE_${key.toUpperCase()}`, `Removed ${describeItem(key, deletedItem)}`, { id, ...(deletedItem || {}) });
   };
 
   const cleanupOrphanedCorporateActions = async () => {
@@ -2066,7 +2134,9 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`UPDATE_${key.toUpperCase()}`, `Updated item in ${key}`, { id, patch });
+    const updatedItem = (state[key] || []).find((x: any) => x.id === id);
+    const changedFields = Object.keys(patch).join(", ");
+    logActivity(`UPDATE_${key.toUpperCase()}`, `Updated ${describeItem(key, updatedItem ? { ...updatedItem, ...patch } : patch)} (${changedFields})`, { id, patch });
   };
 
   // ================== EXPORT / IMPORT ==================
@@ -2080,6 +2150,7 @@ function FinanceDashboard() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    logActivity("EXPORT", `Exported full backup — finance-backup-${today()}.json`);
   };
   const pushBackupToSupabase = async (data: any) => {
     const userId = session?.user?.id;
@@ -2208,6 +2279,7 @@ function FinanceDashboard() {
         showToast("Restoring backup and syncing to cloud...");
         await pushBackupToSupabase(parsed);
         showToast("Backup fully restored ✓");
+        logActivity("IMPORT", `Imported backup from ${file.name}`, { fileName: file.name });
       } catch {
         showToast("Invalid backup file — check JSON format", "error");
       }
@@ -2233,6 +2305,8 @@ function FinanceDashboard() {
             showToast("Local data reset successfully.", "success");
             return;
           }
+
+          await logActivity("RESET", "Full data reset — all cloud and local data wiped");
 
           // 1. PHASE 1: Delete all module data across all tables
           const tables = Object.values(TABLE_MAP);

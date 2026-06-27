@@ -24,20 +24,24 @@ const ACTION_COLORS = {
   ADD: THEME.sage,
   UPDATE: THEME.accent,
   DELETE: THEME.rust,
+  REMOVE: THEME.rust,
   UPDATE_SETTINGS: "#A78BFA",
   UPDATE_PROFILE: THEME.gold,
   IMPORT: "#F472B6",
   EXPORT: "#2DD4BF",
+  RESET: "#EF4444",
 };
 
 const ACTION_ICONS = {
   ADD: Plus,
   UPDATE: Edit2,
   DELETE: Trash2,
+  REMOVE: Trash2,
   UPDATE_SETTINGS: Activity,
   UPDATE_PROFILE: FileText,
   IMPORT: Download,
   EXPORT: Download,
+  RESET: RefreshCw,
 };
 
 export const AuditLogTab = ({ session }) => {
@@ -139,7 +143,7 @@ export const AuditLogTab = ({ session }) => {
         <StatCard label="Total Actions" value={logs.length} icon={<Activity />} color="var(--accent)" />
         <StatCard label="Adds" value={actionStats.ADD || 0} icon={<Plus />} color={THEME.sage} />
         <StatCard label="Updates" value={actionStats.UPDATE || 0} icon={<Edit2 />} color={THEME.accent} />
-        <StatCard label="Deletes" value={actionStats.DELETE || 0} icon={<Trash2 />} color={THEME.rust} />
+        <StatCard label="Deletes" value={(actionStats.DELETE || 0) + (actionStats.REMOVE || 0)} icon={<Trash2 />} color={THEME.rust} />
       </div>
 
       {/* Activity heatmap (last 7 days) */}
@@ -170,7 +174,10 @@ export const AuditLogTab = ({ session }) => {
             <option value="all">All Actions</option>
             <option value="ADD">Adds</option>
             <option value="UPDATE">Updates</option>
-            <option value="DELETE">Deletes</option>
+            <option value="REMOVE">Deletes</option>
+            <option value="EXPORT">Exports</option>
+            <option value="IMPORT">Imports</option>
+            <option value="RESET">Resets</option>
           </select>
           <select value={dateRange} onChange={(e) => { setDateRange(e.target.value); setPage(0); }}
             style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text, fontSize: 13 }}>
