@@ -22,6 +22,7 @@ import {
   Pencil,
   BellOff,
   BellRing,
+  Clock,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, getCCDueDate, getLocalDateString } from "../../utils/finance";
@@ -77,6 +78,8 @@ const MANUAL_CATEGORIES = ["Reminder", "Health", "Vehicle", "Tax", "Bills"];
 
 const DEFAULT_NOTIF_SETTINGS = {
   leadDays: 3,
+  notifStartHour: 6,
+  notifEndHour: 10,
   categories: {
     creditCards: true,
     subscriptions: true,
@@ -1078,6 +1081,80 @@ export function RemindersTab({ state, addItem, removeItem, updateItem }: any) {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Clock size={11} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                  Notification window (IST)
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: THEME.muted,
+                    marginBottom: 8,
+                  }}
+                >
+                  Notifications only fire when you open the app during this window
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <select
+                    value={notifSettings.notifStartHour ?? 6}
+                    onChange={(e) =>
+                      updateNotifSettings({ notifStartHour: Number(e.target.value) })
+                    }
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "var(--t-paper)",
+                      color: THEME.ink,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>to</span>
+                  <select
+                    value={notifSettings.notifEndHour ?? 10}
+                    onChange={(e) =>
+                      updateNotifSettings({ notifEndHour: Number(e.target.value) })
+                    }
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1.5px solid ${THEME.line}`,
+                      background: "var(--t-paper)",
+                      color: THEME.ink,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -10,6 +10,23 @@ export function useNotifications(loaded: boolean, session: any, state: any): voi
     // so notifications fire at most once per tab open — not on every refresh.
     const sessionKey = "finance-notif-fired-" + today();
     if (sessionStorage.getItem(sessionKey)) return;
+
+    // Only fire notifications during the configured morning window (IST).
+    // Prevents reminders from popping up at night when the user casually opens the app.
+    let notifStart = 6;
+    let notifEnd = 10;
+    try {
+      const s = localStorage.getItem("finance-notif-settings");
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (typeof parsed.notifStartHour === "number") notifStart = parsed.notifStartHour;
+        if (typeof parsed.notifEndHour === "number") notifEnd = parsed.notifEndHour;
+      }
+    } catch {}
+    const nowUtc = new Date();
+    const istHour = (nowUtc.getUTCHours() + 5 + Math.floor((nowUtc.getUTCMinutes() + 30) / 60)) % 24;
+    if (istHour < notifStart || istHour >= notifEnd) return;
+
     sessionStorage.setItem(sessionKey, "1");
 
     const getNotificationIcon = (type: string) => {
