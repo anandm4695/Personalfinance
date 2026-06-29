@@ -32,7 +32,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
-import { fmtINRFull, rdMaturity, calculateEpfBalance } from "../../utils/finance";
+import { fmtINRFull, rdMaturity, calculateEpfBalance, monthsBetween, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -60,6 +60,14 @@ const ASSET_CLASS_COLORS_LIGHT = {
   Insurance: "#7C3AED",
   "Real Estate": "#DC2626",
   Vehicles: "#64748B",
+  Bonds: "#0D9488",
+  "Investment Plans": "#6D28D9",
+  "Gold & SGBs": "#B45309",
+  "Loans Given": "#0369A1",
+  "Prepaid Cards": "#4338CA",
+  "Rental Properties": "#BE185D",
+  "Security Deposit": "#475569",
+  "Informal Loans Given": "#1D4ED8",
 };
 
 const ASSET_CLASS_COLORS_DARK = {
@@ -74,6 +82,14 @@ const ASSET_CLASS_COLORS_DARK = {
   Insurance: "#A78BFA",
   "Real Estate": "#F87171",
   Vehicles: "#94A3B8",
+  Bonds: "#2DD4BF",
+  "Investment Plans": "#C084FC",
+  "Gold & SGBs": "#FCD34D",
+  "Loans Given": "#38BDF8",
+  "Prepaid Cards": "#818CF8",
+  "Rental Properties": "#F472B6",
+  "Security Deposit": "#94A3B8",
+  "Informal Loans Given": "#60A5FA",
 };
 
 const getMemberColors = (dark: boolean) => dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
@@ -81,59 +97,140 @@ const getAssetClassColors = (dark: boolean) => dark ? ASSET_CLASS_COLORS_DARK : 
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
-const memberAssets = (state, owner) => {
+const memberAssets = (state, owner, marketData) => {
   const filter = (arr) => (arr || []).filter((a) => a.owner === owner);
 
   const cash = filter(state.bankAccounts).reduce((s, a) => s + Number(a.balance || 0), 0);
   const fd = filter(state.fixedDeposits).reduce((s, f) => s + Number(f.principal || 0), 0);
   const rd = filter(state.recurringDeposits).reduce((s, r) => {
-    const now = new Date();
-    const start = r.startDate ? new Date(r.startDate + "T00:00:00") : now;
-    const totalMonths = Number(r.tenureMonths || 0);
-    const elapsed = Math.min(
-      totalMonths,
-      Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()))
-    );
-    return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
+    const elapsed = r.startDate
+      ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
+      : Number(r.tenureMonths || 0);
+    return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
-  const stocks = filter(state.stocks).reduce(
-    (s, st) => s + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0),
-    0
-  );
-  const mf = filter(state.mutualFunds).reduce(
-    (s, m) => s + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0),
-    0
-  );
+  const stocks = filter(state.stocks).reduce((s, st) => {
+    const yfSym = `${st.symbol.replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+    const md = (marketData || {})[yfSym];
+    const livePrice = md?.price ?? Number(st.currentPrice || 0);
+    const fallbackPrice = livePrice || Number(st.avgPrice || 0);
+    return s + Number(st.qty || 0) * fallbackPrice;
+  }, 0);
+  const mf = filter(state.mutualFunds).reduce((s, m) => {
+    const liveNav = Number(m.currentNav || 0);
+    const fallbackNav =
+      liveNav ||
+      Number(m.buyNav || 0) ||
+      (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
+    return s + Number(m.units || 0) * fallbackNav;
+  }, 0);
   const ppf = filter(state.ppf).reduce((s, p) => s + Number(p.balance || 0), 0);
-  const nps = filter(state.nps).reduce((s: number, n: any) => {
+  const nps = filter(state.nps).reduce((s, n) => {
     const bal = Number(n.balance) || 0;
     if (bal > 0) return s + bal;
     return s + (n.transactions || []).reduce(
-      (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
     );
   }, 0);
-  const epf = filter(state.epf).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
-  const lic = filter(state.lic).reduce((s: number, l: any) => {
+  const epf = filter(state.epf).reduce((s, e) => s + calculateEpfBalance(e), 0);
+  const lic = filter(state.lic).reduce((s, l) => {
     const txTotal = (l.transactions || []).reduce(
-      (sum: number, t: any) => sum + Number(t.amount || 0), 0
+      (sum, t) => sum + Number(t.amount || 0), 0
     );
     return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
   }, 0);
-  const re = filter(state.realEstateProperties).reduce(
-    (s, r) => s + Number(r.marketValue || r.agreementValue || 0),
-    0
+  const bonds = filter(state.bonds).reduce(
+    (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0), 0
   );
-  const vehicles = filter(state.vehicles).reduce((s, v) => s + Number(v.currentValue || 0), 0);
-  const loans = filter(state.loansTaken).reduce((s, l) => s + Number(l.outstanding || 0), 0);
-  const cc = filter(state.creditCards).reduce((s, c) => s + Number(c.outstanding || 0), 0);
+  const investmentPlans = filter(state.investmentPlans).reduce((s, ip) => {
+    const txTotal = (ip.transactions || []).reduce(
+      (sum, t) => sum + Number(t.amount || 0), 0
+    );
+    return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
+  }, 0);
+  const re = filter(state.realEstateProperties)
+    .filter((p) => p.status !== "sold")
+    .reduce((s, r) => s + Number(r.marketValue || r.agreementValue || 0), 0);
+  const vehicles = filter(state.vehicles).reduce((s, v) => s + Number(v.currentValue || v.purchasePrice || 0), 0);
+  const loansGiven = filter(state.loansGiven).reduce((s, l) => s + Number(l.outstanding || 0), 0);
+  const prepaid = filter(state.prepaidCards)
+    .filter((p) => (p.status || "").toLowerCase() !== "closed")
+    .reduce((s, p) => {
+      const txns = p.transactions || [];
+      const loaded = txns.filter((t) => t.type === "load").reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const spent = txns.filter((t) => t.type === "spend").reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      return s + (loaded - spent);
+    }, 0);
+  const rentedDeposit = filter(state.rentedProperties || []).reduce((s, p) => {
+    const actualDeposit =
+      p.depositTransactions && p.depositTransactions.length > 0
+        ? p.depositTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        : Number(p.securityDeposit || 0);
+    const returned = Number(p.depositReturned || 0);
+    return s + Math.max(0, actualDeposit - returned);
+  }, 0);
+  const informalLent = filter(state.informalLent || []).reduce((s, person) => {
+    const totalT = (person.tranches || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const totalP = (person.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return s + Math.max(0, totalT - totalP);
+  }, 0);
+  const rentalProps = filter(state.rentalProperties || []).reduce(
+    (s, r) => s + Number(r.propertyValue || 0), 0
+  );
+  const goldPrice = (() => {
+    try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; }
+  })();
+  const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+  const gold = filter(state.goldHoldings || []).reduce((s, h) => {
+    const grams = Number(h.grams || 0);
+    const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+    return s + grams * goldPrice * purityMul;
+  }, 0);
 
-  const totalAssets = cash + fd + rd + stocks + mf + ppf + nps + epf + lic + re + vehicles;
-  const totalLiabilities = loans + cc;
+  // Liabilities
+  const loans = filter(state.loansTaken).reduce((s, l) => s + Number(l.outstanding || 0), 0);
+  const cc = filter(state.creditCards)
+    .filter((c) => (c.status || "").toLowerCase() !== "closed")
+    .reduce((s, c) => s + Number(c.outstanding || 0), 0);
+  const rentalDepositLiab = filter(state.rentalProperties || []).reduce((s, p) => {
+    const actualDeposit =
+      p.depositTransactions && p.depositTransactions.length > 0
+        ? p.depositTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        : Number(p.securityDeposit || 0);
+    const deducted = (p.depositDeductions || []).reduce((a, d) => a + Number(d.amount || 0), 0);
+    const returned = Number(p.depositReturned || 0);
+    return s + Math.max(0, actualDeposit - deducted - returned);
+  }, 0);
+  const informalBorrowed = filter(state.informalBorrowed || []).reduce((s, person) => {
+    const totalT = (person.tranches || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const totalP = (person.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return s + Math.max(0, totalT - totalP);
+  }, 0);
+  const realEstateOutstanding = (() => {
+    const ucIds = new Set(
+      filter(state.realEstateProperties || [])
+        .filter((p) => p.status === "under-construction")
+        .map((p) => p.id)
+    );
+    if (ucIds.size === 0) return 0;
+    const demanded = (state.realEstateDemands || [])
+      .filter((d) => ucIds.has(d.propertyId))
+      .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+    const paid = (state.realEstatePayments || [])
+      .filter((p) => ucIds.has(p.propertyId))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    return Math.max(0, demanded - paid);
+  })();
+
+  const totalAssets = cash + fd + rd + stocks + mf + ppf + nps + epf + lic + bonds +
+    investmentPlans + re + vehicles + loansGiven + prepaid + rentedDeposit +
+    informalLent + rentalProps + gold;
+  const totalLiabilities = loans + cc + rentalDepositLiab + informalBorrowed + realEstateOutstanding;
 
   return {
-    cash, fd, rd, stocks, mf, ppf, nps, epf, lic, re, vehicles,
+    cash, fd, rd, stocks, mf, ppf, nps, epf, lic, bonds, investmentPlans,
+    re, vehicles, loansGiven, prepaid, rentedDeposit, informalLent, rentalProps, gold,
     totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities,
-    loans, cc,
+    loans, cc, rentalDepositLiab, informalBorrowed, realEstateOutstanding,
   };
 };
 
@@ -147,9 +244,17 @@ const getAllocationData = (m) => {
     { name: "PPF", value: m.ppf },
     { name: "NPS", value: m.nps },
     { name: "EPF", value: m.epf },
+    { name: "Bonds", value: m.bonds },
     { name: "Insurance", value: m.lic },
+    { name: "Investment Plans", value: m.investmentPlans },
     { name: "Real Estate", value: m.re },
     { name: "Vehicles", value: m.vehicles },
+    { name: "Gold & SGBs", value: m.gold },
+    { name: "Loans Given", value: m.loansGiven },
+    { name: "Prepaid Cards", value: m.prepaid },
+    { name: "Rental Properties", value: m.rentalProps },
+    { name: "Security Deposit", value: m.rentedDeposit },
+    { name: "Informal Loans Given", value: m.informalLent },
   ];
   return items.filter((i) => i.value > 0);
 };
@@ -204,7 +309,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
   const familyData = useMemo(() => {
     const colors = getMemberColors(dark);
     const members = PROFILES.map((p, idx) => {
-      const assets = memberAssets(state, p.id);
+      const assets = memberAssets(state, p.id, marketData);
       const topHoldings = getTopHoldings(state, p.id);
       const allocation = getAllocationData(assets);
       const color = colors[idx % colors.length];
@@ -238,7 +343,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     const totalLifeCover = activeMembers.reduce((s, m) => s + m.totalLifeCover, 0);
 
     return { members, activeMembers, totalNetWorth, totalAssets, totalLiabilities, totalLifeCover };
-  }, [state, dark]);
+  }, [state, dark, marketData]);
 
   const unownedAssets = useMemo(() => {
     const flagged = [];
@@ -251,12 +356,21 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       { key: "ppf", label: "PPF" },
       { key: "nps", label: "NPS" },
       { key: "epf", label: "EPF" },
+      { key: "bonds", label: "Bond" },
       { key: "lic", label: "LIC Policy" },
+      { key: "investmentPlans", label: "Investment Plan" },
       { key: "termPlans", label: "Term Plan" },
       { key: "realEstateProperties", label: "Real Estate" },
       { key: "vehicles", label: "Vehicle" },
       { key: "loansTaken", label: "Loan" },
+      { key: "loansGiven", label: "Loan Given" },
       { key: "creditCards", label: "Credit Card" },
+      { key: "prepaidCards", label: "Prepaid Card" },
+      { key: "goldHoldings", label: "Gold/SGB" },
+      { key: "rentalProperties", label: "Rental Property" },
+      { key: "rentedProperties", label: "Rented Property" },
+      { key: "informalLent", label: "Informal Loan Given" },
+      { key: "informalBorrowed", label: "Informal Borrowing" },
     ];
 
     const profileIds = PROFILES.map((p) => p.id);
@@ -287,9 +401,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       { key: "ppf", label: "PPF" },
       { key: "epf", label: "EPF" },
       { key: "nps", label: "NPS" },
-      { key: "re", label: "Real Estate" },
+      { key: "bonds", label: "Bonds" },
       { key: "lic", label: "Insurance" },
+      { key: "investmentPlans", label: "Inv. Plans" },
+      { key: "re", label: "Real Estate" },
       { key: "vehicles", label: "Vehicles" },
+      { key: "gold", label: "Gold & SGBs" },
+      { key: "loansGiven", label: "Loans Given" },
+      { key: "rentalProps", label: "Rental Props" },
     ];
 
     return classes
