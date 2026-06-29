@@ -118,17 +118,33 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
   const milestones = useMemo(() => {
     const targets = [10_00_000, 25_00_000, 50_00_000, 1_00_00_000, 2_00_00_000, 5_00_00_000, 10_00_00_000, 25_00_00_000, 50_00_00_000];
     const currentNW = metrics.netWorth || 0;
+    const preset = projectionPresets[selectedPreset];
+    const monthlyReturn = preset.returnRate / 100 / 12;
+    const maxMonths = 50 * 12;
+
     return targets.map((t) => {
       const achieved = currentNW >= t;
       let eta = "";
-      if (!achieved && projection.length > 1) {
-        const hit = projection.find((p) => p.nominal >= t);
-        if (hit) eta = hit.label;
-        else eta = `${projectionYears}+ years`;
+      if (!achieved) {
+        const hitInChart = projection.find((p) => p.nominal >= t);
+        if (hitInChart) {
+          eta = hitInChart.label;
+        } else if (monthlyReturn > 0 || monthlySavings > 0) {
+          for (let i = 1; i <= maxMonths; i++) {
+            const nominal = currentNW * Math.pow(1 + monthlyReturn, i) +
+              monthlySavings * ((Math.pow(1 + monthlyReturn, i) - 1) / monthlyReturn || i);
+            if (nominal >= t) {
+              const years = Math.ceil(i / 12);
+              eta = `~${years} year${years > 1 ? "s" : ""}`;
+              break;
+            }
+          }
+          if (!eta) eta = "50+ years";
+        }
       }
       return { target: t, achieved, eta };
     });
-  }, [metrics.netWorth, projection, projectionYears]);
+  }, [metrics.netWorth, projection, selectedPreset, monthlySavings]);
 
   const stats = useMemo(() => {
     if (history.length < 2) return null;
