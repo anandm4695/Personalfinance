@@ -721,43 +721,44 @@ function generateHTML(summary, frequency, recipientName) {
         ? monthLabel()
         : dateStr;
 
-  const posColor = "#10b981";
-  const negColor = "#ef4444";
-  const warnColor = "#f59e0b";
-  const accentColor = "#6366f1";
+  const posColor = "#059669";
+  const negColor = "#dc2626";
+  const warnColor = "#d97706";
+  const accentColor = "#4f46e5";
   const navyBg = "#0f172a";
   const cardBg = "#ffffff";
   const bodyBg = "#f1f5f9";
   const textPrimary = "#0f172a";
-  const textMuted = "#64748b";
+  const textMuted = "#475569";
   const borderColor = "#e2e8f0";
+  const sectionBg = "#f8fafc";
 
   const pct = (val, total) => (total > 0 ? Math.min(Math.round((val / total) * 100), 100) : 0);
 
-  function progressBar(pct, color = accentColor, height = 6) {
+  function progressBar(pctVal, color = accentColor, height = 8) {
     return `
-      <div style="background:#e2e8f0;border-radius:99px;height:${height}px;overflow:hidden;margin-top:6px;">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;transition:width 0.3s;"></div>
+      <div style="background:#e2e8f0;border-radius:99px;height:${height}px;overflow:hidden;margin-top:8px;">
+        <div style="height:100%;width:${Math.max(pctVal, 2)}%;background:${color};border-radius:99px;"></div>
       </div>`;
   }
 
   function statBox(label, value, sub = "", color = textPrimary) {
     return `
-      <td style="padding:14px 18px;vertical-align:top;">
-        <div style="font-size:11px;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:4px;">${label}</div>
-        <div style="font-size:22px;font-weight:800;color:${color};letter-spacing:-0.02em;">${value}</div>
-        ${sub ? `<div style="font-size:12px;color:${textMuted};margin-top:2px;">${sub}</div>` : ""}
+      <td style="padding:16px 20px;vertical-align:top;background:${sectionBg};border-radius:8px;">
+        <div style="font-size:12px;color:${textMuted};text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:6px;">${label}</div>
+        <div style="font-size:24px;font-weight:900;color:${color};letter-spacing:-0.02em;line-height:1.2;">${value}</div>
+        ${sub ? `<div style="font-size:13px;color:${textMuted};margin-top:4px;">${sub}</div>` : ""}
       </td>`;
   }
 
   function sectionHeader(title, emoji) {
     return `
-      <tr><td style="padding:28px 28px 12px;">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:16px;padding-right:8px;vertical-align:middle;">${emoji}</td>
-          <td style="font-size:13px;font-weight:800;color:${textMuted};text-transform:uppercase;letter-spacing:0.12em;vertical-align:middle;">${title}</td>
+      <tr><td style="padding:32px 28px 14px;">
+        <table cellpadding="0" cellspacing="0" width="100%"><tr>
+          <td style="font-size:18px;padding-right:10px;vertical-align:middle;width:28px;">${emoji}</td>
+          <td style="font-size:14px;font-weight:800;color:${textPrimary};text-transform:uppercase;letter-spacing:0.1em;vertical-align:middle;">${title}</td>
         </tr></table>
-        <div style="height:1px;background:${borderColor};margin-top:10px;"></div>
+        <div style="height:2px;background:linear-gradient(90deg,${accentColor} 0%,${borderColor} 100%);margin-top:12px;border-radius:1px;"></div>
       </td></tr>`;
   }
 
@@ -766,17 +767,18 @@ function generateHTML(summary, frequency, recipientName) {
   const todayMs = Date.UTC(_todayVal.getUTCFullYear(), _todayVal.getUTCMonth(), _todayVal.getUTCDate());
   const dueRows = dues
     .slice(0, 6)
-    .map((d) => {
+    .map((d, i) => {
       const icon =
         d.type === "cc" ? "💳" : d.type === "emi" ? "🏠" : d.type === "sub" ? "📱" : "📌";
       const isPast = d.date.getTime() < todayMs;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
       <tr>
-        <td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">
+        <td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
           <table width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:13px;color:${textPrimary};font-weight:500;">${icon} ${d.label}</td>
-            <td style="font-size:12px;color:${textMuted};text-align:center;">${d.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
-            <td style="font-size:13px;font-weight:700;color:${isPast ? negColor : textPrimary};text-align:right;">${d.amount > 0 ? fmtINRFull(d.amount) : "—"}</td>
+            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon} ${d.label}</td>
+            <td style="font-size:13px;color:${textMuted};font-weight:600;text-align:center;">${d.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</td>
+            <td style="font-size:16px;font-weight:900;color:${isPast ? negColor : textPrimary};text-align:right;">${d.amount > 0 ? fmtINRFull(d.amount) : "—"}</td>
           </tr></table>
         </td>
       </tr>`;
@@ -785,18 +787,19 @@ function generateHTML(summary, frequency, recipientName) {
 
   // ── Goals rows ────────────────────────────────────────────────────────────
   const goalRows = goals
-    .map((g) => {
+    .map((g, i) => {
       const barColor = g.pct >= 80 ? posColor : g.pct >= 50 ? accentColor : warnColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:10px 28px;border-bottom:1px solid #f8fafc;">
+      <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:13px;font-weight:600;color:${textPrimary};">${g.name}</td>
-            <td style="font-size:12px;font-weight:800;color:${barColor};text-align:right;">${g.pct}%</td>
+            <td style="font-size:15px;font-weight:700;color:${textPrimary};">${g.name}</td>
+            <td style="font-size:15px;font-weight:900;color:${barColor};text-align:right;">${g.pct}%</td>
           </tr>
         </table>
-        ${progressBar(g.pct, barColor, 5)}
-        <div style="font-size:11px;color:${textMuted};margin-top:4px;">${fmtINR(g.current)} of ${fmtINR(g.target)}</div>
+        ${progressBar(g.pct, barColor, 8)}
+        <div style="font-size:13px;color:${textMuted};margin-top:6px;font-weight:500;">${fmtINR(g.current)} of ${fmtINR(g.target)}</div>
       </td></tr>`;
     })
     .join("");
@@ -804,17 +807,18 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Top spending rows ─────────────────────────────────────────────────────
   const maxCatAmt = topCats[0]?.amt || 1;
   const catRows = topCats
-    .map(({ cat, amt }) => {
+    .map(({ cat, amt }, i) => {
       const p = pct(amt, monthExpense);
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">
+      <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:13px;color:${textPrimary};font-weight:500;">${cat}</td>
-            <td style="font-size:12px;font-weight:700;color:${textPrimary};text-align:right;">${fmtINRFull(amt)} <span style="color:${textMuted};font-weight:400;">(${p}%)</span></td>
+            <td style="font-size:14px;color:${textPrimary};font-weight:600;">${cat}</td>
+            <td style="font-size:15px;font-weight:800;color:${textPrimary};text-align:right;">${fmtINRFull(amt)} <span style="color:${textMuted};font-weight:500;font-size:12px;">(${p}%)</span></td>
           </tr>
         </table>
-        ${progressBar(pct(amt, maxCatAmt), "#6366f130", 4)}
+        ${progressBar(pct(amt, maxCatAmt), accentColor, 6)}
       </td></tr>`;
     })
     .join("");
@@ -827,7 +831,7 @@ function generateHTML(summary, frequency, recipientName) {
       const border = a.type === "alert" ? negColor : a.type === "warn" ? warnColor : posColor;
       return `
       <tr><td style="padding:6px 28px;">
-        <div style="background:${bg};border-left:3px solid ${border};border-radius:0 6px 6px 0;padding:8px 12px;font-size:13px;color:${textPrimary};">
+        <div style="background:${bg};border-left:4px solid ${border};border-radius:0 8px 8px 0;padding:12px 16px;font-size:14px;color:${textPrimary};font-weight:500;line-height:1.5;">
           ${icon} ${a.msg}
         </div>
       </td></tr>`;
@@ -837,19 +841,20 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Credit card quick list ────────────────────────────────────────────────
   const ccRows = activeCards
     .slice(0, 4)
-    .map((c) => {
+    .map((c, i) => {
       const out = Number(c.outstanding) || 0;
       const lim = Number(c.limit || c.cardLimit) || 0;
       const u = lim > 0 ? Math.round((out / lim) * 100) : 0;
       const uColor = u >= 70 ? negColor : u >= 40 ? warnColor : posColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">
+      <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="font-size:13px;font-weight:600;color:${textPrimary};">${c.issuer} <span style="color:${textMuted};font-weight:400;font-size:11px;">••${c.last4 || "**"}</span></td>
+            <td style="font-size:14px;font-weight:700;color:${textPrimary};">${c.issuer} <span style="color:${textMuted};font-weight:400;font-size:12px;">··${c.last4 || "**"}</span></td>
             <td style="text-align:right;">
-              <span style="font-size:13px;font-weight:700;color:${textPrimary};">${fmtINR(out)}</span>
-              <span style="font-size:11px;color:${uColor};font-weight:600;margin-left:6px;">${u}% used</span>
+              <span style="font-size:15px;font-weight:800;color:${textPrimary};">${fmtINR(out)}</span>
+              <span style="font-size:12px;color:${uColor};font-weight:700;margin-left:8px;">${u}% used</span>
             </td>
           </tr>
         </table>
@@ -862,31 +867,35 @@ function generateHTML(summary, frequency, recipientName) {
   const netSavColor = netSavings >= 0 ? posColor : negColor;
 
   // ── Row helper for breakdown lists ──────────────────────────────────────────
+  let rowIdx = 0;
   function listRow(label, value, icon) {
+    const bg = rowIdx++ % 2 === 0 ? "#ffffff" : "#f8fafc";
     return `
-    <tr><td style="padding:7px 28px;border-bottom:1px solid #f8fafc;">
+    <tr><td style="padding:12px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-size:13px;color:${textPrimary};font-weight:500;">${icon ? icon + " " : ""}${label}</td>
-        <td style="font-size:13px;font-weight:700;color:${textPrimary};text-align:right;">${value}</td>
+        <td style="font-size:14px;color:${textPrimary};font-weight:600;">${icon ? icon + " " : ""}${label}</td>
+        <td style="font-size:15px;font-weight:800;color:${textPrimary};text-align:right;">${value}</td>
       </tr></table>
     </td></tr>`;
   }
 
   // ── Investment portfolio rows (all types) ─────────────────────────────────
+  rowIdx = 0;
   const investRows = [
-    mfTotal > 0 && listRow("Mutual Funds", `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(mfTotal, investTotal)}%)</span>`),
-    stockTotal > 0 && listRow("Stocks", `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(stockTotal, investTotal)}%)</span>`),
-    fdTotal > 0 && listRow("Fixed Deposits", `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(fdTotal, investTotal)}%)</span>`),
-    rdTotal > 0 && listRow("Recurring Deposits", `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(rdTotal, investTotal)}%)</span>`),
-    ppfTotal > 0 && listRow("PPF", `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(ppfTotal, investTotal)}%)</span>`),
-    npsTotal > 0 && listRow("NPS", `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(npsTotal, investTotal)}%)</span>`),
-    epfTotal > 0 && listRow("EPF", `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(epfTotal, investTotal)}%)</span>`),
-    bondsTotal > 0 && listRow("Bonds & Debentures", `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(bondsTotal, investTotal)}%)</span>`),
-    licTotal > 0 && listRow("LIC / Insurance", `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(licTotal, investTotal)}%)</span>`),
-    investmentTotalPlans > 0 && listRow("Investment Plans", `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:400;font-size:11px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`),
+    mfTotal > 0 && listRow("Mutual Funds", `${fmtINR(mfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(mfTotal, investTotal)}%)</span>`),
+    stockTotal > 0 && listRow("Stocks", `${fmtINR(stockTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(stockTotal, investTotal)}%)</span>`),
+    fdTotal > 0 && listRow("Fixed Deposits", `${fmtINR(fdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(fdTotal, investTotal)}%)</span>`),
+    rdTotal > 0 && listRow("Recurring Deposits", `${fmtINR(rdTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(rdTotal, investTotal)}%)</span>`),
+    ppfTotal > 0 && listRow("PPF", `${fmtINR(ppfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(ppfTotal, investTotal)}%)</span>`),
+    npsTotal > 0 && listRow("NPS", `${fmtINR(npsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(npsTotal, investTotal)}%)</span>`),
+    epfTotal > 0 && listRow("EPF", `${fmtINR(epfTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(epfTotal, investTotal)}%)</span>`),
+    bondsTotal > 0 && listRow("Bonds & Debentures", `${fmtINR(bondsTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(bondsTotal, investTotal)}%)</span>`),
+    licTotal > 0 && listRow("LIC / Insurance", `${fmtINR(licTotal)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(licTotal, investTotal)}%)</span>`),
+    investmentTotalPlans > 0 && listRow("Investment Plans", `${fmtINR(investmentTotalPlans)} <span style="color:${textMuted};font-weight:500;font-size:13px;">(${pct(investmentTotalPlans, investTotal)}%)</span>`),
   ].filter(Boolean).join("");
 
   // ── Other assets rows ─────────────────────────────────────────────────────
+  rowIdx = 0;
   const otherAssetItems = [
     realEstateAsset > 0 && listRow("Real Estate", fmtINR(realEstateAsset), "🏠"),
     vehicleAsset > 0 && listRow("Vehicles", fmtINR(vehicleAsset), "🚗"),
@@ -898,6 +907,7 @@ function generateHTML(summary, frequency, recipientName) {
   ].filter(Boolean).join("");
 
   // ── Liabilities rows ──────────────────────────────────────────────────────
+  rowIdx = 0;
   const liabilityItems = [
     loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding), "🏦"),
     creditOutstanding > 0 && listRow("Credit Card Dues", fmtINR(creditOutstanding), "💳"),
@@ -907,17 +917,18 @@ function generateHTML(summary, frequency, recipientName) {
   ].filter(Boolean).join("");
 
   // ── Budget health rows ────────────────────────────────────────────────────
-  const budgetRows = budgetStatus.slice(0, 6).map((b) => {
+  const budgetRows = budgetStatus.slice(0, 6).map((b, i) => {
     const barColor = b.over ? negColor : b.pct >= 80 ? warnColor : posColor;
+    const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
     return `
-    <tr><td style="padding:8px 28px;border-bottom:1px solid #f8fafc;">
+    <tr><td style="padding:14px 28px;background:${bg};border-bottom:1px solid ${borderColor};">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td style="font-size:13px;font-weight:500;color:${textPrimary};">${b.category}</td>
-          <td style="font-size:12px;font-weight:700;color:${barColor};text-align:right;">${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)</td>
+          <td style="font-size:14px;font-weight:700;color:${textPrimary};">${b.category}</td>
+          <td style="font-size:14px;font-weight:800;color:${barColor};text-align:right;">${fmtINR(b.spent)} / ${fmtINR(b.limit)} (${b.pct}%)</td>
         </tr>
       </table>
-      ${progressBar(Math.min(b.pct, 100), barColor, 5)}
+      ${progressBar(Math.min(b.pct, 100), barColor, 8)}
     </td></tr>`;
   }).join("");
 
@@ -937,12 +948,12 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td style="background:${navyBg};border-radius:16px 16px 0 0;padding:28px 28px 24px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
-        <div style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">Personal Finance</div>
-        <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-top:3px;">${periodLabel}</div>
+        <div style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">Personal Finance</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:5px;font-weight:500;">${periodLabel}</div>
       </td>
       <td style="text-align:right;vertical-align:top;">
-        <div style="display:inline-block;background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.4);border-radius:8px;padding:6px 12px;">
-          <span style="font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.08em;">
+        <div style="display:inline-block;background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.5);border-radius:8px;padding:8px 16px;">
+          <span style="font-size:13px;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.08em;">
             ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} Report
           </span>
         </div>
@@ -951,48 +962,49 @@ function generateHTML(summary, frequency, recipientName) {
   </td></tr>
 
   <!-- NET WORTH HERO -->
-  <tr><td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%);padding:28px;">
-    <div style="font-size:11px;font-weight:700;color:rgba(165,180,252,0.8);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;">Total Net Worth</div>
-    <div style="font-size:38px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr>
-      <td style="padding:0 12px 0 0;border-right:1px solid rgba(255,255,255,0.12);">
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Total Assets</div>
-        <div style="font-size:17px;font-weight:700;color:${posColor};margin-top:3px;">${fmtINR(totalAssets)}</div>
+  <tr><td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%);padding:32px 28px;">
+    <div style="font-size:13px;font-weight:700;color:rgba(165,180,252,0.9);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;">Total Net Worth</div>
+    <div style="font-size:44px;font-weight:900;color:#ffffff;letter-spacing:-0.03em;line-height:1;">${fmtINRFull(netWorth)}</div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
+      <td style="padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Total Assets</div>
+        <div style="font-size:20px;font-weight:800;color:#34d399;margin-top:5px;">${fmtINR(totalAssets)}</div>
       </td>
-      <td style="padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);">
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Total Liabilities</div>
-        <div style="font-size:17px;font-weight:700;color:#fca5a5;margin-top:3px;">${fmtINR(totalLiabilities)}</div>
+      <td style="width:8px;"></td>
+      <td style="padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Total Liabilities</div>
+        <div style="font-size:20px;font-weight:800;color:#fca5a5;margin-top:5px;">${fmtINR(totalLiabilities)}</div>
       </td>
-      <td style="padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);">
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Cash & Banks</div>
-        <div style="font-size:17px;font-weight:700;color:#fff;margin-top:3px;">${fmtINR(bankTotal)}</div>
+      <td style="width:8px;"></td>
+      <td style="padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Cash & Banks</div>
+        <div style="font-size:20px;font-weight:800;color:#ffffff;margin-top:5px;">${fmtINR(bankTotal)}</div>
       </td>
-      <td style="padding:0 0 0 12px;">
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.08em;">Investments</div>
-        <div style="font-size:17px;font-weight:700;color:#a5b4fc;margin-top:3px;">${fmtINR(investTotal)}</div>
+      <td style="width:8px;"></td>
+      <td style="padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Investments</div>
+        <div style="font-size:20px;font-weight:800;color:#a5b4fc;margin-top:5px;">${fmtINR(investTotal)}</div>
       </td>
     </tr></table>
   </td></tr>
 
   <!-- CASHFLOW -->
   ${sectionHeader("Monthly Cash Flow", "💸")}
-  <tr><td style="background:${cardBg};padding:0 28px 20px;">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+  <tr><td style="background:${cardBg};padding:4px 28px 24px;">
+    <table width="100%" cellpadding="0" cellspacing="8"><tr>
       ${statBox("Income", fmtINRFull(monthIncome), "This month", posColor)}
-      <td style="width:1px;background:${borderColor};"></td>
       ${statBox("Expenses", fmtINRFull(monthExpense), "This month", negColor)}
-      <td style="width:1px;background:${borderColor};"></td>
       ${statBox("Net Saved", fmtINRFull(Math.abs(netSavings)), netSavings >= 0 ? `${savingsPct}% savings rate` : "Overspent", netSavColor)}
     </tr></table>
     ${
       monthIncome > 0
         ? `
-    <div style="padding:0 0 4px;">
+    <div style="padding:8px 0 4px;">
       <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td style="font-size:11px;color:${textMuted};">Savings rate</td>
-        <td style="font-size:11px;color:${savColor};font-weight:700;text-align:right;">${savingsPct}%</td>
+        <td style="font-size:12px;color:${textMuted};font-weight:600;">Savings rate</td>
+        <td style="font-size:13px;color:${savColor};font-weight:800;text-align:right;">${savingsPct}%</td>
       </tr></table>
-      ${progressBar(savingsPct, savColor, 5)}
+      ${progressBar(savingsPct, savColor, 6)}
     </div>`
         : ""
     }
@@ -1003,9 +1015,11 @@ function generateHTML(summary, frequency, recipientName) {
     investTotal > 0
       ? `
   ${sectionHeader("Investment Portfolio", "📈")}
-  <tr><td style="padding:0 28px 8px;background:${cardBg};">
-    <div style="font-size:22px;font-weight:800;color:${accentColor};letter-spacing:-0.02em;">${fmtINRFull(investTotal)}</div>
-    <div style="font-size:11px;color:${textMuted};margin-top:2px;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter(v => v > 0).length} categories</div>
+  <tr><td style="padding:4px 28px 12px;background:${cardBg};">
+    <div style="background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);border-left:4px solid ${accentColor};border-radius:0 8px 8px 0;padding:14px 16px;">
+      <div style="font-size:28px;font-weight:900;color:${accentColor};letter-spacing:-0.02em;">${fmtINRFull(investTotal)}</div>
+      <div style="font-size:12px;color:${textMuted};margin-top:4px;font-weight:500;">Total invested across ${[mfTotal, stockTotal, fdTotal, rdTotal, ppfTotal, npsTotal, epfTotal, bondsTotal, licTotal, investmentTotalPlans].filter(v => v > 0).length} categories</div>
+    </div>
   </td></tr>
   <tr><td style="background:${cardBg};">
     ${investRows}
@@ -1032,10 +1046,10 @@ function generateHTML(summary, frequency, recipientName) {
   <tr><td style="background:${cardBg};">
     ${liabilityItems}
   </td></tr>
-  <tr><td style="padding:10px 28px;background:#fef2f2;">
+  <tr><td style="padding:14px 28px;background:#fef2f2;border-left:4px solid ${negColor};">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:13px;font-weight:700;color:${negColor};">Total Liabilities</td>
-      <td style="font-size:14px;font-weight:800;color:${negColor};text-align:right;">${fmtINRFull(totalLiabilities)}</td>
+      <td style="font-size:14px;font-weight:800;color:${negColor};">Total Liabilities</td>
+      <td style="font-size:18px;font-weight:900;color:${negColor};text-align:right;">${fmtINRFull(totalLiabilities)}</td>
     </tr></table>
   </td></tr>`
       : ""
@@ -1092,10 +1106,10 @@ function generateHTML(summary, frequency, recipientName) {
   ${sectionHeader("Upcoming Dues — Next 7 Days", "📅")}
   <tr><td style="padding:8px 28px 4px;background:${cardBg};">
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr style="background:#f8fafc;">
-        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;">Item</td>
-        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:center;">Date</td>
-        <td style="font-size:10px;font-weight:700;color:${textMuted};text-transform:uppercase;letter-spacing:0.08em;padding:6px 0;text-align:right;">Amount</td>
+      <tr style="background:#eef2ff;">
+        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;border-bottom:2px solid ${accentColor};">Item</td>
+        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;text-align:center;border-bottom:2px solid ${accentColor};">Date</td>
+        <td style="font-size:11px;font-weight:800;color:${accentColor};text-transform:uppercase;letter-spacing:0.08em;padding:10px 0;text-align:right;border-bottom:2px solid ${accentColor};">Amount</td>
       </tr>
     </table>
   </td></tr>
@@ -1118,21 +1132,21 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     alerts.length === 0
       ? `
-  <tr><td style="background:${cardBg};border-top:1px solid ${borderColor};padding:20px 28px;text-align:center;">
-    <div style="font-size:24px;margin-bottom:8px;">✅</div>
-    <div style="font-size:14px;font-weight:700;color:${posColor};">Everything looks good!</div>
-    <div style="font-size:12px;color:${textMuted};margin-top:4px;">No alerts, budgets on track, finances healthy.</div>
+  <tr><td style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border-top:1px solid ${borderColor};padding:28px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px;">✅</div>
+    <div style="font-size:18px;font-weight:800;color:${posColor};">Everything looks good!</div>
+    <div style="font-size:14px;color:${textMuted};margin-top:6px;font-weight:500;">No alerts, budgets on track, finances healthy.</div>
   </td></tr>`
       : ""
   }
 
   <!-- FOOTER -->
-  <tr><td style="background:${navyBg};border-radius:0 0 16px 16px;padding:20px 28px;text-align:center;">
-    <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;">
+  <tr><td style="background:${navyBg};border-radius:0 0 16px 16px;padding:24px 28px;text-align:center;">
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.8;font-weight:500;">
       Personal Finance by Anand Mohta &nbsp;·&nbsp; ${dateStr}<br>
-      <a href="https://personal-finance-by-anand-mohta.vercel.app" style="color:rgba(165,180,252,0.7);text-decoration:none;">Open Dashboard →</a>
+      <a href="https://personal-finance-by-anand-mohta.vercel.app" style="color:#a5b4fc;text-decoration:none;font-weight:700;">Open Dashboard →</a>
       &nbsp;·&nbsp;
-      <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:rgba(255,255,255,0.3);text-decoration:none;font-size:11px;">Manage email settings</a>
+      <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:rgba(255,255,255,0.4);text-decoration:none;font-size:12px;">Manage email settings</a>
     </div>
   </td></tr>
 
