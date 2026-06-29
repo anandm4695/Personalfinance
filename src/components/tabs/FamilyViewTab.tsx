@@ -32,7 +32,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
-import { fmtINRFull, rdMaturity } from "../../utils/finance";
+import { fmtINRFull, rdMaturity, calculateEpfBalance } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -105,9 +105,20 @@ const memberAssets = (state, owner) => {
     0
   );
   const ppf = filter(state.ppf).reduce((s, p) => s + Number(p.balance || 0), 0);
-  const nps = filter(state.nps).reduce((s, n) => s + Number(n.balance || 0), 0);
-  const epf = filter(state.epf).reduce((s, e) => s + Number(e.balance || 0), 0);
-  const lic = filter(state.lic).reduce((s, l) => s + Number(l.premiumPaid || 0), 0);
+  const nps = filter(state.nps).reduce((s: number, n: any) => {
+    const bal = Number(n.balance) || 0;
+    if (bal > 0) return s + bal;
+    return s + (n.transactions || []).reduce(
+      (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+    );
+  }, 0);
+  const epf = filter(state.epf).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+  const lic = filter(state.lic).reduce((s: number, l: any) => {
+    const txTotal = (l.transactions || []).reduce(
+      (sum: number, t: any) => sum + Number(t.amount || 0), 0
+    );
+    return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
+  }, 0);
   const re = filter(state.realEstateProperties).reduce(
     (s, r) => s + Number(r.marketValue || r.agreementValue || 0),
     0

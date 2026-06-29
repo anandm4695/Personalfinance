@@ -938,7 +938,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
     const fyStartStr = `${fyStart}-04-01`;
     const fyEndStr = `${fyStart + 1}-03-31`;
     const elss = (state.mutualFunds || []).filter((m: any) => (m.type || m.category || "").toUpperCase().includes("ELSS") && m.buyDate >= fyStartStr && m.buyDate <= fyEndStr).reduce((s: number, m: any) => s + Number(m.invested || 0), 0);
-    const ppf = (state.ppf || []).reduce((s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0), 0);
+    const ppf = (state.ppf || []).reduce((s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0), 0);
     const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
     const epfContrib = (state.epf || []).reduce((s: number, e: any) => {
       return s + (e.transactions || []).filter((t: any) => t.date >= fyStartStr && t.date <= fyEndStr && (t.type === "employee_contribution" || t.type === "monthly_contribution")).reduce((sum: number, t: any) => sum + Number(t.amount || t.employeeShare || 0), 0);

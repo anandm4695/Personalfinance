@@ -84,11 +84,27 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     }, 0);
     const bonds = (state.bonds || []).reduce((s, b) => s + Number(b.totalPrincipalAmount || b.faceValue || 0), 0);
     const ppf = (state.ppf || []).reduce((s, p) => s + Number(p.balance || 0), 0);
-    const nps = (state.nps || []).reduce((s, n) => s + Number(n.balance || 0), 0);
+    const nps = (state.nps || []).reduce((s: number, n: any) => {
+      const bal = Number(n.balance) || 0;
+      if (bal > 0) return s + bal;
+      return s + (n.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      );
+    }, 0);
     const epf = (state.epf || []).reduce((s, e) => s + calculateEpfBalance(e), 0);
     const cash = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
-    const lic = (state.lic || []).reduce((s, l) => s + Number(l.premiumPaid || 0), 0);
-    const investPlans = (state.investmentPlans || []).reduce((s, ip) => s + Number(ip.premiumPaid || 0), 0);
+    const lic = (state.lic || []).reduce((s: number, l: any) => {
+      const txTotal = (l.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
+    }, 0);
+    const investPlans = (state.investmentPlans || []).reduce((s: number, ip: any) => {
+      const txTotal = (ip.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
+    }, 0);
 
     const goldPricePerGram = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
     const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };

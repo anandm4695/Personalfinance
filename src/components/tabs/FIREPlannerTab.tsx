@@ -123,7 +123,13 @@ export const FIREPlannerTab = ({ state, metrics }) => {
     const savingsRate = metrics.monthIncome > 0 ? ((monthlySavings / metrics.monthIncome) * 100) : 0;
 
     // Monthly pension: NPS has 40% mandatory annuity; EPF is fully withdrawable (no annuity)
-    const npsCorpus = (state.nps || []).reduce((s, n) => s + Number(n.balance || 0), 0);
+    const npsCorpus = (state.nps || []).reduce((s: number, n: any) => {
+      const bal = Number(n.balance) || 0;
+      if (bal > 0) return s + bal;
+      return s + (n.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      );
+    }, 0);
     const pensionIncome = (npsCorpus * 0.4 * 0.06) / 12;
 
     return {

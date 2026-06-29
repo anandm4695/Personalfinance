@@ -1045,7 +1045,12 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       (s: number, x: any) => s + (Number(x.invested || x.investedValue) || 0),
       0
     ) || 0) +
-    (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
+    (state.lic?.reduce((s: number, x: any) => {
+      const txTotal = (x.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+    }, 0) || 0);
 
   const totalCurrent =
     (state.fixedDeposits?.reduce((s: number, x: any) => s + fdCurrentValue(x), 0) || 0) +
@@ -1055,7 +1060,13 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
       0
     ) || 0) +
     (state.ppf?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
-    (state.nps?.reduce((s: number, x: any) => s + (Number(x.balance) || 0), 0) || 0) +
+    (state.nps?.reduce((s: number, x: any) => {
+      const bal = Number(x.balance) || 0;
+      if (bal > 0) return s + bal;
+      return s + (x.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      );
+    }, 0) || 0) +
     (state.epf?.reduce((s: number, x: any) => s + calculateEpfBalance(x), 0) || 0) +
     (state.mutualFunds?.reduce(
       (s: number, x: any) =>
@@ -1065,7 +1076,12 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           0),
       0
     ) || 0) +
-    (state.lic?.reduce((s: number, x: any) => s + (Number(x.premiumPaid) || 0), 0) || 0);
+    (state.lic?.reduce((s: number, x: any) => {
+      const txTotal = (x.transactions || []).reduce(
+        (sum: number, t: any) => sum + Number(t.amount || 0), 0
+      );
+      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+    }, 0) || 0);
 
   const netGain = totalCurrent - totalPrincipal;
   const gainPct = totalPrincipal > 0 ? (netGain / totalPrincipal) * 100 : 0;
@@ -9681,8 +9697,10 @@ const YieldTracker = ({ state }: any) => {
 
   // NPS: rough 10% annual growth (mixed equity/debt) — fallback to transaction-derived corpus
   const npsGrowth = (state.nps || []).reduce((s: number, n: any) => {
-    const bal = Number(n.balance || 0);
-    const txCorpus = (n.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const bal = Number(n.balance) || 0;
+    const txCorpus = (n.transactions || []).reduce(
+      (sum: number, t: any) => sum + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+    );
     const corpus = bal > 0 ? bal : txCorpus;
     return s + (corpus * 10) / 100;
   }, 0);

@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today, monthsBetween, rdMaturity } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, monthsBetween, rdMaturity, calculateEpfBalance } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -50,8 +50,12 @@ const assetTypes = [
   { key: "goldHoldings", label: "Gold / SGB", nameField: "type", valueField: null, calcValue: (a: any) => Number(a.currentValue || a.investedAmount || 0), idLabel: (a: any) => a.subType || a.form || "" },
   { key: "demat", label: "Demat Account", nameField: "broker", valueField: null, calcValue: () => 0, idLabel: (a: any) => a.accountId || a.dpId || "" },
   { key: "ppf", label: "PPF", nameField: "institution", valueField: "balance", idLabel: (a: any) => a.accountNumber || "" },
-  { key: "nps", label: "NPS", nameField: "fundManager", valueField: "balance", idLabel: (a: any) => a.pran || "" },
-  { key: "epf", label: "EPF", nameField: "employer", valueField: "balance", idLabel: (a: any) => a.uan || "" },
+  { key: "nps", label: "NPS", nameField: "fundManager", valueField: null, calcValue: (a: any) => {
+    const bal = Number(a.balance) || 0;
+    if (bal > 0) return bal;
+    return (a.transactions || []).reduce((s: number, t: any) => s + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+  }, idLabel: (a: any) => a.pran || "" },
+  { key: "epf", label: "EPF", nameField: "employer", valueField: null, calcValue: (a: any) => calculateEpfBalance(a), idLabel: (a: any) => a.uan || "" },
   { key: "lic", label: "LIC Policy", nameField: "planName", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },
   { key: "termPlans", label: "Term Plan", nameField: "insurer", valueField: "coverAmount", idLabel: (a: any) => a.policyNumber || "" },
   { key: "investmentPlans", label: "Investment Plan", nameField: "insurer", valueField: "sumAssured", idLabel: (a: any) => a.policyNumber || "" },

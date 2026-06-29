@@ -89,7 +89,14 @@ export function useMetrics(
       0
     );
     const ppfValue = sState.ppf.reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
-    const npsValue = sState.nps.reduce((s: number, n: any) => s + Number(n.balance || 0), 0);
+    const npsValue = sState.nps.reduce((s: number, n: any) => {
+      const bal = Number(n.balance) || 0;
+      if (bal > 0) return s + bal;
+      const txTotal = (n.transactions || []).reduce(
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+      );
+      return s + txTotal;
+    }, 0);
     const epfValue = (sState.epf || []).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
     const licValue = sState.lic.reduce((s: number, l: any) => {
       const txTotal = (l.transactions || []).reduce(

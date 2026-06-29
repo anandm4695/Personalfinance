@@ -393,7 +393,12 @@ export const InvestmentStatementTab = ({
 
     /* ── LIC / Insurance Plans ────────────────────────────────────── */
     const licPremiums = licPolicies.reduce(
-      (s: number, x: any) => s + (Number(x.premiumPaid) || 0),
+      (s: number, x: any) => {
+        const txTotal = (x.transactions || []).reduce(
+          (sum: number, t: any) => sum + Number(t.amount || 0), 0
+        );
+        return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+      },
       0
     );
     const licValue = licPolicies.reduce(
@@ -401,7 +406,12 @@ export const InvestmentStatementTab = ({
       0
     );
     const investPremiums = investmentPlans.reduce(
-      (s: number, x: any) => s + (Number(x.premiumPaid) || 0),
+      (s: number, x: any) => {
+        const txTotal = (x.transactions || []).reduce(
+          (sum: number, t: any) => sum + Number(t.amount || 0), 0
+        );
+        return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+      },
       0
     );
     const investValue = investmentPlans.reduce(
@@ -1206,7 +1216,13 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull(Number(n.balance) || 0)}</Prv>
+                        <Prv>{fmtINRFull((() => {
+                          const bal = Number(n.balance) || 0;
+                          if (bal > 0) return bal;
+                          return (n.transactions || []).reduce(
+                            (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+                          );
+                        })())}</Prv>
                       </td>
                     </tr>
                   ))}
@@ -1296,7 +1312,12 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull(Number(l.premiumPaid) || 0)}</Prv>
+                        <Prv>{fmtINRFull((() => {
+                          const txTotal = (l.transactions || []).reduce(
+                            (sum: number, t: any) => sum + Number(t.amount || 0), 0
+                          );
+                          return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
+                        })())}</Prv>
                       </td>
                       <td style={tdRight}>
                         <Prv>{fmtINRFull(Number(l.sumAssured) || 0)}</Prv>
@@ -1318,7 +1339,12 @@ export const InvestmentStatementTab = ({
                         </Badge>
                       </td>
                       <td style={tdRight}>
-                        <Prv>{fmtINRFull(Number(ip.premiumPaid) || 0)}</Prv>
+                        <Prv>{fmtINRFull((() => {
+                          const txTotal = (ip.transactions || []).reduce(
+                            (sum: number, t: any) => sum + Number(t.amount || 0), 0
+                          );
+                          return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
+                        })())}</Prv>
                       </td>
                       <td style={tdRight}>
                         <Prv>

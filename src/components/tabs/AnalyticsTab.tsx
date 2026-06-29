@@ -1097,11 +1097,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       case "NPS":
         return (state.nps || [])
-          .map((n: any) => ({
-            name: n.fundManager || n.bank || "NPS",
-            sub: n.pran || n.accountNumber ? `PRAN: ${n.pran || n.accountNumber}` : "NPS Balance",
-            value: Number(n.balance || 0),
-          }))
+          .map((n: any) => {
+            const bal = Number(n.balance) || 0;
+            const txTotal = (n.transactions || []).reduce(
+              (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+            );
+            return {
+              name: n.fundManager || n.bank || "NPS",
+              sub: n.pran || n.accountNumber ? `PRAN: ${n.pran || n.accountNumber}` : "NPS Balance",
+              value: bal > 0 ? bal : txTotal,
+            };
+          })
           .sort((a: any, b: any) => b.value - a.value);
 
       case "EPF":
@@ -1825,7 +1831,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       ppfThisYear > 0
         ? ppfThisYear
         : (state.ppf || []).reduce(
-            (s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0),
+            (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
             0
           );
     const licPremium = (state.lic || []).reduce(
@@ -1837,11 +1843,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const simpleEmp = txs.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       const passbookEmp = txs.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
       const ledgerTotal = simpleEmp + passbookEmp;
-      return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.yearlyContribution || 0));
+      return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.thisYearContribution || 0));
     }, 0);
     // NPS employee contribution qualifies under 80CCD(1) within the ₹1.5L limit
     const npsContrib = (state.nps || []).reduce(
-      (s: number, n: any) => s + Number(n.yearlyContribution || n.annualContribution || 0),
+      (s: number, n: any) => s + Number(n.yearContribution || n.yearlyContribution || 0),
       0
     );
     const total = Math.min(elss + ppfAnnual + licPremium + epfEmployee + npsContrib, limit);
@@ -2089,7 +2095,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
       (state.ppf || []).reduce(
-        (s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0),
+        (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
         0
       );
     const lic80C = (state.lic || []).reduce(
@@ -2101,10 +2107,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const simpleEmp80 = txs80.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       const passbookEmp80 = txs80.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
       const lTotal = simpleEmp80 + passbookEmp80;
-      return s + (lTotal > 0 ? lTotal : Number(e.yearlyContribution || 0));
+      return s + (lTotal > 0 ? lTotal : Number(e.thisYearContribution || 0));
     }, 0);
     const nps80C = (state.nps || []).reduce(
-      (s: number, n: any) => s + Number(n.yearlyContribution || n.annualContribution || 0),
+      (s: number, n: any) => s + Number(n.yearContribution || n.yearlyContribution || 0),
       0
     );
     const total80C = Math.min(elss80C + ppf80C + lic80C + epf80C + nps80C, 150000);
@@ -6082,7 +6088,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 .reduce((s: number, pp: any) => s + Number(pp.balance || 0), 0);
               const npsVal = (state.nps || [])
                 .filter((n: any) => (n.owner || "self") === pid)
-                .reduce((s: number, n: any) => s + Number(n.balance || 0), 0);
+                .reduce((s: number, n: any) => {
+                  const bal = Number(n.balance) || 0;
+                  if (bal > 0) return s + bal;
+                  return s + (n.transactions || []).reduce(
+                    (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+                  );
+                }, 0);
               const nw = bankBal + fdVal + stockVal + mfVal + ppfVal + npsVal;
 
               // Insurance coverage

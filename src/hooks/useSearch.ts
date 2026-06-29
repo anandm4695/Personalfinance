@@ -67,7 +67,9 @@ export function useSearch(state: any, search: string): SearchResult[] {
     // NPS
     (state.nps || []).forEach((n: any) => {
       if (match(n.bank) || match(n.accountNumber) || match("nps")) {
-        results.push({ type: "NPS", name: n.bank || "NPS", detail: fmtINRFull(n.balance), tab: "investments" });
+        const npsBal = Number(n.balance) || 0;
+        const npsTxVal = npsBal > 0 ? npsBal : (n.transactions || []).reduce((s: number, t: any) => s + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0);
+        results.push({ type: "NPS", name: n.bank || "NPS", detail: fmtINRFull(npsTxVal), tab: "investments" });
       }
     });
     // EPF

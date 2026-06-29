@@ -244,7 +244,13 @@ function computeSummary(state) {
     return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
   const ppfTotal = (state.ppf || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
-  const npsTotal = (state.nps || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
+  const npsTotal = (state.nps || []).reduce((s, x) => {
+    const bal = Number(x.balance) || 0;
+    if (bal > 0) return s + bal;
+    return s + (x.transactions || []).reduce(
+      (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+    );
+  }, 0);
   const epfTotal = (state.epf || []).reduce((s, x) => s + calculateEpfBalance(x), 0);
   const bondsTotal = (state.bonds || []).reduce(
     (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),

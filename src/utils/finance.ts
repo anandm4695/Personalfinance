@@ -569,7 +569,7 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
     ppfThisYear > 0
       ? ppfThisYear
       : (state.ppf || []).reduce(
-          (s: number, p: any) => s + Number(p.yearlyContribution || p.annualContribution || 0),
+          (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
           0
         );
 
