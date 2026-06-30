@@ -113,7 +113,6 @@ import { PerformanceBenchmarkTab } from "./components/tabs/PerformanceBenchmarkT
 
 // Modal Imports
 import { CommandPaletteModal } from "./components/modals/CommandPaletteModal";
-import { OnboardingWizard } from "./components/modals/OnboardingWizard";
 
 // UI Imports
 import { ToastStack, ConfirmDialog } from "./components/ui/Feedback";
@@ -3654,21 +3653,6 @@ function FinanceDashboard() {
                   — run the corresponding SQL migration in Supabase to restore full functionality.
                 </span>
               </div>
-            )}
-            {/* Onboarding Wizard for new users */}
-            {loaded && !state.masterData?._onboardingComplete &&
-              (state.bankAccounts || []).length === 0 &&
-              (state.stocks || []).length === 0 &&
-              (state.mutualFunds || []).length === 0 &&
-              (state.goals || []).length === 0 &&
-              (state.fixedDeposits || []).length === 0 && (
-              <OnboardingWizard
-                updateProfile={updateProfile}
-                addItem={addItem}
-                updateSettings={updateSettings}
-                updateMasterData={updateMasterData}
-                onComplete={() => updateMasterData("_onboardingComplete", true)}
-              />
             )}
             <div
               key={tab}
