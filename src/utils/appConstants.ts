@@ -46,6 +46,10 @@ import {
   ScrollText,
   HandCoins,
   Milestone,
+  Zap,
+  Star,
+  Award,
+  FileCheck,
 } from "lucide-react";
 
 export const getCurrentFY = () => {
@@ -243,6 +247,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "realestate", label: "Real Estate", icon: Home },
       { id: "gold", label: "Gold & SGBs", icon: Gem },
       { id: "vehicles", label: "Vehicles", icon: Car },
+      { id: "govtschemes", label: "Govt Schemes", icon: Star },
       { id: "emergencyfund", label: "Emergency Fund", icon: Flame },
     ],
   },
@@ -280,6 +285,7 @@ export const NAV_GROUPS: NavGroup[] = [
         directChildren: true,
         children: [
           { id: "budget", label: "Budgeting", icon: Wallet },
+          { id: "bills", label: "Bill Payments", icon: Zap },
           { id: "rental", label: "Rental Details", icon: Building2 },
           { id: "subs", label: "Subscriptions", icon: Repeat },
         ],
@@ -291,6 +297,7 @@ export const NAV_GROUPS: NavGroup[] = [
         directChildren: true,
         children: [
           { id: "insurance", label: "Insurance", icon: Heart },
+          { id: "healthinsurance", label: "Health Insurance", icon: Shield },
           { id: "sip", label: "SIP Tracker", icon: Activity },
           { id: "calendar", label: "Financial Calendar", icon: Calendar },
           { id: "fireplanner", label: "FIRE Planner", icon: Flame },
@@ -314,6 +321,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "amortization", label: "Loan Amortization", icon: Calculator },
       { id: "calculators", label: "Financial Calculators", icon: Hash },
 
+      { id: "salaryslip", label: "Salary Slip Tracker", icon: FileCheck },
       { id: "casimport", label: "CAS Import", icon: Briefcase },
       { id: "dataexport", label: "Data Export & Backup", icon: Database },
     ],
@@ -325,6 +333,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "reminders", label: "Reminders & Alerts", icon: Bell },
       { id: "nominees", label: "Will & Nominees", icon: ShieldAlert },
       { id: "docvault", label: "Document Vault", icon: FolderOpen },
+      { id: "creditscore", label: "Credit Score", icon: Award },
       { id: "auditlog", label: "Audit Log", icon: Clock },
       { id: "settings", label: "Settings", icon: Settings },
     ],

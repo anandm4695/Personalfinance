@@ -98,6 +98,12 @@ export interface AppState {
   dividends: any[];
   documents: any[];
   corporateActions: any[];
+  healthInsurance: any[];
+  creditScores: any[];
+  billPayments: any[];
+  billPaymentHistory: any[];
+  govtSchemes: any[];
+  salarySlips: any[];
   dismissedAlerts: DismissedAlerts;
   masterData: MasterData;
   settings: Settings;

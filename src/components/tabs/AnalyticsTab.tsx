@@ -8320,6 +8320,125 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               </Card>
             );
           })()}
+
+          {/* ────────── Net Worth Percentile ────────── */}
+          {(() => {
+            // Age-banded percentile benchmarks for Indian upper-middle-class (salaried/professional)
+            // Based on PRICE ICE360, Credit Suisse Global Wealth Report & CMIE CPHS estimates (2024)
+            const BANDS: { age: [number, number]; p25: number; p50: number; p75: number; p90: number; p95: number }[] = [
+              { age: [20, 25], p25: 100000, p50: 300000, p75: 800000, p90: 2000000, p95: 4000000 },
+              { age: [25, 30], p25: 300000, p50: 800000, p75: 2000000, p90: 5000000, p95: 10000000 },
+              { age: [30, 35], p25: 800000, p50: 2000000, p75: 5000000, p90: 12000000, p95: 25000000 },
+              { age: [35, 40], p25: 1500000, p50: 4000000, p75: 10000000, p90: 25000000, p95: 50000000 },
+              { age: [40, 45], p25: 2500000, p50: 7000000, p75: 18000000, p90: 40000000, p95: 80000000 },
+              { age: [45, 50], p25: 4000000, p50: 10000000, p75: 25000000, p90: 55000000, p95: 110000000 },
+              { age: [50, 55], p25: 5000000, p50: 13000000, p75: 32000000, p90: 70000000, p95: 140000000 },
+              { age: [55, 65], p25: 6000000, p50: 16000000, p75: 40000000, p90: 90000000, p95: 180000000 },
+            ];
+            const nw = metrics.netWorth || 0;
+            const [ageInput, setAgeInput] = React.useState(35);
+            const band = BANDS.find((b) => ageInput >= b.age[0] && ageInput < b.age[1]) || BANDS[BANDS.length - 1];
+
+            let pct = 0;
+            if (nw <= 0) pct = 0;
+            else if (nw < band.p25) pct = Math.round((nw / band.p25) * 25);
+            else if (nw < band.p50) pct = 25 + Math.round(((nw - band.p25) / (band.p50 - band.p25)) * 25);
+            else if (nw < band.p75) pct = 50 + Math.round(((nw - band.p50) / (band.p75 - band.p50)) * 25);
+            else if (nw < band.p90) pct = 75 + Math.round(((nw - band.p75) / (band.p90 - band.p75)) * 15);
+            else if (nw < band.p95) pct = 90 + Math.round(((nw - band.p90) / (band.p95 - band.p90)) * 5);
+            else pct = 95 + Math.min(4, Math.round(((nw - band.p95) / band.p95) * 10));
+            pct = Math.min(99, Math.max(0, pct));
+
+            const label = pct >= 95 ? "Top 5%" : pct >= 90 ? "Top 10%" : pct >= 75 ? "Top 25%" : pct >= 50 ? "Top 50%" : "Below Median";
+            const color = pct >= 90 ? THEME.gold : pct >= 75 ? THEME.success : pct >= 50 ? THEME.primary : THEME.muted;
+            const milestones = [
+              { label: "25th", value: band.p25, pct: 25 },
+              { label: "50th", value: band.p50, pct: 50 },
+              { label: "75th", value: band.p75, pct: 75 },
+              { label: "90th", value: band.p90, pct: 90 },
+              { label: "95th", value: band.p95, pct: 95 },
+            ];
+            const nextMilestone = milestones.find((m) => nw < m.value);
+
+            return (
+              <Card style={{ padding: 24, marginTop: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 4 }}>Net Worth Percentile</div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>
+                      Where your wealth stands among Indian professionals · benchmarks from PRICE ICE360 & Credit Suisse (2024)
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: THEME.muted }}>Your age:</span>
+                    <input
+                      type="number" min={20} max={70}
+                      value={ageInput}
+                      onChange={(e) => setAgeInput(Number(e.target.value))}
+                      style={{ width: 60, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.border}`, background: THEME.bg, color: THEME.text, fontSize: 13, textAlign: "center" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Big percentile display */}
+                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
+                  <div style={{ textAlign: "center", minWidth: 100 }}>
+                    <div style={{ fontSize: 48, fontWeight: 900, color, lineHeight: 1 }}>{pct}th</div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>percentile</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span style={{ background: `${color}20`, color, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{label}</span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    {/* Progress bar */}
+                    <div style={{ position: "relative", height: 20, background: `${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 8 }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${THEME.primary}, ${color})`, borderRadius: 10, transition: "width 0.5s ease" }} />
+                      {/* Milestone ticks */}
+                      {[25, 50, 75, 90, 95].map((p) => (
+                        <div key={p} style={{ position: "absolute", left: `${p}%`, top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted }}>
+                      <span>0</span>
+                      {[25, 50, 75, 90, 95].map((p) => <span key={p} style={{ transform: "translateX(-50%)" }}>{p}th</span>)}
+                      <span>99+</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Milestone table */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
+                  {milestones.map((m) => (
+                    <div key={m.label} style={{
+                      padding: "10px 12px", borderRadius: 8,
+                      background: nw >= m.value ? `${THEME.success}18` : `${THEME.border}40`,
+                      border: `1px solid ${nw >= m.value ? `${THEME.success}40` : THEME.border}`,
+                    }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>{m.label} pctl (age {ageInput})</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: nw >= m.value ? THEME.success : THEME.text }}>
+                        {m.value >= 10000000 ? `₹${(m.value / 10000000).toFixed(1)}Cr` : `₹${(m.value / 100000).toFixed(0)}L`}
+                      </div>
+                      {nw >= m.value && <div style={{ fontSize: 10, color: THEME.success, marginTop: 2 }}>✓ Achieved</div>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Next milestone */}
+                {nextMilestone && (
+                  <div style={{ background: `${THEME.primary}0a`, border: `1px solid ${THEME.primary}30`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: THEME.muted }}>
+                    <strong style={{ color: THEME.primary }}>Next milestone:</strong>{" "}
+                    {nextMilestone.pct}th percentile —{" "}
+                    {nextMilestone.value >= 10000000 ? `₹${(nextMilestone.value / 10000000).toFixed(1)}Cr` : `₹${(nextMilestone.value / 100000).toFixed(0)}L`}.
+                    {" "}Need <strong>{((nextMilestone.value - nw) >= 10000000 ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr` : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`)}</strong> more.
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 10, fontStyle: "italic" }}>
+                  * Benchmarks are estimates for Indian urban professionals. Percentile reflects household net worth (assets minus liabilities), not income.
+                </div>
+              </Card>
+            );
+          })()}
+
         </div>
       )}
 

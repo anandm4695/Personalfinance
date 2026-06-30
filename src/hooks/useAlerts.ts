@@ -16,7 +16,7 @@ export type Alert = {
   tab: string;
 };
 
-export function useAlerts(state: any, metrics: any): Alert[] {
+export function useAlerts(state: any, metrics: any, marketData?: Record<string, any>): Alert[] {
   const alerts = useMemo(() => {
     const list: { level: "error" | "warn" | "info"; title: string; detail: string; tab: string }[] =
       [];
@@ -398,6 +398,59 @@ export function useAlerts(state: any, metrics: any): Alert[] {
       });
     }
 
+    // Watchlist price target alerts
+    if (marketData && state.wishlistItems?.length) {
+      state.wishlistItems.forEach((it: any) => {
+        if (!it.targetPrice || !it.symbol) return;
+        const exch = it.exchange || "NSE";
+        const yfSym = `${it.symbol.replace(/\.(NS|BO)$/i, "")}.${exch === "BSE" ? "BO" : "NS"}`;
+        const md = marketData[yfSym];
+        if (!md?.price) return;
+        const price = Number(md.price);
+        const targetPx = Number(it.targetPrice);
+        if (price <= targetPx) {
+          list.push({
+            level: "info",
+            title: `${it.symbol} hit target price`,
+            detail: `Current ₹${price.toLocaleString("en-IN", { minimumFractionDigits: 2 })} ≤ target ₹${targetPx.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+            tab: "demat",
+          });
+        }
+      });
+    }
+
+    // Health insurance renewal alerts (30 days)
+    (state.healthInsurance || []).forEach((p: any) => {
+      if (!p.renewalDate) return;
+      const days = Math.ceil((new Date(p.renewalDate).getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000);
+      if (days >= 0 && days <= 30) {
+        list.push({
+          level: days <= 7 ? "error" : "warn",
+          title: `Health insurance renews in ${days}d`,
+          detail: `${p.insurer}${p.policyName ? ` (${p.policyName})` : ""} — cover ₹${Number(p.sumInsured || 0).toLocaleString("en-IN")}`,
+          tab: "healthinsurance",
+        });
+      }
+    });
+
+    // Bill payment due alerts (5 days, skip auto-pay)
+    (state.billPayments || []).forEach((b: any) => {
+      if (!b.dueDay || b.autoPay) return;
+      const dueDay = Number(b.dueDay);
+      const n = new Date();
+      let billDue = new Date(n.getFullYear(), n.getMonth(), dueDay);
+      if (billDue.getTime() < n.getTime()) billDue = new Date(n.getFullYear(), n.getMonth() + 1, dueDay);
+      const days = Math.ceil((billDue.getTime() - n.getTime()) / 86400000);
+      if (days >= 0 && days <= 5) {
+        list.push({
+          level: days <= 2 ? "error" : "warn",
+          title: `${b.nickname || b.provider} bill due in ${days}d`,
+          detail: `${(b.category || "").replace(/_/g, " ")} · ₹${Number(b.amount || 0).toLocaleString("en-IN")}`,
+          tab: "bills",
+        });
+      }
+    });
+
     const ORDER = { error: 0, warn: 1, info: 2 };
     return list
       .filter((a) => {
@@ -429,6 +482,10 @@ export function useAlerts(state: any, metrics: any): Alert[] {
     state.mutualFunds,
     state.stocks,
     state.dividends,
+    state.wishlistItems,
+    state.healthInsurance,
+    state.billPayments,
+    marketData,
   ]);
 
   return alerts;

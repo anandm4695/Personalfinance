@@ -102,6 +102,11 @@ import { LoanAmortizationTab } from "./components/tabs/LoanAmortizationTab";
 import { FIREPlannerTab } from "./components/tabs/FIREPlannerTab";
 import { LifeEventPlannerTab } from "./components/tabs/LifeEventPlannerTab";
 import { TaxFilingHelperTab } from "./components/tabs/TaxFilingHelperTab";
+import { HealthInsuranceTab } from "./components/tabs/HealthInsuranceTab";
+import { CreditScoreTab } from "./components/tabs/CreditScoreTab";
+import { BillPaymentTab } from "./components/tabs/BillPaymentTab";
+import { GovtSchemesTab } from "./components/tabs/GovtSchemesTab";
+import { SalarySlipTab } from "./components/tabs/SalarySlipTab";
 import { SmartAlertsTab } from "./components/tabs/SmartAlertsTab";
 import { ExpenseForecastTab } from "./components/tabs/ExpenseForecastTab";
 import { DataExportTab } from "./components/tabs/DataExportTab";
@@ -166,6 +171,12 @@ const DEFAULT_STATE = {
   goldHoldings: [],
   lifeEvents: [],
   corporateActions: [],
+  healthInsurance: [],
+  creditScores: [],
+  billPayments: [],
+  billPaymentHistory: [],
+  govtSchemes: [],
+  salarySlips: [],
   dismissedAlerts: {},
   masterData: { ...DEFAULT_MASTER_DATA },
   settings: {
@@ -559,6 +570,12 @@ function FinanceDashboard() {
         documentsQ,
         goldQ,
         lifeEventsQ,
+        healthInsuranceQ,
+        creditScoresQ,
+        billPaymentsQ,
+        billPaymentHistoryQ,
+        govtSchemesQ,
+        salarySlipsQ,
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
@@ -601,6 +618,12 @@ function FinanceDashboard() {
         supabase.from("documents").select("*").eq("user_id", userId),
         supabase.from("gold_holdings").select("*").eq("user_id", userId),
         supabase.from("life_events").select("*").eq("user_id", userId),
+        supabase.from("health_insurance").select("*").eq("user_id", userId),
+        supabase.from("credit_scores").select("*").eq("user_id", userId),
+        supabase.from("bill_payments").select("*").eq("user_id", userId),
+        supabase.from("bill_payment_history").select("*").eq("user_id", userId),
+        supabase.from("govt_schemes").select("*").eq("user_id", userId),
+        supabase.from("salary_slips").select("*").eq("user_id", userId),
       ]);
 
       // Detect missing DB tables (code 42P01 = relation does not exist) and surface them in the UI
@@ -861,6 +884,24 @@ function FinanceDashboard() {
             : {}),
           ...(!lifeEventsQ.error && lifeEventsQ.data != null
             ? { lifeEvents: snakeToCamel(lifeEventsQ.data) }
+            : {}),
+          ...(!healthInsuranceQ?.error && healthInsuranceQ?.data != null
+            ? { healthInsurance: snakeToCamel(healthInsuranceQ.data) }
+            : {}),
+          ...(!creditScoresQ?.error && creditScoresQ?.data != null
+            ? { creditScores: snakeToCamel(creditScoresQ.data) }
+            : {}),
+          ...(!billPaymentsQ?.error && billPaymentsQ?.data != null
+            ? { billPayments: snakeToCamel(billPaymentsQ.data) }
+            : {}),
+          ...(!billPaymentHistoryQ?.error && billPaymentHistoryQ?.data != null
+            ? { billPaymentHistory: snakeToCamel(billPaymentHistoryQ.data) }
+            : {}),
+          ...(!govtSchemesQ?.error && govtSchemesQ?.data != null
+            ? { govtSchemes: snakeToCamel(govtSchemesQ.data) }
+            : {}),
+          ...(!salarySlipsQ?.error && salarySlipsQ?.data != null
+            ? { salarySlips: snakeToCamel(salarySlipsQ.data) }
             : {}),
         };
       });
@@ -1365,7 +1406,7 @@ function FinanceDashboard() {
   metricsNwRef.current = metrics.netWorth;
 
   // ================== ALERTS (extracted to useAlerts) ==================
-  const alerts = useAlerts(state, metrics);
+  const alerts = useAlerts(state, metrics, marketData);
 
   // ================== SEARCH (extracted to useSearch) ==================
   const searchResults = useSearch(state, search);
@@ -1395,6 +1436,9 @@ function FinanceDashboard() {
       realEstateProperties: "Real Estate", realEstateDemands: "Real Estate Demand",
       realEstatePayments: "Real Estate Payment", vehicles: "Vehicle", dividends: "Dividend",
       documents: "Document", goldHoldings: "Gold Holding", lifeEvents: "Life Event",
+      healthInsurance: "Health Insurance", creditScores: "Credit Score",
+      billPayments: "Bill", billPaymentHistory: "Bill Payment", govtSchemes: "Govt Scheme",
+      salarySlips: "Salary Slip",
     };
     const label = LABEL_MAP[key] || key;
     if (!item) return label;
@@ -3903,6 +3947,21 @@ function FinanceDashboard() {
               )}
               {tab === "gold" && (
                 <GoldSGBTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "healthinsurance" && (
+                <HealthInsuranceTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "creditscore" && (
+                <CreditScoreTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "bills" && (
+                <BillPaymentTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "govtschemes" && (
+                <GovtSchemesTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "salaryslip" && (
+                <SalarySlipTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
               )}
               {tab === "auditlog" && (
                 <AuditLogTab session={session} />
