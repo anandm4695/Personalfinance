@@ -344,6 +344,7 @@ function FinanceDashboard() {
         if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
         if (updates.fromEmail !== undefined) dbUpdates.from_email = updates.fromEmail;
         if (updates.geminiApiKey !== undefined) dbUpdates.gemini_api_key = updates.geminiApiKey;
+        if (updates.goldPricePerGram !== undefined) dbUpdates.gold_price_per_gram = updates.goldPricePerGram;
 
         const { error: settErr } = await supabase
           .from("user_settings")

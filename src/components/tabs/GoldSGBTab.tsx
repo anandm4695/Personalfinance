@@ -26,6 +26,7 @@ import {
 } from "recharts";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
+import { supabase } from "../../supabaseClient";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -126,9 +127,14 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
     setShowModal(true);
   };
 
-  const updateGoldPrice = (price) => {
+  const updateGoldPrice = async (price) => {
     setGoldPrice(price);
     localStorage.setItem("gold_price_per_gram", String(price));
+    // Persist to DB so the daily email cron can read it (localStorage is unavailable server-side)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      supabase.from("user_settings").upsert({ user_id: session.user.id, gold_price_per_gram: price });
+    }
   };
 
   return (

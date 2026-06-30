@@ -277,6 +277,16 @@ function computeSummary(state) {
     licTotal +
     investmentTotalPlans;
 
+  // Gold & SGBs — uses gold price stored in user_settings (synced from the app's Gold tab)
+  // Falls back to 7200/gram (same default as the dashboard) if not set.
+  const PURITY_FACTOR = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+  const goldPricePerGram = state.settings?.goldPricePerGram || state.goldPricePerGram || 7200;
+  const goldTotal = (state.goldHoldings || []).reduce((s, h) => {
+    const grams = Number(h.grams || 0);
+    const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+    return s + grams * goldPricePerGram * purityMul;
+  }, 0);
+
   const loansGivenTotal = (state.loansGiven || []).reduce(
     (s, l) => s + Number(l.outstanding || 0),
     0
@@ -329,6 +339,7 @@ function computeSummary(state) {
   const totalAssets =
     bankTotal +
     investTotal +
+    goldTotal +
     loansGivenTotal +
     prepaidTotal +
     rentedDepositAsset +
@@ -341,7 +352,16 @@ function computeSummary(state) {
     (c) => (c.status || "active").toLowerCase() !== "closed"
   );
   const creditOutstanding = activeCards.reduce((s, c) => s + (Number(c.outstanding) || 0), 0);
-  const creditLimit = activeCards.reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0);
+  // Shared-pool deduplication: cards sharing a pool (sharedGroup) count only the pool's max limit
+  const ccGroupPools = {};
+  activeCards.forEach((c) => {
+    if (c.sharedGroup) {
+      ccGroupPools[c.sharedGroup] = Math.max(ccGroupPools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+    }
+  });
+  const creditLimit =
+    activeCards.filter((c) => !c.sharedGroup).reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0) +
+    Object.values(ccGroupPools).reduce((s, v) => s + v, 0);
   const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;
 
   const loanOutstanding = (state.loansTaken || []).reduce(
@@ -406,9 +426,12 @@ function computeSummary(state) {
     return sum + paymentsThisMonth;
   }, 0);
 
+  // Only add rental-ledger rent when no "Rent"-category debit txn exists this month —
+  // prevents double-counting when the user already logged rent in the transactions tab.
+  const hasRentTxn = monthTxns.some((t) => t.type === "debit" && (t.category || "").toLowerCase() === "rent");
   const monthExpense =
     monthTxns.filter((t) => t.type === "debit").reduce((s, t) => s + Number(t.amount || 0), 0) +
-    rentPaidThisMonth;
+    (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
 
   const netSavings = monthIncome - monthExpense;
   const savingsPct = monthIncome > 0 ? Math.round((netSavings / monthIncome) * 100) : 0;
@@ -526,6 +549,25 @@ function computeSummary(state) {
     }
   });
 
+  // Credit card annual fees due in the next 7 days
+  activeCards.forEach((c) => {
+    if (!Number(c.annualFee) || !c.feeMonth) return;
+    const fMonth = Number(c.feeMonth) - 1;
+    const fDay = Number(c.feeDay) || 1;
+    let candidate = new Date(Date.UTC(todayVal.getUTCFullYear(), fMonth, fDay));
+    if (candidate.getTime() < todayMs) {
+      candidate = new Date(Date.UTC(todayVal.getUTCFullYear() + 1, fMonth, fDay));
+    }
+    if (candidate.getTime() >= todayMs && candidate.getTime() <= in7Ms) {
+      dues.push({
+        date: candidate,
+        label: `${c.issuer || "Card"} Annual Fee`,
+        amount: Number(c.annualFee),
+        type: "cc",
+      });
+    }
+  });
+
   // Loan EMI dates
   (state.loansTaken || []).forEach((l) => {
     if (!l.emiDate && !l.dueDay) return;
@@ -630,6 +672,7 @@ function computeSummary(state) {
     totalLiabilities,
     bankTotal,
     investTotal,
+    goldTotal,
     mfTotal,
     stockTotal,
     fdTotal,
@@ -676,6 +719,7 @@ function generateHTML(summary, frequency, recipientName) {
     totalLiabilities,
     bankTotal,
     investTotal,
+    goldTotal,
     mfTotal,
     stockTotal,
     fdTotal,
@@ -908,6 +952,7 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Other assets rows ─────────────────────────────────────────────────────
   rowIdx = 0;
   const otherAssetItems = [
+    goldTotal > 0 && listRow("Gold & SGBs", fmtINR(goldTotal), "🥇"),
     realEstateAsset > 0 && listRow("Real Estate", fmtINR(realEstateAsset), "🏠"),
     vehicleAsset > 0 && listRow("Vehicles", fmtINR(vehicleAsset), "🚗"),
     rentalPropertiesAsset > 0 && listRow("Rental Properties", fmtINR(rentalPropertiesAsset), "🏢"),
@@ -1196,6 +1241,8 @@ async function fetchStateFromSupabase(supabase, userId) {
     reDemands,
     rePayments,
     vehicles,
+    gold,
+    settingsGold,
   ] = await Promise.all([
     supabase.from("bank_accounts").select("*").eq("user_id", userId),
     supabase.from("transactions").select("*").eq("user_id", userId),
@@ -1291,6 +1338,23 @@ async function fetchStateFromSupabase(supabase, userId) {
         (res) => res,
         () => ({ data: [] })
       ),
+    supabase
+      .from("gold_holdings")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("user_settings")
+      .select("gold_price_per_gram")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(
+        (res) => res,
+        () => ({ data: null })
+      ),
   ]);
 
   const camelBanks = snakeToCamel(banks.data || []);
@@ -1330,6 +1394,7 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelReDemands = snakeToCamel(reDemands.data || []);
   const camelRePayments = snakeToCamel(rePayments.data || []);
   const camelVehicles = snakeToCamel(vehicles.data || []);
+  const camelGold = snakeToCamel(gold.data || []);
 
   const rentalProperties = camelRentalData
     .filter((x) => x.propertyType === "out")
@@ -1368,6 +1433,8 @@ async function fetchStateFromSupabase(supabase, userId) {
     realEstateDemands: camelReDemands,
     realEstatePayments: camelRePayments,
     vehicles: camelVehicles,
+    goldHoldings: camelGold,
+    goldPricePerGram: settingsGold.data?.gold_price_per_gram || 7200,
   };
 }
 
