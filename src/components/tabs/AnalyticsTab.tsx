@@ -728,6 +728,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // ── Estate Planning — Nomination Coverage States ──
   const [nominationOpen, setNominationOpen] = useState(false);
+  const [nwPercentileAge, setNwPercentileAge] = useState(35);
   const [estateChecklist, setEstateChecklist] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem("finance_estate_checklist");
@@ -8336,7 +8337,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               { age: [55, 65], p25: 6000000, p50: 16000000, p75: 40000000, p90: 90000000, p95: 180000000 },
             ];
             const nw = metrics.netWorth || 0;
-            const [ageInput, setAgeInput] = React.useState(35);
+            const ageInput = nwPercentileAge;
+            const setAgeInput = setNwPercentileAge;
             const band = BANDS.find((b) => ageInput >= b.age[0] && ageInput < b.age[1]) || BANDS[BANDS.length - 1];
 
             let pct = 0;

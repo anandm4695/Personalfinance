@@ -143,6 +143,32 @@ export const NUMERIC_COLS = new Set([
   "interest_rate",
   "estimated_cost",
   "current_saved",
+  // health_insurance
+  "sum_insured",
+  "premium",
+  "waiting_period_years",
+  "no_claim_bonus",
+  // credit_scores
+  "score",
+  // govt_schemes
+  "tenure",
+  // salary_slips
+  "basic",
+  "hra",
+  "da",
+  "special_allowance",
+  "lta",
+  "bonus",
+  "other_earnings",
+  "gross_salary",
+  "pf_employee",
+  "pf_employer",
+  "esi_employee",
+  "professional_tax",
+  "tds",
+  "other_deductions",
+  "total_deductions",
+  "net_salary",
 ]);
 
 export const TABLE_MAP: Record<string, string> = {
@@ -189,6 +215,12 @@ export const TABLE_MAP: Record<string, string> = {
   documents: "documents",
   goldHoldings: "gold_holdings",
   lifeEvents: "life_events",
+  healthInsurance: "health_insurance",
+  creditScores: "credit_scores",
+  billPayments: "bill_payments",
+  billPaymentHistory: "bill_payment_history",
+  govtSchemes: "govt_schemes",
+  salarySlips: "salary_slips",
 };
 
 export const camelToSnake = (obj: any) => {
