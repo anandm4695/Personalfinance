@@ -85,6 +85,9 @@ import { RealEstateTab } from "./components/tabs/RealEstateTab";
 import { VehiclesTab } from "./components/tabs/VehiclesTab";
 import { CashFlowTab } from "./components/tabs/CashFlowTab";
 import { FinancialCalendarTab } from "./components/tabs/FinancialCalendarTab";
+import { XIRRReportTab } from "./components/tabs/XIRRReportTab";
+import { PaymentCalendarTab } from "./components/tabs/PaymentCalendarTab";
+import { DividendCalendarTab } from "./components/tabs/DividendCalendarTab";
 import { CapitalGainsTab } from "./components/tabs/CapitalGainsTab";
 import { TaxToolsTab } from "./components/tabs/TaxToolsTab";
 import { AnnualReportTab } from "./components/tabs/AnnualReportTab";
@@ -3871,6 +3874,9 @@ function FinanceDashboard() {
               {tab === "calendar" && (
                 <FinancialCalendarTab state={filteredState} metrics={metrics} />
               )}
+              {tab === "paycal" && (
+                <PaymentCalendarTab state={filteredState} metrics={metrics} />
+              )}
               {tab === "capitalgains" && (
                 <CapitalGainsTab state={filteredState} />
               )}
@@ -3959,6 +3965,12 @@ function FinanceDashboard() {
               )}
               {tab === "govtschemes" && (
                 <GovtSchemesTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+              )}
+              {tab === "xirrreport" && (
+                <XIRRReportTab state={filteredState} metrics={metrics} />
+              )}
+              {tab === "dividendcal" && (
+                <DividendCalendarTab state={filteredState} metrics={metrics} />
               )}
               {tab === "salaryslip" && (
                 <SalarySlipTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
