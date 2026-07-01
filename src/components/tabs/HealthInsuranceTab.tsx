@@ -236,13 +236,13 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
   return (
     <div>
       <SectionTitle
-        icon={<Heart size={20} color={THEME.danger} />}
-        title="Health Insurance"
-        subtitle="Track all health insurance policies — family floater, corporate, top-up & more"
-        action={<Button size="sm" onClick={() => setModal({})}>
+        sub="Track all health insurance policies — family floater, corporate, top-up & more"
+        rightElement={<Button size="sm" onClick={() => setModal({})}>
           <Plus size={14} /> Add Policy
         </Button>}
-      />
+      >
+        Health Insurance
+      </SectionTitle>
 
       {/* Stats */}
       {policies.length > 0 && (
@@ -299,12 +299,11 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
       {/* Policies list */}
       {policies.length === 0 ? (
         <EmptyState
-          icon={<Heart size={40} />}
+          icon={Heart}
           title="No health insurance policies yet"
           description="Add your health insurance policies to track coverage, premiums, renewals, and claims."
-          action={<Button onClick={() => setModal({})}>
-            <Plus size={14} /> Add Policy
-          </Button>}
+          buttonLabel="Add Policy"
+          onAdd={() => setModal({})}
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

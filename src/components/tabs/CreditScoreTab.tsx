@@ -170,22 +170,21 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
   return (
     <div>
       <SectionTitle
-        icon={<CreditCard size={20} color={THEME.primary} />}
-        title="Credit Score History"
-        subtitle="Track your CIBIL / Experian credit score over time"
-        action={<Button size="sm" onClick={() => setModal({})}>
+        sub="Track your CIBIL / Experian credit score over time"
+        rightElement={<Button size="sm" onClick={() => setModal({})}>
           <Plus size={14} /> Log Score
         </Button>}
-      />
+      >
+        Credit Score History
+      </SectionTitle>
 
       {scores.length === 0 ? (
         <EmptyState
-          icon={<Award size={40} />}
+          icon={Award}
           title="No credit score entries yet"
           description="Log your credit score from CIBIL, Experian, or other bureaus to track it over time."
-          action={<Button onClick={() => setModal({})}>
-            <Plus size={14} /> Log Score
-          </Button>}
+          buttonLabel="Log Score"
+          onAdd={() => setModal({})}
         />
       ) : (
         <>

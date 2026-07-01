@@ -220,13 +220,13 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
   return (
     <div>
       <SectionTitle
-        icon={<Zap size={20} color="#f59e0b" />}
-        title="Bill Payment Tracker"
-        subtitle="Track electricity, gas, water, broadband, mobile and other recurring utility bills"
-        action={<Button size="sm" onClick={() => setModal({})}>
+        sub="Track electricity, gas, water, broadband, mobile and other recurring utility bills"
+        rightElement={<Button size="sm" onClick={() => setModal({})}>
           <Plus size={14} /> Add Bill
         </Button>}
-      />
+      >
+        Bill Payment Tracker
+      </SectionTitle>
 
       {/* Stats */}
       {bills.length > 0 && (
@@ -281,12 +281,11 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
 
       {bills.length === 0 ? (
         <EmptyState
-          icon={<Zap size={40} />}
+          icon={Zap}
           title="No bills tracked yet"
           description="Add your recurring utility bills to track due dates, payment history, and spot trends."
-          action={<Button onClick={() => setModal({})}>
-            <Plus size={14} /> Add Bill
-          </Button>}
+          buttonLabel="Add Bill"
+          onAdd={() => setModal({})}
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

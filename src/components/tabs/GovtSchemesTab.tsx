@@ -279,13 +279,13 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
   return (
     <div>
       <SectionTitle
-        icon={<Star size={20} color={THEME.gold} />}
-        title="Government Schemes"
-        subtitle="APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC, KVP and more"
-        action={<Button size="sm" onClick={() => setModal({})}>
+        sub="APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC, KVP and more"
+        rightElement={<Button size="sm" onClick={() => setModal({})}>
           <Plus size={14} /> Add Scheme
         </Button>}
-      />
+      >
+        Government Schemes
+      </SectionTitle>
 
       {/* Stats */}
       {schemes.length > 0 && (
@@ -315,12 +315,11 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
       {schemes.length === 0 ? (
         <>
           <EmptyState
-            icon={<Star size={40} />}
+            icon={Star}
             title="No government schemes tracked"
             description="Add APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC and other govt savings schemes."
-            action={<Button onClick={() => setModal({})}>
-              <Plus size={14} /> Add Scheme
-            </Button>}
+            buttonLabel="Add Scheme"
+            onAdd={() => setModal({})}
           />
           {/* Scheme discovery grid */}
           <div style={{ marginTop: 24 }}>

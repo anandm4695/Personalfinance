@@ -277,13 +277,13 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   return (
     <div>
       <SectionTitle
-        icon={<Briefcase size={20} color={THEME.primary} />}
-        title="Salary Slip Tracker"
-        subtitle="Store monthly salary components — paste any slip text and let Gemini AI extract the details"
-        action={<Button size="sm" onClick={() => setModal({})}>
+        sub="Store monthly salary components — paste any slip text and let Gemini AI extract the details"
+        rightElement={<Button size="sm" onClick={() => setModal({})}>
           <Plus size={14} /> Add Slip
         </Button>}
-      />
+      >
+        Salary Slip Tracker
+      </SectionTitle>
 
       {!apiKey && slips.length === 0 && (
         <div style={{
@@ -300,12 +300,11 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
 
       {slips.length === 0 ? (
         <EmptyState
-          icon={<FileText size={40} />}
+          icon={FileText}
           title="No salary slips tracked"
           description="Add monthly salary slips to track take-home pay, TDS deducted, PF contributions, and spot trends."
-          action={<Button onClick={() => setModal({})}>
-            <Plus size={14} /> Add First Slip
-          </Button>}
+          buttonLabel="Add First Slip"
+          onAdd={() => setModal({})}
         />
       ) : (
         <>
