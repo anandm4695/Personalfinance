@@ -944,6 +944,25 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               ) : (
                 <div>
+                  {/* Table Header */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1fr 1fr",
+                      alignItems: "center",
+                      padding: "10px 20px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    <div>Source</div>
+                    <div style={{ textAlign: "right", paddingRight: 8 }}>Monthly</div>
+                    <div style={{ textAlign: "right" }}>{forecastMonths}-Mo Total</div>
+                  </div>
                   {inflows.map((item, idx) => {
                     const Icon = item.icon;
                     const pctOfTotal = totalMonthlyInflow > 0 ? (item.monthly / totalMonthlyInflow) * 100 : 0;
@@ -1075,6 +1094,25 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 </div>
               ) : (
                 <div>
+                  {/* Table Header */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1fr 1fr",
+                      alignItems: "center",
+                      padding: "10px 20px",
+                      borderBottom: `1px solid ${THEME.line}`,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    <div>Source</div>
+                    <div style={{ textAlign: "right", paddingRight: 8 }}>Monthly</div>
+                    <div style={{ textAlign: "right" }}>{forecastMonths}-Mo Total</div>
+                  </div>
                   {outflows.map((item, idx) => {
                     const Icon = item.icon;
                     const pctOfTotal = totalMonthlyOutflow > 0 ? (item.monthly / totalMonthlyOutflow) * 100 : 0;
