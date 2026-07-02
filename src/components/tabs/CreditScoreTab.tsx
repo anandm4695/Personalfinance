@@ -104,10 +104,7 @@ function ScoreForm({ initial, onSave, onClose }: any) {
       <Field label="Notes" style={{ marginTop: 12 }}>
         <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional note" />
       </Field>
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Save Score</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" />
     </Modal>
   );
 }

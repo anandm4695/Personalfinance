@@ -111,7 +111,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
     <Modal
       title={initial?.id ? "Edit Health Insurance Policy" : "Add Health Insurance Policy"}
       onClose={onClose}
-      size="lg"
+      maxWidth={720}
     >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Field label="Insurer / Company *">
@@ -202,10 +202,7 @@ function PolicyForm({ initial, onSave, onClose }: any) {
         <textarea className="input" rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Any additional details…" />
       </Field>
 
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Save Policy</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Policy" />
     </Modal>
   );
 }

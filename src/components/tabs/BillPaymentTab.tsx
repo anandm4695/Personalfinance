@@ -130,10 +130,7 @@ function BillForm({ initial, onSave, onClose }: any) {
       <Field label="Notes" style={{ marginTop: 12 }}>
         <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
       </Field>
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Save Bill</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Bill" />
     </Modal>
   );
 }
@@ -177,10 +174,7 @@ function PaymentForm({ bill, onSave, onClose }: any) {
           <input className="input" value={form.receiptNumber} onChange={(e) => set("receiptNumber", e.target.value)} placeholder="Optional reference" />
         </Field>
       </div>
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Log Payment</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Log Payment" />
     </Modal>
   );
 }

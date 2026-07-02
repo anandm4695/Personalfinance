@@ -150,7 +150,7 @@ function SchemeForm({ initial, onSave, onClose }: any) {
   };
 
   return (
-    <Modal title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"} onClose={onClose} size="lg">
+    <Modal title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"} onClose={onClose} maxWidth={720}>
       <Field label="Scheme Type *">
         <select className="input" value={form.schemeType} onChange={(e) => set("schemeType", e.target.value)}>
           {SCHEMES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -239,10 +239,7 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <Field label="Notes" style={{ marginTop: 12 }}>
         <textarea className="input" rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
       </Field>
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Save Scheme</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Scheme" />
     </Modal>
   );
 }

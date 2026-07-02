@@ -130,7 +130,7 @@ Return only the JSON, no explanation.`;
   };
 
   return (
-    <Modal title={initial?.id ? "Edit Salary Slip" : "Add Salary Slip"} onClose={onClose} size="lg">
+    <Modal title={initial?.id ? "Edit Salary Slip" : "Add Salary Slip"} onClose={onClose} maxWidth={720}>
       {/* Month / employer */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
         <Field label="Month *">
@@ -235,10 +235,7 @@ Return only the JSON, no explanation.`;
         <input className="input" type="number" value={form.netSalary} onChange={(e) => set("netSalary", e.target.value)} placeholder="Take-home amount" />
       </Field>
 
-      <ModalActions>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={save}>Save Slip</Button>
-      </ModalActions>
+      <ModalActions onSave={save} onClose={onClose} saveLabel="Save Slip" />
     </Modal>
   );
 }
