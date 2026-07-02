@@ -357,7 +357,8 @@ function FinanceDashboard() {
         if (updates.emailAddress !== undefined) dbUpdates.email_address = updates.emailAddress;
         if (updates.fromEmail !== undefined) dbUpdates.from_email = updates.fromEmail;
         if (updates.geminiApiKey !== undefined) dbUpdates.gemini_api_key = updates.geminiApiKey;
-        if (updates.goldPricePerGram !== undefined) dbUpdates.gold_price_per_gram = updates.goldPricePerGram;
+        if (updates.goldPricePerGram !== undefined)
+          dbUpdates.gold_price_per_gram = updates.goldPricePerGram;
 
         const { error: settErr } = await supabase
           .from("user_settings")
@@ -716,7 +717,14 @@ function FinanceDashboard() {
             ? { dismissedAlerts: sett.data.master_data._dismissedAlerts }
             : {}),
           // Only overwrite each array if the query succeeded (no error + data is not null)
-          ...(!banks.error && banks.data != null ? { bankAccounts: snakeToCamel(banks.data).map((b: any) => ({ ...b, type: b.accountType || b.type || "Savings" })) } : {}),
+          ...(!banks.error && banks.data != null
+            ? {
+                bankAccounts: snakeToCamel(banks.data).map((b: any) => ({
+                  ...b,
+                  type: b.accountType || b.type || "Savings",
+                })),
+              }
+            : {}),
           ...(!txns.error && txns.data != null ? { transactions: snakeToCamel(txns.data) } : {}),
           ...(!mfs.error && mfs.data != null
             ? {
@@ -738,13 +746,17 @@ function FinanceDashboard() {
             ? {
                 ppf: snakeToCamel(pn.data.filter((x) => x.type === "PPF")),
                 nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")).map((n: any) => {
-                  const meta = n.establishments && typeof n.establishments === "object" && !Array.isArray(n.establishments)
-                    ? n.establishments : {};
+                  const meta =
+                    n.establishments &&
+                    typeof n.establishments === "object" &&
+                    !Array.isArray(n.establishments)
+                      ? n.establishments
+                      : {};
                   return {
                     ...n,
                     pran: n.accountNumber || n.pran || "",
                     tier: n.epfType || (n.bank === "I" || n.bank === "II" ? n.bank : null) || "I",
-                    fundManager: (n.bank !== "I" && n.bank !== "II") ? (n.bank || "") : "",
+                    fundManager: n.bank !== "I" && n.bank !== "II" ? n.bank || "" : "",
                     schemeType: meta.schemeType || "All Citizen",
                     investmentChoice: meta.investmentChoice || "Auto",
                     lifecycleFund: meta.lifecycleFund || "LC-50",
@@ -770,8 +782,15 @@ function FinanceDashboard() {
           ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
           ...(!lns.error && lns.data != null
             ? {
-                loansTaken: snakeToCamel(lns.data.filter((x) => !x.is_lent)).map((l: any) => ({ ...l, lender: l.lenderBorrower || l.lender || "" })),
-                loansGiven: snakeToCamel(lns.data.filter((x) => x.is_lent)).map((l: any) => ({ ...l, borrower: l.lenderBorrower || l.borrower || "", lender: l.lenderBorrower || l.lender || "" })),
+                loansTaken: snakeToCamel(lns.data.filter((x) => !x.is_lent)).map((l: any) => ({
+                  ...l,
+                  lender: l.lenderBorrower || l.lender || "",
+                })),
+                loansGiven: snakeToCamel(lns.data.filter((x) => x.is_lent)).map((l: any) => ({
+                  ...l,
+                  borrower: l.lenderBorrower || l.borrower || "",
+                  lender: l.lenderBorrower || l.lender || "",
+                })),
               }
             : {}),
           ...(!gls.error && gls.data != null ? { goals: snakeToCamel(gls.data) } : {}),
@@ -853,9 +872,7 @@ function FinanceDashboard() {
           ...(!recExp.error && recExp.data != null
             ? { recurringExpenses: snakeToCamel(recExp.data) }
             : {}),
-          ...(!wlists.error && wlists.data != null
-            ? { wishlists: snakeToCamel(wlists.data) }
-            : {}),
+          ...(!wlists.error && wlists.data != null ? { wishlists: snakeToCamel(wlists.data) } : {}),
           ...(!wlItems.error && wlItems.data != null
             ? { wishlistItems: snakeToCamel(wlItems.data) }
             : {}),
@@ -882,9 +899,7 @@ function FinanceDashboard() {
           ...(!documentsQ.error && documentsQ.data != null
             ? { documents: snakeToCamel(documentsQ.data) }
             : {}),
-          ...(!goldQ.error && goldQ.data != null
-            ? { goldHoldings: snakeToCamel(goldQ.data) }
-            : {}),
+          ...(!goldQ.error && goldQ.data != null ? { goldHoldings: snakeToCamel(goldQ.data) } : {}),
           ...(!lifeEventsQ.error && lifeEventsQ.data != null
             ? { lifeEvents: snakeToCamel(lifeEventsQ.data) }
             : {}),
@@ -1066,7 +1081,11 @@ function FinanceDashboard() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore when typing in inputs
       const tag = (e.target as HTMLElement)?.tagName;
-      const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement)?.isContentEditable;
+      const isInput =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        (e.target as HTMLElement)?.isContentEditable;
 
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
@@ -1097,21 +1116,67 @@ function FinanceDashboard() {
       };
 
       // Letter shortcuts
-      if (e.key === "d") { setTab("analytics"); return; }
-      if (e.key === "b") { setTab("banks"); return; }
-      if (e.key === "s") { setTab("demat"); return; }
-      if (e.key === "i") { setTab("investments"); return; }
-      if (e.key === "t") { setTab("tax"); return; }
-      if (e.key === "g") { setTab("goals"); return; }
-      if (e.key === "r") { setTab("annualreport"); return; }
-      if (e.key === "c") { setTab("cashflow"); return; }
-      if (e.key === "e") { setTab("expensetrends"); return; }
-      if (e.key === "f") { setTab("familyview"); return; }
-      if (e.key === "n") { setTab("nominees"); return; }
-      if (e.key === "/") { e.preventDefault(); setShowSearch(true); return; }
-      if (e.key === "a") { setShowAlerts((p) => !p); return; }
-      if (e.key === "p") { setPrivacyMode((p) => !p); return; }
-      if (e.key === "?") { setShowShortcuts((p) => !p); return; }
+      if (e.key === "d") {
+        setTab("analytics");
+        return;
+      }
+      if (e.key === "b") {
+        setTab("banks");
+        return;
+      }
+      if (e.key === "s") {
+        setTab("demat");
+        return;
+      }
+      if (e.key === "i") {
+        setTab("investments");
+        return;
+      }
+      if (e.key === "t") {
+        setTab("tax");
+        return;
+      }
+      if (e.key === "g") {
+        setTab("goals");
+        return;
+      }
+      if (e.key === "r") {
+        setTab("annualreport");
+        return;
+      }
+      if (e.key === "c") {
+        setTab("cashflow");
+        return;
+      }
+      if (e.key === "e") {
+        setTab("expensetrends");
+        return;
+      }
+      if (e.key === "f") {
+        setTab("familyview");
+        return;
+      }
+      if (e.key === "n") {
+        setTab("nominees");
+        return;
+      }
+      if (e.key === "/") {
+        e.preventDefault();
+        setShowSearch(true);
+        return;
+      }
+      if (e.key === "a") {
+        setShowAlerts((p) => !p);
+        return;
+      }
+      if (e.key === "p") {
+        setPrivacyMode((p) => !p);
+        return;
+      }
+      if (e.key === "?") {
+        setShowShortcuts((p) => !p);
+        return;
+      }
 
       if (shortcuts[e.key]) {
         setTab(shortcuts[e.key]);
@@ -1147,10 +1212,24 @@ function FinanceDashboard() {
     const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
     setState((s) => {
       const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
-      const cashVal = (s.bankAccounts || []).reduce((sum: number, b: any) => sum + (Number(b.balance) || 0), 0);
-      const stockVal = (s.stocks || []).reduce((sum: number, st: any) => sum + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0), 0);
-      const mfVal = (s.mutualFunds || []).reduce((sum: number, m: any) => sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0), 0);
-      const fdVal = (s.fixedDeposits || []).reduce((sum: number, f: any) => sum + (Number(f.principal) || 0), 0);
+      const cashVal = (s.bankAccounts || []).reduce(
+        (sum: number, b: any) => sum + (Number(b.balance) || 0),
+        0
+      );
+      const stockVal = (s.stocks || []).reduce(
+        (sum: number, st: any) =>
+          sum + (Number(st.qty) || 0) * (Number(st.currentPrice) || Number(st.avgPrice) || 0),
+        0
+      );
+      const mfVal = (s.mutualFunds || []).reduce(
+        (sum: number, m: any) =>
+          sum + (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0),
+        0
+      );
+      const fdVal = (s.fixedDeposits || []).reduce(
+        (sum: number, f: any) => sum + (Number(f.principal) || 0),
+        0
+      );
       const breakdown = {
         cash: cashVal,
         equity: stockVal + mfVal,
@@ -1164,7 +1243,10 @@ function FinanceDashboard() {
       if (uid2 && uid2 !== "offline-user") {
         supabase
           .from("net_worth_history")
-          .upsert({ user_id: uid2, month: ym, net_worth: nw, ...breakdown }, { onConflict: "user_id,month" })
+          .upsert(
+            { user_id: uid2, month: ym, net_worth: nw, ...breakdown },
+            { onConflict: "user_id,month" }
+          )
           .then(() => {});
       }
       return { ...s, netWorthHistory: newHistory };
@@ -1214,7 +1296,10 @@ function FinanceDashboard() {
           if (h.month === currentYm) return; // already persisted by auto-snapshot
           supabase
             .from("net_worth_history")
-            .upsert({ user_id: uid3, month: h.month, net_worth: h.netWorth }, { onConflict: "user_id,month" })
+            .upsert(
+              { user_id: uid3, month: h.month, net_worth: h.netWorth },
+              { onConflict: "user_id,month" }
+            )
             .then(() => {});
         });
         // Set the "done" flag so this never runs again on any device
@@ -1226,7 +1311,11 @@ function FinanceDashboard() {
         return { ...s, netWorthHistory: corrected, masterData: newMaster };
       }
 
-      return { ...s, netWorthHistory: corrected, masterData: { ...(s.masterData || {}), _nwBackfillV2: true } };
+      return {
+        ...s,
+        netWorthHistory: corrected,
+        masterData: { ...(s.masterData || {}), _nwBackfillV2: true },
+      };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]); // intentionally runs once after initial load
@@ -1315,8 +1404,7 @@ function FinanceDashboard() {
         if (shortfall <= 0 || shortfall > lots.length) continue;
 
         // Reverse-engineer original per-lot quantities
-        const multiplier =
-          ca.actionType === "split" ? rN / rM : (rM + rN) / rM;
+        const multiplier = ca.actionType === "split" ? rN / rM : (rM + rN) / rM;
         const lotCalcs = lots.map((lot: any) => {
           const curQty = Number(lot.qty);
           const origQty = Math.round(curQty / multiplier);
@@ -1342,7 +1430,11 @@ function FinanceDashboard() {
           if (c.floored === c.curQty) continue;
           const invested = c.curQty * Number(c.lot.avgPrice);
           const newAvg = c.floored > 0 ? invested / c.floored : Number(c.lot.avgPrice);
-          const updated = { id: c.lot.id, qty: String(c.floored), avgPrice: String(Number(newAvg.toFixed(4))) };
+          const updated = {
+            id: c.lot.id,
+            qty: String(c.floored),
+            avgPrice: String(Number(newAvg.toFixed(4))),
+          };
           stockUpdates.push(updated);
           stocks = stocks.map((st: any) => (st.id === c.lot.id ? { ...st, ...updated } : st));
         }
@@ -1424,23 +1516,54 @@ function FinanceDashboard() {
 
   const describeItem = (key: string, item: any): string => {
     const LABEL_MAP: Record<string, string> = {
-      bankAccounts: "Bank Account", transactions: "Transaction", mutualFunds: "Mutual Fund",
-      stocks: "Stock", demat: "Demat Account", fixedDeposits: "Fixed Deposit",
-      recurringDeposits: "Recurring Deposit", bonds: "Bond", ppf: "PPF", nps: "NPS", epf: "EPF",
-      creditCards: "Credit Card", prepaidCards: "Prepaid Card", loansTaken: "Loan Taken",
-      loansGiven: "Loan Given", goals: "Goal", budgets: "Budget", subscriptions: "Subscription",
-      reminders: "Reminder", recurringExpenses: "Recurring Expense", lic: "LIC Policy",
-      termPlans: "Term Plan", investmentPlans: "Investment Plan",
-      informalBorrowed: "Informal Loan (Borrowed)", informalLent: "Informal Loan (Lent)",
-      rentalProperties: "Rental Property (Given)", rentedProperties: "Rental Property (Taken)",
-      sips: "SIP", stockSells: "Stock Sale", mfSells: "MF Sale",
-      corporateActions: "Corporate Action", taxPayments: "Tax Payment",
-      income: "Income Entry", wishlists: "Watchlist", wishlistItems: "Watchlist Item",
-      realEstateProperties: "Real Estate", realEstateDemands: "Real Estate Demand",
-      realEstatePayments: "Real Estate Payment", vehicles: "Vehicle", dividends: "Dividend",
-      documents: "Document", goldHoldings: "Gold Holding", lifeEvents: "Life Event",
-      healthInsurance: "Health Insurance", creditScores: "Credit Score",
-      billPayments: "Bill", billPaymentHistory: "Bill Payment", govtSchemes: "Govt Scheme",
+      bankAccounts: "Bank Account",
+      transactions: "Transaction",
+      mutualFunds: "Mutual Fund",
+      stocks: "Stock",
+      demat: "Demat Account",
+      fixedDeposits: "Fixed Deposit",
+      recurringDeposits: "Recurring Deposit",
+      bonds: "Bond",
+      ppf: "PPF",
+      nps: "NPS",
+      epf: "EPF",
+      creditCards: "Credit Card",
+      prepaidCards: "Prepaid Card",
+      loansTaken: "Loan Taken",
+      loansGiven: "Loan Given",
+      goals: "Goal",
+      budgets: "Budget",
+      subscriptions: "Subscription",
+      reminders: "Reminder",
+      recurringExpenses: "Recurring Expense",
+      lic: "LIC Policy",
+      termPlans: "Term Plan",
+      investmentPlans: "Investment Plan",
+      informalBorrowed: "Informal Loan (Borrowed)",
+      informalLent: "Informal Loan (Lent)",
+      rentalProperties: "Rental Property (Given)",
+      rentedProperties: "Rental Property (Taken)",
+      sips: "SIP",
+      stockSells: "Stock Sale",
+      mfSells: "MF Sale",
+      corporateActions: "Corporate Action",
+      taxPayments: "Tax Payment",
+      income: "Income Entry",
+      wishlists: "Watchlist",
+      wishlistItems: "Watchlist Item",
+      realEstateProperties: "Real Estate",
+      realEstateDemands: "Real Estate Demand",
+      realEstatePayments: "Real Estate Payment",
+      vehicles: "Vehicle",
+      dividends: "Dividend",
+      documents: "Document",
+      goldHoldings: "Gold Holding",
+      lifeEvents: "Life Event",
+      healthInsurance: "Health Insurance",
+      creditScores: "Credit Score",
+      billPayments: "Bill",
+      billPaymentHistory: "Bill Payment",
+      govtSchemes: "Govt Scheme",
       salarySlips: "Salary Slip",
     };
     const label = LABEL_MAP[key] || key;
@@ -1448,10 +1571,24 @@ function FinanceDashboard() {
 
     const parts: string[] = [];
 
-    const name = item.name || item.bank || item.scheme || item.title || item.fundName
-      || item.insurer || item.lender || item.borrower || item.lenderBorrower
-      || item.person || item.source || item.institution || item.employer
-      || item.fundManager || item.broker || item.address || "";
+    const name =
+      item.name ||
+      item.bank ||
+      item.scheme ||
+      item.title ||
+      item.fundName ||
+      item.insurer ||
+      item.lender ||
+      item.borrower ||
+      item.lenderBorrower ||
+      item.person ||
+      item.source ||
+      item.institution ||
+      item.employer ||
+      item.fundManager ||
+      item.broker ||
+      item.address ||
+      "";
 
     if (key === "stocks" || key === "stockSells") {
       if (item.symbol) parts.push(item.symbol + (item.exchange ? ` (${item.exchange})` : ""));
@@ -1562,12 +1699,17 @@ function FinanceDashboard() {
       finalItem.property_type = key === "rentalProperties" ? "out" : "in";
     }
 
-    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const isUuid = (str: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     const isTextIdTable = key === "stockSells" || key === "mfSells";
-    const newId = (itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable)) ? itemWithOwner.id : uid();
+    const newId =
+      itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable) ? itemWithOwner.id : uid();
 
     setState((s) => {
-      const next: any = { ...s, [key]: [...((s[key] as any[]) || []), { ...itemWithOwner, id: newId }] };
+      const next: any = {
+        ...s,
+        [key]: [...((s[key] as any[]) || []), { ...itemWithOwner, id: newId }],
+      };
       if (key === "transactions" && itemWithOwner.accountId) {
         const delta =
           itemWithOwner.type === "credit"
@@ -1652,7 +1794,10 @@ function FinanceDashboard() {
               .eq("id", itemWithOwner.accountId)
               .single()
               .then(({ data: freshAccount, error: fetchErr }) => {
-                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (fetchErr) {
+                  console.error("[Balance fetch]", fetchErr.message);
+                  return;
+                }
                 if (!freshAccount) return;
                 supabase
                   .from("bank_accounts")
@@ -1774,7 +1919,10 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`ADD_${key.toUpperCase()}`, `Added ${describeItem(key, item)}`, { ...item, id: newId });
+    logActivity(`ADD_${key.toUpperCase()}`, `Added ${describeItem(key, item)}`, {
+      ...item,
+      id: newId,
+    });
   };
 
   const removeItem = async (key, id) => {
@@ -1834,7 +1982,10 @@ function FinanceDashboard() {
               .eq("id", txnToDelete.accountId)
               .single()
               .then(({ data: freshAccount, error: fetchErr }) => {
-                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (fetchErr) {
+                  console.error("[Balance fetch]", fetchErr.message);
+                  return;
+                }
                 if (!freshAccount) return;
                 supabase
                   .from("bank_accounts")
@@ -1890,7 +2041,10 @@ function FinanceDashboard() {
         }
       }
     }
-    logActivity(`REMOVE_${key.toUpperCase()}`, `Removed ${describeItem(key, deletedItem)}`, { id, ...(deletedItem || {}) });
+    logActivity(`REMOVE_${key.toUpperCase()}`, `Removed ${describeItem(key, deletedItem)}`, {
+      id,
+      ...(deletedItem || {}),
+    });
   };
 
   const cleanupOrphanedCorporateActions = async () => {
@@ -2027,8 +2181,11 @@ function FinanceDashboard() {
           if (patch.employerContribution !== undefined) {
             finalPatch.employer_contribution = Number(patch.employerContribution) || 0;
           }
-          const hasMeta = patch.schemeType !== undefined || patch.investmentChoice !== undefined ||
-            patch.lifecycleFund !== undefined || patch.equityPct !== undefined;
+          const hasMeta =
+            patch.schemeType !== undefined ||
+            patch.investmentChoice !== undefined ||
+            patch.lifecycleFund !== undefined ||
+            patch.equityPct !== undefined;
           if (hasMeta) {
             finalPatch.establishments = {
               schemeType: patch.schemeType || "All Citizen",
@@ -2039,9 +2196,12 @@ function FinanceDashboard() {
               govtSecPct: Number(patch.govtSecPct) || 0,
               altAssetPct: Number(patch.altAssetPct) || 0,
             };
-            delete finalPatch.scheme_type; delete finalPatch.investment_choice;
-            delete finalPatch.lifecycle_fund; delete finalPatch.equity_pct;
-            delete finalPatch.corp_bond_pct; delete finalPatch.govt_sec_pct;
+            delete finalPatch.scheme_type;
+            delete finalPatch.investment_choice;
+            delete finalPatch.lifecycle_fund;
+            delete finalPatch.equity_pct;
+            delete finalPatch.corp_bond_pct;
+            delete finalPatch.govt_sec_pct;
             delete finalPatch.alt_asset_pct;
           }
         }
@@ -2095,7 +2255,10 @@ function FinanceDashboard() {
                 .eq("id", oldTxn.accountId)
                 .single()
                 .then(({ data: freshAccount, error: fetchErr }) => {
-                  if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                  if (fetchErr) {
+                    console.error("[Balance fetch]", fetchErr.message);
+                    return;
+                  }
                   if (!freshAccount) return;
                   supabase
                     .from("bank_accounts")
@@ -2114,7 +2277,10 @@ function FinanceDashboard() {
               .eq("id", oldTxn.accountId)
               .single()
               .then(({ data: freshOld, error: fetchErr }) => {
-                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (fetchErr) {
+                  console.error("[Balance fetch]", fetchErr.message);
+                  return;
+                }
                 if (!freshOld) return;
                 supabase
                   .from("bank_accounts")
@@ -2130,7 +2296,10 @@ function FinanceDashboard() {
               .eq("id", updatedTxn.accountId)
               .single()
               .then(({ data: freshNew, error: fetchErr }) => {
-                if (fetchErr) { console.error("[Balance fetch]", fetchErr.message); return; }
+                if (fetchErr) {
+                  console.error("[Balance fetch]", fetchErr.message);
+                  return;
+                }
                 if (!freshNew) return;
                 supabase
                   .from("bank_accounts")
@@ -2183,7 +2352,11 @@ function FinanceDashboard() {
     }
     const updatedItem = (state[key] || []).find((x: any) => x.id === id);
     const changedFields = Object.keys(patch).join(", ");
-    logActivity(`UPDATE_${key.toUpperCase()}`, `Updated ${describeItem(key, updatedItem ? { ...updatedItem, ...patch } : patch)} (${changedFields})`, { id, patch });
+    logActivity(
+      `UPDATE_${key.toUpperCase()}`,
+      `Updated ${describeItem(key, updatedItem ? { ...updatedItem, ...patch } : patch)} (${changedFields})`,
+      { id, patch }
+    );
   };
 
   // ================== EXPORT / IMPORT ==================
@@ -2409,8 +2582,6 @@ function FinanceDashboard() {
       },
     });
   };
-
-
 
   const d = DENSITY[density] || DENSITY.normal;
 
@@ -2701,7 +2872,7 @@ function FinanceDashboard() {
                       const hasChildren = t.children && t.children.length > 0;
                       const isDirect = t.directChildren;
                       const active = isDirect
-                        ? t.children?.some((c) => c.id === tab) ?? false
+                        ? (t.children?.some((c) => c.id === tab) ?? false)
                         : tab === t.id;
                       return (
                         <div key={t.id}>
@@ -2799,7 +2970,9 @@ function FinanceDashboard() {
                             >
                               {t.children.map((child) => {
                                 const ChildIcon = child.icon;
-                                const childActive = isDirect ? tab === child.id : subTab === child.id;
+                                const childActive = isDirect
+                                  ? tab === child.id
+                                  : subTab === child.id;
                                 return (
                                   <button
                                     key={child.id}
@@ -2905,7 +3078,9 @@ function FinanceDashboard() {
                   filter: "drop-shadow(0 2px 6px rgba(197,161,82,0.3))",
                 }}
               />
-              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}
+              >
                 <div
                   className="desktop-only"
                   style={{
@@ -2918,7 +3093,10 @@ function FinanceDashboard() {
                   {greeting.title}
                 </div>
                 {greeting.subtitle && (
-                  <div className="desktop-only" style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
+                  <div
+                    className="desktop-only"
+                    style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}
+                  >
                     {greeting.subtitle}
                   </div>
                 )}
@@ -3803,14 +3981,20 @@ function FinanceDashboard() {
                   marketData={marketData}
                 />
               )}
-              {(tab === "credit" || ["cc","prepaid","taken","given","borrowed","lent","optimizer"].includes(tab)) && (
+              {(tab === "credit" ||
+                ["cc", "prepaid", "taken", "given", "borrowed", "lent", "optimizer"].includes(
+                  tab
+                )) && (
                 <CreditTab
                   state={filteredState}
                   addItem={addItem}
                   removeItem={removeItem}
                   updateItem={updateItem}
                   subTab={tab === "credit" ? subTab : tab}
-                  onSubTabChange={(st: string) => { setTab(st); setSubTab(null); }}
+                  onSubTabChange={(st: string) => {
+                    setTab(st);
+                    setSubTab(null);
+                  }}
                 />
               )}
               {tab === "subs" && (
@@ -3868,26 +4052,22 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "calculators" && <CalculatorsTab metrics={metrics} state={filteredState} />}
-              {tab === "cashflow" && (
-                <CashFlowTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "cashflow" && <CashFlowTab state={filteredState} metrics={metrics} />}
               {tab === "calendar" && (
                 <FinancialCalendarTab state={filteredState} metrics={metrics} />
               )}
-              {tab === "paycal" && (
-                <PaymentCalendarTab state={filteredState} metrics={metrics} />
-              )}
-              {tab === "capitalgains" && (
-                <CapitalGainsTab state={filteredState} />
-              )}
-              {tab === "taxtools" && (
-                <TaxToolsTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "paycal" && <PaymentCalendarTab state={filteredState} metrics={metrics} />}
+              {tab === "capitalgains" && <CapitalGainsTab state={filteredState} />}
+              {tab === "taxtools" && <TaxToolsTab state={filteredState} metrics={metrics} />}
               {tab === "annualreport" && (
                 <AnnualReportTab state={filteredState} metrics={metrics} />
               )}
               {tab === "investstatement" && (
-                <InvestmentStatementTab state={filteredState} metrics={metrics} marketData={marketData} />
+                <InvestmentStatementTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                />
               )}
               {tab === "expensetrends" && (
                 <ExpenseTrendsTab state={filteredState} metrics={metrics} />
@@ -3924,62 +4104,97 @@ function FinanceDashboard() {
               {tab === "casimport" && (
                 <CASImportTab state={filteredState} addItem={addItem} updateItem={updateItem} />
               )}
-              {tab === "amortization" && (
-                <LoanAmortizationTab state={filteredState} />
-              )}
-              {tab === "fireplanner" && (
-                <FIREPlannerTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "amortization" && <LoanAmortizationTab state={filteredState} />}
+              {tab === "fireplanner" && <FIREPlannerTab state={filteredState} metrics={metrics} />}
               {tab === "lifeevents" && (
-                <LifeEventPlannerTab state={filteredState} metrics={metrics} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <LifeEventPlannerTab
+                  state={filteredState}
+                  metrics={metrics}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
               {tab === "taxfiling" && (
                 <TaxFilingHelperTab state={filteredState} metrics={metrics} />
               )}
-              {tab === "smartalerts" && (
-                <SmartAlertsTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "smartalerts" && <SmartAlertsTab state={filteredState} metrics={metrics} />}
               {tab === "expenseforecast" && (
                 <ExpenseForecastTab state={filteredState} metrics={metrics} />
               )}
               {tab === "dataexport" && (
-                <DataExportTab state={state} exportJSON={exportJSON} onRestoreBackup={importJSON} showToast={showToast} />
+                <DataExportTab
+                  state={state}
+                  exportJSON={exportJSON}
+                  onRestoreBackup={importJSON}
+                  showToast={showToast}
+                />
               )}
               {tab === "comparison" && (
                 <ComparisonReportsTab state={filteredState} metrics={metrics} />
               )}
-              {tab === "sec80" && (
-                <Section80TrackerTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "sec80" && <Section80TrackerTab state={filteredState} metrics={metrics} />}
               {tab === "gold" && (
-                <GoldSGBTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <GoldSGBTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
               {tab === "healthinsurance" && (
-                <HealthInsuranceTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <HealthInsuranceTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
               {tab === "creditscore" && (
-                <CreditScoreTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <CreditScoreTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
               {tab === "bills" && (
-                <BillPaymentTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <BillPaymentTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
               {tab === "govtschemes" && (
-                <GovtSchemesTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <GovtSchemesTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                  subTab={subTab}
+                  onSubTabChange={setSubTab}
+                />
               )}
-              {tab === "xirrreport" && (
-                <XIRRReportTab state={filteredState} metrics={metrics} />
-              )}
+              {tab === "xirrreport" && <XIRRReportTab state={filteredState} metrics={metrics} />}
               {tab === "dividendcal" && (
                 <DividendCalendarTab state={filteredState} metrics={metrics} />
               )}
               {tab === "salaryslip" && (
-                <SalarySlipTab state={filteredState} addItem={addItem} removeItem={removeItem} updateItem={updateItem} />
+                <SalarySlipTab
+                  state={filteredState}
+                  addItem={addItem}
+                  removeItem={removeItem}
+                  updateItem={updateItem}
+                />
               )}
-              {tab === "auditlog" && (
-                <AuditLogTab session={session} />
-              )}
+              {tab === "auditlog" && <AuditLogTab session={session} />}
               {tab === "benchmark" && (
-                <PerformanceBenchmarkTab state={filteredState} metrics={metrics} marketData={marketData} />
+                <PerformanceBenchmarkTab
+                  state={filteredState}
+                  metrics={metrics}
+                  marketData={marketData}
+                />
               )}
               {tab === "settings" && (
                 <SettingsTab
@@ -4059,56 +4274,147 @@ function FinanceDashboard() {
           <div
             onClick={() => setShowShortcuts(false)}
             style={{
-              position: "fixed", inset: 0, zIndex: 9999,
-              background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: THEME.paper, borderRadius: 16,
-                padding: 28, maxWidth: 520, width: "90%",
+                background: THEME.paper,
+                borderRadius: 16,
+                padding: 28,
+                maxWidth: 520,
+                width: "90%",
                 border: `1px solid ${THEME.line}`,
                 boxShadow: "0 24px 48px rgba(0,0,0,0.3)",
-                maxHeight: "80vh", overflowY: "auto",
+                maxHeight: "80vh",
+                overflowY: "auto",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 18, color: THEME.ink, letterSpacing: "-0.03em" }}>Keyboard Shortcuts</div>
-                <button onClick={() => setShowShortcuts(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, fontSize: 20 }}>×</button>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 18,
+                    color: THEME.ink,
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  Keyboard Shortcuts
+                </div>
+                <button
+                  onClick={() => setShowShortcuts(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: THEME.muted,
+                    fontSize: 20,
+                  }}
+                >
+                  ×
+                </button>
               </div>
               {[
-                { title: "Navigation", shortcuts: [
-                  { key: "D", desc: "Dashboard" }, { key: "B", desc: "Banks" }, { key: "S", desc: "Stocks" },
-                  { key: "I", desc: "Investments" }, { key: "T", desc: "Tax Vault" }, { key: "G", desc: "Goals" },
-                  { key: "C", desc: "Cash Flow" }, { key: "E", desc: "Expense Trends" }, { key: "F", desc: "Family View" },
-                  { key: "N", desc: "Nominees" }, { key: "R", desc: "Annual Report" },
-                ]},
-                { title: "Quick Access (Number Keys)", shortcuts: [
-                  { key: "1", desc: "Dashboard" }, { key: "2", desc: "Banks" }, { key: "3", desc: "Demat" },
-                  { key: "4", desc: "Investments" }, { key: "5", desc: "Credit" }, { key: "6", desc: "Budget" },
-                  { key: "7", desc: "Tax" }, { key: "8", desc: "Goals" }, { key: "9", desc: "Cash Flow" },
-                  { key: "0", desc: "Calendar" },
-                ]},
-                { title: "Actions", shortcuts: [
-                  { key: "⌘K", desc: "Command Palette" }, { key: "/", desc: "Search" },
-                  { key: "A", desc: "Toggle Alerts" }, { key: "P", desc: "Privacy Mode" },
-                  { key: "?", desc: "This Help" }, { key: "Esc", desc: "Close Modals" },
-                ]},
+                {
+                  title: "Navigation",
+                  shortcuts: [
+                    { key: "D", desc: "Dashboard" },
+                    { key: "B", desc: "Banks" },
+                    { key: "S", desc: "Stocks" },
+                    { key: "I", desc: "Investments" },
+                    { key: "T", desc: "Tax Vault" },
+                    { key: "G", desc: "Goals" },
+                    { key: "C", desc: "Cash Flow" },
+                    { key: "E", desc: "Expense Trends" },
+                    { key: "F", desc: "Family View" },
+                    { key: "N", desc: "Nominees" },
+                    { key: "R", desc: "Annual Report" },
+                  ],
+                },
+                {
+                  title: "Quick Access (Number Keys)",
+                  shortcuts: [
+                    { key: "1", desc: "Dashboard" },
+                    { key: "2", desc: "Banks" },
+                    { key: "3", desc: "Demat" },
+                    { key: "4", desc: "Investments" },
+                    { key: "5", desc: "Credit" },
+                    { key: "6", desc: "Budget" },
+                    { key: "7", desc: "Tax" },
+                    { key: "8", desc: "Goals" },
+                    { key: "9", desc: "Cash Flow" },
+                    { key: "0", desc: "Calendar" },
+                  ],
+                },
+                {
+                  title: "Actions",
+                  shortcuts: [
+                    { key: "⌘K", desc: "Command Palette" },
+                    { key: "/", desc: "Search" },
+                    { key: "A", desc: "Toggle Alerts" },
+                    { key: "P", desc: "Privacy Mode" },
+                    { key: "?", desc: "This Help" },
+                    { key: "Esc", desc: "Close Modals" },
+                  ],
+                },
               ].map((group) => (
                 <div key={group.title} style={{ marginBottom: 16 }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{group.title}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "4px 16px" }}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: THEME.accent,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {group.title}
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, 1fr)",
+                      gap: "4px 16px",
+                    }}
+                  >
                     {group.shortcuts.map((s) => (
-                      <div key={s.key + s.desc} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
-                        <kbd style={{
-                          display: "inline-block", minWidth: 28, padding: "2px 8px",
-                          borderRadius: 6, border: `1.5px solid ${THEME.line}`,
-                          background: "rgba(99,102,241,0.06)", fontWeight: 700,
-                          fontSize: 12, textAlign: "center", fontFamily: "monospace",
-                          color: THEME.ink,
-                        }}>{s.key}</kbd>
+                      <div
+                        key={s.key + s.desc}
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}
+                      >
+                        <kbd
+                          style={{
+                            display: "inline-block",
+                            minWidth: 28,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${THEME.line}`,
+                            background: "rgba(99,102,241,0.06)",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            textAlign: "center",
+                            fontFamily: "monospace",
+                            color: THEME.ink,
+                          }}
+                        >
+                          {s.key}
+                        </kbd>
                         <span style={{ fontSize: 13, color: THEME.muted }}>{s.desc}</span>
                       </div>
                     ))}

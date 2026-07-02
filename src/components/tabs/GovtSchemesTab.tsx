@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Shield,
   Plus,
@@ -385,11 +385,28 @@ function SchemeForm({ initial, onSave, onClose }: any) {
   );
 }
 
-export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) {
+export function GovtSchemesTab({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  subTab,
+  onSubTabChange,
+}: any) {
   const schemes: any[] = state.govtSchemes || [];
   const [modal, setModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [sub, setSub] = useState("APY");
+  const [sub, setSub] = useState(subTab || "APY");
+
+  // Sync internal sub when parent drives subTab via sidebar click
+  useEffect(() => {
+    if (subTab) setSub(subTab);
+  }, [subTab]);
+
+  const handleSubChange = (newSub: string) => {
+    setSub(newSub);
+    onSubTabChange?.(newSub);
+  };
 
   const totalCorpus = schemes.reduce((s, sc) => s + Number(sc.currentBalance || 0), 0);
   const totalContrib = schemes.reduce((s, sc) => {
@@ -514,7 +531,7 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
           return (
             <button
               key={s.id}
-              onClick={() => setSub(s.id)}
+              onClick={() => handleSubChange(s.id)}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
               style={
                 active
@@ -585,7 +602,7 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
                     background: s.value === sub ? "var(--surface-1)" : undefined,
                   }}
                   onClick={() => {
-                    setSub(s.value);
+                    handleSubChange(s.value);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 >
