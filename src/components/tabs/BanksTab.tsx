@@ -28,6 +28,7 @@ import { Button } from "../ui/Button";
 import { BankEditModal } from "../modals/BankEditModal";
 import { CsvImportModal } from "../modals/CsvImportModal";
 import { SectionTitle } from "../ui/SectionTitle";
+import { Card } from "../ui/Card";
 
 // Bank logo domains for Clearbit / Google Favicon API
 const BANK_LOGO_DOMAINS: Record<string, string> = {
