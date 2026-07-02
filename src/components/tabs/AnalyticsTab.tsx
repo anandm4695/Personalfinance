@@ -8778,43 +8778,70 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           {/* ── Portfolio Overlap Analyzer ── */}
           {(() => {
-            const INDEX_HOLDINGS: Record<string, string[]> = {
+            const INDEX_HOLDINGS: Record<string, { name: string; weight: number }[]> = {
               "Nifty 50": [
-                "HDFC Bank",
-                "ICICI Bank",
-                "Reliance",
-                "Infosys",
-                "TCS",
-                "Bharti Airtel",
-                "ITC",
-                "L&T",
-                "SBI",
-                "Kotak Bank",
+                { name: "HDFC Bank", weight: 11.5 },
+                { name: "Reliance", weight: 9.7 },
+                { name: "ICICI Bank", weight: 7.5 },
+                { name: "Infosys", weight: 5.8 },
+                { name: "ITC", weight: 4.3 },
+                { name: "TCS", weight: 3.8 },
+                { name: "L&T", weight: 3.6 },
+                { name: "SBI", weight: 3.2 },
+                { name: "Kotak Bank", weight: 2.9 },
               ],
               "Nifty Next 50": [
-                "HAL",
-                "IOC",
-                "BPCL",
-                "Siemens",
-                "Zomato",
-                "DLF",
-                "Vedanta",
-                "ABB India",
-                "Trent",
-                "Mankind",
+                { name: "HAL", weight: 4.5 },
+                { name: "IOC", weight: 4.2 },
+                { name: "BPCL", weight: 3.8 },
+                { name: "Siemens", weight: 3.6 },
+                { name: "Zomato", weight: 3.5 },
+                { name: "DLF", weight: 3.4 },
+                { name: "Vedanta", weight: 3.2 },
+                { name: "ABB India", weight: 3.0 },
+                { name: "Trent", weight: 2.8 },
+                { name: "Mankind", weight: 2.5 },
               ],
               Sensex: [
-                "HDFC Bank",
-                "ICICI Bank",
-                "Reliance",
-                "Infosys",
-                "TCS",
-                "Bharti Airtel",
-                "ITC",
-                "L&T",
-                "SBI",
-                "HUL",
+                { name: "HDFC Bank", weight: 13.2 },
+                { name: "Reliance", weight: 11.2 },
+                { name: "ICICI Bank", weight: 8.6 },
+                { name: "Infosys", weight: 6.7 },
+                { name: "TCS", weight: 4.4 },
+                { name: "Bharti Airtel", weight: 4.2 },
+                { name: "ITC", weight: 5.0 },
+                { name: "L&T", weight: 4.1 },
+                { name: "SBI", weight: 3.7 },
+                { name: "HUL", weight: 3.1 },
               ],
+            };
+
+            const STOCK_MAP: Record<string, string> = {
+              INFY: "INFOSYS",
+              SBIN: "SBI",
+              HDFCBANK: "HDFC BANK",
+              ICICIBANK: "ICICI BANK",
+              KOTAKBANK: "KOTAK BANK",
+              LT: "L&T",
+              HINDUNILVR: "HUL",
+              VEDL: "VEDANTA",
+              ABB: "ABB INDIA",
+              BHARTIAIRTEL: "BHARTI AIRTEL",
+            };
+
+            const stockMatchesHolding = (symbol: string, holding: string) => {
+              const symUp = symbol.toUpperCase().trim();
+              const holdUp = holding.toUpperCase().trim();
+              if (symUp === holdUp) return true;
+
+              const mapped = STOCK_MAP[symUp];
+              if (mapped && (mapped.includes(holdUp) || holdUp.includes(mapped))) return true;
+
+              const symClean = symUp.replace(/[^A-Z0-9]/g, "");
+              const holdClean = holdUp.replace(/[^A-Z0-9]/g, "");
+
+              if (symClean.includes(holdClean) || holdClean.includes(symClean)) return true;
+              return false;
             };
 
             const mfs = (state.mutualFunds || []).map((m: any) => {
@@ -8833,7 +8860,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               } else if (nameUpper.includes("SENSEX")) {
                 matchedIndex = "Sensex";
               } else if (nameUpper.includes("INDEX")) {
-                // Generic index — try to match
                 if (nameUpper.includes("NEXT")) matchedIndex = "Nifty Next 50";
                 else matchedIndex = "Nifty 50";
               }
@@ -8842,38 +8868,73 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               return { name: mfName, value, matchedIndex, holdings };
             });
 
-            // Get user's direct stocks
+            // Get user's direct stocks with values
             const userStocks = (state.stocks || [])
               .map((s: any) => {
                 const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
-                return base;
+                const qty = Number(s.qty || 0);
+                const price = Number(s.currentPrice || s.avgPrice || 0);
+                return { symbol: base, value: qty * price };
               })
-              .filter((s: string) => s);
-            const uniqueStockNames = [...new Set(userStocks)];
+              .filter((s: any) => s.symbol && s.value > 0);
+
+            const directStockMap: Record<string, number> = {};
+            userStocks.forEach((s) => {
+              const sym = s.symbol.toUpperCase();
+              directStockMap[sym] = (directStockMap[sym] || 0) + s.value;
+            });
+            const uniqueStockNames = Object.keys(directStockMap);
 
             // Find overlaps
-            const overlapMap: Record<string, string[]> = {}; // stockName -> fund names
-            mfs.forEach((mf: any) => {
-              if (mf.holdings.length === 0) return;
-              uniqueStockNames.forEach((stock: string) => {
-                const stockUp = stock.toUpperCase();
-                const found = mf.holdings.some((h: string) => {
-                  const hUp = h.toUpperCase();
-                  return stockUp.includes(hUp) || hUp.includes(stockUp);
+            const overlapMap: Record<
+              string,
+              {
+                directValue: number;
+                indirectValue: number;
+                funds: { name: string; estimatedValue: number }[];
+              }
+            > = {};
+
+            Object.entries(directStockMap).forEach(([stockSymbol, directVal]) => {
+              mfs.forEach((mf: any) => {
+                if (mf.holdings.length === 0) return;
+                mf.holdings.forEach((h: any) => {
+                  if (stockMatchesHolding(stockSymbol, h.name)) {
+                    if (!overlapMap[stockSymbol]) {
+                      overlapMap[stockSymbol] = {
+                        directValue: directVal,
+                        indirectValue: 0,
+                        funds: [],
+                      };
+                    }
+                    const estVal = (mf.value * h.weight) / 100;
+                    overlapMap[stockSymbol].indirectValue += estVal;
+                    overlapMap[stockSymbol].funds.push({
+                      name: mf.name,
+                      estimatedValue: estVal,
+                    });
+                  }
                 });
-                if (found) {
-                  if (!overlapMap[stock]) overlapMap[stock] = [];
-                  overlapMap[stock].push(mf.name);
-                }
               });
             });
 
             const overlapEntries = Object.entries(overlapMap).sort(
-              (a, b) => b[1].length - a[1].length
+              (a, b) =>
+                b[1].directValue + b[1].indirectValue - (a[1].directValue + a[1].indirectValue)
             );
             const overlappingStockCount = overlapEntries.length;
-            const fundsWithOverlap = new Set(overlapEntries.flatMap(([, funds]) => funds)).size;
-            const concentrationRisks = overlapEntries.filter(([, funds]) => funds.length >= 3);
+            const fundsWithOverlap = new Set(
+              overlapEntries.flatMap(([, data]) => data.funds.map((f) => f.name))
+            ).size;
+            const totalOverlapValue = overlapEntries.reduce(
+              (sum, [, data]) => sum + data.indirectValue,
+              0
+            );
+
+            // Concentration risk if a stock is in 3+ funds or indirect exposure is > 150000
+            const concentrationRisks = overlapEntries.filter(
+              ([, data]) => data.funds.length >= 3 || data.indirectValue > 150000
+            );
 
             if (mfs.length === 0 && uniqueStockNames.length === 0) return null;
 
@@ -8883,10 +8944,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 16,
+                    alignItems: "flex-start",
                     flexWrap: "wrap",
                     gap: 12,
+                    marginBottom: 20,
                   }}
                 >
                   <div>
@@ -8894,105 +8955,159 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       Portfolio Overlap Analyzer
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>
-                      Detect overlap between your direct stocks and index fund holdings
+                      Detect dual exposure between your direct stock holdings and mutual funds
                     </div>
                   </div>
                   {overlappingStockCount > 0 && (
-                    <Badge variant={concentrationRisks.length > 0 ? "danger" : "info"}>
-                      {overlappingStockCount} stock{overlappingStockCount !== 1 ? "s" : ""} overlap
-                      in {fundsWithOverlap} fund{fundsWithOverlap !== 1 ? "s" : ""}
+                    <Badge variant={concentrationRisks.length > 0 ? "danger" : "warning"}>
+                      {overlappingStockCount} Overlapping Stock
+                      {overlappingStockCount !== 1 ? "" : "s"} Detected
                     </Badge>
                   )}
                 </div>
 
-                {/* MF Listing with Index Tag */}
-                {mfs.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Your Mutual Funds
-                    </div>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {mfs.map((mf: any, i: number) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "10px 14px",
-                            borderRadius: 10,
-                            background: "rgba(128,128,128,0.04)",
-                            border: `1px solid ${THEME.line}`,
-                          }}
-                        >
-                          <div style={{ minWidth: 0, flex: 1 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                    gap: 24,
+                  }}
+                >
+                  {/* Left Column: Mutual Funds List */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 16,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          marginBottom: 10,
+                        }}
+                      >
+                        Mutual Funds & Index Matching
+                      </div>
+                      {mfs.length > 0 ? (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {mfs.map((mf: any, i: number) => (
                             <div
+                              key={i}
                               style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: THEME.ink,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                background: "rgba(128,128,128,0.03)",
+                                border: `1px solid ${THEME.line}`,
                               }}
                             >
-                              {mf.name}
-                            </div>
-                            {mf.matchedIndex && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  marginTop: 4,
-                                }}
-                              >
-                                <span
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div
                                   style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: "1px 8px",
-                                    borderRadius: 20,
-                                    background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-                                    color: THEME.accent,
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: THEME.ink,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
-                                  {mf.matchedIndex}
-                                </span>
-                                <span style={{ fontSize: 10, color: THEME.muted }}>
-                                  {mf.holdings.length} top holdings tracked
-                                </span>
+                                  {mf.name}
+                                </div>
+                                {mf.matchedIndex ? (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 6,
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: "1px 8px",
+                                        borderRadius: 20,
+                                        background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                                        color: THEME.accent,
+                                      }}
+                                    >
+                                      {mf.matchedIndex}
+                                    </span>
+                                    <span style={{ fontSize: 10, color: THEME.muted }}>
+                                      {mf.holdings.length} holdings tracked
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                                    Active / Sector Fund (No index mapping)
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: THEME.ink,
+                                  flexShrink: 0,
+                                  marginLeft: 12,
+                                }}
+                              >
+                                <Prv>{fmtINRFull(mf.value)}</Prv>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
+                          No mutual funds detected in Demat or Fixed Deposits.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Overall Summary Stats */}
+                    {overlappingStockCount > 0 && (
+                      <div
+                        style={{
+                          background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                          borderRadius: 12,
+                          padding: "14px 16px",
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>
+                            Indirect Overlap Exposure
                           </div>
-                          <div
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 800,
-                              color: THEME.ink,
-                              flexShrink: 0,
-                              marginLeft: 12,
-                            }}
-                          >
-                            <Prv>{fmtINRFull(mf.value)}</Prv>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent }}>
+                            {fmtINRFull(totalOverlapValue)}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 2 }}>
+                            Affected Funds
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                            {fundsWithOverlap} / {mfs.filter((f) => f.matchedIndex).length} Indices
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {/* Overlap Results */}
-                {overlapEntries.length > 0 ? (
+                  {/* Right Column: Overlap Detections */}
                   <div>
                     <div
                       style={{
@@ -9004,117 +9119,187 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         marginBottom: 10,
                       }}
                     >
-                      Overlap Detected
+                      Detections & Concentration Risks
                     </div>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {overlapEntries.map(([stock, funds]) => {
-                        const isConcentration = funds.length >= 3;
-                        return (
+
+                    {overlapEntries.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 8,
+                            maxHeight: 300,
+                            overflowY: "auto",
+                            paddingRight: 4,
+                          }}
+                        >
+                          {overlapEntries.map(([stock, data]) => {
+                            const isConcentration =
+                              data.funds.length >= 3 || data.indirectValue > 150000;
+                            const totalExposure = data.directValue + data.indirectValue;
+                            return (
+                              <div
+                                key={stock}
+                                style={{
+                                  padding: "12px 14px",
+                                  borderRadius: 10,
+                                  background: isConcentration
+                                    ? `color-mix(in srgb, ${THEME.rust} 5%, transparent)`
+                                    : "rgba(128,128,128,0.02)",
+                                  border: `1px solid ${isConcentration ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : THEME.line}`,
+                                  borderLeft: isConcentration
+                                    ? `3px solid ${THEME.rust}`
+                                    : undefined,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                                    {stock}
+                                  </div>
+                                  {isConcentration && (
+                                    <span
+                                      style={{
+                                        fontSize: 9,
+                                        fontWeight: 800,
+                                        padding: "2px 8px",
+                                        borderRadius: 20,
+                                        background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                                        color: THEME.rust,
+                                        textTransform: "uppercase",
+                                      }}
+                                    >
+                                      High Concentration
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr 1fr",
+                                    gap: 10,
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <div>
+                                    <div
+                                      style={{ fontSize: 9, color: THEME.muted, marginBottom: 1 }}
+                                    >
+                                      Direct Holding
+                                    </div>
+                                    <div
+                                      style={{ fontSize: 11, fontWeight: 700, color: THEME.ink }}
+                                    >
+                                      {fmtINRFull(data.directValue)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div
+                                      style={{ fontSize: 9, color: THEME.muted, marginBottom: 1 }}
+                                    >
+                                      Indirect (via Funds)
+                                    </div>
+                                    <div
+                                      style={{ fontSize: 11, fontWeight: 700, color: THEME.accent }}
+                                    >
+                                      {fmtINRFull(data.indirectValue)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div
+                                      style={{ fontSize: 9, color: THEME.muted, marginBottom: 1 }}
+                                    >
+                                      Total Exposure
+                                    </div>
+                                    <div
+                                      style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}
+                                    >
+                                      {fmtINRFull(totalExposure)}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: 10, color: THEME.muted }}>
+                                  Appears in:{" "}
+                                  {data.funds.map((f: any, fi: number) => (
+                                    <span key={fi}>
+                                      {fi > 0 ? " | " : ""}
+                                      <span style={{ fontWeight: 600, color: THEME.ink }}>
+                                        {f.name.length > 25 ? f.name.slice(0, 25) + "..." : f.name}
+                                      </span>{" "}
+                                      (Est: {fmtINRFull(f.estimatedValue)})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {concentrationRisks.length > 0 && (
                           <div
-                            key={stock}
                             style={{
                               padding: "10px 14px",
                               borderRadius: 10,
-                              background: isConcentration
-                                ? `color-mix(in srgb, ${THEME.rust} 5%, transparent)`
-                                : "rgba(128,128,128,0.04)",
-                              border: `1px solid ${isConcentration ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` : THEME.line}`,
-                              borderLeft: isConcentration ? `3px solid ${THEME.rust}` : undefined,
+                              background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                              fontSize: 12,
+                              color: THEME.rust,
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
                             }}
                           >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 4,
-                              }}
-                            >
-                              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                                {stock}
-                              </div>
-                              {isConcentration && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: "1px 8px",
-                                    borderRadius: 20,
-                                    background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                                    color: THEME.rust,
-                                  }}
-                                >
-                                  Concentration Risk
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 11, color: THEME.muted }}>
-                              Appears in {funds.length} fund{funds.length !== 1 ? "s" : ""}:{" "}
-                              {funds.map((f: string, fi: number) => (
-                                <span key={fi}>
-                                  {fi > 0 ? ", " : ""}
-                                  <span style={{ fontWeight: 600, color: THEME.ink }}>
-                                    {f.length > 30 ? f.slice(0, 30) + "..." : f}
-                                  </span>
-                                </span>
-                              ))}
-                            </div>
+                            <AlertTriangle size={14} />
+                            <span>
+                              {concentrationRisks.length} stock
+                              {concentrationRisks.length !== 1 ? "s" : ""} have high overlap.
+                              Consider reducing direct purchases to avoid compounding risk.
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                    {concentrationRisks.length > 0 && (
+                        )}
+                      </div>
+                    ) : uniqueStockNames.length > 0 &&
+                      mfs.some((m: any) => m.holdings.length > 0) ? (
                       <div
                         style={{
-                          marginTop: 14,
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
-                          fontSize: 12,
-                          color: THEME.rust,
+                          textAlign: "center",
+                          padding: "30px 20px",
+                          color: THEME.sage,
+                          fontSize: 13,
                           fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
+                          background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                          borderRadius: 12,
+                          border: `1px dashed color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
                         }}
                       >
-                        <AlertTriangle size={14} />
-                        {concentrationRisks.length} stock
-                        {concentrationRisks.length !== 1 ? "s" : ""} appear
-                        {concentrationRisks.length === 1 ? "s" : ""} in 3+ funds — consider reducing
-                        direct holding or switching to non-overlapping funds
+                        ✓ Excellent! Your direct stocks have zero overlap with tracked index fund
+                        holdings.
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "30px 20px",
+                          color: THEME.muted,
+                          fontSize: 12,
+                          background: "rgba(128,128,128,0.02)",
+                          borderRadius: 12,
+                          border: `1px dashed ${THEME.line}`,
+                        }}
+                      >
+                        {uniqueStockNames.length === 0
+                          ? "Add direct stocks in Demat & Stocks tab to check overlap with index funds."
+                          : "No tracked index funds detected. Overlap analysis requires Nifty 50, Nifty Next 50, or Sensex index funds."}
                       </div>
                     )}
                   </div>
-                ) : uniqueStockNames.length > 0 && mfs.some((m: any) => m.holdings.length > 0) ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "20px 0",
-                      color: THEME.sage,
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
-                    No overlap detected — your direct stocks don't appear in any tracked index fund
-                    holdings
-                  </div>
-                ) : uniqueStockNames.length === 0 ||
-                  mfs.every((m: any) => m.holdings.length === 0) ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "20px 0",
-                      color: THEME.muted,
-                      fontSize: 13,
-                    }}
-                  >
-                    {uniqueStockNames.length === 0
-                      ? "Add direct stocks to detect overlap with your index fund holdings"
-                      : "No index funds detected — overlap analysis works with Nifty 50, Nifty Next 50, and Sensex funds"}
-                  </div>
-                ) : null}
+                </div>
               </Card>
             );
           })()}
