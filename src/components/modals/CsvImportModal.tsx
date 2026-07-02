@@ -108,12 +108,26 @@ const categorizeByNarration = (narration: string): string => {
 /* ── Parse date from various bank formats ────────────────────────── */
 const parseSmartDate = (dateStr: string): string | null => {
   if (!dateStr) return null;
-  const d = dateStr.trim().replace(/\//g, "-");
+  let d = dateStr.trim();
 
-  // YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  // Extract date part if it has a time suffix (e.g., "02/07/2026 23:59:07" or "2026-07-02T12:00:00Z")
+  const spaceIdx = d.indexOf(" ");
+  if (spaceIdx > 0) {
+    d = d.slice(0, spaceIdx);
+  } else {
+    const tIdx = d.indexOf("T");
+    if (tIdx > 0 && d.length > 10) {
+      d = d.slice(0, tIdx);
+    }
+  }
 
-  // DD-MM-YYYY or DD/MM/YYYY
+  d = d.replace(/\//g, "-");
+
+  // YYYY-MM-DD or YYYY-M-D
+  const ymd = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (ymd) return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+
+  // DD-MM-YYYY or DD-M-YYYY or D-M-YYYY
   const dmy = d.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
 
@@ -326,7 +340,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
     setDetectedBank("");
 
     try {
-      if (isBinarySpreadsheet(text)) {
+      // Strip UTF-8 BOM if present
+      const cleanText = text.replace(/^\uFEFF/, "");
+
+      if (isBinarySpreadsheet(cleanText)) {
         setSmartError(
           "This is a real Excel (.xlsx/.xls) file, which can't be read as text. In Excel/Sheets, use \"Save As\" or \"Download\" → CSV, or use the CSV option on your bank's statement page, then upload that file instead."
         );
@@ -335,7 +352,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
 
       // Many bank "Excel" downloads are actually an HTML table with a .xls
       // extension — convert it to CSV-style lines before parsing.
-      const workingText = isHtmlTable(text) ? htmlTableToCsvLines(text).join("\n") : text;
+      const workingText = isHtmlTable(cleanText) ? htmlTableToCsvLines(cleanText).join("\n") : cleanText;
 
       const rawLines = workingText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       if (rawLines.length < 2) {
@@ -349,14 +366,26 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
       const scanLimit = Math.min(rawLines.length - 1, 20);
       let headerIdx = -1;
       let delimiter = ",";
-      let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1;
+      let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1, amountIdx = -1, typeIdx = -1;
       let matchedBank = "";
 
       for (let li = 0; li <= scanLimit; li++) {
-        const candidateDelimiter = rawLines[li].includes("\t") ? "\t" : ",";
-        const headers = splitCSVRow(rawLines[li], candidateDelimiter).map((h) => h.toLowerCase().trim());
+        const line = rawLines[li];
+        // Count frequencies of potential delimiters
+        const commaCount = (line.match(/,/g) || []).length;
+        const semiCount = (line.match(/;/g) || []).length;
+        const tabCount = (line.match(/\t/g) || []).length;
 
-        let dI = -1, nI = -1, drI = -1, crI = -1, bI = -1, bank = "";
+        let candidateDelimiter = ",";
+        if (tabCount > commaCount && tabCount > semiCount) {
+          candidateDelimiter = "\t";
+        } else if (semiCount > commaCount && semiCount > tabCount) {
+          candidateDelimiter = ";";
+        }
+
+        const headers = splitCSVRow(line, candidateDelimiter).map((h) => h.toLowerCase().trim());
+
+        let dI = -1, nI = -1, drI = -1, crI = -1, bI = -1, amtI = -1, tI = -1, bank = "";
 
         for (const profile of BANK_PROFILES) {
           const pdI = headers.findIndex((h) => profile.date.includes(h));
@@ -379,23 +408,30 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
           const gnI = headers.findIndex((h) => GENERIC_KEYWORDS.desc.some((k) => h.includes(k)));
           const gdrI = headers.findIndex((h) => GENERIC_KEYWORDS.debit.some((k) => h.includes(k)));
           const gcrI = headers.findIndex((h) => GENERIC_KEYWORDS.credit.some((k) => h.includes(k)));
-          if (gdI >= 0 && gnI >= 0 && (gdrI >= 0 || gcrI >= 0)) {
+          const gamtI = headers.findIndex((h) => ["amount", "amt", "transaction amount", "txn amount", "net amount"].some((k) => h.includes(k)));
+          const gtypeI = headers.findIndex((h) => ["type", "cr/dr", "dr/cr", "cr_dr", "transaction type", "txntype", "db/cr"].some((k) => h.includes(k)));
+
+          if (gdI >= 0 && gnI >= 0 && (gdrI >= 0 || gcrI >= 0 || gamtI >= 0)) {
             dI = gdI;
             nI = gnI;
             drI = gdrI;
             crI = gcrI;
+            amtI = gamtI;
+            tI = gtypeI;
             bI = headers.findIndex((h) => GENERIC_KEYWORDS.balance.some((k) => h.includes(k)));
             bank = "Auto-detected";
           }
         }
 
-        if (dI >= 0 && nI >= 0 && (drI >= 0 || crI >= 0)) {
+        if (dI >= 0 && nI >= 0 && (drI >= 0 || crI >= 0 || amtI >= 0)) {
           headerIdx = li;
           delimiter = candidateDelimiter;
           dateIdx = dI;
           descIdx = nI;
           debitIdx = drI;
           creditIdx = crI;
+          amountIdx = amtI;
+          typeIdx = tI;
           balIdx = bI;
           matchedBank = bank;
           break;
@@ -411,6 +447,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
 
       const dataLines = rawLines.slice(headerIdx + 1);
       const rows: any[] = [];
+
+      const cleanNumeric = (valStr: string): number => {
+        if (!valStr) return 0;
+        const cleaned = valStr.replace(/[₹$€£\s,]/g, "").trim();
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+      };
+
       for (let i = 0; i < dataLines.length; i++) {
         const cols = splitCSVRow(dataLines[i], delimiter);
         const rawDate = cols[dateIdx] || "";
@@ -418,13 +462,28 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
         if (!isoDate) continue;
 
         const narration = cols[descIdx] || "";
-        const debitVal = debitIdx >= 0 ? parseFloat((cols[debitIdx] || "0").replace(/,/g, "")) : 0;
-        const creditVal = creditIdx >= 0 ? parseFloat((cols[creditIdx] || "0").replace(/,/g, "")) : 0;
+        let amount = 0;
+        let isCredit = false;
 
-        if ((isNaN(debitVal) || debitVal === 0) && (isNaN(creditVal) || creditVal === 0)) continue;
+        if (amountIdx >= 0) {
+          const rawAmt = cleanNumeric(cols[amountIdx] || "0");
+          if (rawAmt === 0) continue;
+          amount = Math.abs(rawAmt);
+          if (typeIdx >= 0) {
+            const rawType = (cols[typeIdx] || "").toLowerCase().trim();
+            isCredit = rawType.includes("credit") || rawType.includes("cr") || rawType === "c" || rawType.includes("dep") || rawType.includes("in");
+          } else {
+            isCredit = rawAmt > 0;
+          }
+        } else {
+          const debitVal = debitIdx >= 0 ? cleanNumeric(cols[debitIdx] || "0") : 0;
+          const creditVal = creditIdx >= 0 ? cleanNumeric(cols[creditIdx] || "0") : 0;
 
-        const isCredit = creditVal > 0 && (debitVal === 0 || isNaN(debitVal));
-        const amount = isCredit ? creditVal : debitVal;
+          if (debitVal === 0 && creditVal === 0) continue;
+
+          isCredit = creditVal > 0 && debitVal === 0;
+          amount = isCredit ? creditVal : debitVal;
+        }
 
         const category = categorizeByNarration(narration);
 

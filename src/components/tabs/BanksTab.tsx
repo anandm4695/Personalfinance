@@ -415,7 +415,7 @@ function getCategoryStyle(cat: string) {
   return { color: THEME.muted as string, bg: "rgba(128,128,128,0.08)" };
 }
 
-export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _masterData }: any) {
+export function BanksTab({ state, addItem, addTransactions, removeItem, updateItem, masterData: _masterData }: any) {
   const [showBank, setShowBank] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
   const [filterAcc, setFilterAcc] = useState("all");
@@ -1944,7 +1944,11 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
           existingTransactions={state.transactions || []}
           onClose={() => setShowImport(false)}
           onImport={(rows: any) => {
-            rows.forEach((v: any) => addItem("transactions", v));
+            if (addTransactions) {
+              addTransactions(rows);
+            } else {
+              rows.forEach((v: any) => addItem("transactions", v));
+            }
             setShowImport(false);
           }}
         />

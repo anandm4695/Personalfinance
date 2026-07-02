@@ -1925,6 +1925,154 @@ function FinanceDashboard() {
     });
   };
 
+  const addTransactions = async (txns: any[]) => {
+    if (!txns || txns.length === 0) return;
+    const userId = session?.user?.id;
+    const isUuid = (str: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    // Assign owner and UUID for each transaction
+    const txnsWithIds = txns.map((item) => {
+      const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
+      const newId = item.id && isUuid(item.id) ? item.id : uid();
+      return { ...item, id: newId, owner: ownerVal };
+    });
+
+    setState((s) => {
+      // Calculate deltas per account
+      const deltas: Record<string, number> = {};
+      txnsWithIds.forEach((item) => {
+        if (item.accountId) {
+          const delta =
+            item.type === "credit"
+              ? Number(item.amount || 0)
+              : -Number(item.amount || 0);
+          deltas[item.accountId] = (deltas[item.accountId] || 0) + delta;
+        }
+      });
+
+      const next: any = {
+        ...s,
+        transactions: [...((s.transactions as any[]) || []), ...txnsWithIds],
+      };
+
+      // Apply deltas to bank accounts
+      next.bankAccounts = (s.bankAccounts || []).map((a: any) => {
+        if (deltas[a.id]) {
+          return { ...a, balance: Number(a.balance || 0) + deltas[a.id] };
+        }
+        return a;
+      });
+
+      // Update masterData
+      const latestMaster = s.masterData || DEFAULT_MASTER_DATA;
+      const reconIds: string[] = latestMaster?.reconciledTxnIds || [];
+      const appliedIds: string[] = latestMaster?.balanceAppliedTxnIds || [];
+      const newIds = txnsWithIds.map((item) => item.id);
+
+      const newMaster = {
+        ...latestMaster,
+        reconciledTxnIds: [...reconIds, ...newIds],
+        balanceAppliedTxnIds: [...appliedIds, ...newIds],
+      };
+
+      next.masterData = newMaster;
+      masterDataRef.current = newMaster;
+      return next;
+    });
+
+    // Write to Supabase if online
+    if (userId && userId !== "offline-user") {
+      const cleanItems = txnsWithIds.map((item) => {
+        const finalItem = camelToSnake(item);
+        const cleanItem = { ...finalItem, user_id: userId };
+        for (const k in cleanItem) {
+          if (cleanItem[k] === "") cleanItem[k] = null;
+          else if (
+            NUMERIC_COLS.has(k) &&
+            typeof cleanItem[k] === "string" &&
+            cleanItem[k] !== null
+          ) {
+            const parsed = parseFloat(cleanItem[k]);
+            cleanItem[k] = isNaN(parsed) ? null : parsed;
+          }
+        }
+        return cleanItem;
+      });
+
+      // Batch upsert to transactions table
+      const { error: upsertErr } = await supabase
+        .from("transactions")
+        .upsert(cleanItems, { onConflict: "id" });
+
+      if (upsertErr) {
+        console.error("[Batch Transactions Upsert]", upsertErr.message);
+        showToast(`Sync error: ${upsertErr.message}`, "error");
+        // Revert transactions from state on error
+        const addedIds = txnsWithIds.map(x => x.id);
+        setState((s) => ({
+          ...s,
+          transactions: s.transactions.filter((x: any) => !addedIds.includes(x.id))
+        }));
+        return;
+      }
+
+      // Group by account ID to update balances in DB sequentially
+      const deltas: Record<string, number> = {};
+      txnsWithIds.forEach((item) => {
+        if (item.accountId) {
+          const delta =
+            item.type === "credit"
+              ? Number(item.amount || 0)
+              : -Number(item.amount || 0);
+          deltas[item.accountId] = (deltas[item.accountId] || 0) + delta;
+        }
+      });
+
+      for (const accountId of Object.keys(deltas)) {
+        const delta = deltas[accountId];
+        // Re-read fresh balance from DB to avoid race conditions
+        const { data: freshAccount, error: fetchErr } = await supabase
+          .from("bank_accounts")
+          .select("balance")
+          .eq("id", accountId)
+          .single();
+
+        if (fetchErr) {
+          console.error("[Batch Balance fetch]", fetchErr.message);
+          continue;
+        }
+
+        if (freshAccount) {
+          const { error: updateErr } = await supabase
+            .from("bank_accounts")
+            .update({ balance: Number(freshAccount.balance || 0) + delta })
+            .eq("id", accountId);
+
+          if (updateErr) {
+            console.error("[Batch Balance update]", updateErr.message);
+          }
+        }
+      }
+
+      // Sync master data once at the end
+      const latestMaster = masterDataRef.current || state.masterData || DEFAULT_MASTER_DATA;
+      const { error: masterErr } = await supabase
+        .from("user_settings")
+        .upsert({ user_id: userId, master_data: latestMaster });
+
+      if (masterErr) {
+        console.error("[Batch masterData sync]", masterErr.message);
+      }
+    }
+
+    logActivity(
+      "BATCH_ADD_TRANSACTIONS",
+      `Imported ${txns.length} transactions via CSV`,
+      { count: txns.length }
+    );
+  };
+
   const removeItem = async (key, id) => {
     const userId = session?.user?.id;
     const deletedItem = (state[key] || []).find((x: any) => x.id === id);
@@ -3952,6 +4100,7 @@ function FinanceDashboard() {
                 <BanksTab
                   state={filteredState}
                   addItem={addItem}
+                  addTransactions={addTransactions}
                   removeItem={removeItem}
                   updateItem={updateItem}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
