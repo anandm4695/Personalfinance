@@ -366,7 +366,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
       const scanLimit = Math.min(rawLines.length - 1, 20);
       let headerIdx = -1;
       let delimiter = ",";
-      let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1, amountIdx = -1, typeIdx = -1;
+      let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1, amountIdx = -1, typeIdx = -1, categoryIdx = -1, noteIdx = -1;
       let matchedBank = "";
 
       for (let li = 0; li <= scanLimit; li++) {
@@ -385,7 +385,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
 
         const headers = splitCSVRow(line, candidateDelimiter).map((h) => h.toLowerCase().trim());
 
-        let dI = -1, nI = -1, drI = -1, crI = -1, bI = -1, amtI = -1, tI = -1, bank = "";
+        let dI = -1, nI = -1, drI = -1, crI = -1, bI = -1, amtI = -1, tI = -1, catI = -1, ntI = -1, bank = "";
 
         for (const profile of BANK_PROFILES) {
           const pdI = headers.findIndex((h) => profile.date.includes(h));
@@ -399,6 +399,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
             crI = pcrI;
             bI = headers.findIndex((h) => profile.balance.includes(h));
             bank = profile.bank;
+            catI = headers.findIndex((h) => ["category", "cat", "transaction category"].some(k => h === k || h.includes(k)));
+            ntI = headers.findIndex((h) => ["note", "notes", "remark", "remarks", "comment"].some(k => h === k || h.includes(k)));
             break;
           }
         }
@@ -410,6 +412,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
           const gcrI = headers.findIndex((h) => GENERIC_KEYWORDS.credit.some((k) => h.includes(k)));
           const gamtI = headers.findIndex((h) => ["amount", "amt", "transaction amount", "txn amount", "net amount"].some((k) => h.includes(k)));
           const gtypeI = headers.findIndex((h) => ["type", "cr/dr", "dr/cr", "cr_dr", "transaction type", "txntype", "db/cr"].some((k) => h.includes(k)));
+          const gcatI = headers.findIndex((h) => ["category", "cat", "transaction category"].some((k) => h === k || h.includes(k)));
+          const gnoteI = headers.findIndex((h) => ["note", "notes", "remark", "remarks", "comment"].some((k) => h === k || h.includes(k)));
 
           if (gdI >= 0 && gnI >= 0 && (gdrI >= 0 || gcrI >= 0 || gamtI >= 0)) {
             dI = gdI;
@@ -418,6 +422,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
             crI = gcrI;
             amtI = gamtI;
             tI = gtypeI;
+            catI = gcatI;
+            ntI = gnoteI;
             bI = headers.findIndex((h) => GENERIC_KEYWORDS.balance.some((k) => h.includes(k)));
             bank = "Auto-detected";
           }
@@ -432,6 +438,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
           creditIdx = crI;
           amountIdx = amtI;
           typeIdx = tI;
+          categoryIdx = catI;
+          noteIdx = ntI;
           balIdx = bI;
           matchedBank = bank;
           break;
@@ -485,14 +493,23 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
           amount = isCredit ? creditVal : debitVal;
         }
 
-        const category = categorizeByNarration(narration);
+        let category = "";
+        if (categoryIdx >= 0 && cols[categoryIdx]) {
+          const rawCat = cols[categoryIdx].trim();
+          const matchedCat = CATEGORIES.find(c => c.toLowerCase() === rawCat.toLowerCase());
+          category = matchedCat || "Other";
+        } else {
+          category = categorizeByNarration(narration);
+        }
+
+        const note = noteIdx >= 0 ? cols[noteIdx] || "" : "";
 
         const row = {
           date: isoDate,
           amount: String(Math.abs(amount)),
           type: isCredit ? "credit" : "debit",
           category,
-          note: "",
+          note,
           narration,
           referenceNumber: "",
           accountId: smartAccountId || firstAccountId,
@@ -529,6 +546,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
   const updateSmartCategory = (idx: number, cat: string) => {
     setSmartPreview((prev) =>
       prev.map((r, i) => (i === idx ? { ...r, category: cat } : r))
+    );
+  };
+
+  const updateSmartNote = (idx: number, note: string) => {
+    setSmartPreview((prev) =>
+      prev.map((r, i) => (i === idx ? { ...r, note } : r))
     );
   };
 
@@ -938,12 +961,13 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
                   borderRadius: 10,
                 }}
               >
-                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 11 }}>
+                <table style={{ width: "100%", minWidth: 700, borderCollapse: "collapse", fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
                       <th style={{ padding: "8px 6px", borderBottom: `1px solid ${THEME.line}`, width: 40, minWidth: 40 }}>✓</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, width: 90, minWidth: 90, whiteSpace: "nowrap" }}>Date</th>
-                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, minWidth: 150 }}>Narration</th>
+                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, minWidth: 120 }}>Narration</th>
+                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, minWidth: 120 }}>Note</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Category</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Amount</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "center" }}>Status</th>
@@ -961,8 +985,26 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
                           />
                         </td>
                         <td style={{ padding: "8px 10px", width: 90, minWidth: 90, whiteSpace: "nowrap", color: THEME.muted }}>{r.date}</td>
-                        <td style={{ padding: "8px 10px", minWidth: 150, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
+                        <td style={{ padding: "8px 10px", minWidth: 120, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
                           {r.narration || "—"}
+                        </td>
+                        <td style={{ padding: "8px 10px", minWidth: 120 }}>
+                          <input
+                            type="text"
+                            style={{
+                              padding: "2px 6px",
+                              fontSize: 11,
+                              borderRadius: 4,
+                              border: `1px solid ${THEME.line}`,
+                              background: "var(--surface-0)",
+                              color: THEME.ink,
+                              fontFamily: "inherit",
+                              width: "100%",
+                            }}
+                            value={r.note || ""}
+                            onChange={(e) => updateSmartNote(i, e.target.value)}
+                            placeholder="Add note..."
+                          />
                         </td>
                         <td style={{ padding: "8px 10px" }}>
                           <select
