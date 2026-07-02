@@ -298,8 +298,11 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
       {slips.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="No salary slips tracked"
+          gradient="linear-gradient(135deg, #0891b2 0%, #22d3ee 100%)"
+          dotColor="#0891b2"
+          title="No Salary Slips Tracked"
           description="Add monthly salary slips to track take-home pay, TDS deducted, PF contributions, and spot trends."
+          pills={["AI Auto-Parse", "Gross vs Net Trend", "TDS & PF Breakdown", "Monthly Comparison"]}
           buttonLabel="Add First Slip"
           onAdd={() => setModal({})}
         />

@@ -297,8 +297,11 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem }: a
       {policies.length === 0 ? (
         <EmptyState
           icon={Heart}
-          title="No health insurance policies yet"
+          gradient="linear-gradient(135deg, #e11d48 0%, #fb7185 100%)"
+          dotColor="#e11d48"
+          title="No Health Insurance Policies Yet"
           description="Add your health insurance policies to track coverage, premiums, renewals, and claims."
+          pills={["Family Floater", "Corporate Cover", "Renewal Alerts", "Premium Tracking"]}
           buttonLabel="Add Policy"
           onAdd={() => setModal({})}
         />

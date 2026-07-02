@@ -178,8 +178,11 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
       {scores.length === 0 ? (
         <EmptyState
           icon={Award}
-          title="No credit score entries yet"
+          gradient="linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)"
+          dotColor="#7c3aed"
+          title="No Credit Score Entries Yet"
           description="Log your credit score from CIBIL, Experian, or other bureaus to track it over time."
+          pills={["CIBIL / Experian / CRIF", "Score Trend Chart", "Score Bands", "Improvement Tips"]}
           buttonLabel="Log Score"
           onAdd={() => setModal({})}
         />

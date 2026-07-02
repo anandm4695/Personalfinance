@@ -276,8 +276,11 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
       {bills.length === 0 ? (
         <EmptyState
           icon={Zap}
-          title="No bills tracked yet"
+          gradient="linear-gradient(135deg, #ea580c 0%, #fb923c 100%)"
+          dotColor="#ea580c"
+          title="No Bills Tracked Yet"
           description="Add your recurring utility bills to track due dates, payment history, and spot trends."
+          pills={["Electricity / Gas / Water", "Due Date Alerts", "Auto-pay Tracking", "Payment History"]}
           buttonLabel="Add Bill"
           onAdd={() => setModal({})}
         />

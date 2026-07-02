@@ -313,8 +313,11 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
         <>
           <EmptyState
             icon={Star}
-            title="No government schemes tracked"
+            gradient="linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)"
+            dotColor="#1d4ed8"
+            title="No Government Schemes Tracked"
             description="Add APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC and other govt savings schemes."
+            pills={["Guaranteed Returns", "Tax Benefits (80C)", "Maturity Tracking", "Nominee Details"]}
             buttonLabel="Add Scheme"
             onAdd={() => setModal({})}
           />
