@@ -6215,606 +6215,778 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: TRENDS ────────────────── */}
       {sub === "trends" && (
         <div key="trends" className="tab-content-enter">
-          {/* Net Worth Growth */}
-          <Card style={{ marginBottom: 28, padding: 24 }}>
+          <div className="bento-grid">
+            {/* Left Column (8 columns): Graphical Charts */}
             <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
+              className="bento-col-8"
+              style={{ display: "flex", flexDirection: "column", gap: 24 }}
             >
-              <div className="section-label" style={{ marginBottom: 0 }}>
-                Net Worth Growth
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 3,
-                  background: THEME.line,
-                  padding: 3,
-                  borderRadius: 8,
-                }}
-              >
-                {(["3M", "6M", "12M", "All"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setTrendPeriod(p)}
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: trendPeriod === p ? THEME.accent : "transparent",
-                      color: trendPeriod === p ? "#fff" : THEME.muted,
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {filteredNetWorthTrend.length === 0 ||
-            filteredNetWorthTrend.every((t) => t.value === 0) ? (
-              <div
-                style={{
-                  height: 280,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.muted,
-                  fontSize: 13,
-                  background: "rgba(128,128,128,0.03)",
-                  borderRadius: 12,
-                }}
-              >
-                Not enough history to show net worth trend
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={filteredNetWorthTrend}>
-                  <defs>
-                    <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor={THEME.accent}
-                        stopOpacity={isDark ? 0.55 : 0.4}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={THEME.accent}
-                        stopOpacity={isDark ? 0.08 : 0}
-                      />
-                    </linearGradient>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow
-                        dx="0"
-                        dy="4"
-                        stdDeviation="6"
-                        floodColor={THEME.accent}
-                        floodOpacity={isDark ? "0.65" : "0.5"}
-                      />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                  <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-                  <YAxis tick={{ fill: THEME.muted, fontSize: 11 }} tickFormatter={fmtINRFull} />
-                  <Tooltip
-                    formatter={(v: any) => fmtINRFull(v)}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      border: "1px solid var(--t-line)",
-                      borderRadius: 12,
-                      boxShadow: "var(--shadow-xl)",
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.muted }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke={THEME.accent}
-                    strokeWidth={3}
-                    fill="url(#gNw)"
-                    style={{ filter: "url(#glow)" }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-
-          {/* Historical P&L Bar Chart */}
-          <Card style={{ marginBottom: 28, padding: 24 }}>
-            <div className="section-label">Monthly P&L (Last 6 Months)</div>
-            {trendData.filter((t) => t.income > 0 || t.expense > 0).length === 0 ? (
-              <div
-                style={{
-                  height: 250,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.muted,
-                  fontSize: 13,
-                  background: "rgba(128,128,128,0.03)",
-                  borderRadius: 12,
-                }}
-              >
-                Add transactions to see your P&L trend
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={trendData.slice(-6)}>
-                  <defs>
-                    <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.4} />
-                    </linearGradient>
-                    <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
-                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={isDark ? 0.7 : 0.4} />
-                    </linearGradient>
-                    <filter id="glow-sage" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow
-                        dx="0"
-                        dy="2"
-                        stdDeviation="4"
-                        floodColor={THEME.sage}
-                        floodOpacity={isDark ? "0.55" : "0.4"}
-                      />
-                    </filter>
-                    <filter id="glow-rust" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow
-                        dx="0"
-                        dy="2"
-                        stdDeviation="4"
-                        floodColor={THEME.rust}
-                        floodOpacity={isDark ? "0.55" : "0.4"}
-                      />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={fmtINRFull}
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => fmtINRFull(v)}
-                    cursor={{ fill: THEME.line, opacity: 0.4 }}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      border: "1px solid var(--t-line)",
-                      borderRadius: 12,
-                      boxShadow: "var(--shadow-xl)",
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.muted }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
-                  <Bar
-                    dataKey="income"
-                    name="Income"
-                    fill="url(#gIncome)"
-                    radius={[4, 4, 0, 0]}
-                    style={{ filter: "url(#glow-sage)" }}
-                  />
-                  <Bar
-                    dataKey="expense"
-                    name="Expense"
-                    fill="url(#gExpense)"
-                    radius={[4, 4, 0, 0]}
-                    style={{ filter: "url(#glow-rust)" }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 28 }}
-          >
-            {/* Monthly Net Savings — shows net (income minus expense) per month */}
-            <Card style={{ padding: 24 }}>
-              <div className="section-label">Monthly Net Savings</div>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={trendData.slice(-6)}>
-                  <defs>
-                    <linearGradient id="gNetPos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.3} />
-                    </linearGradient>
-                    <linearGradient id="gNetNeg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
-                      <stop offset="100%" stopColor={THEME.rust} stopOpacity={isDark ? 0.7 : 0.3} />
-                    </linearGradient>
-                    <filter id="glow-net" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow
-                        dx="0"
-                        dy="2"
-                        stdDeviation="4"
-                        floodColor={THEME.accent}
-                        floodOpacity={isDark ? "0.55" : "0.4"}
-                      />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={fmtINRFull}
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => [fmtINRFull(v), "Net Savings"]}
-                    cursor={{ fill: THEME.line, opacity: 0.4 }}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      border: "1px solid var(--t-line)",
-                      borderRadius: 12,
-                      boxShadow: "var(--shadow-xl)",
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.muted }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Bar
-                    dataKey="net"
-                    name="Net Savings"
-                    radius={[4, 4, 0, 0]}
-                    style={{ filter: "url(#glow-net)" }}
-                  >
-                    {trendData.slice(-6).map((entry: any, index: number) => (
-                      <Cell
-                        key={index}
-                        fill={entry.net >= 0 ? THEME.sage : THEME.rust}
-                        fillOpacity={isDark ? 1 : 0.85}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-
-            {/* Portfolio Return */}
-            <Card style={{ padding: 24 }}>
-              <div className="section-label">Portfolio Return</div>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={[
-                    {
-                      name: "Mutual Funds",
-                      current: metrics.mfValue,
-                      invested: metrics.mfInvested,
-                    },
-                    {
-                      name: "Stocks",
-                      current: metrics.stockValue,
-                      invested: metrics.stockInvested,
-                    },
-                  ]}
+              {/* Net Worth Growth */}
+              <Card style={{ padding: 24 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
                 >
-                  <defs>
-                    <linearGradient id="gCurrent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
-                      <stop offset="100%" stopColor={THEME.sage} stopOpacity={isDark ? 0.7 : 0.4} />
-                    </linearGradient>
-                    <linearGradient id="gInvested" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.muted} stopOpacity={isDark ? 0.7 : 0.5} />
-                      <stop
-                        offset="100%"
-                        stopColor={THEME.muted}
-                        stopOpacity={isDark ? 0.35 : 0.1}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={fmtINRFull}
-                    tick={{ fill: THEME.muted, fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    formatter={(v: any) => fmtINRFull(v)}
-                    cursor={{ fill: THEME.line, opacity: 0.4 }}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      border: "1px solid var(--t-line)",
-                      borderRadius: 12,
-                      boxShadow: "var(--shadow-xl)",
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.muted }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
-                  <Bar
-                    dataKey="current"
-                    name="Current Value"
-                    fill="url(#gCurrent)"
-                    radius={[4, 4, 0, 0]}
-                    style={{ filter: "url(#glow-sage)" }}
-                  />
-                  <Bar
-                    dataKey="invested"
-                    name="Invested"
-                    fill="url(#gInvested)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
-
-          {/* YTD Cumulative block */}
-          <Card style={{ padding: 24 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 20,
-                flexWrap: "wrap",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div className="section-label" style={{ marginBottom: 2 }}>
-                  Year-to-Date Performance
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted }}>
-                  {ytdData.labelStart} – {ytdData.monthName} {new Date().getFullYear()} ·{" "}
-                  {ytdData.monthsElapsed} month{ytdData.monthsElapsed > 1 ? "s" : ""}
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {(["fy", "cal"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setYtdMode(mode)}
+                  <div className="section-label" style={{ marginBottom: 0 }}>
+                    Net Worth Growth
+                  </div>
+                  <div
                     style={{
-                      padding: "5px 12px",
+                      display: "flex",
+                      gap: 3,
+                      background: THEME.line,
+                      padding: 3,
                       borderRadius: 8,
-                      border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
-                      background:
-                        ytdMode === mode
-                          ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
-                          : "transparent",
-                      color: ytdMode === mode ? THEME.accent : THEME.muted,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
                     }}
                   >
-                    {mode === "fy" ? "FY (Apr–Mar)" : "CY (Jan–Dec)"}
-                  </button>
-                ))}
+                    {(["3M", "6M", "12M", "All"] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setTrendPeriod(p)}
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: 6,
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: trendPeriod === p ? THEME.accent : "transparent",
+                          color: trendPeriod === p ? "#fff" : THEME.muted,
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {filteredNetWorthTrend.length === 0 ||
+                filteredNetWorthTrend.every((t) => t.value === 0) ? (
+                  <div
+                    style={{
+                      height: 280,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: THEME.muted,
+                      fontSize: 13,
+                      background: "rgba(128,128,128,0.03)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    Not enough history to show net worth trend
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={filteredNetWorthTrend}>
+                      <defs>
+                        <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor={THEME.accent}
+                            stopOpacity={isDark ? 0.55 : 0.4}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.accent}
+                            stopOpacity={isDark ? 0.08 : 0}
+                          />
+                        </linearGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow
+                            dx="0"
+                            dy="4"
+                            stdDeviation="6"
+                            floodColor={THEME.accent}
+                            floodOpacity={isDark ? "0.65" : "0.5"}
+                          />
+                        </filter>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                      <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                      <YAxis
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        tickFormatter={fmtINRFull}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        contentStyle={{
+                          background: "var(--surface-0)",
+                          border: "1px solid var(--t-line)",
+                          borderRadius: 12,
+                          boxShadow: "var(--shadow-xl)",
+                          color: THEME.ink,
+                        }}
+                        labelStyle={{ color: THEME.muted }}
+                        itemStyle={{ color: THEME.ink }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={THEME.accent}
+                        strokeWidth={3}
+                        fill="url(#gNw)"
+                        style={{ filter: "url(#glow)" }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </Card>
+
+              {/* Historical P&L Bar Chart */}
+              <Card style={{ padding: 24 }}>
+                <div className="section-label">Monthly P&L (Last 6 Months)</div>
+                {trendData.filter((t) => t.income > 0 || t.expense > 0).length === 0 ? (
+                  <div
+                    style={{
+                      height: 250,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: THEME.muted,
+                      fontSize: 13,
+                      background: "rgba(128,128,128,0.03)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    Add transactions to see your P&L trend
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={trendData.slice(-6)}>
+                      <defs>
+                        <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.sage}
+                            stopOpacity={isDark ? 0.7 : 0.4}
+                          />
+                        </linearGradient>
+                        <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.rust}
+                            stopOpacity={isDark ? 0.7 : 0.4}
+                          />
+                        </linearGradient>
+                        <filter id="glow-sage" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow
+                            dx="0"
+                            dy="2"
+                            stdDeviation="4"
+                            floodColor={THEME.sage}
+                            floodOpacity={isDark ? "0.55" : "0.4"}
+                          />
+                        </filter>
+                        <filter id="glow-rust" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow
+                            dx="0"
+                            dy="2"
+                            stdDeviation="4"
+                            floodColor={THEME.rust}
+                            floodOpacity={isDark ? "0.55" : "0.4"}
+                          />
+                        </filter>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tickFormatter={fmtINRFull}
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        cursor={{ fill: THEME.line, opacity: 0.4 }}
+                        contentStyle={{
+                          background: "var(--surface-0)",
+                          border: "1px solid var(--t-line)",
+                          borderRadius: 12,
+                          boxShadow: "var(--shadow-xl)",
+                          color: THEME.ink,
+                        }}
+                        labelStyle={{ color: THEME.muted }}
+                        itemStyle={{ color: THEME.ink }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
+                      <Bar
+                        dataKey="income"
+                        name="Income"
+                        fill="url(#gIncome)"
+                        radius={[4, 4, 0, 0]}
+                        style={{ filter: "url(#glow-sage)" }}
+                      />
+                      <Bar
+                        dataKey="expense"
+                        name="Expense"
+                        fill="url(#gExpense)"
+                        radius={[4, 4, 0, 0]}
+                        style={{ filter: "url(#glow-rust)" }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </Card>
+
+              {/* Side-by-Side Savings and Portfolio Return */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: 24,
+                }}
+              >
+                {/* Monthly Net Savings */}
+                <Card style={{ padding: 24 }}>
+                  <div className="section-label">Monthly Net Savings</div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={trendData.slice(-6)}>
+                      <defs>
+                        <linearGradient id="gNetPos" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.sage}
+                            stopOpacity={isDark ? 0.7 : 0.3}
+                          />
+                        </linearGradient>
+                        <linearGradient id="gNetNeg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.rust} stopOpacity={isDark ? 1 : 0.9} />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.rust}
+                            stopOpacity={isDark ? 0.7 : 0.3}
+                          />
+                        </linearGradient>
+                        <filter id="glow-net" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow
+                            dx="0"
+                            dy="2"
+                            stdDeviation="4"
+                            floodColor={THEME.accent}
+                            floodOpacity={isDark ? "0.55" : "0.4"}
+                          />
+                        </filter>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tickFormatter={fmtINRFull}
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => [fmtINRFull(v), "Net Savings"]}
+                        cursor={{ fill: THEME.line, opacity: 0.4 }}
+                        contentStyle={{
+                          background: "var(--surface-0)",
+                          border: "1px solid var(--t-line)",
+                          borderRadius: 12,
+                          boxShadow: "var(--shadow-xl)",
+                          color: THEME.ink,
+                        }}
+                        labelStyle={{ color: THEME.muted }}
+                        itemStyle={{ color: THEME.ink }}
+                      />
+                      <Bar
+                        dataKey="net"
+                        name="Net Savings"
+                        radius={[4, 4, 0, 0]}
+                        style={{ filter: "url(#glow-net)" }}
+                      >
+                        {trendData.slice(-6).map((entry: any, index: number) => (
+                          <Cell
+                            key={index}
+                            fill={entry.net >= 0 ? THEME.sage : THEME.rust}
+                            fillOpacity={isDark ? 1 : 0.85}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+
+                {/* Portfolio Return */}
+                <Card style={{ padding: 24 }}>
+                  <div className="section-label">Portfolio Return</div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart
+                      data={[
+                        {
+                          name: "Mutual Funds",
+                          current: metrics.mfValue,
+                          invested: metrics.mfInvested,
+                        },
+                        {
+                          name: "Stocks",
+                          current: metrics.stockValue,
+                          invested: metrics.stockInvested,
+                        },
+                      ]}
+                    >
+                      <defs>
+                        <linearGradient id="gCurrent" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={THEME.sage} stopOpacity={isDark ? 1 : 0.9} />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.sage}
+                            stopOpacity={isDark ? 0.7 : 0.4}
+                          />
+                        </linearGradient>
+                        <linearGradient id="gInvested" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor={THEME.muted}
+                            stopOpacity={isDark ? 0.7 : 0.5}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={THEME.muted}
+                            stopOpacity={isDark ? 0.35 : 0.1}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tickFormatter={fmtINRFull}
+                        tick={{ fill: THEME.muted, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => fmtINRFull(v)}
+                        cursor={{ fill: THEME.line, opacity: 0.4 }}
+                        contentStyle={{
+                          background: "var(--surface-0)",
+                          border: "1px solid var(--t-line)",
+                          borderRadius: 12,
+                          boxShadow: "var(--shadow-xl)",
+                          color: THEME.ink,
+                        }}
+                        labelStyle={{ color: THEME.muted }}
+                        itemStyle={{ color: THEME.ink }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ color: THEME.ink }} />
+                      <Bar
+                        dataKey="current"
+                        name="Current Value"
+                        fill="url(#gCurrent)"
+                        radius={[4, 4, 0, 0]}
+                        style={{ filter: "url(#glow-sage)" }}
+                      />
+                      <Bar
+                        dataKey="invested"
+                        name="Invested"
+                        fill="url(#gInvested)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
               </div>
             </div>
+
+            {/* Right Column (4 columns): Performance metrics & Family */}
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                gap: 16,
-              }}
+              className="bento-col-4"
+              style={{ display: "flex", flexDirection: "column", gap: 24 }}
             >
-              {[
-                {
-                  label: "YTD Income",
-                  value: fmtINRFull(ytdData.ytdIncome),
-                  color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
-                },
-                {
-                  label: "YTD Expense",
-                  value: fmtINRFull(ytdData.ytdExpense),
-                  color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
-                },
-                {
-                  label: "YTD Savings",
-                  value: fmtINRFull(ytdData.ytdSavings),
-                  color:
-                    ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
-                      ? THEME.muted
-                      : ytdData.ytdSavings >= 0
-                        ? THEME.sage
-                        : THEME.rust,
-                },
-                {
-                  label: "YTD Savings Rate",
-                  value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
-                  color:
-                    ytdData.ytdIncome === 0
-                      ? THEME.muted
-                      : ytdData.ytdSavingsRate >= 20
-                        ? THEME.sage
-                        : ytdData.ytdSavingsRate >= 10
-                          ? THEME.gold
-                          : THEME.rust,
-                },
-              ].map(({ label, value, color }) => (
-                <div
-                  key={label}
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 10,
-                    borderLeft: `3px solid ${color}`,
-                    background: `color-mix(in srgb, ${color} 6%, transparent)`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: THEME.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase" as const,
-                      letterSpacing: "0.08em",
-                      marginBottom: 6,
-                    }}
-                  >
-                    {label}
-                  </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}>
-                    {value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* ── Family / Household Dashboard ── */}
-          {(() => {
-            // Only show if multiple profiles have assets
-            const activeProfiles = (metrics.familyBreakdown || []).filter(
-              (p: any) => Math.abs(p.nw) > 0 || p.totalCover > 0
-            );
-            if (activeProfiles.length < 2) return null;
-
-            const familyNW = activeProfiles.reduce((s, p) => s + p.nw, 0);
-            const maxNW = Math.max(...activeProfiles.map((p) => p.nw));
-            const familyCover = activeProfiles.reduce((s, p) => s + p.totalCover, 0);
-
-            // Insurance adequacy: 10x annual income
-            const annualIncome = (state.transactions || [])
-              .filter(
-                (t: any) =>
-                  t.type === "credit" &&
-                  t.category !== "Transfer" &&
-                  t.category !== "Self Transfer" &&
-                  t.category !== "Self-Transfer"
-              )
-              .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-            // Estimate yearly: if we have at least 1 month of data, annualize
-            const txnMonths = new Set(
-              (state.transactions || [])
-                .filter((t: any) => t.type === "credit")
-                .map((t: any) => (t.date || "").slice(0, 7))
-            ).size;
-            const estimatedAnnualIncome = txnMonths > 0 ? (annualIncome / txnMonths) * 12 : 0;
-            const idealCover = estimatedAnnualIncome * 10;
-            const coverAdequacy =
-              idealCover > 0 ? Math.min(100, Math.round((familyCover / idealCover) * 100)) : 0;
-
-            const barColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust];
-
-            return (
-              <Card style={{ padding: 24, marginTop: 28 }}>
-                <div style={{ marginBottom: 20 }}>
-                  <div className="section-label" style={{ marginBottom: 4 }}>
-                    Family / Household Dashboard
-                  </div>
-                  <div style={{ fontSize: 12, color: THEME.muted }}>
-                    Net worth breakdown across {activeProfiles.length} family members
-                  </div>
-                </div>
-
-                {/* Combined Family Net Worth */}
+              {/* YTD Cumulative block */}
+              <Card style={{ padding: 24 }}>
                 <div
                   style={{
-                    padding: "16px 20px",
-                    borderRadius: 12,
-                    background: isDark ? "var(--surface-2)" : "#0F172A",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 20,
-                    textAlign: "center",
-                    border: isDark ? `1px solid ${THEME.line}` : "none",
+                    flexWrap: "wrap",
+                    gap: 12,
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: "rgba(255,255,255,0.4)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.15em",
-                      marginBottom: 4,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Combined Family Net Worth
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 2 }}>
+                      Year-to-Date Performance
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>
+                      {ytdData.labelStart} – {ytdData.monthName} {new Date().getFullYear()} ·{" "}
+                      {ytdData.monthsElapsed} month{ytdData.monthsElapsed > 1 ? "s" : ""}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 900,
-                      color: "#fff",
-                      letterSpacing: "-0.03em",
-                    }}
-                  >
-                    <Prv>{fmtINRFull(familyNW)}</Prv>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {(["fy", "cal"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setYtdMode(mode)}
+                        style={{
+                          padding: "5px 12px",
+                          borderRadius: 8,
+                          border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
+                          background:
+                            ytdMode === mode
+                              ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+                              : "transparent",
+                          color: ytdMode === mode ? THEME.accent : THEME.muted,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {mode === "fy" ? "FY (Apr–Mar)" : "CY (Jan–Dec)"}
+                      </button>
+                    ))}
                   </div>
                 </div>
+                <div style={{ display: "grid", gap: 16 }}>
+                  {[
+                    {
+                      label: "YTD Income",
+                      value: fmtINRFull(ytdData.ytdIncome),
+                      color: ytdData.ytdIncome > 0 ? THEME.sage : THEME.muted,
+                    },
+                    {
+                      label: "YTD Expense",
+                      value: fmtINRFull(ytdData.ytdExpense),
+                      color: ytdData.ytdExpense > 0 ? THEME.rust : THEME.muted,
+                    },
+                    {
+                      label: "YTD Savings",
+                      value: fmtINRFull(ytdData.ytdSavings),
+                      color:
+                        ytdData.ytdIncome === 0 && ytdData.ytdExpense === 0
+                          ? THEME.muted
+                          : ytdData.ytdSavings >= 0
+                            ? THEME.sage
+                            : THEME.rust,
+                    },
+                    {
+                      label: "YTD Savings Rate",
+                      value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
+                      color:
+                        ytdData.ytdIncome === 0
+                          ? THEME.muted
+                          : ytdData.ytdSavingsRate >= 20
+                            ? THEME.sage
+                            : ytdData.ytdSavingsRate >= 10
+                              ? THEME.gold
+                              : THEME.rust,
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div
+                      key={label}
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: 10,
+                        borderLeft: `3px solid ${color}`,
+                        background: `color-mix(in srgb, ${color} 6%, transparent)`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: THEME.muted,
+                          fontWeight: 700,
+                          textTransform: "uppercase" as const,
+                          letterSpacing: "0.08em",
+                          marginBottom: 6,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "-0.02em" }}
+                      >
+                        {value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
 
-                {/* Per-member horizontal bars */}
-                <div style={{ marginBottom: 20 }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: THEME.muted,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      marginBottom: 12,
-                    }}
-                  >
-                    Per-Member Net Worth
-                  </div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {activeProfiles
-                      .sort((a, b) => b.nw - a.nw)
-                      .map((p, i) => {
-                        const pct = maxNW > 0 ? (p.nw / maxNW) * 100 : 0;
-                        const share = familyNW > 0 ? ((p.nw / familyNW) * 100).toFixed(1) : "0";
-                        return (
-                          <div key={p.id}>
+              {/* ── Family / Household Dashboard ── */}
+              {(() => {
+                // Only show if multiple profiles have assets
+                const activeProfiles = (metrics.familyBreakdown || []).filter(
+                  (p: any) => Math.abs(p.nw) > 0 || p.totalCover > 0
+                );
+                if (activeProfiles.length < 2) return null;
+
+                const familyNW = activeProfiles.reduce((s, p) => s + p.nw, 0);
+                const maxNW = Math.max(...activeProfiles.map((p) => p.nw));
+                const familyCover = activeProfiles.reduce((s, p) => s + p.totalCover, 0);
+
+                // Insurance adequacy: 10x annual income
+                const annualIncome = (state.transactions || [])
+                  .filter(
+                    (t: any) =>
+                      t.type === "credit" &&
+                      t.category !== "Transfer" &&
+                      t.category !== "Self Transfer" &&
+                      t.category !== "Self-Transfer"
+                  )
+                  .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+                // Estimate yearly: if we have at least 1 month of data, annualize
+                const txnMonths = new Set(
+                  (state.transactions || [])
+                    .filter((t: any) => t.type === "credit")
+                    .map((t: any) => (t.date || "").slice(0, 7))
+                ).size;
+                const estimatedAnnualIncome = txnMonths > 0 ? (annualIncome / txnMonths) * 12 : 0;
+                const idealCover = estimatedAnnualIncome * 10;
+                const coverAdequacy =
+                  idealCover > 0 ? Math.min(100, Math.round((familyCover / idealCover) * 100)) : 0;
+
+                const barColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust];
+
+                return (
+                  <Card style={{ padding: 24 }}>
+                    <div style={{ marginBottom: 20 }}>
+                      <div className="section-label" style={{ marginBottom: 4 }}>
+                        Family / Household Dashboard
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
+                        Net worth breakdown across {activeProfiles.length} family members
+                      </div>
+                    </div>
+
+                    {/* Combined Family Net Worth */}
+                    <div
+                      style={{
+                        padding: "16px 20px",
+                        borderRadius: 12,
+                        background: isDark ? "var(--surface-2)" : "#0F172A",
+                        marginBottom: 20,
+                        textAlign: "center",
+                        border: isDark ? `1px solid ${THEME.line}` : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "rgba(255,255,255,0.4)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.15em",
+                          marginBottom: 4,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Combined Family Net Worth
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 28,
+                          fontWeight: 900,
+                          color: "#fff",
+                          letterSpacing: "-0.03em",
+                        }}
+                      >
+                        <Prv>{fmtINRFull(familyNW)}</Prv>
+                      </div>
+                    </div>
+
+                    {/* Per-member horizontal bars */}
+                    <div style={{ marginBottom: 20 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.muted,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          marginBottom: 12,
+                        }}
+                      >
+                        Per-Member Net Worth
+                      </div>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {activeProfiles
+                          .sort((a, b) => b.nw - a.nw)
+                          .map((p, i) => {
+                            const pct = maxNW > 0 ? (p.nw / maxNW) * 100 : 0;
+                            const share = familyNW > 0 ? ((p.nw / familyNW) * 100).toFixed(1) : "0";
+                            return (
+                              <div key={p.id}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                                    {p.name}
+                                  </span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        color: THEME.muted,
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      {share}%
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontSize: 14,
+                                        fontWeight: 800,
+                                        color: barColors[i % barColors.length],
+                                      }}
+                                    >
+                                      <Prv>{fmtINRFull(p.nw)}</Prv>
+                                    </span>
+                                  </div>
+                                </div>
+                                <div
+                                  style={{
+                                    height: 8,
+                                    background: THEME.line,
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      height: "100%",
+                                      width: `${pct}%`,
+                                      background: barColors[i % barColors.length],
+                                      borderRadius: 4,
+                                      transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Combined Insurance Coverage */}
+                    {familyCover > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: 12,
+                          }}
+                        >
+                          Family Insurance Coverage
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: 12,
+                            marginBottom: 14,
+                          }}
+                        >
+                          <div
+                            style={{
+                              padding: 14,
+                              borderRadius: 10,
+                              background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+                              borderTop: `3px solid ${THEME.accent}`,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                marginBottom: 6,
+                              }}
+                            >
+                              Total Cover
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
+                              <Prv>{fmtINRFull(familyCover)}</Prv>
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              padding: 14,
+                              borderRadius: 10,
+                              background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
+                              borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: THEME.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                marginBottom: 6,
+                              }}
+                            >
+                              Adequacy (10x Income)
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 18,
+                                fontWeight: 900,
+                                color:
+                                  coverAdequacy >= 80
+                                    ? THEME.sage
+                                    : coverAdequacy >= 50
+                                      ? THEME.gold
+                                      : THEME.rust,
+                              }}
+                            >
+                              {idealCover > 0 ? `${coverAdequacy}%` : "N/A"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {idealCover > 0 && (
+                          <div style={{ marginBottom: 10 }}>
                             <div
                               style={{
                                 display: "flex",
                                 justifyContent: "space-between",
-                                alignItems: "center",
+                                fontSize: 11,
+                                color: THEME.muted,
                                 marginBottom: 4,
                               }}
                             >
-                              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                                {p.name}
+                              <span>
+                                Coverage: <Prv>{fmtINRFull(familyCover)}</Prv>
                               </span>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                                  {share}%
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: 14,
-                                    fontWeight: 800,
-                                    color: barColors[i % barColors.length],
-                                  }}
-                                >
-                                  <Prv>{fmtINRFull(p.nw)}</Prv>
-                                </span>
-                              </div>
+                              <span>
+                                Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv>
+                              </span>
                             </div>
                             <div
                               style={{
@@ -6827,191 +6999,67 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               <div
                                 style={{
                                   height: "100%",
-                                  width: `${pct}%`,
-                                  background: barColors[i % barColors.length],
+                                  width: `${coverAdequacy}%`,
+                                  background:
+                                    coverAdequacy >= 80
+                                      ? THEME.sage
+                                      : coverAdequacy >= 50
+                                        ? THEME.gold
+                                        : THEME.rust,
                                   borderRadius: 4,
-                                  transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
                                 }}
                               />
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                {/* Combined Insurance Coverage */}
-                {familyCover > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 12,
-                      }}
-                    >
-                      Family Insurance Coverage
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
-                          borderTop: `3px solid ${THEME.accent}`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 6,
-                          }}
-                        >
-                          Total Cover
-                        </div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
-                          <Prv>{fmtINRFull(familyCover)}</Prv>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
-                          borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 6,
-                          }}
-                        >
-                          Adequacy (10x Income)
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 900,
-                            color:
-                              coverAdequacy >= 80
-                                ? THEME.sage
-                                : coverAdequacy >= 50
-                                  ? THEME.gold
-                                  : THEME.rust,
-                          }}
-                        >
-                          {idealCover > 0 ? `${coverAdequacy}%` : "N/A"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {idealCover > 0 && (
-                      <div style={{ marginBottom: 10 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            fontSize: 11,
-                            color: THEME.muted,
-                            marginBottom: 4,
-                          }}
-                        >
-                          <span>
-                            Coverage: <Prv>{fmtINRFull(familyCover)}</Prv>
-                          </span>
-                          <span>
-                            Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv>
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            height: 8,
-                            background: THEME.line,
-                            borderRadius: 4,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${coverAdequacy}%`,
-                              background:
-                                coverAdequacy >= 80
-                                  ? THEME.sage
-                                  : coverAdequacy >= 50
-                                    ? THEME.gold
-                                    : THEME.rust,
-                              borderRadius: 4,
-                            }}
-                          />
-                        </div>
-                        {coverAdequacy < 80 && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: THEME.rust,
-                              fontWeight: 600,
-                              marginTop: 6,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <AlertTriangle size={12} />
-                            Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider
-                            increasing term insurance
+                            {coverAdequacy < 80 && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: THEME.rust,
+                                  fontWeight: 600,
+                                  marginTop: 6,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}
+                              >
+                                <AlertTriangle size={12} />
+                                Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider
+                                increasing term insurance
+                              </div>
+                            )}
                           </div>
                         )}
+
+                        {/* Per-member cover breakdown */}
+                        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                          {activeProfiles
+                            .filter((p) => p.totalCover > 0)
+                            .map((p, i) => (
+                              <div
+                                key={p.id}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  padding: "6px 10px",
+                                  background: "rgba(128,128,128,0.04)",
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                }}
+                              >
+                                <span style={{ color: THEME.muted }}>{p.name}</span>
+                                <span style={{ fontWeight: 700, color: THEME.ink }}>
+                                  <Prv>{fmtINRFull(p.totalCover)}</Prv>
+                                </span>
+                              </div>
+                            ))}
+                        </div>
                       </div>
                     )}
-
-                    {/* Per-member cover breakdown */}
-                    <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                      {activeProfiles
-                        .filter((p) => p.totalCover > 0)
-                        .map((p, i) => (
-                          <div
-                            key={p.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              padding: "6px 10px",
-                              background: "rgba(128,128,128,0.04)",
-                              borderRadius: 8,
-                              fontSize: 12,
-                            }}
-                          >
-                            <span style={{ color: THEME.muted }}>{p.name}</span>
-                            <span style={{ fontWeight: 700, color: THEME.ink }}>
-                              <Prv>{fmtINRFull(p.totalCover)}</Prv>
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </Card>
-            );
-          })()}
+                  </Card>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
 
