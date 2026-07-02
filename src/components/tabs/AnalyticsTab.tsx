@@ -3752,24 +3752,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             >
               {/* 1. SAVINGS RATE */}
               <Card
+                onClick={() => setTab("budget")}
+                className="card-lift"
                 style={{
                   padding: 24,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 20,
                   }}
                 >
-                  Savings Rate
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Savings Rate
+                  </span>
+                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                   <div style={{ position: "relative", width: 68, height: 68, flexShrink: 0 }}>
@@ -3844,24 +3856,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {/* 2. DEBT-TO-ASSET */}
               <Card
+                onClick={() => setTab("credit")}
+                className="card-lift"
                 style={{
                   padding: 24,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 20,
                   }}
                 >
-                  Debt-to-Asset Ratio
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Debt-to-Asset Ratio
+                  </span>
+                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
                 </div>
                 <div>
                   <div
@@ -3927,24 +3951,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {/* 3. LIQUIDITY SCORE — uses liquidAssets (cash + MF + stocks), not just cash */}
               <Card
+                onClick={() => setTab("investments")}
+                className="card-lift"
                 style={{
                   padding: 24,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 20,
                   }}
                 >
-                  Liquidity Score
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Liquidity Score
+                  </span>
+                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
                 </div>
                 <div>
                   {(() => {
@@ -4009,24 +4045,36 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {/* 4. INVESTMENT P&L */}
               <Card
+                onClick={() => setTab("demat")}
+                className="card-lift"
                 style={{
                   padding: 24,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 20,
                   }}
                 >
-                  Investment P&L
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Investment P&L
+                  </span>
+                  <ArrowUpRight size={14} style={{ color: THEME.muted }} />
                 </div>
                 <div>
                   {(() => {
