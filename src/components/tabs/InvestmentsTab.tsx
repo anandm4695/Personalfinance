@@ -2348,24 +2348,27 @@ function FDSection({ items, removeItem, updateItem, onAdd }: any) {
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
+                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "16px 18px",
+                  borderRadius: 16,
+                  padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  boxShadow: "var(--shadow-card)",
+                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 9,
-                      background: `${color}1f`,
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2718,24 +2721,27 @@ function RDSection({ items, removeItem, updateItem, onAdd }: any) {
                     key={label}
                     className="card-lift"
                     style={{
-                      background: "var(--surface-0)",
-                      border: `1px solid ${THEME.line}`,
+                      background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                      border: `1.5px solid ${THEME.line}`,
                       borderTop: `4px solid ${color}`,
-                      borderRadius: 14,
-                      padding: "16px 18px",
+                      borderRadius: 16,
+                      padding: "18px 20px",
                       display: "flex",
                       flexDirection: "column",
                       gap: 10,
-                      boxShadow: "var(--shadow-card)",
+                      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 9,
-                          background: `${color}1f`,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+                          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                          boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -7319,27 +7325,42 @@ function EPFAccountCard({ p, removeItem, updateItem }: any) {
 /* ── EPF Empty State ─────────────────────────────────────────────────── */
 function EPFEmptyState({ onAdd }: any) {
   return (
-    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+    <div
+      style={{
+        padding: "54px 36px",
+        textAlign: "center" as const,
+        background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 20,
+        boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
+          width: 68,
+          height: 68,
+          borderRadius: 22,
           background: `linear-gradient(135deg,${THEME.accent} 0%,${THEME.accent}cc 100%)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          margin: "0 auto 20px",
+          margin: "0 auto 24px",
+          boxShadow: `0 8px 24px -4px color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
+          border: "2px solid rgba(255, 255, 255, 0.2)",
         }}
       >
-        <Shield size={30} color="#fff" />
+        <Shield size={32} color="#fff" />
       </div>
       <div
         style={{
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: 800,
           color: THEME.ink,
-          marginBottom: 8,
+          marginBottom: 10,
           letterSpacing: "-0.02em",
         }}
       >
@@ -7349,9 +7370,8 @@ function EPFEmptyState({ onAdd }: any) {
         style={{
           fontSize: 13,
           color: THEME.muted,
-          marginBottom: 8,
-          maxWidth: 360,
-          margin: "0 auto 8px",
+          maxWidth: 420,
+          margin: "0 auto 18px",
           lineHeight: 1.6,
         }}
       >
@@ -7360,18 +7380,30 @@ function EPFEmptyState({ onAdd }: any) {
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: 11,
           color: THEME.muted,
-          marginBottom: 24,
+          marginBottom: 28,
           display: "flex",
           justifyContent: "center",
-          gap: 20,
+          gap: 12,
           flexWrap: "wrap" as const,
         }}
       >
         {["Employee Contribution", "Employer Contribution", "EPFO Interest", "Withdrawals"].map(
           (t) => (
-            <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span
+              key={t}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 12,
+                background: "var(--surface-1)",
+                border: `1.5px solid ${THEME.line}`,
+                fontWeight: 600,
+              }}
+            >
               <span
                 style={{
                   width: 6,
@@ -7380,7 +7412,7 @@ function EPFEmptyState({ onAdd }: any) {
                   background: THEME.accent,
                   display: "inline-block",
                 }}
-              />{" "}
+              />
               {t}
             </span>
           )
@@ -7389,7 +7421,7 @@ function EPFEmptyState({ onAdd }: any) {
       <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
         Add EPF Account
       </Button>
-    </Card>
+    </div>
   );
 }
 
@@ -7976,24 +8008,27 @@ function MFSection({ items, mfSells, addItem, removeItem, updateItem, onAdd }: a
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
+                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "16px 18px",
+                  borderRadius: 16,
+                  padding: "18px 20px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  boxShadow: "var(--shadow-card)",
+                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 9,
-                      background: `${color}1f`,
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
