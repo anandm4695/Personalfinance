@@ -1224,24 +1224,27 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             key={label}
             className="card-lift"
             style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
+              background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+              border: `1.5px solid ${THEME.line}`,
               borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
+              borderRadius: 16,
+              padding: "20px 22px",
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "var(--shadow-card)",
+              boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+              transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `${color}1f`,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 11,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+                  border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                  boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1251,21 +1254,39 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
               >
                 <Icon size={18} />
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {label}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase" as const,
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  {label}
+                </div>
               </div>
+              {label === "Return %" && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 800,
+                    padding: "2px 6px",
+                    borderRadius: 20,
+                    background: netGain >= 0 ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                    color: netGain >= 0 ? THEME.sage : THEME.rust,
+                    marginLeft: "auto",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {netGain >= 0 ? "▲ GAIN" : "▼ LOSS"}
+                </span>
+              )}
             </div>
             <div
               style={{
-                fontSize: 26,
+                fontSize: 28,
                 fontWeight: 900,
                 color: THEME.ink,
                 letterSpacing: "-0.04em",
@@ -1281,7 +1302,20 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
 
       <div>
         {/* Inline sub-tab navigation */}
-        <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
+        <div 
+          style={{ 
+            display: "flex", 
+            gap: 6, 
+            overflowX: "auto", 
+            padding: 6, 
+            background: "var(--surface-1)", 
+            border: `1.5px solid ${THEME.line}`, 
+            borderRadius: 16, 
+            marginBottom: 28,
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)"
+          }} 
+          className="no-scrollbar"
+        >
           {subs.map((s) => {
             const Icon = s.icon;
             const active = sub === s.id;
@@ -1292,9 +1326,26 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                   setSub(s.id);
                   onSubTabChange?.(s.id);
                 }}
-                className={`demat-portfolio-pill ${active ? "active" : ""}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 18px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: active 
+                    ? `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 85%, #000) 100%)` 
+                    : "transparent",
+                  color: active ? "#ffffff" : THEME.muted,
+                  fontWeight: active ? 800 : 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: active ? "0 4px 12px rgba(99, 102, 241, 0.25)" : "none",
+                  whiteSpace: "nowrap",
+                }}
               >
-                <Icon size={13} />
+                <Icon size={14} style={{ color: active ? "#ffffff" : THEME.muted }} />
                 {s.label}
                 {s.count !== undefined && s.count > 0 && (
                   <span
@@ -1303,8 +1354,9 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
                       borderRadius: 20,
                       fontSize: 10,
                       fontWeight: 800,
-                      background: `${THEME.accent}22`,
-                      color: THEME.accent,
+                      background: active ? "rgba(255, 255, 255, 0.25)" : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                      color: active ? "#ffffff" : THEME.accent,
+                      transition: "all 0.25s",
                     }}
                   >
                     {s.count}
@@ -2120,27 +2172,42 @@ function InvestmentEmptyState({
   onAdd,
 }: any) {
   return (
-    <Card style={{ padding: "48px 32px", textAlign: "center" as const }}>
+    <div
+      style={{
+        padding: "54px 36px",
+        textAlign: "center" as const,
+        background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 20,
+        boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
+          width: 68,
+          height: 68,
+          borderRadius: 22,
           background: gradient,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          margin: "0 auto 20px",
+          margin: "0 auto 24px",
+          boxShadow: `0 8px 24px -4px color-mix(in srgb, ${dotColor} 30%, transparent)`,
+          border: "2px solid rgba(255, 255, 255, 0.2)",
         }}
       >
-        <Icon size={30} color="#fff" />
+        <Icon size={32} color="#fff" />
       </div>
       <div
         style={{
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: 800,
           color: THEME.ink,
-          marginBottom: 8,
+          marginBottom: 10,
           letterSpacing: "-0.02em",
         }}
       >
@@ -2150,8 +2217,8 @@ function InvestmentEmptyState({
         style={{
           fontSize: 13,
           color: THEME.muted,
-          maxWidth: 380,
-          margin: "0 auto 12px",
+          maxWidth: 420,
+          margin: "0 auto 18px",
           lineHeight: 1.6,
         }}
       >
@@ -2159,17 +2226,29 @@ function InvestmentEmptyState({
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: 11,
           color: THEME.muted,
-          marginBottom: 24,
+          marginBottom: 28,
           display: "flex",
           justifyContent: "center",
-          gap: 16,
+          gap: 12,
           flexWrap: "wrap" as const,
         }}
       >
         {pills.map((t: string) => (
-          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span
+            key={t}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 12,
+              background: "var(--surface-1)",
+              border: `1.5px solid ${THEME.line}`,
+              fontWeight: 600,
+            }}
+          >
             <span
               style={{
                 width: 6,
@@ -2178,7 +2257,7 @@ function InvestmentEmptyState({
                 background: dotColor,
                 display: "inline-block",
               }}
-            />{" "}
+            />
             {t}
           </span>
         ))}
@@ -2186,7 +2265,7 @@ function InvestmentEmptyState({
       <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
         {buttonLabel}
       </Button>
-    </Card>
+    </div>
   );
 }
 
