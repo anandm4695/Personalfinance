@@ -6505,62 +6505,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           {/* ── Family / Household Dashboard ── */}
           {(() => {
-            // Compute per-profile net worth
-            const profileData = PROFILES.map((p) => {
-              const pid = p.id;
-              const bankBal = (state.bankAccounts || [])
-                .filter((b: any) => (b.owner || "self") === pid)
-                .reduce((s: number, b: any) => s + Number(b.balance || 0), 0);
-              const fdVal = (state.fixedDeposits || [])
-                .filter((f: any) => (f.owner || "self") === pid)
-                .reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
-              const stockVal = (state.stocks || [])
-                .filter((s: any) => (s.owner || "self") === pid)
-                .reduce(
-                  (sum: number, s: any) =>
-                    sum + Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0),
-                  0
-                );
-              const mfVal = (state.mutualFunds || [])
-                .filter((m: any) => (m.owner || "self") === pid)
-                .reduce(
-                  (sum: number, m: any) =>
-                    sum + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0),
-                  0
-                );
-              const ppfVal = (state.ppf || [])
-                .filter((pp: any) => (pp.owner || "self") === pid)
-                .reduce((s: number, pp: any) => s + Number(pp.balance || 0), 0);
-              const npsVal = (state.nps || [])
-                .filter((n: any) => (n.owner || "self") === pid)
-                .reduce((s: number, n: any) => {
-                  const bal = Number(n.balance) || 0;
-                  if (bal > 0) return s + bal;
-                  return (
-                    s +
-                    (n.transactions || []).reduce(
-                      (ss: number, t: any) =>
-                        ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
-                      0
-                    )
-                  );
-                }, 0);
-              const nw = bankBal + fdVal + stockVal + mfVal + ppfVal + npsVal;
-
-              // Insurance coverage
-              const termCover = (state.termPlans || [])
-                .filter((t: any) => (t.owner || "self") === pid)
-                .reduce((s: number, t: any) => s + Number(t.coverAmount || t.sumAssured || 0), 0);
-              const licCover = (state.lic || [])
-                .filter((l: any) => (l.owner || "self") === pid)
-                .reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
-              const totalCover = termCover + licCover;
-
-              return { ...p, nw, totalCover };
-            });
-
             // Only show if multiple profiles have assets
-            const activeProfiles = profileData.filter((p) => p.nw > 0);
+            const activeProfiles = (metrics.familyBreakdown || []).filter(
+              (p: any) => Math.abs(p.nw) > 0 || p.totalCover > 0
+            );
             if (activeProfiles.length < 2) return null;
 
             const familyNW = activeProfiles.reduce((s, p) => s + p.nw, 0);
@@ -6569,7 +6517,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             // Insurance adequacy: 10x annual income
             const annualIncome = (state.transactions || [])
-              .filter((t: any) => t.type === "credit")
+              .filter(
+                (t: any) =>
+                  t.type === "credit" &&
+                  t.category !== "Transfer" &&
+                  t.category !== "Self Transfer" &&
+                  t.category !== "Self-Transfer"
+              )
               .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
             // Estimate yearly: if we have at least 1 month of data, annualize
             const txnMonths = new Set(

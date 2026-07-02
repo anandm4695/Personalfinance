@@ -11,6 +11,249 @@ import {
   getTaxDueForDashboard,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
+import { PROFILES } from "../utils/constants";
+
+export function getFilteredStateForProfile(state: any, profileId: string) {
+  if (profileId === "all") return state;
+  const filterByOwner = (arr: any[]) =>
+    (Array.isArray(arr) ? arr : []).filter((item) => item.owner === profileId);
+  return {
+    ...state,
+    bankAccounts: filterByOwner(state.bankAccounts),
+    transactions: filterByOwner(state.transactions),
+    fixedDeposits: filterByOwner(state.fixedDeposits),
+    recurringDeposits: filterByOwner(state.recurringDeposits),
+    bonds: filterByOwner(state.bonds),
+    ppf: filterByOwner(state.ppf),
+    nps: filterByOwner(state.nps),
+    epf: filterByOwner(state.epf),
+    lic: filterByOwner(state.lic),
+    termPlans: filterByOwner(state.termPlans),
+    investmentPlans: filterByOwner(state.investmentPlans),
+    mutualFunds: filterByOwner(state.mutualFunds),
+    stocks: filterByOwner(state.stocks),
+    demat: filterByOwner(state.demat),
+    creditCards: filterByOwner(state.creditCards),
+    prepaidCards: filterByOwner(state.prepaidCards),
+    loansTaken: filterByOwner(state.loansTaken),
+    loansGiven: filterByOwner(state.loansGiven),
+    informalBorrowed: filterByOwner(state.informalBorrowed || []),
+    informalLent: filterByOwner(state.informalLent || []),
+    rentalProperties: filterByOwner(state.rentalProperties || []),
+    rentedProperties: filterByOwner(state.rentedProperties || []),
+    realEstateProperties: filterByOwner(state.realEstateProperties || []),
+    realEstateDemands: filterByOwner(state.realEstateDemands || []),
+    realEstatePayments: filterByOwner(state.realEstatePayments || []),
+    vehicles: filterByOwner(state.vehicles || []),
+    dividends: filterByOwner(state.dividends || []),
+    documents: filterByOwner(state.documents || []),
+    subscriptions: filterByOwner(state.subscriptions),
+    goals: filterByOwner(state.goals),
+    income: filterByOwner(state.income),
+    taxPayments: filterByOwner(state.taxPayments),
+    budgets: filterByOwner(state.budgets),
+    recurringExpenses: filterByOwner(state.recurringExpenses || []),
+    sips: filterByOwner(state.sips),
+    stockSells: filterByOwner(state.stockSells || []),
+    mfSells: filterByOwner(state.mfSells || []),
+    corporateActions: filterByOwner(state.corporateActions || []),
+    goldHoldings: filterByOwner(state.goldHoldings || []),
+    lifeEvents: filterByOwner(state.lifeEvents || []),
+    govtSchemes: filterByOwner(state.govtSchemes || []),
+    netWorthHistory: [],
+  };
+}
+
+export function calculateProfileNWAndCover(pState: any, marketData: any) {
+  const cashInBanks = (pState.bankAccounts || []).reduce(
+    (s: number, a: any) => s + Number(a.balance || 0),
+    0
+  );
+  const fdValue = (pState.fixedDeposits || []).reduce(
+    (s: number, f: any) => s + Number(f.principal || 0),
+    0
+  );
+  const govtSchemesValue = (pState.govtSchemes || []).reduce(
+    (s: number, sc: any) => s + Number(sc.currentBalance || 0),
+    0
+  );
+  const rdValue = (pState.recurringDeposits || []).reduce((s: number, r: any) => {
+    const elapsed = r.startDate
+      ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
+      : Number(r.tenureMonths || 0);
+    return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
+  }, 0);
+  const bondValue = (pState.bonds || []).reduce(
+    (s: number, b: any) =>
+      s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+    0
+  );
+  const ppfValue = (pState.ppf || []).reduce(
+    (s: number, pp: any) => s + Number(pp.balance || 0),
+    0
+  );
+  const npsValue = (pState.nps || []).reduce((s: number, n: any) => {
+    const bal = Number(n.balance) || 0;
+    if (bal > 0) return s + bal;
+    const txTotal = (n.transactions || []).reduce(
+      (ss: number, t: any) =>
+        ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+      0
+    );
+    return s + txTotal;
+  }, 0);
+  const epfValue = (pState.epf || []).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+  const licValue = (pState.lic || []).reduce((s: number, l: any) => {
+    const txTotal = (l.transactions || []).reduce(
+      (sum: number, t: any) => sum + Number(t.amount || 0),
+      0
+    );
+    return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
+  }, 0);
+  const investmentValue = (pState.investmentPlans || []).reduce((s: number, ip: any) => {
+    const txTotal = (ip.transactions || []).reduce(
+      (sum: number, t: any) => sum + Number(t.amount || 0),
+      0
+    );
+    return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
+  }, 0);
+  const mfValue = (pState.mutualFunds || []).reduce((s: number, m: any) => {
+    const liveNav = Number(m.currentNav || 0);
+    const fallbackNav =
+      liveNav ||
+      Number(m.buyNav || 0) ||
+      (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
+    return s + Number(m.units || 0) * fallbackNav;
+  }, 0);
+  const stockValue = (pState.stocks || []).reduce((sum: number, s: any) => {
+    const yfSym = `${s.symbol.replace(/\.(NS|BO)$/i, "")}.${(s.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
+    const md = marketData?.[yfSym];
+    const price = md?.price ?? Number(s.currentPrice || 0);
+    return sum + Number(s.qty || 0) * price;
+  }, 0);
+  const loansGivenValue = (pState.loansGiven || []).reduce(
+    (s: number, l: any) => s + Number(l.amount || 0),
+    0
+  );
+  const prepaidValue = (pState.prepaidCards || []).reduce(
+    (s: number, pc: any) => s + Number(pc.balance || 0),
+    0
+  );
+  const rentedDepositAsset = (pState.rentedProperties || []).reduce(
+    (s: number, p: any) => s + Number(p.securityDeposit || 0),
+    0
+  );
+  const informalLentValue = (pState.informalLent || []).reduce(
+    (s: number, l: any) => s + Number(l.amount || 0),
+    0
+  );
+  const rentalPropertiesAsset = (pState.rentalProperties || []).reduce(
+    (s: number, r: any) => s + Number(r.marketValue || r.value || 0),
+    0
+  );
+  const realEstateAsset = (pState.realEstateProperties || [])
+    .filter((p: any) => p.status !== "sold")
+    .reduce((s: number, p: any) => s + Number(p.currentValuation || p.valuation || 0), 0);
+  const vehicleAsset = (pState.vehicles || []).reduce(
+    (s: number, v: any) => s + Number(v.currentValue || v.value || 0),
+    0
+  );
+
+  const goldPrice = (() => {
+    try {
+      return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
+    } catch {
+      return 7200;
+    }
+  })();
+  const PURITY_FACTOR: Record<string, number> = {
+    "24K": 1,
+    "22K": 22 / 24,
+    "18K": 18 / 24,
+    "14K": 14 / 24,
+  };
+  const goldValue = (pState.goldHoldings || []).reduce((s: number, h: any) => {
+    const grams = Number(h.grams || 0);
+    const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
+    const currentValue = grams * goldPrice * purityMul;
+    return s + currentValue;
+  }, 0);
+
+  const totalAssets =
+    cashInBanks +
+    fdValue +
+    rdValue +
+    bondValue +
+    ppfValue +
+    npsValue +
+    epfValue +
+    licValue +
+    investmentValue +
+    mfValue +
+    stockValue +
+    loansGivenValue +
+    prepaidValue +
+    rentedDepositAsset +
+    informalLentValue +
+    rentalPropertiesAsset +
+    realEstateAsset +
+    vehicleAsset +
+    goldValue +
+    govtSchemesValue;
+
+  const ccOutstanding = (pState.creditCards || []).reduce(
+    (s: number, c: any) => s + Number(c.outstanding || 0),
+    0
+  );
+  const loansTakenValue = (pState.loansTaken || []).reduce(
+    (s: number, l: any) => s + Number(l.outstandingPrincipal || l.amount || 0),
+    0
+  );
+  const rentalDepositLiability = (pState.rentalProperties || []).reduce(
+    (s: number, r: any) => s + Number(r.securityDeposit || 0),
+    0
+  );
+  const informalBorrowedValue = (pState.informalBorrowed || []).reduce(
+    (s: number, b: any) => s + Number(b.amount || 0),
+    0
+  );
+
+  const realEstateOutstanding = (() => {
+    const ucIds = new Set(
+      (pState.realEstateProperties || [])
+        .filter((p: any) => p.status === "under-construction")
+        .map((p: any) => p.id)
+    );
+    const demanded = (pState.realEstateDemands || [])
+      .filter((d: any) => ucIds.has(d.propertyId))
+      .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
+    const paid = (pState.realEstatePayments || [])
+      .filter((p: any) => ucIds.has(p.propertyId))
+      .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+    return Math.max(0, demanded - paid);
+  })();
+
+  const totalLiabilities =
+    ccOutstanding +
+    loansTakenValue +
+    rentalDepositLiability +
+    informalBorrowedValue +
+    realEstateOutstanding;
+
+  const netWorth = totalAssets - totalLiabilities;
+
+  const termCover = (pState.termPlans || []).reduce(
+    (s: number, t: any) => s + Number(t.coverAmount || t.sumAssured || 0),
+    0
+  );
+  const licCover = (pState.lic || []).reduce(
+    (s: number, l: any) => s + Number(l.sumAssured || 0),
+    0
+  );
+  const totalCover = termCover + licCover;
+
+  return { netWorth, totalCover };
+}
 
 export function useMetrics(
   state: any,
@@ -24,54 +267,7 @@ export function useMetrics(
   greeting: { title: string; subtitle: string };
 } {
   const filteredState = useMemo(() => {
-    if (activeProfile === "all") return state;
-    const filterByOwner = (arr: any[]) =>
-      (Array.isArray(arr) ? arr : []).filter((item) => item.owner === activeProfile);
-    return {
-      ...state,
-      bankAccounts: filterByOwner(state.bankAccounts),
-      transactions: filterByOwner(state.transactions),
-      fixedDeposits: filterByOwner(state.fixedDeposits),
-      recurringDeposits: filterByOwner(state.recurringDeposits),
-      bonds: filterByOwner(state.bonds),
-      ppf: filterByOwner(state.ppf),
-      nps: filterByOwner(state.nps),
-      epf: filterByOwner(state.epf),
-      lic: filterByOwner(state.lic),
-      termPlans: filterByOwner(state.termPlans),
-      investmentPlans: filterByOwner(state.investmentPlans),
-      mutualFunds: filterByOwner(state.mutualFunds),
-      stocks: filterByOwner(state.stocks),
-      demat: filterByOwner(state.demat),
-      creditCards: filterByOwner(state.creditCards),
-      prepaidCards: filterByOwner(state.prepaidCards),
-      loansTaken: filterByOwner(state.loansTaken),
-      loansGiven: filterByOwner(state.loansGiven),
-      informalBorrowed: filterByOwner(state.informalBorrowed || []),
-      informalLent: filterByOwner(state.informalLent || []),
-      rentalProperties: filterByOwner(state.rentalProperties || []),
-      rentedProperties: filterByOwner(state.rentedProperties || []),
-      realEstateProperties: filterByOwner(state.realEstateProperties || []),
-      realEstateDemands: filterByOwner(state.realEstateDemands || []),
-      realEstatePayments: filterByOwner(state.realEstatePayments || []),
-      vehicles: filterByOwner(state.vehicles || []),
-      dividends: filterByOwner(state.dividends || []),
-      documents: filterByOwner(state.documents || []),
-      subscriptions: filterByOwner(state.subscriptions),
-      goals: filterByOwner(state.goals),
-      income: filterByOwner(state.income),
-      taxPayments: filterByOwner(state.taxPayments),
-      budgets: filterByOwner(state.budgets),
-      recurringExpenses: filterByOwner(state.recurringExpenses || []),
-      sips: filterByOwner(state.sips),
-      stockSells: filterByOwner(state.stockSells || []),
-      mfSells: filterByOwner(state.mfSells || []),
-      corporateActions: filterByOwner(state.corporateActions || []),
-      goldHoldings: filterByOwner(state.goldHoldings || []),
-      lifeEvents: filterByOwner(state.lifeEvents || []),
-      govtSchemes: filterByOwner(state.govtSchemes || []),
-      netWorthHistory: [],
-    };
+    return getFilteredStateForProfile(state, activeProfile);
   }, [state, activeProfile]);
 
   // ================== COMPUTED FINANCIAL METRICS ==================
@@ -571,8 +767,17 @@ export function useMetrics(
           .map(([name, value]) => ({ name, value }))
           .filter((c) => c.value > 0);
       })(),
+      familyBreakdown: PROFILES.map((p) => {
+        const pState = getFilteredStateForProfile(state, p.id);
+        const { netWorth, totalCover } = calculateProfileNWAndCover(pState, marketData);
+        return {
+          ...p,
+          nw: netWorth,
+          totalCover,
+        };
+      }),
     };
-  }, [filteredState, marketData]);
+  }, [filteredState, marketData, state]);
 
   const assetBreakdown = useMemo(
     () =>
