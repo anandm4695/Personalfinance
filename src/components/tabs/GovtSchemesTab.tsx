@@ -567,83 +567,16 @@ export function GovtSchemesTab({
 
       {/* Content area */}
       {filteredSchemes.length === 0 ? (
-        <>
-          <EmptyState
-            icon={activeMeta.value === "PMJJBY" || activeMeta.value === "PMSBY" ? Shield : Star}
-            gradient={`linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}b3 100%)`}
-            dotColor={activeMeta.color}
-            title={`No ${activeMeta.label.split("—")[0].trim()} Tracked`}
-            description={activeMeta.description}
-            pills={getPillsForType(sub)}
-            buttonLabel={`Add ${activeMeta.label.split("—")[0].trim()}`}
-            onAdd={() => setModal({ schemeType: sub })}
-          />
-
-          {/* Discovery Card Grid for all schemes */}
-          <div style={{ marginTop: 32 }}>
-            <div
-              style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: THEME.textMuted }}
-            >
-              Popular Government Schemes
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 10,
-              }}
-            >
-              {SCHEMES.map((s) => (
-                <Card
-                  key={s.value}
-                  style={{
-                    borderLeft: `4px solid ${s.color}`,
-                    cursor: "pointer",
-                    background: s.value === sub ? "var(--surface-1)" : undefined,
-                  }}
-                  onClick={() => {
-                    handleSubChange(s.value);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>
-                      {s.label.split("—")[0].trim()}
-                    </div>
-                    {schemes.filter((sc: any) => sc.schemeType === s.value).length > 0 && (
-                      <Badge color="success">
-                        {schemes.filter((sc: any) => sc.schemeType === s.value).length} active
-                      </Badge>
-                    )}
-                  </div>
-                  <div
-                    style={{ fontSize: 12, color: THEME.textMuted, marginTop: 4, lineHeight: 1.5 }}
-                  >
-                    {s.description}
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setModal({ schemeType: s.value });
-                      }}
-                    >
-                      + Add
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </>
+        <EmptyState
+          icon={activeMeta.value === "PMJJBY" || activeMeta.value === "PMSBY" ? Shield : Star}
+          gradient={`linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}b3 100%)`}
+          dotColor={activeMeta.color}
+          title={`No ${activeMeta.label.split("—")[0].trim()} Tracked`}
+          description={activeMeta.description}
+          pills={getPillsForType(sub)}
+          buttonLabel={`Add ${activeMeta.label.split("—")[0].trim()}`}
+          onAdd={() => setModal({ schemeType: sub })}
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filteredSchemes.map((sc: any) => {
