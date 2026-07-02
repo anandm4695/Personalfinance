@@ -535,10 +535,9 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
       <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account">
         <Edit3 size={14} />
-        <Edit3 size={15} />
       </button>
       <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account">
-        <Trash2 size={15} />
+        <Trash2 size={14} />
       </button>
     </div>
     {children}
