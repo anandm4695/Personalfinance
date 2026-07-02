@@ -9224,9 +9224,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               pct >= 90
                 ? THEME.gold
                 : pct >= 75
-                  ? THEME.success
+                  ? THEME.sage
                   : pct >= 50
-                    ? THEME.primary
+                    ? THEME.accent
                     : THEME.muted;
             const milestones = [
               { label: "25th", value: band.p25, pct: 25 },
@@ -9337,7 +9337,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           height: "100%",
                           width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${THEME.primary}, ${color})`,
+                          background: `linear-gradient(90deg, ${THEME.accent}, ${color})`,
                           borderRadius: 10,
                           transition: "width 0.5s ease",
                         }}
@@ -9403,9 +9403,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         borderRadius: 12,
                         background:
                           nw >= m.value
-                            ? `color-mix(in srgb, ${THEME.success} 8%, transparent)`
+                            ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
                             : `var(--surface-1)`,
-                        border: `1px solid ${nw >= m.value ? `color-mix(in srgb, ${THEME.success} 20%, transparent)` : THEME.line}`,
+                        border: `1px solid ${nw >= m.value ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : THEME.line}`,
                         transition: "all 0.2s ease",
                       }}
                     >
@@ -9416,7 +9416,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           fontSize: 14,
                           fontWeight: 800,
-                          color: nw >= m.value ? THEME.success : THEME.ink,
+                          color: nw >= m.value ? THEME.sage : THEME.ink,
                         }}
                       >
                         {m.value >= 10000000
@@ -9427,7 +9427,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <div
                           style={{
                             fontSize: 10,
-                            color: THEME.success,
+                            color: THEME.sage,
                             marginTop: 4,
                             fontWeight: 600,
                           }}
@@ -9443,8 +9443,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {nextMilestone && (
                   <div
                     style={{
-                      background: `color-mix(in srgb, ${THEME.primary} 6%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.primary} 15%, transparent)`,
+                      background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
                       borderRadius: 10,
                       padding: "12px 16px",
                       fontSize: 13,
@@ -9452,7 +9452,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       fontWeight: 500,
                     }}
                   >
-                    <strong style={{ color: THEME.primary }}>Next milestone:</strong>{" "}
+                    <strong style={{ color: THEME.accent }}>Next milestone:</strong>{" "}
                     {nextMilestone.pct}th percentile —{" "}
                     {nextMilestone.value >= 10000000
                       ? `₹${(nextMilestone.value / 10000000).toFixed(1)}Cr`
