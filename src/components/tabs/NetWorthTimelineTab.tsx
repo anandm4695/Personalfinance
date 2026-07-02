@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -8,6 +8,7 @@ import {
   Zap,
   Info,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -22,13 +23,11 @@ import {
   Legend,
   BarChart,
   Bar,
-  ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull } from "../../utils/finance";
+import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
@@ -46,17 +45,79 @@ const projectionPresets = [
   { label: "Aggressive", returnRate: 16, inflationRate: 6 },
 ];
 
-const tooltipProps = {
-  contentStyle: {
-    background: "var(--surface-0)",
-    border: `1px solid var(--t-line)`,
-    borderRadius: 10,
-    fontSize: 13,
-    fontWeight: 600,
-    color: "var(--t-ink)",
-  },
-  labelStyle: { color: "var(--t-muted)" },
-  itemStyle: { color: "var(--t-ink)" },
+// ── Custom Tooltip for Recharts ────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  const isBreakdown = payload.some((p: any) => p.dataKey !== "netWorth" && p.dataKey !== "delta" && p.dataKey !== "nominal" && p.dataKey !== "real");
+  const isChange = payload[0]?.dataKey === "delta";
+  const isProjection = payload[0]?.dataKey === "nominal" || payload[0]?.dataKey === "real";
+  
+  let totalValue = 0;
+  if (isBreakdown) {
+    totalValue = payload.reduce((sum: number, entry: any) => sum + (Number(entry.value) || 0), 0);
+  }
+  
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid var(--t-line)`,
+        borderRadius: "12px",
+        padding: "14px 16px",
+        boxShadow: "var(--shadow-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        minWidth: "240px",
+      }}
+    >
+      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px" }}>
+        {label} {isProjection ? "Projection" : isChange ? "Net Worth Change" : "Net Worth Summary"}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {payload.map((entry: any, index: number) => {
+          let color = entry.color || entry.stroke;
+          if (entry.dataKey === "cash") color = "var(--t-accent)";
+          else if (entry.dataKey === "equity") color = "var(--t-sage)";
+          else if (entry.dataKey === "debt") color = "var(--t-gold)";
+          else if (entry.dataKey === "realEstate") color = "#8B5CF6";
+          else if (entry.dataKey === "vehicles") color = "#EC4899";
+          else if (entry.dataKey === "netWorth") color = "var(--t-accent)";
+          else if (entry.dataKey === "delta") color = entry.value >= 0 ? "var(--t-sage)" : "var(--t-rust)";
+          else if (entry.dataKey === "nominal") color = "var(--t-accent)";
+          else if (entry.dataKey === "real") color = "var(--t-gold)";
+
+          const pct = isBreakdown && totalValue > 0 ? ` (${((entry.value / totalValue) * 100).toFixed(0)}%)` : "";
+
+          return (
+            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>
+                  {entry.name}
+                  {pct && <span style={{ fontSize: "11px", color: "var(--t-muted)", fontWeight: 500 }}>{pct}</span>}
+                </span>
+              </div>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)", fontVariantNumeric: "tabular-nums" }}>
+                <Prv>{fmtINRFull(entry.value)}</Prv>
+              </span>
+            </div>
+          );
+        })}
+        {isBreakdown && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderTop: `1px solid var(--t-line)`, paddingTop: "6px", marginTop: "2px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)" }}>Total Net Worth</span>
+            <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--t-accent)", fontVariantNumeric: "tabular-nums" }}>
+              <Prv>{fmtINRFull(totalValue)}</Prv>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const NetWorthTimelineTab = ({ state, metrics }) => {
@@ -173,77 +234,400 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="Track your wealth journey over time">Net Worth Timeline</SectionTitle>
 
+      {/* ── Summary KPI Cards ────────────────────────────────────────────────── */}
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-          <StatCard label="Total Growth" value={<Prv>{fmtINRFull(stats.totalGrowth)}</Prv>} icon={<TrendingUp />}
-            color={stats.totalGrowth >= 0 ? THEME.sage : THEME.rust} />
-          <StatCard label="Avg Monthly Growth" value={<Prv>{fmtINRFull(stats.avgMonthly)}</Prv>} icon={<Calendar />}
-            color={THEME.accent} />
-          <StatCard label="CAGR" value={`${stats.cagr.toFixed(1)}%`} icon={<Zap />}
-            color={stats.cagr >= 0 ? THEME.sage : THEME.rust} />
-          <StatCard label={`Best Month (${stats.best?.label})`} value={<Prv>{fmtINRFull(stats.best?.delta || 0)}</Prv>}
-            icon={<TrendingUp />} color={THEME.sage} />
-          <StatCard label={`Worst Month (${stats.worst?.label})`} value={<Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>}
-            icon={<TrendingDown />} color={THEME.rust} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 16,
+            marginBottom: 8,
+          }}
+        >
+          {/* Card 1: Total Growth */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${stats.totalGrowth >= 0 ? THEME.sage : THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: stats.totalGrowth >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                {stats.totalGrowth >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Total Growth
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Starting from {history[0]?.label}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{(stats.totalGrowth < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.totalGrowth))}</Prv>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: stats.totalGrowth >= 0 ? THEME.sage : THEME.rust, marginTop: 4 }}>
+                {stats.totalGrowth >= 0 ? "+" : ""}{((stats.totalGrowth / Math.max(1, history[0]?.netWorth || 0)) * 100).toFixed(1)}% Inception Growth
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 2: Avg Monthly Growth */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${THEME.accent}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.accent,
+                  flexShrink: 0,
+                }}
+              >
+                <Calendar size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Avg Monthly Growth
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Calculated over {stats.months} Months
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{(stats.avgMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(stats.avgMonthly))}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Net Monthly Wealth Accumulation
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 3: CAGR */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${stats.cagr >= 0 ? THEME.sage : THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: stats.cagr >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: stats.cagr >= 0 ? THEME.sage : THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                <Zap size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Compounded CAGR
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Annualized Growth Rate
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                {stats.cagr.toFixed(1)}%
+              </div>
+              <div style={{ marginTop: 4 }}>
+                <Badge variant={stats.cagr >= 15 ? "sage" : stats.cagr >= 10 ? "accent" : stats.cagr >= 5 ? "gold" : "muted"} style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}>
+                  {stats.cagr >= 15 ? "Aggressive Build" : stats.cagr >= 10 ? "Steady Growth" : stats.cagr >= 5 ? "Conservative" : "Flat Growth"}
+                </Badge>
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 4: Best Month */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${THEME.sage}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.sage,
+                  flexShrink: 0,
+                }}
+              >
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Best Month
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Record Delta: {stats.best?.label}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.sage, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>+{fmtINRFull(stats.best?.delta || 0)}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Growth: +{stats.best?.pctChange.toFixed(1)}% MoM
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 5: Worst Month */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                <TrendingDown size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Worst Month
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Trough Delta: {stats.worst?.label}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{fmtINRFull(stats.worst?.delta || 0)}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Growth: {stats.worst?.pctChange.toFixed(1)}% MoM
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
-      {/* Net Worth History Chart */}
+      {/* ── Net Worth History Chart ────────────────────────────────────────── */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.ink }}>Net Worth History</h3>
-          <button
-            onClick={() => setShowBreakdown(!showBreakdown)}
-            style={{ background: "none", border: `1px solid ${THEME.line}`, borderRadius: 8, padding: "6px 12px",
-              fontSize: 13, color: THEME.muted, cursor: "pointer" }}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <TrendingUp size={18} style={{ color: THEME.accent }} />
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Net Worth History</h3>
+          </div>
+          
+          {/* Segmented control toggle */}
+          <div
+            style={{
+              display: "flex",
+              background: "var(--surface-1)",
+              padding: "4px",
+              borderRadius: "var(--radius-md)",
+              border: `1.5px solid ${THEME.line}`,
+              gap: "2px",
+            }}
           >
-            {showBreakdown ? "Simple View" : "Asset Breakdown"}
-          </button>
+            <button
+              onClick={() => setShowBreakdown(false)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                background: !showBreakdown ? "var(--surface-0)" : "transparent",
+                color: !showBreakdown ? "var(--t-ink)" : "var(--t-muted)",
+                fontWeight: 700,
+                fontSize: "12px",
+                cursor: "pointer",
+                boxShadow: !showBreakdown ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s var(--ease-premium)",
+              }}
+            >
+              Simple Trend
+            </button>
+            <button
+              onClick={() => setShowBreakdown(true)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                background: showBreakdown ? "var(--surface-0)" : "transparent",
+                color: showBreakdown ? "var(--t-ink)" : "var(--t-muted)",
+                fontWeight: 700,
+                fontSize: "12px",
+                cursor: "pointer",
+                boxShadow: showBreakdown ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s var(--ease-premium)",
+              }}
+            >
+              Asset Breakdown
+            </button>
+          </div>
         </div>
+
         <ResponsiveContainer width="100%" height={350}>
           {showBreakdown ? (
-            <AreaChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
-              <Legend wrapperStyle={{ fontSize: 12, color: THEME.ink }} />
-              <Area type="monotone" dataKey="cash" stackId="1" stroke={THEME.accent} fill={THEME.accent} fillOpacity={0.5} name="Cash" />
-              <Area type="monotone" dataKey="equity" stackId="1" stroke={THEME.sage} fill={THEME.sage} fillOpacity={0.5} name="Equity" />
-              <Area type="monotone" dataKey="debt" stackId="1" stroke={THEME.gold} fill={THEME.gold} fillOpacity={0.5} name="Debt" />
-              <Area type="monotone" dataKey="realEstate" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.5} name="Real Estate" />
+            <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.65}/>
+                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--t-sage)" stopOpacity={0.65}/>
+                  <stop offset="100%" stopColor="var(--t-sage)" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="debtGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.65}/>
+                  <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="realEstateGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.65}/>
+                  <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="vehiclesGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#EC4899" stopOpacity={0.65}/>
+                  <stop offset="100%" stopColor="#EC4899" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                verticalAlign="top"
+                height={36}
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
+              />
+              <Area type="monotone" dataKey="cash" stackId="1" stroke="var(--t-accent)" fill="url(#cashGrad)" strokeWidth={1.5} name="Cash" />
+              <Area type="monotone" dataKey="equity" stackId="1" stroke="var(--t-sage)" fill="url(#equityGrad)" strokeWidth={1.5} name="Equity" />
+              <Area type="monotone" dataKey="debt" stackId="1" stroke="var(--t-gold)" fill="url(#debtGrad)" strokeWidth={1.5} name="Debt Liabilities" />
+              <Area type="monotone" dataKey="realEstate" stackId="1" stroke="#8B5CF6" fill="url(#realEstateGrad)" strokeWidth={1.5} name="Real Estate" />
+              <Area type="monotone" dataKey="vehicles" stackId="1" stroke="#EC4899" fill="url(#vehiclesGrad)" strokeWidth={1.5} name="Vehicles" />
             </AreaChart>
           ) : (
-            <LineChart data={history}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
-              <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
-              <Line type="monotone" dataKey="netWorth" stroke={THEME.accent} strokeWidth={3} dot={{ r: 4 }} name="Net Worth" />
-            </LineChart>
+            <AreaChart data={history} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.35}/>
+                  <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="netWorth" stroke="var(--t-accent)" fill="url(#netWorthGrad)" strokeWidth={3} name="Total Net Worth" />
+            </AreaChart>
           )}
         </ResponsiveContainer>
       </Card>
 
-      {/* Month-over-Month Delta */}
+      {/* ── Month-over-Month Delta ─────────────────────────────────────────── */}
       {momDeltas.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Monthly Change</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+            <Calendar size={18} style={{ color: THEME.accent }} />
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Monthly Change</h3>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={momDeltas}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={{ stroke: THEME.line }} />
-              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={{ stroke: THEME.line }} />
-              <Tooltip
-                formatter={(v) => fmtINRFull(v)}
-                {...tooltipProps}
-                cursor={{ fill: `color-mix(in srgb, ${THEME.muted} 12%, transparent)` }}
-              />
-              <Bar dataKey="delta" name="Change" fill={THEME.accent} radius={[4, 4, 0, 0]}
-                shape={(props) => {
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }} axisLine={{ stroke: THEME.line }} tickLine={false} />
+              <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="delta" name="Change" fill="var(--t-accent)" radius={[4, 4, 0, 0]}
+                shape={(props: any) => {
                   const { x, y, width, height, value } = props;
-                  return <rect x={x} y={y} width={width} height={Math.abs(height)} rx={4}
-                    style={{ fill: value >= 0 ? THEME.sage : THEME.rust }} />;
+                  const isPositive = value >= 0;
+                  const fill = isPositive ? "var(--t-sage)" : "var(--t-rust)";
+                  return (
+                    <rect
+                      x={x}
+                      y={y}
+                      width={width}
+                      height={Math.max(4, Math.abs(height))}
+                      rx={4}
+                      ry={4}
+                      style={{
+                        fill: fill,
+                        fillOpacity: 0.85,
+                        stroke: fill,
+                        strokeWidth: 1,
+                      }}
+                    />
+                  );
                 }}
               />
             </BarChart>
@@ -251,92 +635,256 @@ export const NetWorthTimelineTab = ({ state, metrics }) => {
         </Card>
       )}
 
-      {/* Projection / Time Machine */}
+      {/* ── What-If Time Machine ───────────────────────────────────────────── */}
       <SectionTitle sub="Project your net worth into the future">What-If Time Machine</SectionTitle>
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 20, alignItems: "flex-end" }}>
-          <div>
-            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Projection Period</label>
-            <select value={projectionYears} onChange={(e) => setProjectionYears(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink, fontSize: 14 }}>
-              {[1, 2, 3, 5, 10, 15, 20, 25, 30].map((y) => <option key={y} value={y}>{y} Year{y > 1 ? "s" : ""}</option>)}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 24, alignItems: "flex-end" }}>
+          {/* Controls: projection Period */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Projection Period
+            </span>
+            <select
+              value={projectionYears}
+              onChange={(e) => setProjectionYears(Number(e.target.value))}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13,
+                fontWeight: 600,
+                outline: "none",
+                cursor: "pointer",
+                minWidth: 120,
+              }}
+            >
+              {[1, 2, 3, 5, 10, 15, 20, 25, 30].map((y) => (
+                <option key={y} value={y}>{y} Year{y > 1 ? "s" : ""}</option>
+              ))}
             </select>
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Growth Scenario</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {projectionPresets.map((p, i) => (
-                <button key={i} onClick={() => setSelectedPreset(i)}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${i === selectedPreset ? THEME.accent : THEME.line}`,
-                    background: i === selectedPreset ? THEME.accent : "var(--t-card-bg)", color: i === selectedPreset ? "#fff" : THEME.ink,
-                    fontSize: 13, cursor: "pointer", fontWeight: i === selectedPreset ? 600 : 400 }}>
-                  {p.label} ({p.returnRate}%)
-                </button>
-              ))}
+
+          {/* Controls: Scenario Selector */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Growth Scenario
+            </span>
+            <div
+              style={{
+                display: "flex",
+                background: "var(--surface-1)",
+                padding: "4px",
+                borderRadius: "var(--radius-md)",
+                border: `1.5px solid ${THEME.line}`,
+                gap: "2px",
+              }}
+            >
+              {projectionPresets.map((p, i) => {
+                const isActive = i === selectedPreset;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedPreset(i)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "none",
+                      background: isActive ? "var(--surface-0)" : "transparent",
+                      color: isActive ? "var(--t-ink)" : "var(--t-muted)",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                      transition: "all 0.2s var(--ease-premium)",
+                    }}
+                  >
+                    {p.label} ({p.returnRate}%)
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: THEME.muted, display: "block", marginBottom: 4 }}>Monthly Savings</label>
-            <input type="number" value={monthlySavings} onChange={(e) => setMonthlySavings(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.line}`, background: "var(--t-card-bg)", color: THEME.ink, fontSize: 14, width: 140 }} />
+
+          {/* Controls: Monthly Savings input */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Monthly Savings
+            </span>
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <span style={{ position: "absolute", left: 12, fontSize: 13, fontWeight: 600, color: THEME.muted }}>₹</span>
+              <input
+                type="number"
+                value={monthlySavings}
+                onChange={(e) => setMonthlySavings(Number(e.target.value))}
+                style={{
+                  padding: "8px 12px 8px 24px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--surface-0)",
+                  color: THEME.ink,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  outline: "none",
+                  width: 140,
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={350}>
+        {/* Projection Chart */}
+        <ResponsiveContainer width="100%" height={320}>
           {(() => {
             const step = projectionYears <= 3 ? 3 : projectionYears <= 10 ? 6 : 12;
             const chartData = projection.filter((_, i) => i % step === 0 || i === projection.length - 1);
             const tickInterval = Math.max(0, Math.ceil(chartData.length / 10) - 1);
             return (
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} interval={tickInterval} />
-                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} />
-                <Tooltip formatter={(v) => fmtINRFull(v)} {...tooltipProps} />
-                <Legend wrapperStyle={{ fontSize: 12, color: THEME.ink }} />
-                <Area type="monotone" dataKey="nominal" stroke={THEME.accent} fill={THEME.accent} fillOpacity={0.15} strokeWidth={2} name="Nominal Value" />
-                <Area type="monotone" dataKey="real" stroke={THEME.gold} fill={THEME.gold} fillOpacity={0.1} strokeWidth={2} strokeDasharray="5 5" name="Inflation-Adjusted" />
+              <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="nominalGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--t-accent)" stopOpacity={0.25}/>
+                    <stop offset="100%" stopColor="var(--t-accent)" stopOpacity={0.0}/>
+                  </linearGradient>
+                  <linearGradient id="realGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--t-gold)" stopOpacity={0.15}/>
+                    <stop offset="100%" stopColor="var(--t-gold)" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.muted }} interval={tickInterval} axisLine={{ stroke: THEME.line }} tickLine={false} />
+                <YAxis tickFormatter={(v) => fmtINRFull(v)} tick={{ fontSize: 11, fill: THEME.muted }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  verticalAlign="top"
+                  height={36}
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
+                />
+                <Area type="monotone" dataKey="nominal" stroke="var(--t-accent)" fill="url(#nominalGrad)" strokeWidth={2.5} name="Nominal Future Value" />
+                <Area type="monotone" dataKey="real" stroke="var(--t-gold)" fill="url(#realGrad)" strokeWidth={2} strokeDasharray="5 5" name="Inflation-Adjusted Value" />
               </AreaChart>
             );
           })()}
         </ResponsiveContainer>
 
-        <div style={{ marginTop: 16, display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ padding: "12px 20px", borderRadius: 12, background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)` }}>
-            <div style={{ fontSize: 12, color: THEME.muted }}>Projected in {projectionYears}y (Nominal)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: THEME.accent }}>
+        {/* Projection Outputs summary panels */}
+        <div style={{ marginTop: 20, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div
+            style={{
+              padding: "12px 20px",
+              borderRadius: 12,
+              background: `color-mix(in srgb, var(--t-accent) 8%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, var(--t-accent) 15%, transparent)`,
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Projected in {projectionYears} Years
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.accent, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
               <Prv>{fmtINRFull(projection[projection.length - 1]?.nominal || 0)}</Prv>
             </div>
           </div>
-          <div style={{ padding: "12px 20px", borderRadius: 12, background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)` }}>
-            <div style={{ fontSize: 12, color: THEME.muted }}>Inflation-Adjusted (Real)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: THEME.gold }}>
+          
+          <div
+            style={{
+              padding: "12px 20px",
+              borderRadius: 12,
+              background: `color-mix(in srgb, var(--t-gold) 8%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, var(--t-gold) 15%, transparent)`,
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Inflation-Adjusted (Today's Value)
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "var(--t-gold)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
               <Prv>{fmtINRFull(projection[projection.length - 1]?.real || 0)}</Prv>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Milestones */}
+      {/* ── Wealth Milestones ──────────────────────────────────────────────── */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>Wealth Milestones</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-          {milestones.filter((m) => m.target >= (metrics.netWorth || 0) * 0.1).map((m) => (
-            <div key={m.target} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-              borderRadius: 12, background: m.achieved ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)` : THEME.paper,
-              border: `1px solid ${m.achieved ? `color-mix(in srgb, ${THEME.sage} 30%, transparent)` : THEME.line}` }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                background: m.achieved ? THEME.sage : THEME.line, color: m.achieved ? "#fff" : THEME.muted, fontSize: 14 }}>
-                {m.achieved ? "✓" : "○"}
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink }}>{fmtINRFull(m.target)}</div>
-                <div style={{ fontSize: 12, color: m.achieved ? THEME.sage : THEME.muted }}>
-                  {m.achieved ? "Achieved!" : m.eta ? `ETA: ${m.eta}` : "—"}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <Target size={18} style={{ color: THEME.accent }} />
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>Wealth Milestones</h3>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+          {milestones
+            .filter((m) => m.target >= (metrics.netWorth || 0) * 0.1)
+            .map((m) => {
+              const currentNW = metrics.netWorth || 0;
+              const pctToTarget = Math.min(100, Math.max(0, Math.round((currentNW / m.target) * 100)));
+              
+              return (
+                <div
+                  key={m.target}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    background: m.achieved ? `color-mix(in srgb, ${THEME.sage} 6%, var(--surface-0))` : "var(--surface-0)",
+                    border: `1.5px solid ${m.achieved ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `var(--t-line)`}`,
+                    transition: "all 0.2s var(--ease-premium)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {/* Circle icon marker */}
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: m.achieved ? THEME.sage : "var(--surface-1)",
+                        color: m.achieved ? "#fff" : THEME.muted,
+                        boxShadow: m.achieved ? `0 0 0 3px color-mix(in srgb, ${THEME.sage} 20%, transparent)` : "none",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {m.achieved ? <Check size={14} strokeWidth={3} /> : <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--t-line)" }} />}
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                        {fmtINRFull(m.target)}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: m.achieved ? THEME.sage : THEME.muted, marginTop: 1 }}>
+                        {m.achieved ? "Achieved!" : m.eta ? `ETA: ${m.eta}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Line */}
+                  {!m.achieved && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+                      <div style={{ height: 4, borderRadius: 2, background: "var(--t-line)", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${pctToTarget}%`,
+                            background: "var(--t-accent)",
+                            height: "100%",
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, fontWeight: 700, color: THEME.muted }}>
+                        <span>Progress</span>
+                        <span>{pctToTarget}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
         </div>
       </Card>
     </div>
