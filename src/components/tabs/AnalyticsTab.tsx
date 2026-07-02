@@ -1940,11 +1940,29 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const savingsMonthly = (metrics.cashInBanks * 0.03) / 12;
     const stockDividendsMonthly = (metrics.stockValue * 0.012) / 12;
     const mfYieldMonthly = (metrics.mfValue * 0.01) / 12;
+    const bondMonthly = ((metrics.bondValue || 0) * 0.07) / 12;
+
+    const govtRates: Record<string, number> = {
+      SSY: 8.2,
+      SCSS: 8.2,
+      NSC: 7.7,
+      KVP: 7.5,
+      POST_MIS: 7.4,
+      RBI_BOND: 8.05,
+      NPS_LITE: 7.0,
+    };
+    const govtSchemesMonthly = (state.govtSchemes || []).reduce((sum: number, sc: any) => {
+      const rate = Number(sc.interestRate) || govtRates[sc.schemeType] || 0;
+      const balance = Number(sc.currentBalance || 0);
+      return sum + (balance * rate) / 100 / 12;
+    }, 0);
 
     const totalPassive =
       rentalMonthly +
       fdMonthly +
       rdMonthly +
+      bondMonthly +
+      govtSchemesMonthly +
       savingsMonthly +
       stockDividendsMonthly +
       mfYieldMonthly;
@@ -2318,7 +2336,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const savPassive = (metrics.cashInBanks * 0.03) / 12;
     const divPassive =
       ((metrics.stockValue || 0) * 0.012) / 12 + ((metrics.mfValue || 0) * 0.01) / 12;
-    const totalPassiveMonthly = rentalPassive + fdPassive + bondPassive + savPassive + divPassive;
+    const govtRates: Record<string, number> = {
+      SSY: 8.2,
+      SCSS: 8.2,
+      NSC: 7.7,
+      KVP: 7.5,
+      POST_MIS: 7.4,
+      RBI_BOND: 8.05,
+      NPS_LITE: 7.0,
+    };
+    const govtSchemesPassive = (state.govtSchemes || []).reduce((sum: number, sc: any) => {
+      const rate = Number(sc.interestRate) || govtRates[sc.schemeType] || 0;
+      const balance = Number(sc.currentBalance || 0);
+      return sum + (balance * rate) / 100 / 12;
+    }, 0);
+    const totalPassiveMonthly =
+      rentalPassive + fdPassive + bondPassive + savPassive + divPassive + govtSchemesPassive;
     const piMiles = [
       ["pi5k", 5000],
       ["pi25k", 25000],

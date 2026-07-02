@@ -310,7 +310,13 @@ export function useMetrics(
       .filter((i: any) => i.date && i.date.startsWith(ym))
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const txnIncomeMonth = monthTxns
-      .filter((t: any) => t.type === "credit")
+      .filter(
+        (t: any) =>
+          t.type === "credit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const monthIncome = explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth;
 
@@ -322,7 +328,14 @@ export function useMetrics(
     }, 0);
 
     const txnDebitTotal = monthTxns
-      .filter((t: any) => t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment"
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const hasRentTxn = monthTxns.some((t: any) => t.type === "debit" && t.category === "Rent");
     const monthExpense =
@@ -334,7 +347,15 @@ export function useMetrics(
       .filter((i: any) => new Date(i.date) >= fyStart)
       .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
     const txnIncome = sState.transactions
-      .filter((t: any) => t.type === "credit" && t.date && new Date(t.date) >= fyStart)
+      .filter(
+        (t: any) =>
+          t.type === "credit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer" &&
+          t.date &&
+          new Date(t.date) >= fyStart
+      )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const annualizedCurrentMonth = (monthIncome || 0) * 12;
     // Prefer explicit ledger -> FY-to-date credit txns -> annualised single month (least accurate)
@@ -352,7 +373,7 @@ export function useMetrics(
         return s + m;
       }, 0);
 
-    const liquidAssets = cashInBanks + mfValue + stockValue;
+    const liquidAssets = cashInBanks + mfValue + stockValue + prepaidValue + goldValue;
     const lockedAssets =
       fdValue +
       rdValue +
@@ -362,9 +383,12 @@ export function useMetrics(
       epfValue +
       licValue +
       investmentValue +
+      loansGivenValue +
+      informalLentValue +
+      rentedDepositAsset +
+      rentalPropertiesAsset +
       realEstateAsset +
       vehicleAsset +
-      goldValue +
       govtSchemesValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
@@ -402,7 +426,14 @@ export function useMetrics(
     const taxDue = getTaxDueForDashboard(sState, annualIncome);
 
     const expenseBreakdownMap: Record<string, number> = monthTxns
-      .filter((t: any) => t.type === "debit")
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment"
+      )
       .reduce(
         (acc: Record<string, number>, t: any) => {
           const cat = t.category || "Uncategorized";
@@ -585,11 +616,24 @@ export function useMetrics(
         .filter((inc: any) => inc.date && inc.date.startsWith(ym))
         .reduce((s: number, inc: any) => s + Number(inc.amount || 0), 0);
       const txnInc = txns
-        .filter((t: any) => t.type === "credit")
+        .filter(
+          (t: any) =>
+            t.type === "credit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const inc = explicitInc > 0 ? explicitInc : txnInc;
       const txnExp = txns
-        .filter((t: any) => t.type === "debit")
+        .filter(
+          (t: any) =>
+            t.type === "debit" &&
+            t.category !== "Transfer" &&
+            t.category !== "Self Transfer" &&
+            t.category !== "Self-Transfer" &&
+            t.category !== "Investment"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       // Include rent paid via rental ledger (rentedProperties.payments) so the
       // trend chart stays consistent with the monthExpense metric on the dashboard.
@@ -620,7 +664,15 @@ export function useMetrics(
     let currentWeek = 0;
     let prevWeek = 0;
     filteredState.transactions
-      .filter((t: any) => t.type === "debit" && t.date)
+      .filter(
+        (t: any) =>
+          t.type === "debit" &&
+          t.category !== "Transfer" &&
+          t.category !== "Self Transfer" &&
+          t.category !== "Self-Transfer" &&
+          t.category !== "Investment" &&
+          t.date
+      )
       .forEach((t: any) => {
         const txMidnight = new Date(t.date + "T00:00:00").getTime();
         const diff = todayMidnight - txMidnight;
