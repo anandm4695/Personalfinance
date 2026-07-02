@@ -540,6 +540,45 @@ const DASHBOARD_WIDGET_DEFS = [
   { key: "passiveIncome", label: "Passive Income" },
 ];
 
+const DashboardSectionHeader: React.FC<{
+  title: string;
+  desc: string;
+  icon?: React.ReactNode;
+}> = ({ title, desc, icon }) => {
+  return (
+    <div className="bento-col-12 animate-fade-in-up" style={{ marginTop: 24, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {icon && (
+          <div style={{ color: THEME.accent, display: "flex", alignItems: "center" }}>{icon}</div>
+        )}
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            color: THEME.ink,
+          }}
+        >
+          {title}
+        </span>
+        <div style={{ flex: 1, height: 1, background: THEME.line }} />
+      </div>
+      <p
+        style={{
+          fontSize: 12,
+          color: THEME.muted,
+          marginTop: 4,
+          marginBottom: 0,
+          fontWeight: 500,
+        }}
+      >
+        {desc}
+      </p>
+    </div>
+  );
+};
+
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   metrics,
   state,
@@ -3307,6 +3346,83 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: DASHBOARD ────────────────── */}
       {sub === "dashboard" && (
         <div key="dashboard" className="tab-content-enter">
+          {/* Welcome Banner Card */}
+          <Card
+            variant="base"
+            style={{
+              padding: "20px 24px",
+              background: `linear-gradient(135deg, ${THEME.accent}08, ${THEME.sage}08)`,
+              border: `1.5px solid ${THEME.line}`,
+              borderRadius: 16,
+              marginBottom: 20,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 16,
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                    {(() => {
+                      const hr = new Date().getHours();
+                      if (hr < 12) return "Good morning";
+                      if (hr < 17) return "Good afternoon";
+                      return "Good evening";
+                    })()}
+                    ,{" "}
+                    {activeProfile === "all"
+                      ? "Anand Mohta"
+                      : PROFILES.find((p) => p.id === activeProfile)?.name || activeProfile}
+                  </span>
+                  <span style={{ fontSize: 18 }}>👋</span>
+                </div>
+                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
+                  Here is the consolidated summary of your{" "}
+                  {activeProfile === "all"
+                    ? "family wealth portfolios"
+                    : `${PROFILES.find((p) => p.id === activeProfile)?.name}'s portfolio`}
+                  .
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  alignItems: "flex-end",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: THEME.muted,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {new Date().toLocaleDateString("en-IN", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.sage }}>
+                  ● System Online
+                </span>
+              </div>
+            </div>
+          </Card>
+
           {smartInsights.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -3410,6 +3526,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           <div className="animate-fade-in-up bento-grid">
+            <DashboardSectionHeader
+              title="Core Wealth & Vitals"
+              desc="Consolidated net worth summary, asset breakdown, and core health indexes."
+              icon={<TrendingUp size={16} />}
+            />
             {/* Hero Card */}
             <Card
               variant="hero"
@@ -4586,6 +4707,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               </div>
             </Card>
+            <DashboardSectionHeader
+              title="Cash Flow & Liquidity"
+              desc="Reserves, savings velocity, payoff timelines, and recurring liability coverage."
+              icon={<Shield size={16} />}
+            />
 
             {/* ── Emergency Fund Health Check ── */}
             {(() => {
@@ -5094,6 +5220,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
               })()}
             </div>
+            <DashboardSectionHeader
+              title="Estate & Comparison Analysis"
+              desc="Audit of family nomination coverage, estate checklists, and fiscal year performance comparisons."
+              icon={<Calendar size={16} />}
+            />
 
             {/* ── Year-on-Year FY Comparison ── */}
             <Card className="bento-col-12" style={{ padding: 0, overflow: "hidden" }}>
@@ -5880,6 +6011,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
               )}
             </Card>
+            <DashboardSectionHeader
+              title="Recent Ledger Activity"
+              desc="Real-time transaction tracking and categorization filters."
+              icon={<Receipt size={16} />}
+            />
 
             {/* Recent Transactions */}
             <Card className="bento-col-12" style={{ padding: 24 }}>
