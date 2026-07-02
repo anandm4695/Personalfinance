@@ -12,6 +12,11 @@ import {
   ChevronUp,
   AlertCircle,
   Star,
+  Coins,
+  Briefcase,
+  FileText,
+  Activity,
+  Repeat,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid, today } from "../../utils/finance";
@@ -119,6 +124,20 @@ const SCHEMES = [
 ];
 
 const SCHEME_MAP = Object.fromEntries(SCHEMES.map((s) => [s.value, s]));
+
+const SCHEME_ICONS: Record<string, any> = {
+  APY: Users,
+  SSY: Star,
+  PMJJBY: Shield,
+  PMSBY: Shield,
+  PMKISAN: TrendingUp,
+  SCSS: Users,
+  NSC: FileText,
+  KVP: Coins,
+  POST_MIS: Coins,
+  RBI_BOND: FileText,
+  NPS_LITE: Briefcase,
+};
 
 const EMPTY: any = {
   schemeType: "APY",
@@ -370,6 +389,7 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
   const schemes: any[] = state.govtSchemes || [];
   const [modal, setModal] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sub, setSub] = useState("APY");
 
   const totalCorpus = schemes.reduce((s, sc) => s + Number(sc.currentBalance || 0), 0);
   const totalContrib = schemes.reduce((s, sc) => {
@@ -387,20 +407,67 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
     setModal(null);
   };
 
-  // Group by type
-  const groups: Record<string, any[]> = {};
-  schemes.forEach((sc) => {
-    const t = sc.schemeType || "Other";
-    if (!groups[t]) groups[t] = [];
-    groups[t].push(sc);
-  });
+  const subs = SCHEMES.map((s) => ({
+    id: s.value,
+    label: s.label.split("—")[0].trim(),
+    icon: SCHEME_ICONS[s.value] || Star,
+    color: s.color,
+    count: schemes.filter((sc: any) => sc.schemeType === s.value).length,
+  }));
+
+  const filteredSchemes = schemes.filter((sc: any) => sc.schemeType === sub);
+  const activeMeta = SCHEME_MAP[sub] || SCHEMES[0];
+
+  const getPillsForType = (type: string) => {
+    switch (type) {
+      case "APY":
+        return [
+          "Guaranteed Pension",
+          "Govt Co-contribution",
+          "Tax Benefits (80C)",
+          "Maturity at 60",
+        ];
+      case "SSY":
+        return ["Girl Child Welfare", "High Interest (8.2%)", "Tax Free (EEE)", "Maturity at 21"];
+      case "PMJJBY":
+        return [
+          "Life Cover (₹2L)",
+          "Low Premium (₹436/yr)",
+          "Easy Enrollment",
+          "Auto-debit Option",
+        ];
+      case "PMSBY":
+        return [
+          "Accident Cover (₹2L)",
+          "Low Premium (₹20/yr)",
+          "Disability Benefit",
+          "Auto-debit Option",
+        ];
+      case "PMKISAN":
+        return [
+          "Income Support",
+          "₹6000 Per Year",
+          "Direct Benefit Transfer",
+          "3 Equal Installments",
+        ];
+      case "SCSS":
+        return [
+          "Senior Citizens (60+)",
+          "High Interest (8.2%)",
+          "Quarterly Interest",
+          "Tax Saving (80C)",
+        ];
+      default:
+        return ["Guaranteed Returns", "Tax Benefits", "Maturity Tracking", "Secure Option"];
+    }
+  };
 
   return (
-    <div>
+    <div className="tab-content-enter">
       <SectionTitle
         sub="APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC, KVP and more"
         rightElement={
-          <Button size="sm" onClick={() => setModal({})}>
+          <Button size="sm" onClick={() => setModal({ schemeType: sub })}>
             <Plus size={14} /> Add Scheme
           </Button>
         }
@@ -439,26 +506,64 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
         </div>
       )}
 
-      {/* Scheme highlights */}
-      {schemes.length === 0 ? (
+      {/* Sub-tab navigation bar */}
+      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
+        {subs.map((s) => {
+          const Icon = s.icon;
+          const active = sub === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setSub(s.id)}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
+              style={
+                active
+                  ? ({
+                      "--active-color": s.color,
+                      "--active-border": `${s.color}40`,
+                      "--active-bg": `${s.color}15`,
+                    } as React.CSSProperties)
+                  : {}
+              }
+            >
+              <Icon size={13} color={active ? s.color : undefined} />
+              {s.label}
+              {s.count > 0 && (
+                <span
+                  style={{
+                    padding: "1px 6px",
+                    borderRadius: 20,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: active ? `${s.color}22` : `${THEME.textMuted}22`,
+                    color: active ? s.color : THEME.textMuted,
+                    marginLeft: 4,
+                  }}
+                >
+                  {s.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content area */}
+      {filteredSchemes.length === 0 ? (
         <>
           <EmptyState
-            icon={Star}
-            gradient="linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)"
-            dotColor="#1d4ed8"
-            title="No Government Schemes Tracked"
-            description="Add APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC and other govt savings schemes."
-            pills={[
-              "Guaranteed Returns",
-              "Tax Benefits (80C)",
-              "Maturity Tracking",
-              "Nominee Details",
-            ]}
-            buttonLabel="Add Scheme"
-            onAdd={() => setModal({})}
+            icon={activeMeta.value === "PMJJBY" || activeMeta.value === "PMSBY" ? Shield : Star}
+            gradient={`linear-gradient(135deg, ${activeMeta.color} 0%, ${activeMeta.color}b3 100%)`}
+            dotColor={activeMeta.color}
+            title={`No ${activeMeta.label.split("—")[0].trim()} Tracked`}
+            description={activeMeta.description}
+            pills={getPillsForType(sub)}
+            buttonLabel={`Add ${activeMeta.label.split("—")[0].trim()}`}
+            onAdd={() => setModal({ schemeType: sub })}
           />
-          {/* Scheme discovery grid */}
-          <div style={{ marginTop: 24 }}>
+
+          {/* Discovery Card Grid for all schemes */}
+          <div style={{ marginTop: 32 }}>
             <div
               style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: THEME.textMuted }}
             >
@@ -471,14 +576,34 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
                 gap: 10,
               }}
             >
-              {SCHEMES.slice(0, 6).map((s) => (
+              {SCHEMES.map((s) => (
                 <Card
                   key={s.value}
-                  style={{ borderLeft: `4px solid ${s.color}`, cursor: "pointer" }}
-                  onClick={() => setModal({ schemeType: s.value })}
+                  style={{
+                    borderLeft: `4px solid ${s.color}`,
+                    cursor: "pointer",
+                    background: s.value === sub ? "var(--surface-1)" : undefined,
+                  }}
+                  onClick={() => {
+                    setSub(s.value);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>
-                    {s.label.split("—")[0].trim()}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>
+                      {s.label.split("—")[0].trim()}
+                    </div>
+                    {schemes.filter((sc: any) => sc.schemeType === s.value).length > 0 && (
+                      <Badge color="success">
+                        {schemes.filter((sc: any) => sc.schemeType === s.value).length} active
+                      </Badge>
+                    )}
                   </div>
                   <div
                     style={{ fontSize: 12, color: THEME.textMuted, marginTop: 4, lineHeight: 1.5 }}
@@ -504,7 +629,7 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
         </>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {schemes.map((sc: any) => {
+          {filteredSchemes.map((sc: any) => {
             const meta = SCHEME_MAP[sc.schemeType] || {
               color: THEME.primary,
               label: sc.schemeType,
