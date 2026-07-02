@@ -612,7 +612,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
   const importCount = mode === "smart" ? selectedCount : preview.length;
 
   return (
-    <Modal title="Import Transactions (CSV)" onClose={onClose}>
+    <Modal title="Import Transactions (CSV)" onClose={onClose} maxWidth={720}>
       {/* ── Mode toggle ──────────────────────────────────────────── */}
       <div
         style={{
@@ -938,12 +938,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
                   borderRadius: 10,
                 }}
               >
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: "var(--surface-0)", textAlign: "left" }}>
-                      <th style={{ padding: "8px 6px", borderBottom: `1px solid ${THEME.line}`, width: 30 }}>✓</th>
-                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, whiteSpace: "nowrap" }}>Date</th>
-                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Narration</th>
+                      <th style={{ padding: "8px 6px", borderBottom: `1px solid ${THEME.line}`, width: 40, minWidth: 40 }}>✓</th>
+                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, width: 90, minWidth: 90, whiteSpace: "nowrap" }}>Date</th>
+                      <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, minWidth: 150 }}>Narration</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}` }}>Category</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "right" }}>Amount</th>
                       <th style={{ padding: "8px 10px", borderBottom: `1px solid ${THEME.line}`, textAlign: "center" }}>Status</th>
@@ -952,7 +952,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
                   <tbody>
                     {smartPreview.map((r, i) => (
                       <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: r.isDuplicate ? 0.45 : 1 }}>
-                        <td style={{ padding: "8px 6px" }}>
+                        <td style={{ padding: "8px 6px", width: 40, minWidth: 40 }}>
                           <input
                             type="checkbox"
                             checked={r.selected && !r.isDuplicate}
@@ -960,8 +960,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
                             onChange={() => toggleRow(i)}
                           />
                         </td>
-                        <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: THEME.muted }}>{r.date}</td>
-                        <td style={{ padding: "8px 10px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
+                        <td style={{ padding: "8px 10px", width: 90, minWidth: 90, whiteSpace: "nowrap", color: THEME.muted }}>{r.date}</td>
+                        <td style={{ padding: "8px 10px", minWidth: 150, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.narration}>
                           {r.narration || "—"}
                         </td>
                         <td style={{ padding: "8px 10px" }}>
