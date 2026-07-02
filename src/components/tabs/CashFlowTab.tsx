@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -8,11 +8,9 @@ import {
   Wallet,
   CreditCard,
   Home,
-  Banknote,
   CalendarClock,
   ChevronDown,
   ChevronRight,
-  Clock,
   Landmark,
   Receipt,
   Shield,
@@ -20,13 +18,9 @@ import {
   Activity,
   BarChart2,
   DollarSign,
-  Building2,
   PiggyBank,
-  Calendar,
-  AlertCircle,
 } from "lucide-react";
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -38,12 +32,10 @@ import {
   ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact, today, getEffectiveRent } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, getEffectiveRent } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -116,6 +108,48 @@ const fmtDate = (dateStr: string) => {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+// ── Custom Tooltip for Chart ──────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid var(--t-line)`,
+        borderRadius: "12px",
+        padding: "14px 16px",
+        boxShadow: "var(--shadow-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        minWidth: "220px",
+      }}
+    >
+      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px" }}>
+        {label} Projection
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {payload.map((entry: any, index: number) => {
+          const color = entry.dataKey === "Inflow" ? "var(--t-sage)" : entry.dataKey === "Outflow" ? "var(--t-rust)" : "var(--t-accent)";
+          return (
+            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>{entry.name}</span>
+              </div>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: entry.dataKey === "Cumulative" ? "var(--t-accent)" : "var(--t-ink)" }}>
+                <Prv>{fmtINRFull(entry.value)}</Prv>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) => {
   const [forecastMonths, setForecastMonths] = useState<3 | 6>(6);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -123,6 +157,9 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
     outflows: true,
     events: true,
   });
+  const [hoveredInflow, setHoveredInflow] = useState<number | null>(null);
+  const [hoveredOutflow, setHoveredOutflow] = useState<number | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<number | null>(null);
 
   const toggleSection = (key: string) =>
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -498,62 +535,57 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
 
-  const summaryCards = [
-    {
-      label: "Total Projected Inflow",
-      value: grandInflow,
-      icon: ArrowUpRight,
-      color: THEME.sage,
-      bg: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-    },
-    {
-      label: "Total Projected Outflow",
-      value: grandOutflow,
-      icon: ArrowDownRight,
-      color: THEME.rust,
-      bg: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-    },
-    {
-      label: "Net Cash Flow",
-      value: netCashFlow,
-      icon: netCashFlow >= 0 ? TrendingUp : TrendingDown,
-      color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
-      bg: netCashFlow >= 0
-        ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
-        : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-    },
-    {
-      label: "Monthly Surplus/Deficit",
-      value: netMonthly,
-      icon: netMonthly >= 0 ? ArrowUpRight : ArrowDownRight,
-      color: netMonthly >= 0 ? THEME.sage : THEME.rust,
-      bg: netMonthly >= 0
-        ? `color-mix(in srgb, ${THEME.sage} 8%, transparent)`
-        : `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-    },
-  ];
-
   return (
     <div>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <SectionTitle
         sub="Forward-looking projection of your income, expenses, and one-time events"
         rightElement={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button
-              variant={forecastMonths === 3 ? "primary" : "secondary"}
-              size="sm"
+          <div
+            style={{
+              display: "flex",
+              background: "var(--surface-1)",
+              padding: "4px",
+              borderRadius: "var(--radius-md)",
+              border: `1.5px solid ${THEME.line}`,
+              position: "relative",
+              gap: "2px",
+            }}
+          >
+            <button
               onClick={() => setForecastMonths(3)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                background: forecastMonths === 3 ? "var(--surface-0)" : "transparent",
+                color: forecastMonths === 3 ? "var(--t-ink)" : "var(--t-muted)",
+                fontWeight: 700,
+                fontSize: "12px",
+                cursor: "pointer",
+                boxShadow: forecastMonths === 3 ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s var(--ease-premium)",
+              }}
             >
               3 Months
-            </Button>
-            <Button
-              variant={forecastMonths === 6 ? "primary" : "secondary"}
-              size="sm"
+            </button>
+            <button
               onClick={() => setForecastMonths(6)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                background: forecastMonths === 6 ? "var(--surface-0)" : "transparent",
+                color: forecastMonths === 6 ? "var(--t-ink)" : "var(--t-muted)",
+                fontWeight: 700,
+                fontSize: "12px",
+                cursor: "pointer",
+                boxShadow: forecastMonths === 6 ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s var(--ease-premium)",
+              }}
             >
               6 Months
-            </Button>
+            </button>
           </div>
         }
       >
@@ -564,21 +596,248 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 16,
           marginBottom: 24,
         }}
       >
-        {summaryCards.map((c) => (
-          <StatCard
-            key={c.label}
-            label={c.label}
-            value={fmtINRFull(Math.abs(c.value))}
-            sub={`${forecastMonths}-month forecast`}
-            icon={<c.icon />}
-            color={c.color}
-          />
-        ))}
+        {/* Card 1: Total Projected Inflow */}
+        <Card
+          hover
+          style={{
+            padding: "20px",
+            borderTop: `4px solid ${THEME.sage}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.sage,
+                }}
+              >
+                <ArrowUpRight size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Total Projected Inflow
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Next {forecastMonths} Months
+                </div>
+              </div>
+            </div>
+            <Badge variant="sage">{Math.round(grandInflow > 0 ? (totalInflow / grandInflow) * 100 : 100)}% Regular</Badge>
+          </div>
+          
+          <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+            <Prv>{fmtINRFull(grandInflow)}</Prv>
+          </div>
+
+          {/* Composition bar */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.sage} 15%, var(--t-line))`, overflow: "hidden", display: "flex" }}>
+              <div style={{ width: `${(totalInflow / Math.max(1, grandInflow)) * 100}%`, background: THEME.sage, height: "100%" }} />
+              <div style={{ width: `${(eventInflow / Math.max(1, grandInflow)) * 100}%`, background: "var(--t-accent)", height: "100%" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              <span>Regular: <Prv>{fmtINRFull(totalInflow)}</Prv></span>
+              <span>Events: <Prv>{fmtINRFull(eventInflow)}</Prv></span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 2: Total Projected Outflow */}
+        <Card
+          hover
+          style={{
+            padding: "20px",
+            borderTop: `4px solid ${THEME.rust}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.rust,
+                }}
+              >
+                <ArrowDownRight size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Total Projected Outflow
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Next {forecastMonths} Months
+                </div>
+              </div>
+            </div>
+            <Badge variant="rust">{Math.round(grandOutflow > 0 ? (totalOutflow / grandOutflow) * 100 : 100)}% Regular</Badge>
+          </div>
+
+          <div style={{ fontSize: 28, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+            <Prv>{fmtINRFull(grandOutflow)}</Prv>
+          </div>
+
+          {/* Composition bar */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            <div style={{ height: 6, borderRadius: 3, background: `color-mix(in srgb, ${THEME.rust} 15%, var(--t-line))`, overflow: "hidden", display: "flex" }}>
+              <div style={{ width: `${(totalOutflow / Math.max(1, grandOutflow)) * 100}%`, background: THEME.rust, height: "100%" }} />
+              <div style={{ width: `${(eventOutflow / Math.max(1, grandOutflow)) * 100}%`, background: "var(--t-gold)", height: "100%" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              <span>Regular: <Prv>{fmtINRFull(totalOutflow)}</Prv></span>
+              <span>Events: <Prv>{fmtINRFull(eventOutflow)}</Prv></span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 3: Net Cash Flow */}
+        <Card
+          hover
+          style={{
+            padding: "20px",
+            borderTop: `4px solid ${netCashFlow >= 0 ? THEME.sage : THEME.rust}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: netCashFlow >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  border: `1px solid ${netCashFlow >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: netCashFlow >= 0 ? THEME.sage : THEME.rust,
+                }}
+              >
+                {netCashFlow >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Net Cash Flow
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Maturities & Closures Included
+                </div>
+              </div>
+            </div>
+            <Badge variant={netCashFlow >= 0 ? "sage" : "rust"}>{netCashFlow >= 0 ? "Surplus" : "Deficit"}</Badge>
+          </div>
+
+          <div style={{ fontSize: 28, fontWeight: 900, color: netCashFlow >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+            <Prv>{(netCashFlow < 0 ? "-" : "") + fmtINRFull(Math.abs(netCashFlow))}</Prv>
+          </div>
+
+          {/* Cash Flow Ratio indicator */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${Math.min(100, Math.max(0, (grandInflow / Math.max(1, grandInflow + grandOutflow)) * 100))}%`,
+                  background: netCashFlow >= 0 ? THEME.sage : THEME.rust,
+                  height: "100%",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              <span>Coverage Ratio: {(grandInflow / Math.max(1, grandOutflow)).toFixed(2)}x</span>
+              <span>{netCashFlow >= 0 ? "Positive Savings" : "Capital Deficit"}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 4: Monthly Surplus/Deficit */}
+        <Card
+          hover
+          style={{
+            padding: "20px",
+            borderTop: `4px solid ${netMonthly >= 0 ? THEME.sage : THEME.rust}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: netMonthly >= 0 ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)` : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                  border: `1px solid ${netMonthly >= 0 ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.rust} 20%, transparent)`}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: netMonthly >= 0 ? THEME.sage : THEME.rust,
+                }}
+              >
+                {netMonthly >= 0 ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Monthly Surplus
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Regular Income & Expenses
+                </div>
+              </div>
+            </div>
+            <Badge variant={netMonthly >= 0 ? "sage" : "rust"}>{netMonthly >= 0 ? "Stable" : "Tight"}</Badge>
+          </div>
+
+          <div style={{ fontSize: 28, fontWeight: 900, color: netMonthly >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>
+            <Prv>{(netMonthly < 0 ? "-" : "") + fmtINRFull(Math.abs(netMonthly))}</Prv>
+          </div>
+
+          {/* Monthly progress indicator */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${Math.min(100, Math.max(0, (totalMonthlyInflow / Math.max(1, totalMonthlyInflow + totalMonthlyOutflow)) * 100))}%`,
+                  background: netMonthly >= 0 ? THEME.sage : THEME.rust,
+                  height: "100%",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
+              <span>In: <Prv>{fmtINRFull(totalMonthlyInflow)}</Prv></span>
+              <span>Out: <Prv>{fmtINRFull(totalMonthlyOutflow)}</Prv></span>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* ── Chart ──────────────────────────────────────────────────────────── */}
@@ -598,10 +857,20 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
         </div>
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barGap={4} barCategoryGap="20%">
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+            <defs>
+              <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={THEME.sage} stopOpacity={0.85}/>
+                <stop offset="100%" stopColor={THEME.sage} stopOpacity={0.15}/>
+              </linearGradient>
+              <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={THEME.rust} stopOpacity={0.85}/>
+                <stop offset="100%" stopColor={THEME.rust} stopOpacity={0.15}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.3} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 12, fontWeight: 700, fill: THEME.muted }}
+              tick={{ fontSize: 11, fontWeight: 600, fill: THEME.muted }}
               axisLine={{ stroke: THEME.line }}
               tickLine={false}
             />
@@ -611,29 +880,23 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
               tickLine={false}
               tickFormatter={(v: number) => fmtINRFull(v)}
             />
-            <Tooltip
-              cursor={{ fill: THEME.line, opacity: 0.4 }}
-              contentStyle={{
-                background: "var(--surface-0)",
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 600,
-                color: THEME.ink,
-              }}
-              labelStyle={{ color: THEME.ink }}
-              itemStyle={{ color: THEME.ink }}
-              formatter={(value: number) => fmtINRFull(value)}
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              verticalAlign="top"
+              height={36}
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 10 }}
             />
-            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700 }} />
-            <Bar dataKey="Inflow" fill={THEME.sage} radius={[6, 6, 0, 0]} maxBarSize={48} />
-            <Bar dataKey="Outflow" fill={THEME.rust} radius={[6, 6, 0, 0]} maxBarSize={48} />
+            <Bar dataKey="Inflow" name="Projected Inflow" fill="url(#inflowGrad)" stroke={THEME.sage} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={40} />
+            <Bar dataKey="Outflow" name="Projected Outflow" fill="url(#outflowGrad)" stroke={THEME.rust} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={40} />
             <Line
               type="monotone"
               dataKey="Cumulative"
               stroke={THEME.accent}
-              strokeWidth={2.5}
-              dot={{ fill: THEME.accent, r: 4 }}
+              strokeWidth={3}
+              dot={{ fill: THEME.accent, stroke: "var(--surface-0)", strokeWidth: 2, r: 5 }}
+              activeDot={{ fill: THEME.accent, stroke: "var(--surface-0)", strokeWidth: 2, r: 7 }}
               name="Cumulative Surplus"
             />
           </ComposedChart>
@@ -674,107 +937,107 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             )}
           </div>
           {expandedSections.inflows && (
-            <div style={{ padding: "0" }}>
+            <div style={{ padding: "8px 0" }}>
               {inflows.length === 0 ? (
                 <div style={{ padding: 24, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
                   No regular inflows detected
                 </div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr
-                      style={{
-                        borderBottom: `1px solid ${THEME.line}`,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      <th style={{ textAlign: "left", padding: "10px 20px" }}>Source</th>
-                      <th style={{ textAlign: "right", padding: "10px 16px" }}>Monthly</th>
-                      <th style={{ textAlign: "right", padding: "10px 20px" }}>{forecastMonths}-Mo Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inflows.map((item, idx) => {
-                      const Icon = item.icon;
-                      return (
-                        <tr
-                          key={idx}
-                          style={{
-                            borderBottom: idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          }}
-                        >
-                          <td style={{ padding: "12px 20px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <Icon size={14} style={{ color: THEME.sage, flexShrink: 0 }} />
-                              <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                                {item.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 16px",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: THEME.sage,
-                            }}
-                          >
-                            <Prv>{fmtINRExact(item.monthly)}</Prv>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 20px",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: THEME.muted,
-                            }}
-                          >
-                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {/* Total Row */}
-                    <tr
-                      style={{
-                        borderTop: `2px solid ${THEME.line}`,
-                        background: `color-mix(in srgb, ${THEME.sage} 5%, transparent)`,
-                      }}
-                    >
-                      <td style={{ padding: "12px 20px", fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                        Total
-                      </td>
-                      <td
+                <div>
+                  {inflows.map((item, idx) => {
+                    const Icon = item.icon;
+                    const pctOfTotal = totalMonthlyInflow > 0 ? (item.monthly / totalMonthlyInflow) * 100 : 0;
+                    return (
+                      <div
+                        key={idx}
+                        onMouseEnter={() => setHoveredInflow(idx)}
+                        onMouseLeave={() => setHoveredInflow(null)}
                         style={{
-                          textAlign: "right",
-                          padding: "12px 16px",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.sage,
-                        }}
-                      >
-                        <Prv>{fmtINRExact(totalMonthlyInflow)}</Prv>
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
+                          display: "grid",
+                          gridTemplateColumns: "1.5fr 1fr 1fr",
+                          alignItems: "center",
                           padding: "12px 20px",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.sage,
+                          borderBottom: idx < inflows.length - 1 ? `1px solid ${THEME.line}` : "none",
+                          background: hoveredInflow === idx ? "var(--surface-1)" : "transparent",
+                          transform: hoveredInflow === idx ? "translateX(4px)" : "none",
+                          transition: "all 0.2s var(--ease-premium)",
+                          cursor: "pointer",
                         }}
                       >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: THEME.sage,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon size={14} />
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                              {item.name}
+                            </span>
+                            <span style={{ fontSize: 10, color: THEME.muted }}>
+                              {item.category} • {pctOfTotal.toFixed(0)}% of total
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right", paddingRight: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(item.monthly)}</Prv>
+                          </span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>/mo</span>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
+                          </span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
+                            {forecastMonths}-mo Total
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Total Row */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1fr 1fr",
+                      alignItems: "center",
+                      padding: "14px 20px",
+                      borderTop: `2px solid ${THEME.line}`,
+                      background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Total Inflow</span>
+                    </div>
+                    <div style={{ textAlign: "right", paddingRight: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
+                        <Prv>{fmtINRExact(totalMonthlyInflow)}</Prv>
+                      </span>
+                      <span style={{ display: "block", fontSize: 10, color: THEME.sage, fontWeight: 600 }}>/mo</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
                         <Prv>{fmtINRExact(totalInflow)}</Prv>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </span>
+                      <span style={{ display: "block", fontSize: 10, color: THEME.sage, fontWeight: 600 }}>
+                        {forecastMonths}-mo Total
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -805,107 +1068,107 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
             )}
           </div>
           {expandedSections.outflows && (
-            <div style={{ padding: "0" }}>
+            <div style={{ padding: "8px 0" }}>
               {outflows.length === 0 ? (
                 <div style={{ padding: 24, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
                   No regular outflows detected
                 </div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr
-                      style={{
-                        borderBottom: `1px solid ${THEME.line}`,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      <th style={{ textAlign: "left", padding: "10px 20px" }}>Source</th>
-                      <th style={{ textAlign: "right", padding: "10px 16px" }}>Monthly</th>
-                      <th style={{ textAlign: "right", padding: "10px 20px" }}>{forecastMonths}-Mo Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {outflows.map((item, idx) => {
-                      const Icon = item.icon;
-                      return (
-                        <tr
-                          key={idx}
-                          style={{
-                            borderBottom: idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
-                          }}
-                        >
-                          <td style={{ padding: "12px 20px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <Icon size={14} style={{ color: THEME.rust, flexShrink: 0 }} />
-                              <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                                {item.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 16px",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: THEME.rust,
-                            }}
-                          >
-                            <Prv>{fmtINRExact(item.monthly)}</Prv>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              padding: "12px 20px",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: THEME.muted,
-                            }}
-                          >
-                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {/* Total Row */}
-                    <tr
-                      style={{
-                        borderTop: `2px solid ${THEME.line}`,
-                        background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
-                      }}
-                    >
-                      <td style={{ padding: "12px 20px", fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                        Total
-                      </td>
-                      <td
+                <div>
+                  {outflows.map((item, idx) => {
+                    const Icon = item.icon;
+                    const pctOfTotal = totalMonthlyOutflow > 0 ? (item.monthly / totalMonthlyOutflow) * 100 : 0;
+                    return (
+                      <div
+                        key={idx}
+                        onMouseEnter={() => setHoveredOutflow(idx)}
+                        onMouseLeave={() => setHoveredOutflow(null)}
                         style={{
-                          textAlign: "right",
-                          padding: "12px 16px",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.rust,
-                        }}
-                      >
-                        <Prv>{fmtINRExact(totalMonthlyOutflow)}</Prv>
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
+                          display: "grid",
+                          gridTemplateColumns: "1.5fr 1fr 1fr",
+                          alignItems: "center",
                           padding: "12px 20px",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.rust,
+                          borderBottom: idx < outflows.length - 1 ? `1px solid ${THEME.line}` : "none",
+                          background: hoveredOutflow === idx ? "var(--surface-1)" : "transparent",
+                          transform: hoveredOutflow === idx ? "translateX(4px)" : "none",
+                          transition: "all 0.2s var(--ease-premium)",
+                          cursor: "pointer",
                         }}
                       >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: THEME.rust,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon size={14} />
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                              {item.name}
+                            </span>
+                            <span style={{ fontSize: 10, color: THEME.muted }}>
+                              {item.category} • {pctOfTotal.toFixed(0)}% of total
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right", paddingRight: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(item.monthly)}</Prv>
+                          </span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>/mo</span>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                            <Prv>{fmtINRExact(item.monthly * forecastMonths)}</Prv>
+                          </span>
+                          <span style={{ display: "block", fontSize: 10, color: THEME.muted }}>
+                            {forecastMonths}-mo Total
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Total Row */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1fr 1fr",
+                      alignItems: "center",
+                      padding: "14px 20px",
+                      borderTop: `2px solid ${THEME.line}`,
+                      background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>Total Outflow</span>
+                    </div>
+                    <div style={{ textAlign: "right", paddingRight: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
+                        <Prv>{fmtINRExact(totalMonthlyOutflow)}</Prv>
+                      </span>
+                      <span style={{ display: "block", fontSize: 10, color: THEME.rust, fontWeight: 600 }}>/mo</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
                         <Prv>{fmtINRExact(totalOutflow)}</Prv>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </span>
+                      <span style={{ display: "block", fontSize: 10, color: THEME.rust, fontWeight: 600 }}>
+                        {forecastMonths}-mo Total
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -943,68 +1206,165 @@ export const CashFlowTab = ({ state, metrics }: { state: any; metrics: any }) =>
                 No one-time events in the next {forecastMonths} months
               </div>
             ) : (
-              <div style={{ padding: "8px 0" }}>
-                {events.map((event, idx) => {
-                  const isInflow = event.type === "inflow";
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 16,
-                        padding: "14px 20px",
-                        borderBottom: idx < events.length - 1 ? `1px solid ${THEME.line}` : "none",
-                      }}
-                    >
-                      {/* Timeline dot */}
+              <div style={{ padding: "16px 20px", position: "relative" }}>
+                {/* Vertical Timeline Thread */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "32px",
+                    bottom: "32px",
+                    left: "35px",
+                    width: "2px",
+                    background: `linear-gradient(to bottom, var(--t-line) 0%, var(--t-line) 80%, transparent 100%)`,
+                    zIndex: 0,
+                  }}
+                />
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {events.map((event, idx) => {
+                    const isInflow = event.type === "inflow";
+                    const isHovered = hoveredEvent === idx;
+
+                    // Calculate countdown
+                    let relativeLabel = "";
+                    if (event.date) {
+                      try {
+                        const todayTime = new Date().setHours(0, 0, 0, 0);
+                        const eventTime = new Date(event.date + "T00:00:00").getTime();
+                        const diffTime = eventTime - todayTime;
+                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 0) {
+                          relativeLabel = "Today";
+                        } else if (diffDays === 1) {
+                          relativeLabel = "Tomorrow";
+                        } else if (diffDays === -1) {
+                          relativeLabel = "Yesterday";
+                        } else if (diffDays > 1) {
+                          if (diffDays > 30) {
+                            const diffMonths = Math.round(diffDays / 30.4);
+                            relativeLabel = `In ${diffMonths} month${diffMonths > 1 ? "s" : ""}`;
+                          } else {
+                            relativeLabel = `In ${diffDays} days`;
+                          }
+                        } else {
+                          const absDays = Math.abs(diffDays);
+                          if (absDays > 30) {
+                            const diffMonths = Math.round(absDays / 30.4);
+                            relativeLabel = `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+                          } else {
+                            relativeLabel = `${absDays} day${absDays > 1 ? "s" : ""} ago`;
+                          }
+                        }
+                      } catch (e) {
+                        // ignore
+                      }
+                    }
+
+                    return (
                       <div
+                        key={idx}
+                        onMouseEnter={() => setHoveredEvent(idx)}
+                        onMouseLeave={() => setHoveredEvent(null)}
                         style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          background: isInflow ? THEME.sage : THEME.rust,
-                          flexShrink: 0,
-                          boxShadow: `0 0 0 3px color-mix(in srgb, ${isInflow ? THEME.sage : THEME.rust} 20%, transparent)`,
-                        }}
-                      />
-                      {/* Date */}
-                      <div
-                        style={{
-                          minWidth: 80,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: THEME.muted,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                          padding: "10px 0",
+                          position: "relative",
+                          zIndex: 1,
+                          cursor: "pointer",
                         }}
                       >
-                        {fmtDate(event.date)}
+                        {/* Timeline Dot container */}
+                        <div
+                          style={{
+                            width: 32,
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              background: isInflow ? THEME.sage : THEME.rust,
+                              border: `2.5px solid var(--surface-0)`,
+                              boxShadow: `0 0 0 4px color-mix(in srgb, ${isInflow ? THEME.sage : THEME.rust} 20%, transparent)`,
+                              zIndex: 3,
+                              transform: isHovered ? "scale(1.25)" : "none",
+                              transition: "all 0.2s var(--ease-premium)",
+                            }}
+                          />
+                        </div>
+
+                        {/* Content block */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 16,
+                            flex: 1,
+                            transform: isHovered ? "translateX(6px)" : "none",
+                            transition: "all 0.2s var(--ease-premium)",
+                          }}
+                        >
+                          {/* Date & Countdown */}
+                          <div style={{ minWidth: 110, display: "flex", flexDirection: "column", gap: 2 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                              {fmtDate(event.date)}
+                            </span>
+                            {relativeLabel && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  color: relativeLabel === "Today" || relativeLabel === "Tomorrow" 
+                                    ? (isInflow ? THEME.sage : THEME.rust) 
+                                    : THEME.muted,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                }}
+                              >
+                                {relativeLabel}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Name & Badge */}
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                              {event.name}
+                            </span>
+                            <Badge variant={isInflow ? "sage" : "rust"} style={{ fontSize: "10px", padding: "2px 6px" }}>
+                              {event.category}
+                            </Badge>
+                          </div>
+
+                          {/* Amount */}
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: isInflow ? THEME.sage : THEME.rust,
+                              minWidth: 110,
+                              textAlign: "right",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            <Prv>
+                              {isInflow ? "+" : "-"}
+                              {fmtINRExact(event.amount)}
+                            </Prv>
+                          </div>
+                        </div>
                       </div>
-                      {/* Name */}
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: THEME.ink }}>
-                        {event.name}
-                      </div>
-                      {/* Category Badge */}
-                      <Badge variant={isInflow ? "sage" : "rust"}>
-                        {event.category}
-                      </Badge>
-                      {/* Amount */}
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: isInflow ? THEME.sage : THEME.rust,
-                          minWidth: 100,
-                          textAlign: "right",
-                        }}
-                      >
-                        <Prv>
-                          {isInflow ? "+" : "-"}
-                          {fmtINRExact(event.amount)}
-                        </Prv>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
