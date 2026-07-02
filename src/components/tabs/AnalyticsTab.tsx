@@ -42,7 +42,13 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
-import { fmtINRFull, getCCDueDate, rdMaturity, getEffectiveRent, calculateEpfBalance } from "../../utils/finance";
+import {
+  fmtINRFull,
+  getCCDueDate,
+  rdMaturity,
+  getEffectiveRent,
+  calculateEpfBalance,
+} from "../../utils/finance";
 import { getCurrentFY } from "../../utils/appConstants";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -563,7 +569,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // ── Database-Synced Rebalancing Target States ──
   const initialRebalTargets = useMemo(() => {
-    return state.masterData?._rebalTargets || { equity: 60, debt: 25, cash: 10, realEstate: 0, other: 5 };
+    return (
+      state.masterData?._rebalTargets || { equity: 60, debt: 25, cash: 10, realEstate: 0, other: 5 }
+    );
   }, [state.masterData?._rebalTargets]);
 
   const [rebalTargets, setRebalTargetsState] = useState(initialRebalTargets);
@@ -774,13 +782,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr)
         .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
       const txnIncome = (state.transactions || [])
-        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "credit")
+        .filter(
+          (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "credit"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const totalIncome = incomeLedger > 0 ? incomeLedger : txnIncome;
 
       // Expenses from debit transactions + rent payments
       const txnExpense = (state.transactions || [])
-        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "debit")
+        .filter(
+          (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type === "debit"
+        )
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentPaid = (state.rentedProperties || []).reduce(
         (sum: number, p: any) =>
@@ -805,11 +817,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       const fdAdds = (state.fixedDeposits || [])
         .filter((fd: any) => fd.startDate && fd.startDate >= fyStartStr && fd.startDate <= fyEndStr)
         .reduce((s: number, fd: any) => s + Number(fd.principal || 0), 0);
-      const ppfAdds = (state.ppf || []).reduce((sum: number, p: any) =>
-        sum + (p.transactions || [])
-          .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal")
-          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
-        0);
+      const ppfAdds = (state.ppf || []).reduce(
+        (sum: number, p: any) =>
+          sum +
+          (p.transactions || [])
+            .filter(
+              (t: any) =>
+                t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+            )
+            .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+        0
+      );
       const investmentAdditions = stockBuys + mfBuys + fdAdds + ppfAdds;
 
       // Net worth at end of FY (March of startYear+1) — only valid for "all" profile
@@ -827,56 +845,152 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const fy2 = computeFY(yoyFY2);
 
     const change = (v1: number, v2: number) => v1 - v2;
-    const pctChange = (v1: number, v2: number) => (v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0);
+    const pctChange = (v1: number, v2: number) =>
+      v2 !== 0 ? ((v1 - v2) / Math.abs(v2)) * 100 : v1 > 0 ? 100 : 0;
 
     return {
       fy1,
       fy2,
       rows: [
-        { label: "Total Income", v1: fy1.totalIncome, v2: fy2.totalIncome, change: change(fy1.totalIncome, fy2.totalIncome), pct: pctChange(fy1.totalIncome, fy2.totalIncome), invertColor: false },
-        { label: "Total Expenses", v1: fy1.totalExpense, v2: fy2.totalExpense, change: change(fy1.totalExpense, fy2.totalExpense), pct: pctChange(fy1.totalExpense, fy2.totalExpense), invertColor: true },
-        { label: "Savings", v1: fy1.savings, v2: fy2.savings, change: change(fy1.savings, fy2.savings), pct: pctChange(fy1.savings, fy2.savings), invertColor: false },
-        { label: "Savings Rate %", v1: fy1.savingsRate, v2: fy2.savingsRate, change: change(fy1.savingsRate, fy2.savingsRate), pct: 0, invertColor: false, isPercent: true },
-        { label: "Investment Additions", v1: fy1.investmentAdditions, v2: fy2.investmentAdditions, change: change(fy1.investmentAdditions, fy2.investmentAdditions), pct: pctChange(fy1.investmentAdditions, fy2.investmentAdditions), invertColor: false },
-        { label: "Net Worth (end of FY)", v1: fy1.netWorth, v2: fy2.netWorth, change: change(fy1.netWorth, fy2.netWorth), pct: pctChange(fy1.netWorth, fy2.netWorth), invertColor: false },
+        {
+          label: "Total Income",
+          v1: fy1.totalIncome,
+          v2: fy2.totalIncome,
+          change: change(fy1.totalIncome, fy2.totalIncome),
+          pct: pctChange(fy1.totalIncome, fy2.totalIncome),
+          invertColor: false,
+        },
+        {
+          label: "Total Expenses",
+          v1: fy1.totalExpense,
+          v2: fy2.totalExpense,
+          change: change(fy1.totalExpense, fy2.totalExpense),
+          pct: pctChange(fy1.totalExpense, fy2.totalExpense),
+          invertColor: true,
+        },
+        {
+          label: "Savings",
+          v1: fy1.savings,
+          v2: fy2.savings,
+          change: change(fy1.savings, fy2.savings),
+          pct: pctChange(fy1.savings, fy2.savings),
+          invertColor: false,
+        },
+        {
+          label: "Savings Rate %",
+          v1: fy1.savingsRate,
+          v2: fy2.savingsRate,
+          change: change(fy1.savingsRate, fy2.savingsRate),
+          pct: 0,
+          invertColor: false,
+          isPercent: true,
+        },
+        {
+          label: "Investment Additions",
+          v1: fy1.investmentAdditions,
+          v2: fy2.investmentAdditions,
+          change: change(fy1.investmentAdditions, fy2.investmentAdditions),
+          pct: pctChange(fy1.investmentAdditions, fy2.investmentAdditions),
+          invertColor: false,
+        },
+        {
+          label: "Net Worth (end of FY)",
+          v1: fy1.netWorth,
+          v2: fy2.netWorth,
+          change: change(fy1.netWorth, fy2.netWorth),
+          pct: pctChange(fy1.netWorth, fy2.netWorth),
+          invertColor: false,
+        },
       ],
       chartData: [
-        { name: "Income", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalIncome, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalIncome },
-        { name: "Expenses", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalExpense, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalExpense },
-        { name: "Savings", [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.savings, [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.savings },
+        {
+          name: "Income",
+          [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalIncome,
+          [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalIncome,
+        },
+        {
+          name: "Expenses",
+          [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.totalExpense,
+          [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.totalExpense,
+        },
+        {
+          name: "Savings",
+          [`FY ${yoyFY1}-${String(yoyFY1 + 1).slice(-2)}`]: fy1.savings,
+          [`FY ${yoyFY2}-${String(yoyFY2 + 1).slice(-2)}`]: fy2.savings,
+        },
       ],
     };
-  }, [yoyFY1, yoyFY2, state.income, state.transactions, state.rentedProperties, state.stocks, state.mutualFunds, state.fixedDeposits, state.ppf, state.netWorthHistory, activeProfile]);
+  }, [
+    yoyFY1,
+    yoyFY2,
+    state.income,
+    state.transactions,
+    state.rentedProperties,
+    state.stocks,
+    state.mutualFunds,
+    state.fixedDeposits,
+    state.ppf,
+    state.netWorthHistory,
+    activeProfile,
+  ]);
 
   // ── Estate Planning — Nomination Coverage Audit ──
   const nominationAudit = useMemo(() => {
     const accounts: { type: string; name: string; hasNominee: boolean }[] = [];
     (state.bankAccounts || []).forEach((a: any) =>
-      accounts.push({ type: "Bank Account", name: a.bankName || a.name || "Bank", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Bank Account",
+        name: a.bankName || a.name || "Bank",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.demat || []).forEach((a: any) =>
       accounts.push({ type: "Demat", name: a.broker || a.name || "Demat", hasNominee: !!a.nominee })
     );
     (state.lic || []).forEach((a: any) =>
-      accounts.push({ type: "Insurance (LIC)", name: a.planName || a.name || "LIC Policy", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Insurance (LIC)",
+        name: a.planName || a.name || "LIC Policy",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.termPlans || []).forEach((a: any) =>
-      accounts.push({ type: "Term Insurance", name: a.planName || a.provider || a.name || "Term Plan", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Term Insurance",
+        name: a.planName || a.provider || a.name || "Term Plan",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.investmentPlans || []).forEach((a: any) =>
-      accounts.push({ type: "Investment Plan", name: a.planName || a.name || "Investment Plan", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Investment Plan",
+        name: a.planName || a.name || "Investment Plan",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.ppf || []).forEach((a: any) =>
       accounts.push({ type: "PPF", name: a.bankName || a.name || "PPF", hasNominee: !!a.nominee })
     );
     (state.nps || []).forEach((a: any) =>
-      accounts.push({ type: "NPS", name: a.fundManager || a.name || "NPS", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "NPS",
+        name: a.fundManager || a.name || "NPS",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.fixedDeposits || []).forEach((a: any) =>
-      accounts.push({ type: "Fixed Deposit", name: a.bankName || a.name || "FD", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Fixed Deposit",
+        name: a.bankName || a.name || "FD",
+        hasNominee: !!a.nominee,
+      })
     );
     (state.mutualFunds || []).forEach((a: any) =>
-      accounts.push({ type: "Mutual Fund", name: a.fundName || a.name || "MF", hasNominee: !!a.nominee })
+      accounts.push({
+        type: "Mutual Fund",
+        name: a.fundName || a.name || "MF",
+        hasNominee: !!a.nominee,
+      })
     );
 
     const total = accounts.length;
@@ -885,11 +999,25 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // Priority alerts
     const insuranceTypes = ["Insurance (LIC)", "Term Insurance", "Investment Plan"];
-    const insuranceMissing = accounts.filter((a) => insuranceTypes.includes(a.type) && !a.hasNominee).length;
-    const accountMissing = accounts.filter((a) => !insuranceTypes.includes(a.type) && !a.hasNominee).length;
+    const insuranceMissing = accounts.filter(
+      (a) => insuranceTypes.includes(a.type) && !a.hasNominee
+    ).length;
+    const accountMissing = accounts.filter(
+      (a) => !insuranceTypes.includes(a.type) && !a.hasNominee
+    ).length;
 
     return { accounts, total, covered, pct, insuranceMissing, accountMissing };
-  }, [state.bankAccounts, state.demat, state.lic, state.termPlans, state.investmentPlans, state.ppf, state.nps, state.fixedDeposits, state.mutualFunds]);
+  }, [
+    state.bankAccounts,
+    state.demat,
+    state.lic,
+    state.termPlans,
+    state.investmentPlans,
+    state.ppf,
+    state.nps,
+    state.fixedDeposits,
+    state.mutualFunds,
+  ]);
 
   const lastTradingDayPerformance = useMemo(() => {
     const uniqueStocks = new Map<
@@ -1101,7 +1229,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           .map((n: any) => {
             const bal = Number(n.balance) || 0;
             const txTotal = (n.transactions || []).reduce(
-              (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+              (ss: number, t: any) =>
+                ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+              0
             );
             return {
               name: n.fundManager || n.bank || "NPS",
@@ -1171,13 +1301,30 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           .sort((a: any, b: any) => b.value - a.value);
 
       case "Gold & SGBs": {
-        const gp = (() => { try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; } })();
-        const PF: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
-        const GTYPES: Record<string, string> = { physical: "Physical", sgb: "SGB", digital: "Digital", etf: "ETF", mf: "MF" };
+        const gp = (() => {
+          try {
+            return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
+          } catch {
+            return 7200;
+          }
+        })();
+        const PF: Record<string, number> = {
+          "24K": 1,
+          "22K": 22 / 24,
+          "18K": 18 / 24,
+          "14K": 14 / 24,
+        };
+        const GTYPES: Record<string, string> = {
+          physical: "Physical",
+          sgb: "SGB",
+          digital: "Digital",
+          etf: "ETF",
+          mf: "MF",
+        };
         return (state.goldHoldings || [])
           .map((h: any) => {
             const grams = Number(h.grams || 0);
-            const pMul = h.type === "physical" ? (PF[h.purity] || 1) : 1;
+            const pMul = h.type === "physical" ? PF[h.purity] || 1 : 1;
             return {
               name: h.name || GTYPES[h.type] || "Gold",
               sub: `${grams}g ${h.type === "physical" && h.purity ? h.purity : GTYPES[h.type] || ""}`,
@@ -1234,8 +1381,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       case "Informal Loans Given":
         return (state.informalLent || [])
           .map((person: any) => {
-            const totalT = (person.tranches || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-            const totalP = (person.payments || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+            const totalT = (person.tranches || []).reduce(
+              (s: number, t: any) => s + Number(t.amount || 0),
+              0
+            );
+            const totalP = (person.payments || []).reduce(
+              (s: number, p: any) => s + Number(p.amount || 0),
+              0
+            );
             return {
               name: person.name || "Person",
               sub: person.relation || "Informal loan",
@@ -1250,8 +1403,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
           .map((p: any) => {
             const txns = p.transactions || [];
-            const loaded = txns.filter((t: any) => t.type === "load").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-            const spent = txns.filter((t: any) => t.type === "spend").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            const loaded = txns
+              .filter((t: any) => t.type === "load")
+              .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+            const spent = txns
+              .filter((t: any) => t.type === "spend")
+              .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
             return {
               name: p.name || p.cardName || "Prepaid Card",
               sub: p.cardNumber ? `****${p.cardNumber.slice(-4)}` : "Prepaid",
@@ -1617,9 +1774,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .filter((t: any) => t.type === "debit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
-        return sum + (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date.startsWith(ym2))
-          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+        return (
+          sum +
+          (p.payments || [])
+            .filter((pay: any) => pay.date && pay.date.startsWith(ym2))
+            .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
+        );
       }, 0);
       const exp = txnExp + rentExp;
       if (inc > exp && inc > 0) streak++;
@@ -1756,8 +1916,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   }, [metrics.monthExpense, metrics.netWorth]);
 
   const passiveIncomeData = useMemo(() => {
-    const rentalMonthly = (state.rentalProperties || [])
-      .reduce((s: number, r: any) => s + getEffectiveRent(r), 0);
+    const rentalMonthly = (state.rentalProperties || []).reduce(
+      (s: number, r: any) => s + getEffectiveRent(r),
+      0
+    );
 
     const fdMonthly = (state.fixedDeposits || []).reduce(
       (s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12,
@@ -1840,9 +2002,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const epfEmployee = (state.epf || []).reduce((s: number, e: any) => {
-      const txs = (e.transactions || []).filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr);
-      const simpleEmp = txs.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const passbookEmp = txs.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      const txs = (e.transactions || []).filter(
+        (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr
+      );
+      const simpleEmp = txs
+        .filter((t: any) => t.type === "employee_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp = txs
+        .filter((t: any) => t.type === "monthly_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
       const ledgerTotal = simpleEmp + passbookEmp;
       return s + (ledgerTotal > 0 ? ledgerTotal : Number(e.thisYearContribution || 0));
     }, 0);
@@ -1972,7 +2140,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // SIP Habit
     const totalSIPAmt = (state.sips || []).reduce(
-      (s: number, sip: any) => s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
+      (s: number, sip: any) =>
+        s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
       0
     );
     if ((state.sips?.length || 0) > 0) earned.add("sip1");
@@ -2004,11 +2173,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const ccGroupPoolsBadge: Record<string, number> = {};
     activeCC.forEach((c: any) => {
       if (c.sharedGroup) {
-        ccGroupPoolsBadge[c.sharedGroup] = Math.max(ccGroupPoolsBadge[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+        ccGroupPoolsBadge[c.sharedGroup] = Math.max(
+          ccGroupPoolsBadge[c.sharedGroup] || 0,
+          Number(c.sharedGroupLimit) || 0
+        );
       }
     });
     const ccLim =
-      activeCC.filter((c: any) => !c.sharedGroup).reduce((s: number, c: any) => s + Number(c.limit || 0), 0) +
+      activeCC
+        .filter((c: any) => !c.sharedGroup)
+        .reduce((s: number, c: any) => s + Number(c.limit || 0), 0) +
       (Object.values(ccGroupPoolsBadge) as number[]).reduce((s: number, v: number) => s + v, 0);
     const ccUtil = ccLim > 0 ? (ccOut / ccLim) * 100 : 0;
     if (activeCC.length > 0 && ccOut === 0) earned.add("cc0");
@@ -2104,9 +2278,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       0
     );
     const epf80C = (state.epf || []).reduce((s: number, e: any) => {
-      const txs80 = (e.transactions || []).filter((t: any) => t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C);
-      const simpleEmp80 = txs80.filter((t: any) => t.type === "employee_contribution").reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const passbookEmp80 = txs80.filter((t: any) => t.type === "monthly_contribution").reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
+      const txs80 = (e.transactions || []).filter(
+        (t: any) => t.date && t.date >= fyStartStr80C && t.date <= fyEndStr80C
+      );
+      const simpleEmp80 = txs80
+        .filter((t: any) => t.type === "employee_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      const passbookEmp80 = txs80
+        .filter((t: any) => t.type === "monthly_contribution")
+        .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
       const lTotal = simpleEmp80 + passbookEmp80;
       return s + (lTotal > 0 ? lTotal : Number(e.thisYearContribution || 0));
     }, 0);
@@ -2126,8 +2306,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       };
 
     // Passive Income (rent + estimated FD/bond interest)
-    const rentalPassive = (state.rentalProperties || [])
-      .reduce((s: number, r: any) => s + getEffectiveRent(r), 0);
+    const rentalPassive = (state.rentalProperties || []).reduce(
+      (s: number, r: any) => s + getEffectiveRent(r),
+      0
+    );
     const fdPassive = (state.fixedDeposits || []).reduce(
       (s: number, f: any) => s + (Number(f.principal || 0) * Number(f.rate || 0)) / 100 / 12,
       0
@@ -2286,9 +2468,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         .filter((t: any) => t.type === "debit")
         .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       const rentExp = (state.rentedProperties || []).reduce((sum: number, p: any) => {
-        return sum + (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date.startsWith(ym))
-          .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
+        return (
+          sum +
+          (p.payments || [])
+            .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+            .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
+        );
       }, 0);
       const exp = txnExp + rentExp;
       const hasData = txns.length > 0 || inc > 0;
@@ -2340,8 +2525,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // Active monthly investments (SIPs + extra input)
     const monthlySIP =
-      (state.sips || []).reduce((sum: number, s: any) => sum + (s.frequency === "quarterly" ? Number(s.amount || 0) / 3 : Number(s.amount || 0)), 0) +
-      fireWhatIfExtra;
+      (state.sips || []).reduce(
+        (sum: number, s: any) =>
+          sum + (s.frequency === "quarterly" ? Number(s.amount || 0) / 3 : Number(s.amount || 0)),
+        0
+      ) + fireWhatIfExtra;
     const annualSavings = monthlySIP * 12;
     const annualExpense = Number(metrics.monthExpense || 0) * 12;
 
@@ -2640,7 +2828,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
     // SIP affordability: flag if total SIP > monthly savings
     const totalSIPAmtSmart = (state.sips || []).reduce(
-      (s: number, sip: any) => s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
+      (s: number, sip: any) =>
+        s + (sip.frequency === "quarterly" ? Number(sip.amount || 0) / 3 : Number(sip.amount || 0)),
       0
     );
     if (totalSIPAmtSmart > 0 && metrics.monthIncome > 0) {
@@ -2994,12 +3183,39 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {showWidgetConfig && (
         <Card>
           <div style={{ padding: 16, marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>Customize Dashboard Widgets</div>
-              <button onClick={() => setShowWidgetConfig(false)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted }}>✕</button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
+                Customize Dashboard Widgets
+              </div>
+              <button
+                onClick={() => setShowWidgetConfig(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: THEME.muted,
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12 }}>Toggle widgets on/off to personalize your dashboard view.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
+            <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 12 }}>
+              Toggle widgets on/off to personalize your dashboard view.
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gap: 8,
+              }}
+            >
               {DASHBOARD_WIDGET_DEFS.map((w) => {
                 const isVisible = dashboardWidgets?.[w.key] !== false;
                 return (
@@ -3010,23 +3226,43 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       onUpdateWidgets?.(updated);
                     }}
                     style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 12px", borderRadius: 8, textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      textAlign: "left",
                       border: `1.5px solid ${isVisible ? THEME.accent : THEME.line}`,
                       background: isVisible ? `${THEME.accent}10` : "transparent",
                       cursor: "pointer",
                     }}
                   >
-                    <div style={{
-                      width: 18, height: 18, borderRadius: 4,
-                      border: `2px solid ${isVisible ? THEME.accent : THEME.line}`,
-                      background: isVisible ? THEME.accent : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 11, fontWeight: 700,
-                    }}>
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
+                        border: `2px solid ${isVisible ? THEME.accent : THEME.line}`,
+                        background: isVisible ? THEME.accent : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
                       {isVisible ? "✓" : ""}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: isVisible ? THEME.ink : THEME.muted }}>{w.label}</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: isVisible ? THEME.ink : THEME.muted,
+                      }}
+                    >
+                      {w.label}
+                    </span>
                   </button>
                 );
               })}
@@ -3348,7 +3584,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <ArrowDownRight size={13} />
                       )}
                       {momNetWorthDelta.delta >= 0 ? "+" : ""}
-                      {fmtINRFull(momNetWorthDelta.delta)} MoM ({momNetWorthDelta.pct >= 0 ? "+" : ""}
+                      {fmtINRFull(momNetWorthDelta.delta)} MoM (
+                      {momNetWorthDelta.pct >= 0 ? "+" : ""}
                       {momNetWorthDelta.pct.toFixed(1)}%)
                     </div>
                   )}
@@ -3388,10 +3625,30 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                   >
                     {/* Assets */}
-                    <HeroStat label="Bank Cash" value={metrics.cashInBanks} tabId="banks" setTab={setTab} />
-                    <HeroStat label="Fixed Deposits" value={metrics.fdValue} tabId="investments" setTab={setTab} />
-                    <HeroStat label="Mutual Funds" value={metrics.mfValue} tabId="investments" setTab={setTab} />
-                    <HeroStat label="Stocks" value={metrics.stockValue} tabId="demat" setTab={setTab} />
+                    <HeroStat
+                      label="Bank Cash"
+                      value={metrics.cashInBanks}
+                      tabId="banks"
+                      setTab={setTab}
+                    />
+                    <HeroStat
+                      label="Fixed Deposits"
+                      value={metrics.fdValue}
+                      tabId="investments"
+                      setTab={setTab}
+                    />
+                    <HeroStat
+                      label="Mutual Funds"
+                      value={metrics.mfValue}
+                      tabId="investments"
+                      setTab={setTab}
+                    />
+                    <HeroStat
+                      label="Stocks"
+                      value={metrics.stockValue}
+                      tabId="demat"
+                      setTab={setTab}
+                    />
                     <HeroStat
                       label="PPF / NPS / EPF"
                       value={metrics.ppfValue + metrics.npsValue + metrics.epfValue}
@@ -3399,16 +3656,52 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       setTab={setTab}
                     />
                     {(metrics.realEstateAsset || 0) > 0 && (
-                      <HeroStat label="Real Estate" value={metrics.realEstateAsset} tabId="realestate" setTab={setTab} />
+                      <HeroStat
+                        label="Real Estate"
+                        value={metrics.realEstateAsset}
+                        tabId="realestate"
+                        setTab={setTab}
+                      />
+                    )}
+                    {(metrics.govtSchemesValue || 0) > 0 && (
+                      <HeroStat
+                        label="Govt Schemes"
+                        value={metrics.govtSchemesValue}
+                        tabId="govtschemes"
+                        setTab={setTab}
+                      />
                     )}
                     {otherAssets > 0 && (
-                      <HeroStat label="Other Assets" value={otherAssets} tabId="investments" setTab={setTab} />
+                      <HeroStat
+                        label="Other Assets"
+                        value={otherAssets}
+                        tabId="investments"
+                        setTab={setTab}
+                      />
                     )}
                     {/* Liabilities */}
-                    <HeroStat label="Card Dues" value={metrics.ccOutstanding} negative tabId="credit" setTab={setTab} />
-                    <HeroStat label="Loans Taken" value={metrics.loansTakenValue} negative tabId="credit" setTab={setTab} />
+                    <HeroStat
+                      label="Card Dues"
+                      value={metrics.ccOutstanding}
+                      negative
+                      tabId="credit"
+                      setTab={setTab}
+                    />
+                    <HeroStat
+                      label="Loans Taken"
+                      value={metrics.loansTakenValue}
+                      negative
+                      tabId="credit"
+                      setTab={setTab}
+                    />
                     {otherDues > 0 && (
-                      <HeroStat label="Other Dues" value={otherDues} negative tabId="realestate" setTab={setTab} />
+                      <HeroStat
+                        label="Other Dues"
+                        value={otherDues}
+                        negative
+                        tabId="realestate"
+                        setTab={setTab}
+                      />
                     )}
                   </div>
                 );
@@ -3865,7 +4158,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         padding: "3px 8px",
                         borderRadius: 6,
                         border: `1px solid ${healthSimActive ? THEME.accent : THEME.line}`,
-                        background: healthSimActive ? `color-mix(in srgb, var(--t-accent) 8%, transparent)` : "transparent",
+                        background: healthSimActive
+                          ? `color-mix(in srgb, var(--t-accent) 8%, transparent)`
+                          : "transparent",
                         color: healthSimActive ? THEME.accent : THEME.muted,
                         cursor: "pointer",
                         transition: "all 0.2s ease",
@@ -4229,10 +4524,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const efRatio = efMonthlyExpense > 0 ? efLiquidBalance / efMonthlyExpense : 0;
               const efTarget = efMonthlyExpense * 6;
               const efShortfall = efTarget - efLiquidBalance;
-              const efProgress = efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
+              const efProgress =
+                efTarget > 0 ? Math.min((efLiquidBalance / efTarget) * 100, 100) : 0;
 
-              const efStatusColor = efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
-              const efStatusLabel = efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
+              const efStatusColor =
+                efRatio >= 6 ? THEME.sage : efRatio >= 3 ? THEME.gold : THEME.rust;
+              const efStatusLabel =
+                efRatio >= 6 ? "Healthy" : efRatio >= 3 ? "Building" : "Critical";
               const EfIcon = efRatio >= 6 ? CheckCircle2 : efRatio >= 3 ? Shield : AlertTriangle;
 
               let efAdvice = "";
@@ -4251,10 +4549,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               const filledSegments = Math.min(efRatio, 6);
 
               return (
-                <Card
-                  className="bento-col-12"
-                  style={{ padding: 24 }}
-                >
+                <Card className="bento-col-12" style={{ padding: 24 }}>
                   <div
                     style={{
                       display: "flex",
@@ -4279,13 +4574,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         <Shield size={18} color={efStatusColor} />
                       </div>
                       <div>
-                        <div
-                          className="section-label"
-                          style={{ marginBottom: 0 }}
-                        >
+                        <div className="section-label" style={{ marginBottom: 0 }}>
                           Emergency Fund Health
                         </div>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, marginTop: 2 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: THEME.muted,
+                            fontWeight: 500,
+                            marginTop: 2,
+                          }}
+                        >
                           Liquid reserves vs monthly expenses
                         </div>
                       </div>
@@ -4321,7 +4620,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     >
                       {efRatio.toFixed(1)}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginTop: 6 }}>
+                    <div
+                      style={{ fontSize: 13, fontWeight: 600, color: THEME.muted, marginTop: 6 }}
+                    >
                       months of expenses covered
                     </div>
                   </div>
@@ -4341,7 +4642,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {[0, 1, 2, 3, 4, 5].map((seg) => {
                         const segFill = Math.max(0, Math.min(1, filledSegments - seg));
                         const segColor = seg < 3 ? THEME.rust : seg < 6 ? THEME.gold : THEME.sage;
-                        const fillColor = filledSegments >= 6 ? THEME.sage : filledSegments >= 3 ? THEME.gold : THEME.rust;
+                        const fillColor =
+                          filledSegments >= 6
+                            ? THEME.sage
+                            : filledSegments >= 3
+                              ? THEME.gold
+                              : THEME.rust;
                         return (
                           <div
                             key={seg}
@@ -4349,7 +4655,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               flex: 1,
                               position: "relative",
                               background: "transparent",
-                              borderRadius: seg === 0 ? "10px 0 0 10px" : seg === 5 ? "0 10px 10px 0" : 0,
+                              borderRadius:
+                                seg === 0 ? "10px 0 0 10px" : seg === 5 ? "0 10px 10px 0" : 0,
                               overflow: "hidden",
                             }}
                           >
@@ -4398,7 +4705,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {
                         label: "Liquid Balance",
                         value: fmtINRFull(efLiquidBalance),
-                        sub: nearTermFDs > 0 ? `Incl. ${fmtINRFull(nearTermFDs)} near-term FDs` : "Bank cash",
+                        sub:
+                          nearTermFDs > 0
+                            ? `Incl. ${fmtINRFull(nearTermFDs)} near-term FDs`
+                            : "Bank cash",
                         color: THEME.accent,
                       },
                       {
@@ -4472,8 +4782,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       borderLeft: `3px solid ${efStatusColor}`,
                     }}
                   >
-                    <EfIcon size={16} color={efStatusColor} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, lineHeight: 1.5 }}>
+                    <EfIcon
+                      size={16}
+                      color={efStatusColor}
+                      style={{ flexShrink: 0, marginTop: 1 }}
+                    />
+                    <div
+                      style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, lineHeight: 1.5 }}
+                    >
                       {efAdvice}
                     </div>
                   </div>
@@ -4720,7 +5036,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     Year-on-Year Comparison
                   </span>
                   <Badge variant="muted" style={{ fontSize: 10, padding: "2px 8px" }}>
-                    FY {yoyFY1}-{String(yoyFY1 + 1).slice(-2)} vs {yoyFY2}-{String(yoyFY2 + 1).slice(-2)}
+                    FY {yoyFY1}-{String(yoyFY1 + 1).slice(-2)} vs {yoyFY2}-
+                    {String(yoyFY2 + 1).slice(-2)}
                   </Badge>
                 </div>
                 {yoyOpen ? (
@@ -4743,7 +5060,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>Compare</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
+                        Compare
+                      </span>
                       <select
                         value={yoyFY1}
                         onChange={(e) => setYoyFY1(Number(e.target.value))}
@@ -4895,7 +5214,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               key={row.label}
                               style={{
                                 borderTop: idx > 0 ? `1px solid ${THEME.line}` : "none",
-                                background: idx % 2 === 1 ? `color-mix(in srgb, var(--t-accent) 4%, transparent)` : "transparent",
+                                background:
+                                  idx % 2 === 1
+                                    ? `color-mix(in srgb, var(--t-accent) 4%, transparent)`
+                                    : "transparent",
                               }}
                             >
                               <td
@@ -4916,9 +5238,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 }}
                               >
                                 <Prv>
-                                  {row.isPercent
-                                    ? `${row.v1.toFixed(1)}%`
-                                    : fmtINRFull(row.v1)}
+                                  {row.isPercent ? `${row.v1.toFixed(1)}%` : fmtINRFull(row.v1)}
                                 </Prv>
                               </td>
                               <td
@@ -4930,9 +5250,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 }}
                               >
                                 <Prv>
-                                  {row.isPercent
-                                    ? `${row.v2.toFixed(1)}%`
-                                    : fmtINRFull(row.v2)}
+                                  {row.isPercent ? `${row.v2.toFixed(1)}%` : fmtINRFull(row.v2)}
                                 </Prv>
                               </td>
                               <td
@@ -4943,7 +5261,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   color: changeColor,
                                 }}
                               >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-end",
+                                    gap: 4,
+                                  }}
+                                >
                                   {isPositiveChange ? (
                                     <ArrowUpRight size={14} style={{ color: changeColor }} />
                                   ) : isNegativeChange ? (
@@ -5086,7 +5411,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     Estate Planning — Nomination Coverage
                   </span>
                   <Badge
-                    variant={nominationAudit.pct > 80 ? "sage" : nominationAudit.pct >= 50 ? "warning" : "rust"}
+                    variant={
+                      nominationAudit.pct > 80
+                        ? "sage"
+                        : nominationAudit.pct >= 50
+                          ? "warning"
+                          : "rust"
+                    }
                     style={{ fontSize: 10, padding: "2px 8px" }}
                   >
                     {nominationAudit.covered}/{nominationAudit.total} covered
@@ -5101,7 +5432,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
               {nominationOpen && (
                 <div style={{ padding: "0 24px 24px" }}>
-
                   {/* Priority Alerts */}
                   {nominationAudit.insuranceMissing > 0 && (
                     <div
@@ -5119,9 +5449,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         lineHeight: 1.5,
                       }}
                     >
-                      <AlertTriangle size={16} style={{ color: "#eab308", marginTop: 2, flexShrink: 0 }} />
+                      <AlertTriangle
+                        size={16}
+                        style={{ color: "#eab308", marginTop: 2, flexShrink: 0 }}
+                      />
                       <span>
-                        <strong>{nominationAudit.insuranceMissing} insurance {nominationAudit.insuranceMissing === 1 ? "policy has" : "policies have"} no nominee</strong> — this can delay claim settlement
+                        <strong>
+                          {nominationAudit.insuranceMissing} insurance{" "}
+                          {nominationAudit.insuranceMissing === 1 ? "policy has" : "policies have"}{" "}
+                          no nominee
+                        </strong>{" "}
+                        — this can delay claim settlement
                       </span>
                     </div>
                   )}
@@ -5141,9 +5479,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         lineHeight: 1.5,
                       }}
                     >
-                      <Shield size={16} style={{ color: THEME.accent, marginTop: 2, flexShrink: 0 }} />
+                      <Shield
+                        size={16}
+                        style={{ color: THEME.accent, marginTop: 2, flexShrink: 0 }}
+                      />
                       <span>
-                        <strong>{nominationAudit.accountMissing} {nominationAudit.accountMissing === 1 ? "account has" : "accounts have"} no nominee</strong> — consider adding for smooth succession
+                        <strong>
+                          {nominationAudit.accountMissing}{" "}
+                          {nominationAudit.accountMissing === 1 ? "account has" : "accounts have"}{" "}
+                          no nominee
+                        </strong>{" "}
+                        — consider adding for smooth succession
                       </span>
                     </div>
                   )}
@@ -5159,8 +5505,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
-                        {nominationAudit.covered} of {nominationAudit.total} accounts have nominees assigned
+                      <div
+                        style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}
+                      >
+                        {nominationAudit.covered} of {nominationAudit.total} accounts have nominees
+                        assigned
                       </div>
                       <div
                         style={{
@@ -5287,22 +5636,50 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               key={`${acc.type}-${acc.name}-${idx}`}
                               style={{
                                 borderTop: `1px solid ${THEME.line}`,
-                                background: idx % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)",
+                                background:
+                                  idx % 2 === 0 ? "transparent" : "rgba(128,128,128,0.02)",
                               }}
                             >
-                              <td style={{ padding: "10px 16px", fontWeight: 600, color: THEME.muted, fontSize: 12 }}>
+                              <td
+                                style={{
+                                  padding: "10px 16px",
+                                  fontWeight: 600,
+                                  color: THEME.muted,
+                                  fontSize: 12,
+                                }}
+                              >
                                 {acc.type}
                               </td>
-                              <td style={{ padding: "10px 16px", fontWeight: 700, color: THEME.ink }}>
+                              <td
+                                style={{ padding: "10px 16px", fontWeight: 700, color: THEME.ink }}
+                              >
                                 <Prv>{acc.name}</Prv>
                               </td>
                               <td style={{ padding: "10px 16px", textAlign: "center" }}>
                                 {acc.hasNominee ? (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: THEME.sage, fontWeight: 700, fontSize: 12 }}>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      color: THEME.sage,
+                                      fontWeight: 700,
+                                      fontSize: 12,
+                                    }}
+                                  >
                                     <CheckCircle2 size={14} /> Assigned
                                   </span>
                                 ) : (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: THEME.rust, fontWeight: 700, fontSize: 12 }}>
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      color: THEME.rust,
+                                      fontWeight: 700,
+                                      fontSize: 12,
+                                    }}
+                                  >
                                     <XCircle size={14} /> Missing
                                   </span>
                                 )}
@@ -5322,7 +5699,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     Add nominee
                                   </span>
                                 )}
-                                {acc.hasNominee && <span style={{ color: THEME.muted, fontSize: 12 }}>—</span>}
+                                {acc.hasNominee && (
+                                  <span style={{ color: THEME.muted, fontSize: 12 }}>—</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -5339,7 +5718,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         marginBottom: 24,
                       }}
                     >
-                      No financial accounts found — add bank accounts, demat, insurance, or investments to track nomination coverage.
+                      No financial accounts found — add bank accounts, demat, insurance, or
+                      investments to track nomination coverage.
                     </div>
                   )}
 
@@ -5527,7 +5907,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               height: 40,
                               borderRadius: 10,
                               background:
-                                t.type === "credit" ? `color-mix(in srgb, var(--t-sage) 12%, transparent)` : `color-mix(in srgb, var(--t-rust) 12%, transparent)`,
+                                t.type === "credit"
+                                  ? `color-mix(in srgb, var(--t-sage) 12%, transparent)`
+                                  : `color-mix(in srgb, var(--t-rust) 12%, transparent)`,
                               color: t.type === "credit" ? THEME.sage : THEME.rust,
                               display: "flex",
                               alignItems: "center",
@@ -5551,9 +5933,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 : "—"}
                               {t.category ? ` · ${t.category}` : ""}
                               {(() => {
-                                const bank = (state.bankAccounts || []).find((b: any) => b.id === t.accountId);
+                                const bank = (state.bankAccounts || []).find(
+                                  (b: any) => b.id === t.accountId
+                                );
                                 if (!bank) return null;
-                                const last4 = bank.accountNumber ? bank.accountNumber.slice(-4) : "";
+                                const last4 = bank.accountNumber
+                                  ? bank.accountNumber.slice(-4)
+                                  : "";
                                 return (
                                   <>
                                     {" · "}
@@ -5591,7 +5977,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               textTransform: "uppercase" as const,
                               letterSpacing: "0.04em",
                               background:
-                                t.type === "credit" ? `color-mix(in srgb, var(--t-sage) 10%, transparent)` : `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
+                                t.type === "credit"
+                                  ? `color-mix(in srgb, var(--t-sage) 10%, transparent)`
+                                  : `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
                               color: t.type === "credit" ? THEME.sage : THEME.rust,
                             }}
                           >
@@ -5674,8 +6062,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 <AreaChart data={filteredNetWorthTrend}>
                   <defs>
                     <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={THEME.accent} stopOpacity={isDark ? 0.55 : 0.4} />
-                      <stop offset="100%" stopColor={THEME.accent} stopOpacity={isDark ? 0.08 : 0} />
+                      <stop
+                        offset="0%"
+                        stopColor={THEME.accent}
+                        stopOpacity={isDark ? 0.55 : 0.4}
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor={THEME.accent}
+                        stopOpacity={isDark ? 0.08 : 0}
+                      />
                     </linearGradient>
                     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                       <feDropShadow
@@ -5906,7 +6302,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </linearGradient>
                     <linearGradient id="gInvested" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={THEME.muted} stopOpacity={isDark ? 0.7 : 0.5} />
-                      <stop offset="100%" stopColor={THEME.muted} stopOpacity={isDark ? 0.35 : 0.1} />
+                      <stop
+                        offset="100%"
+                        stopColor={THEME.muted}
+                        stopOpacity={isDark ? 0.35 : 0.1}
+                      />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
@@ -5984,7 +6384,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       padding: "5px 12px",
                       borderRadius: 8,
                       border: `1.5px solid ${ytdMode === mode ? THEME.accent : THEME.line}`,
-                      background: ytdMode === mode ? `color-mix(in srgb, var(--t-accent) 10%, transparent)` : "transparent",
+                      background:
+                        ytdMode === mode
+                          ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+                          : "transparent",
                       color: ytdMode === mode ? THEME.accent : THEME.muted,
                       fontSize: 11,
                       fontWeight: 700,
@@ -6080,10 +6483,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 .reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
               const stockVal = (state.stocks || [])
                 .filter((s: any) => (s.owner || "self") === pid)
-                .reduce((sum: number, s: any) => sum + Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0), 0);
+                .reduce(
+                  (sum: number, s: any) =>
+                    sum + Number(s.qty || 0) * Number(s.currentPrice || s.avgPrice || 0),
+                  0
+                );
               const mfVal = (state.mutualFunds || [])
                 .filter((m: any) => (m.owner || "self") === pid)
-                .reduce((sum: number, m: any) => sum + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0), 0);
+                .reduce(
+                  (sum: number, m: any) =>
+                    sum + Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0),
+                  0
+                );
               const ppfVal = (state.ppf || [])
                 .filter((pp: any) => (pp.owner || "self") === pid)
                 .reduce((s: number, pp: any) => s + Number(pp.balance || 0), 0);
@@ -6092,8 +6503,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 .reduce((s: number, n: any) => {
                   const bal = Number(n.balance) || 0;
                   if (bal > 0) return s + bal;
-                  return s + (n.transactions || []).reduce(
-                    (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+                  return (
+                    s +
+                    (n.transactions || []).reduce(
+                      (ss: number, t: any) =>
+                        ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+                      0
+                    )
                   );
                 }, 0);
               const nw = bankBal + fdVal + stockVal + mfVal + ppfVal + npsVal;
@@ -6123,39 +6539,76 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               .filter((t: any) => t.type === "credit")
               .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
             // Estimate yearly: if we have at least 1 month of data, annualize
-            const txnMonths = new Set((state.transactions || []).filter((t: any) => t.type === "credit").map((t: any) => (t.date || "").slice(0, 7))).size;
+            const txnMonths = new Set(
+              (state.transactions || [])
+                .filter((t: any) => t.type === "credit")
+                .map((t: any) => (t.date || "").slice(0, 7))
+            ).size;
             const estimatedAnnualIncome = txnMonths > 0 ? (annualIncome / txnMonths) * 12 : 0;
             const idealCover = estimatedAnnualIncome * 10;
-            const coverAdequacy = idealCover > 0 ? Math.min(100, Math.round((familyCover / idealCover) * 100)) : 0;
+            const coverAdequacy =
+              idealCover > 0 ? Math.min(100, Math.round((familyCover / idealCover) * 100)) : 0;
 
             const barColors = [THEME.accent, THEME.sage, THEME.gold, THEME.rust];
 
             return (
               <Card style={{ padding: 24, marginTop: 28 }}>
                 <div style={{ marginBottom: 20 }}>
-                  <div className="section-label" style={{ marginBottom: 4 }}>Family / Household Dashboard</div>
+                  <div className="section-label" style={{ marginBottom: 4 }}>
+                    Family / Household Dashboard
+                  </div>
                   <div style={{ fontSize: 12, color: THEME.muted }}>
                     Net worth breakdown across {activeProfiles.length} family members
                   </div>
                 </div>
 
                 {/* Combined Family Net Worth */}
-                <div style={{
-                  padding: "16px 20px", borderRadius: 12,
-                  background: isDark ? "var(--surface-2)" : "#0F172A", marginBottom: 20, textAlign: "center",
-                  border: isDark ? `1px solid ${THEME.line}` : "none",
-                }}>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 4, fontWeight: 700 }}>
+                <div
+                  style={{
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: isDark ? "var(--surface-2)" : "#0F172A",
+                    marginBottom: 20,
+                    textAlign: "center",
+                    border: isDark ? `1px solid ${THEME.line}` : "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "rgba(255,255,255,0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                      marginBottom: 4,
+                      fontWeight: 700,
+                    }}
+                  >
                     Combined Family Net Worth
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 900,
+                      color: "#fff",
+                      letterSpacing: "-0.03em",
+                    }}
+                  >
                     <Prv>{fmtINRFull(familyNW)}</Prv>
                   </div>
                 </div>
 
                 {/* Per-member horizontal bars */}
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      marginBottom: 12,
+                    }}
+                  >
                     Per-Member Net Worth
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
@@ -6166,23 +6619,49 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         const share = familyNW > 0 ? ((p.nw / familyNW) * 100).toFixed(1) : "0";
                         return (
                           <div key={p.id}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>{p.name}</span>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 4,
+                              }}
+                            >
+                              <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                                {p.name}
+                              </span>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>{share}%</span>
-                                <span style={{ fontSize: 14, fontWeight: 800, color: barColors[i % barColors.length] }}>
+                                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                                  {share}%
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 800,
+                                    color: barColors[i % barColors.length],
+                                  }}
+                                >
                                   <Prv>{fmtINRFull(p.nw)}</Prv>
                                 </span>
                               </div>
                             </div>
-                            <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
-                              <div style={{
-                                height: "100%",
-                                width: `${pct}%`,
-                                background: barColors[i % barColors.length],
+                            <div
+                              style={{
+                                height: 8,
+                                background: THEME.line,
                                 borderRadius: 4,
-                                transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                              }} />
+                                overflow: "hidden",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: "100%",
+                                  width: `${pct}%`,
+                                  background: barColors[i % barColors.length],
+                                  borderRadius: 4,
+                                  transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                                }}
+                              />
                             </div>
                           </div>
                         );
@@ -6193,27 +6672,82 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {/* Combined Insurance Coverage */}
                 {familyCover > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 12,
+                      }}
+                    >
                       Family Insurance Coverage
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-                      <div style={{ padding: 14, borderRadius: 10, background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`, borderTop: `3px solid ${THEME.accent}` }}>
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 12,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+                          borderTop: `3px solid ${THEME.accent}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            marginBottom: 6,
+                          }}
+                        >
                           Total Cover
                         </div>
                         <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent }}>
                           <Prv>{fmtINRFull(familyCover)}</Prv>
                         </div>
                       </div>
-                      <div style={{
-                        padding: 14, borderRadius: 10,
-                        background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
-                        borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
-                      }}>
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                      <div
+                        style={{
+                          padding: 14,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust} 5%, transparent)`,
+                          borderTop: `3px solid ${coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            marginBottom: 6,
+                          }}
+                        >
                           Adequacy (10x Income)
                         </div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust }}>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 900,
+                            color:
+                              coverAdequacy >= 80
+                                ? THEME.sage
+                                : coverAdequacy >= 50
+                                  ? THEME.gold
+                                  : THEME.rust,
+                          }}
+                        >
                           {idealCover > 0 ? `${coverAdequacy}%` : "N/A"}
                         </div>
                       </div>
@@ -6221,22 +6755,59 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                     {idealCover > 0 && (
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, marginBottom: 4 }}>
-                          <span>Coverage: <Prv>{fmtINRFull(familyCover)}</Prv></span>
-                          <span>Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv></span>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 11,
+                            color: THEME.muted,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <span>
+                            Coverage: <Prv>{fmtINRFull(familyCover)}</Prv>
+                          </span>
+                          <span>
+                            Ideal (10x): <Prv>{fmtINRFull(idealCover)}</Prv>
+                          </span>
                         </div>
-                        <div style={{ height: 8, background: THEME.line, borderRadius: 4, overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%",
-                            width: `${coverAdequacy}%`,
-                            background: coverAdequacy >= 80 ? THEME.sage : coverAdequacy >= 50 ? THEME.gold : THEME.rust,
+                        <div
+                          style={{
+                            height: 8,
+                            background: THEME.line,
                             borderRadius: 4,
-                          }} />
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${coverAdequacy}%`,
+                              background:
+                                coverAdequacy >= 80
+                                  ? THEME.sage
+                                  : coverAdequacy >= 50
+                                    ? THEME.gold
+                                    : THEME.rust,
+                              borderRadius: 4,
+                            }}
+                          />
                         </div>
                         {coverAdequacy < 80 && (
-                          <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 600, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: THEME.rust,
+                              fontWeight: 600,
+                              marginTop: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
                             <AlertTriangle size={12} />
-                            Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider increasing term insurance
+                            Gap of <Prv>{fmtINRFull(idealCover - familyCover)}</Prv> — consider
+                            increasing term insurance
                           </div>
                         )}
                       </div>
@@ -6244,14 +6815,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                     {/* Per-member cover breakdown */}
                     <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                      {activeProfiles.filter((p) => p.totalCover > 0).map((p, i) => (
-                        <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "rgba(128,128,128,0.04)", borderRadius: 8, fontSize: 12 }}>
-                          <span style={{ color: THEME.muted }}>{p.name}</span>
-                          <span style={{ fontWeight: 700, color: THEME.ink }}>
-                            <Prv>{fmtINRFull(p.totalCover)}</Prv>
-                          </span>
-                        </div>
-                      ))}
+                      {activeProfiles
+                        .filter((p) => p.totalCover > 0)
+                        .map((p, i) => (
+                          <div
+                            key={p.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              padding: "6px 10px",
+                              background: "rgba(128,128,128,0.04)",
+                              borderRadius: 8,
+                              fontSize: 12,
+                            }}
+                          >
+                            <span style={{ color: THEME.muted }}>{p.name}</span>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>
+                              <Prv>{fmtINRFull(p.totalCover)}</Prv>
+                            </span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}
@@ -6824,7 +7407,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <span style={{ fontSize: 16, fontWeight: 800, color: THEME.muted }}>
                     {lastTradingDayPerformance.noChangeStocks &&
                     lastTradingDayPerformance.noChangeStocks.length > 0
-                      ? fmtINRFull(lastTradingDayPerformance.noChangeStocks.reduce((sum: number, x: any) => sum + x.price, 0))
+                      ? fmtINRFull(
+                          lastTradingDayPerformance.noChangeStocks.reduce(
+                            (sum: number, x: any) => sum + x.price,
+                            0
+                          )
+                        )
                       : "₹0"}
                   </span>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
@@ -7649,7 +8237,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 (metrics.investmentValue || 0);
               const cash = metrics.cashInBanks || 0;
               const realEstate = metrics.realEstateAsset || 0;
-              const other = Math.max(0, (metrics.totalAssets || 0) - equity - debt - cash - realEstate);
+              const other = Math.max(
+                0,
+                (metrics.totalAssets || 0) - equity - debt - cash - realEstate
+              );
               const total = equity + debt + cash + realEstate + other;
 
               const actual = {
@@ -7704,7 +8295,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               ] as const;
 
               const totalTarget =
-                rebalTargets.equity + rebalTargets.debt + rebalTargets.cash + (rebalTargets.realEstate || 0) + rebalTargets.other;
+                rebalTargets.equity +
+                rebalTargets.debt +
+                rebalTargets.cash +
+                (rebalTargets.realEstate || 0) +
+                rebalTargets.other;
 
               return (
                 <>
@@ -7771,7 +8366,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               {(() => {
                                 const drift = actualPct - targetPct;
                                 const absDrift = Math.abs(drift);
-                                const driftColor = absDrift <= 2 ? THEME.sage : absDrift <= 5 ? THEME.gold : THEME.rust;
+                                const driftColor =
+                                  absDrift <= 2
+                                    ? THEME.sage
+                                    : absDrift <= 5
+                                      ? THEME.gold
+                                      : THEME.rust;
                                 return (
                                   <span
                                     style={{
@@ -7784,7 +8384,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                       whiteSpace: "nowrap",
                                     }}
                                   >
-                                    {drift >= 0 ? "+" : ""}{drift.toFixed(1)}%
+                                    {drift >= 0 ? "+" : ""}
+                                    {drift.toFixed(1)}%
                                   </span>
                                 );
                               })()}
@@ -7874,7 +8475,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 gap: 14,
                                 padding: "12px 14px",
                                 borderRadius: 10,
-                                background: isBuy ? `color-mix(in srgb, var(--t-sage) 4%, transparent)` : `color-mix(in srgb, var(--t-rust) 4%, transparent)`,
+                                background: isBuy
+                                  ? `color-mix(in srgb, var(--t-sage) 4%, transparent)`
+                                  : `color-mix(in srgb, var(--t-rust) 4%, transparent)`,
                                 border: `1px solid ${isBuy ? `color-mix(in srgb, var(--t-sage) 15%, transparent)` : `color-mix(in srgb, var(--t-rust) 12%, transparent)`}`,
                               }}
                             >
@@ -7943,7 +8546,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
 
                   {/* ── Rebalance with New Money ── */}
-                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 16 }}>
+                  <div
+                    style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 16, marginTop: 16 }}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -8034,11 +8639,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                         {(() => {
                           const amt = Number(newInvestAmount) || 0;
-                          if (amt <= 0) return (
-                            <div style={{ textAlign: "center", fontSize: 13, color: THEME.muted, padding: "12px 0" }}>
-                              Enter an amount to see deployment recommendations
-                            </div>
-                          );
+                          if (amt <= 0)
+                            return (
+                              <div
+                                style={{
+                                  textAlign: "center",
+                                  fontSize: 13,
+                                  color: THEME.muted,
+                                  padding: "12px 0",
+                                }}
+                              >
+                                Enter an amount to see deployment recommendations
+                              </div>
+                            );
 
                           const newTotal = total + amt;
                           const deployments = classes
@@ -8086,13 +8699,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                     <ArrowUpRight size={16} style={{ color }} />
                                   </div>
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700 }}>Deploy to {label}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                                      Deploy to {label}
+                                    </div>
                                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
                                       Target {targetPct}% — reduces drift
                                     </div>
                                   </div>
                                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}>
+                                    <div
+                                      style={{ fontSize: 14, fontWeight: 800, color: THEME.sage }}
+                                    >
                                       +{fmtINRFull(amount)}
                                     </div>
                                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
@@ -8102,7 +8719,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 </div>
                               ))}
                               {scaled.length === 0 && (
-                                <div style={{ textAlign: "center", fontSize: 13, color: THEME.sage, padding: "12px 0" }}>
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    fontSize: 13,
+                                    color: THEME.sage,
+                                    padding: "12px 0",
+                                  }}
+                                >
                                   Portfolio is already at target — invest equally or adjust targets
                                 </div>
                               )}
@@ -8120,9 +8744,42 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           {/* ── Portfolio Overlap Analyzer ── */}
           {(() => {
             const INDEX_HOLDINGS: Record<string, string[]> = {
-              "Nifty 50": ["HDFC Bank", "ICICI Bank", "Reliance", "Infosys", "TCS", "Bharti Airtel", "ITC", "L&T", "SBI", "Kotak Bank"],
-              "Nifty Next 50": ["HAL", "IOC", "BPCL", "Siemens", "Zomato", "DLF", "Vedanta", "ABB India", "Trent", "Mankind"],
-              "Sensex": ["HDFC Bank", "ICICI Bank", "Reliance", "Infosys", "TCS", "Bharti Airtel", "ITC", "L&T", "SBI", "HUL"],
+              "Nifty 50": [
+                "HDFC Bank",
+                "ICICI Bank",
+                "Reliance",
+                "Infosys",
+                "TCS",
+                "Bharti Airtel",
+                "ITC",
+                "L&T",
+                "SBI",
+                "Kotak Bank",
+              ],
+              "Nifty Next 50": [
+                "HAL",
+                "IOC",
+                "BPCL",
+                "Siemens",
+                "Zomato",
+                "DLF",
+                "Vedanta",
+                "ABB India",
+                "Trent",
+                "Mankind",
+              ],
+              Sensex: [
+                "HDFC Bank",
+                "ICICI Bank",
+                "Reliance",
+                "Infosys",
+                "TCS",
+                "Bharti Airtel",
+                "ITC",
+                "L&T",
+                "SBI",
+                "HUL",
+              ],
             };
 
             const mfs = (state.mutualFunds || []).map((m: any) => {
@@ -8151,10 +8808,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             });
 
             // Get user's direct stocks
-            const userStocks = (state.stocks || []).map((s: any) => {
-              const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
-              return base;
-            }).filter((s: string) => s);
+            const userStocks = (state.stocks || [])
+              .map((s: any) => {
+                const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "");
+                return base;
+              })
+              .filter((s: string) => s);
             const uniqueStockNames = [...new Set(userStocks)];
 
             // Find overlaps
@@ -8174,7 +8833,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               });
             });
 
-            const overlapEntries = Object.entries(overlapMap).sort((a, b) => b[1].length - a[1].length);
+            const overlapEntries = Object.entries(overlapMap).sort(
+              (a, b) => b[1].length - a[1].length
+            );
             const overlappingStockCount = overlapEntries.length;
             const fundsWithOverlap = new Set(overlapEntries.flatMap(([, funds]) => funds)).size;
             const concentrationRisks = overlapEntries.filter(([, funds]) => funds.length >= 3);
@@ -8183,16 +8844,28 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             return (
               <Card style={{ padding: 24, marginTop: 28 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                    flexWrap: "wrap",
+                    gap: 12,
+                  }}
+                >
                   <div>
-                    <div className="section-label" style={{ marginBottom: 4 }}>Portfolio Overlap Analyzer</div>
+                    <div className="section-label" style={{ marginBottom: 4 }}>
+                      Portfolio Overlap Analyzer
+                    </div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>
                       Detect overlap between your direct stocks and index fund holdings
                     </div>
                   </div>
                   {overlappingStockCount > 0 && (
                     <Badge variant={concentrationRisks.length > 0 ? "danger" : "info"}>
-                      {overlappingStockCount} stock{overlappingStockCount !== 1 ? "s" : ""} overlap in {fundsWithOverlap} fund{fundsWithOverlap !== 1 ? "s" : ""}
+                      {overlappingStockCount} stock{overlappingStockCount !== 1 ? "s" : ""} overlap
+                      in {fundsWithOverlap} fund{fundsWithOverlap !== 1 ? "s" : ""}
                     </Badge>
                   )}
                 </div>
@@ -8200,7 +8873,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {/* MF Listing with Index Tag */}
                 {mfs.length > 0 && (
                   <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 10,
+                      }}
+                    >
                       Your Mutual Funds
                     </div>
                     <div style={{ display: "grid", gap: 8 }}>
@@ -8218,16 +8900,37 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                         >
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: THEME.ink,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
                               {mf.name}
                             </div>
                             {mf.matchedIndex && (
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                                <span style={{
-                                  fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 20,
-                                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-                                  color: THEME.accent,
-                                }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  marginTop: 4,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: "1px 8px",
+                                    borderRadius: 20,
+                                    background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                                    color: THEME.accent,
+                                  }}
+                                >
                                   {mf.matchedIndex}
                                 </span>
                                 <span style={{ fontSize: 10, color: THEME.muted }}>
@@ -8236,7 +8939,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               </div>
                             )}
                           </div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink, flexShrink: 0, marginLeft: 12 }}>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              flexShrink: 0,
+                              marginLeft: 12,
+                            }}
+                          >
                             <Prv>{fmtINRFull(mf.value)}</Prv>
                           </div>
                         </div>
@@ -8248,7 +8959,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {/* Overlap Results */}
                 {overlapEntries.length > 0 ? (
                   <div>
-                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: THEME.muted,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        marginBottom: 10,
+                      }}
+                    >
                       Overlap Detected
                     </div>
                     <div style={{ display: "grid", gap: 8 }}>
@@ -8267,16 +8987,28 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               borderLeft: isConcentration ? `3px solid ${THEME.rust}` : undefined,
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 4,
+                              }}
+                            >
                               <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                                 {stock}
                               </div>
                               {isConcentration && (
-                                <span style={{
-                                  fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 20,
-                                  background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                                  color: THEME.rust,
-                                }}>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: "1px 8px",
+                                    borderRadius: 20,
+                                    background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                                    color: THEME.rust,
+                                  }}
+                                >
                                   Concentration Risk
                                 </span>
                               )}
@@ -8286,7 +9018,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               {funds.map((f: string, fi: number) => (
                                 <span key={fi}>
                                   {fi > 0 ? ", " : ""}
-                                  <span style={{ fontWeight: 600, color: THEME.ink }}>{f.length > 30 ? f.slice(0, 30) + "..." : f}</span>
+                                  <span style={{ fontWeight: 600, color: THEME.ink }}>
+                                    {f.length > 30 ? f.slice(0, 30) + "..." : f}
+                                  </span>
                                 </span>
                               ))}
                             </div>
@@ -8295,24 +9029,52 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       })}
                     </div>
                     {concentrationRisks.length > 0 && (
-                      <div style={{
-                        marginTop: 14, padding: "10px 14px", borderRadius: 10,
-                        background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
-                        fontSize: 12, color: THEME.rust, fontWeight: 600,
-                        display: "flex", alignItems: "center", gap: 8,
-                      }}>
+                      <div
+                        style={{
+                          marginTop: 14,
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
+                          border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                          fontSize: 12,
+                          color: THEME.rust,
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
                         <AlertTriangle size={14} />
-                        {concentrationRisks.length} stock{concentrationRisks.length !== 1 ? "s" : ""} appear{concentrationRisks.length === 1 ? "s" : ""} in 3+ funds — consider reducing direct holding or switching to non-overlapping funds
+                        {concentrationRisks.length} stock
+                        {concentrationRisks.length !== 1 ? "s" : ""} appear
+                        {concentrationRisks.length === 1 ? "s" : ""} in 3+ funds — consider reducing
+                        direct holding or switching to non-overlapping funds
                       </div>
                     )}
                   </div>
                 ) : uniqueStockNames.length > 0 && mfs.some((m: any) => m.holdings.length > 0) ? (
-                  <div style={{ textAlign: "center", padding: "20px 0", color: THEME.sage, fontSize: 13, fontWeight: 600 }}>
-                    No overlap detected — your direct stocks don't appear in any tracked index fund holdings
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "20px 0",
+                      color: THEME.sage,
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    No overlap detected — your direct stocks don't appear in any tracked index fund
+                    holdings
                   </div>
-                ) : uniqueStockNames.length === 0 || mfs.every((m: any) => m.holdings.length === 0) ? (
-                  <div style={{ textAlign: "center", padding: "20px 0", color: THEME.muted, fontSize: 13 }}>
+                ) : uniqueStockNames.length === 0 ||
+                  mfs.every((m: any) => m.holdings.length === 0) ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "20px 0",
+                      color: THEME.muted,
+                      fontSize: 13,
+                    }}
+                  >
                     {uniqueStockNames.length === 0
                       ? "Add direct stocks to detect overlap with your index fund holdings"
                       : "No index funds detected — overlap analysis works with Nifty 50, Nifty Next 50, and Sensex funds"}
@@ -8326,33 +9088,111 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           {(() => {
             // Age-banded percentile benchmarks for Indian upper-middle-class (salaried/professional)
             // Based on PRICE ICE360, Credit Suisse Global Wealth Report & CMIE CPHS estimates (2024)
-            const BANDS: { age: [number, number]; p25: number; p50: number; p75: number; p90: number; p95: number }[] = [
+            const BANDS: {
+              age: [number, number];
+              p25: number;
+              p50: number;
+              p75: number;
+              p90: number;
+              p95: number;
+            }[] = [
               { age: [20, 25], p25: 100000, p50: 300000, p75: 800000, p90: 2000000, p95: 4000000 },
-              { age: [25, 30], p25: 300000, p50: 800000, p75: 2000000, p90: 5000000, p95: 10000000 },
-              { age: [30, 35], p25: 800000, p50: 2000000, p75: 5000000, p90: 12000000, p95: 25000000 },
-              { age: [35, 40], p25: 1500000, p50: 4000000, p75: 10000000, p90: 25000000, p95: 50000000 },
-              { age: [40, 45], p25: 2500000, p50: 7000000, p75: 18000000, p90: 40000000, p95: 80000000 },
-              { age: [45, 50], p25: 4000000, p50: 10000000, p75: 25000000, p90: 55000000, p95: 110000000 },
-              { age: [50, 55], p25: 5000000, p50: 13000000, p75: 32000000, p90: 70000000, p95: 140000000 },
-              { age: [55, 65], p25: 6000000, p50: 16000000, p75: 40000000, p90: 90000000, p95: 180000000 },
+              {
+                age: [25, 30],
+                p25: 300000,
+                p50: 800000,
+                p75: 2000000,
+                p90: 5000000,
+                p95: 10000000,
+              },
+              {
+                age: [30, 35],
+                p25: 800000,
+                p50: 2000000,
+                p75: 5000000,
+                p90: 12000000,
+                p95: 25000000,
+              },
+              {
+                age: [35, 40],
+                p25: 1500000,
+                p50: 4000000,
+                p75: 10000000,
+                p90: 25000000,
+                p95: 50000000,
+              },
+              {
+                age: [40, 45],
+                p25: 2500000,
+                p50: 7000000,
+                p75: 18000000,
+                p90: 40000000,
+                p95: 80000000,
+              },
+              {
+                age: [45, 50],
+                p25: 4000000,
+                p50: 10000000,
+                p75: 25000000,
+                p90: 55000000,
+                p95: 110000000,
+              },
+              {
+                age: [50, 55],
+                p25: 5000000,
+                p50: 13000000,
+                p75: 32000000,
+                p90: 70000000,
+                p95: 140000000,
+              },
+              {
+                age: [55, 65],
+                p25: 6000000,
+                p50: 16000000,
+                p75: 40000000,
+                p90: 90000000,
+                p95: 180000000,
+              },
             ];
             const nw = metrics.netWorth || 0;
             const ageInput = nwPercentileAge;
             const setAgeInput = setNwPercentileAge;
-            const band = BANDS.find((b) => ageInput >= b.age[0] && ageInput < b.age[1]) || BANDS[BANDS.length - 1];
+            const band =
+              BANDS.find((b) => ageInput >= b.age[0] && ageInput < b.age[1]) ||
+              BANDS[BANDS.length - 1];
 
             let pct = 0;
             if (nw <= 0) pct = 0;
             else if (nw < band.p25) pct = Math.round((nw / band.p25) * 25);
-            else if (nw < band.p50) pct = 25 + Math.round(((nw - band.p25) / (band.p50 - band.p25)) * 25);
-            else if (nw < band.p75) pct = 50 + Math.round(((nw - band.p50) / (band.p75 - band.p50)) * 25);
-            else if (nw < band.p90) pct = 75 + Math.round(((nw - band.p75) / (band.p90 - band.p75)) * 15);
-            else if (nw < band.p95) pct = 90 + Math.round(((nw - band.p90) / (band.p95 - band.p90)) * 5);
+            else if (nw < band.p50)
+              pct = 25 + Math.round(((nw - band.p25) / (band.p50 - band.p25)) * 25);
+            else if (nw < band.p75)
+              pct = 50 + Math.round(((nw - band.p50) / (band.p75 - band.p50)) * 25);
+            else if (nw < band.p90)
+              pct = 75 + Math.round(((nw - band.p75) / (band.p90 - band.p75)) * 15);
+            else if (nw < band.p95)
+              pct = 90 + Math.round(((nw - band.p90) / (band.p95 - band.p90)) * 5);
             else pct = 95 + Math.min(4, Math.round(((nw - band.p95) / band.p95) * 10));
             pct = Math.min(99, Math.max(0, pct));
 
-            const label = pct >= 95 ? "Top 5%" : pct >= 90 ? "Top 10%" : pct >= 75 ? "Top 25%" : pct >= 50 ? "Top 50%" : "Below Median";
-            const color = pct >= 90 ? THEME.gold : pct >= 75 ? THEME.success : pct >= 50 ? THEME.primary : THEME.muted;
+            const label =
+              pct >= 95
+                ? "Top 5%"
+                : pct >= 90
+                  ? "Top 10%"
+                  : pct >= 75
+                    ? "Top 25%"
+                    : pct >= 50
+                      ? "Top 50%"
+                      : "Below Median";
+            const color =
+              pct >= 90
+                ? THEME.gold
+                : pct >= 75
+                  ? THEME.success
+                  : pct >= 50
+                    ? THEME.primary
+                    : THEME.muted;
             const milestones = [
               { label: "25th", value: band.p25, pct: 25 },
               { label: "50th", value: band.p50, pct: 50 },
@@ -8364,83 +9204,210 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
             return (
               <Card style={{ padding: 24, marginTop: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    marginBottom: 20,
+                  }}
+                >
                   <div>
-                    <div className="section-label" style={{ marginBottom: 4 }}>Net Worth Percentile</div>
+                    <div className="section-label" style={{ marginBottom: 4 }}>
+                      Net Worth Percentile
+                    </div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>
-                      Where your wealth stands among Indian professionals · benchmarks from PRICE ICE360 & Credit Suisse (2024)
+                      Where your wealth stands among Indian professionals · benchmarks from PRICE
+                      ICE360 & Credit Suisse (2024)
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 12, color: THEME.muted }}>Your age:</span>
                     <input
-                      type="number" min={20} max={70}
+                      type="number"
+                      min={20}
+                      max={70}
                       value={ageInput}
                       onChange={(e) => setAgeInput(Number(e.target.value))}
-                      style={{ width: 60, padding: "4px 8px", borderRadius: 6, border: `1px solid ${THEME.border}`, background: THEME.bg, color: THEME.text, fontSize: 13, textAlign: "center" }}
+                      style={{
+                        width: 60,
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        border: `1px solid ${THEME.border}`,
+                        background: THEME.bg,
+                        color: THEME.text,
+                        fontSize: 13,
+                        textAlign: "center",
+                      }}
                     />
                   </div>
                 </div>
 
                 {/* Big percentile display */}
-                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 20,
+                    marginBottom: 20,
+                    flexWrap: "wrap",
+                  }}
+                >
                   <div style={{ textAlign: "center", minWidth: 100 }}>
-                    <div style={{ fontSize: 48, fontWeight: 900, color, lineHeight: 1 }}>{pct}th</div>
+                    <div style={{ fontSize: 48, fontWeight: 900, color, lineHeight: 1 }}>
+                      {pct}th
+                    </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>percentile</div>
                     <div style={{ marginTop: 6 }}>
-                      <span style={{ background: `${color}20`, color, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{label}</span>
+                      <span
+                        style={{
+                          background: `${color}20`,
+                          color,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                        }}
+                      >
+                        {label}
+                      </span>
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     {/* Progress bar */}
-                    <div style={{ position: "relative", height: 20, background: `${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 8 }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${THEME.primary}, ${color})`, borderRadius: 10, transition: "width 0.5s ease" }} />
+                    <div
+                      style={{
+                        position: "relative",
+                        height: 20,
+                        background: `${THEME.border}`,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${pct}%`,
+                          background: `linear-gradient(90deg, ${THEME.primary}, ${color})`,
+                          borderRadius: 10,
+                          transition: "width 0.5s ease",
+                        }}
+                      />
                       {/* Milestone ticks */}
                       {[25, 50, 75, 90, 95].map((p) => (
-                        <div key={p} style={{ position: "absolute", left: `${p}%`, top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                        <div
+                          key={p}
+                          style={{
+                            position: "absolute",
+                            left: `${p}%`,
+                            top: 0,
+                            bottom: 0,
+                            width: 2,
+                            background: "rgba(255,255,255,0.4)",
+                            transform: "translateX(-50%)",
+                          }}
+                        />
                       ))}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 10,
+                        color: THEME.muted,
+                      }}
+                    >
                       <span>0</span>
-                      {[25, 50, 75, 90, 95].map((p) => <span key={p} style={{ transform: "translateX(-50%)" }}>{p}th</span>)}
+                      {[25, 50, 75, 90, 95].map((p) => (
+                        <span key={p} style={{ transform: "translateX(-50%)" }}>
+                          {p}th
+                        </span>
+                      ))}
                       <span>99+</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Milestone table */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 8,
+                    marginBottom: 16,
+                  }}
+                >
                   {milestones.map((m) => (
-                    <div key={m.label} style={{
-                      padding: "10px 12px", borderRadius: 8,
-                      background: nw >= m.value ? `${THEME.success}18` : `${THEME.border}40`,
-                      border: `1px solid ${nw >= m.value ? `${THEME.success}40` : THEME.border}`,
-                    }}>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>{m.label} pctl (age {ageInput})</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: nw >= m.value ? THEME.success : THEME.text }}>
-                        {m.value >= 10000000 ? `₹${(m.value / 10000000).toFixed(1)}Cr` : `₹${(m.value / 100000).toFixed(0)}L`}
+                    <div
+                      key={m.label}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        background: nw >= m.value ? `${THEME.success}18` : `${THEME.border}40`,
+                        border: `1px solid ${nw >= m.value ? `${THEME.success}40` : THEME.border}`,
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>
+                        {m.label} pctl (age {ageInput})
                       </div>
-                      {nw >= m.value && <div style={{ fontSize: 10, color: THEME.success, marginTop: 2 }}>✓ Achieved</div>}
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: nw >= m.value ? THEME.success : THEME.text,
+                        }}
+                      >
+                        {m.value >= 10000000
+                          ? `₹${(m.value / 10000000).toFixed(1)}Cr`
+                          : `₹${(m.value / 100000).toFixed(0)}L`}
+                      </div>
+                      {nw >= m.value && (
+                        <div style={{ fontSize: 10, color: THEME.success, marginTop: 2 }}>
+                          ✓ Achieved
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
                 {/* Next milestone */}
                 {nextMilestone && (
-                  <div style={{ background: `${THEME.primary}0a`, border: `1px solid ${THEME.primary}30`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: THEME.muted }}>
+                  <div
+                    style={{
+                      background: `${THEME.primary}0a`,
+                      border: `1px solid ${THEME.primary}30`,
+                      borderRadius: 8,
+                      padding: "10px 14px",
+                      fontSize: 13,
+                      color: THEME.muted,
+                    }}
+                  >
                     <strong style={{ color: THEME.primary }}>Next milestone:</strong>{" "}
                     {nextMilestone.pct}th percentile —{" "}
-                    {nextMilestone.value >= 10000000 ? `₹${(nextMilestone.value / 10000000).toFixed(1)}Cr` : `₹${(nextMilestone.value / 100000).toFixed(0)}L`}.
-                    {" "}Need <strong>{((nextMilestone.value - nw) >= 10000000 ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr` : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`)}</strong> more.
+                    {nextMilestone.value >= 10000000
+                      ? `₹${(nextMilestone.value / 10000000).toFixed(1)}Cr`
+                      : `₹${(nextMilestone.value / 100000).toFixed(0)}L`}
+                    . Need{" "}
+                    <strong>
+                      {nextMilestone.value - nw >= 10000000
+                        ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr`
+                        : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`}
+                    </strong>{" "}
+                    more.
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 10, fontStyle: "italic" }}>
-                  * Benchmarks are estimates for Indian urban professionals. Percentile reflects household net worth (assets minus liabilities), not income.
+                <div
+                  style={{ fontSize: 10, color: THEME.muted, marginTop: 10, fontStyle: "italic" }}
+                >
+                  * Benchmarks are estimates for Indian urban professionals. Percentile reflects
+                  household net worth (assets minus liabilities), not income.
                 </div>
               </Card>
             );
           })()}
-
         </div>
       )}
 
@@ -8667,7 +9634,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           borderRadius: 6,
                           border: `1px solid color-mix(in srgb, var(--t-accent) 24%, transparent)`,
                           background:
-                            fireWhatIfExtra === preset.val ? `color-mix(in srgb, var(--t-accent) 14%, transparent)` : "transparent",
+                            fireWhatIfExtra === preset.val
+                              ? `color-mix(in srgb, var(--t-accent) 14%, transparent)`
+                              : "transparent",
                           color: THEME.accent,
                           fontSize: 11,
                           fontWeight: 700,
@@ -9021,7 +9990,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             borderRadius: 6,
                             border: `1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)`,
                             background:
-                              windfallAmount === preset.val ? `color-mix(in srgb, var(--t-sage) 10%, transparent)` : "transparent",
+                              windfallAmount === preset.val
+                                ? `color-mix(in srgb, var(--t-sage) 10%, transparent)`
+                                : "transparent",
                             color: THEME.sage,
                             fontSize: 10,
                             fontWeight: 700,
@@ -9110,7 +10081,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             borderRadius: 6,
                             border: `1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)`,
                             background:
-                              extraExpenseAmount === preset.val ? `color-mix(in srgb, var(--t-rust) 10%, transparent)` : "transparent",
+                              extraExpenseAmount === preset.val
+                                ? `color-mix(in srgb, var(--t-rust) 10%, transparent)`
+                                : "transparent",
                             color: THEME.rust,
                             fontSize: 10,
                             fontWeight: 700,
@@ -9193,12 +10166,28 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       >
                         <defs>
                           <linearGradient id="projColorNet" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={THEME.accent} stopOpacity={isDark ? 0.35 : 0.25} />
-                            <stop offset="95%" stopColor={THEME.accent} stopOpacity={isDark ? 0.05 : 0.0} />
+                            <stop
+                              offset="5%"
+                              stopColor={THEME.accent}
+                              stopOpacity={isDark ? 0.35 : 0.25}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor={THEME.accent}
+                              stopOpacity={isDark ? 0.05 : 0.0}
+                            />
                           </linearGradient>
                           <linearGradient id="projColorReal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={THEME.sage} stopOpacity={isDark ? 0.3 : 0.2} />
-                            <stop offset="95%" stopColor={THEME.sage} stopOpacity={isDark ? 0.05 : 0.0} />
+                            <stop
+                              offset="5%"
+                              stopColor={THEME.sage}
+                              stopOpacity={isDark ? 0.3 : 0.2}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor={THEME.sage}
+                              stopOpacity={isDark ? 0.05 : 0.0}
+                            />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
@@ -9277,7 +10266,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   gap: 14,
                   alignItems: "center",
                   padding: "16px 20px",
-                  background: crossoverYear ? `color-mix(in srgb, var(--t-sage) 6%, transparent)` : `color-mix(in srgb, var(--t-gold) 6%, transparent)`,
+                  background: crossoverYear
+                    ? `color-mix(in srgb, var(--t-sage) 6%, transparent)`
+                    : `color-mix(in srgb, var(--t-gold) 6%, transparent)`,
                   border: `1px solid ${crossoverYear ? `color-mix(in srgb, var(--t-sage) 18%, transparent)` : `color-mix(in srgb, var(--t-gold) 18%, transparent)`}`,
                   borderRadius: 12,
                 }}
@@ -9663,7 +10654,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         style={{
                           padding: "12px",
                           borderRadius: 12,
-                          background: isOverBudget ? `color-mix(in srgb, var(--t-rust) 4%, transparent)` : `color-mix(in srgb, var(--t-sage) 4%, transparent)`,
+                          background: isOverBudget
+                            ? `color-mix(in srgb, var(--t-rust) 4%, transparent)`
+                            : `color-mix(in srgb, var(--t-sage) 4%, transparent)`,
                           border: `1px solid ${isOverBudget ? `color-mix(in srgb, var(--t-rust) 10%, transparent)` : `color-mix(in srgb, var(--t-sage) 10%, transparent)`}`,
                           fontSize: 12,
                           lineHeight: 1.5,
@@ -10222,7 +11215,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             borderRadius: 6,
                             border: `1px solid ${THEME.line}`,
                             background:
-                              sipLsTarget === preset ? `color-mix(in srgb, var(--t-accent) 12%, transparent)` : "transparent",
+                              sipLsTarget === preset
+                                ? `color-mix(in srgb, var(--t-accent) 12%, transparent)`
+                                : "transparent",
                             color: sipLsTarget === preset ? THEME.accent : THEME.muted,
                             fontSize: 10,
                             fontWeight: 700,
@@ -11619,7 +12614,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           className="tab-content-enter"
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
-          <Card style={{ padding: 0, overflow: "hidden", borderRadius: 20, background: isDark ? "var(--surface-2)" : "#0F172A", border: isDark ? `1px solid ${THEME.line}` : "none" }}>
+          <Card
+            style={{
+              padding: 0,
+              overflow: "hidden",
+              borderRadius: 20,
+              background: isDark ? "var(--surface-2)" : "#0F172A",
+              border: isDark ? `1px solid ${THEME.line}` : "none",
+            }}
+          >
             {/* Thin accent stripe — identifies current theme color */}
             <div
               style={{
@@ -12116,7 +13119,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     style={{
                       padding: "14px 16px",
                       borderRadius: 14,
-                      background: i === 0 ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "var(--surface-0)",
+                      background:
+                        i === 0
+                          ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)`
+                          : "var(--surface-0)",
                       border: `1px solid ${i === 0 ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)` : THEME.line}`,
                       borderLeft: `3px solid ${i === 0 ? THEME.accent : i === 1 ? THEME.gold : THEME.line}`,
                       display: "flex",
@@ -12324,7 +13330,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             fontSize: 8,
                             fontWeight: 900,
                             color: isEarned ? THEME.sage : THEME.muted,
-                            background: isEarned ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : "var(--surface-0)",
+                            background: isEarned
+                              ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
+                              : "var(--surface-0)",
                             border: `1px solid ${isEarned ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : THEME.line}`,
                             padding: "1px 5px",
                             borderRadius: 6,
@@ -12477,7 +13485,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         fontSize: 11,
                         fontWeight: 800,
-                        color: row.pct === 100 ? "#059669" : row.pct > 0 ? THEME.accent : THEME.muted,
+                        color:
+                          row.pct === 100 ? "#059669" : row.pct > 0 ? THEME.accent : THEME.muted,
                       }}
                     >
                       {row.earned} / {row.possible} XP
@@ -12590,7 +13599,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       name,
                     ]}
                   />
-                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 20, color: THEME.ink }} iconType="circle" />
+                  <Legend
+                    wrapperStyle={{ fontSize: 12, paddingTop: 20, color: THEME.ink }}
+                    iconType="circle"
+                  />
                   <Bar dataKey="You" fill="var(--t-accent)" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Average" fill="#94a3b8" radius={[5, 5, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="Top10" fill="#10b981" radius={[5, 5, 0, 0]} maxBarSize={36} />
@@ -12675,7 +13687,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <Badge
                       style={{
-                        background: isPaid ? `color-mix(in srgb, var(--t-sage) 12%, transparent)` : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
+                        background: isPaid
+                          ? `color-mix(in srgb, var(--t-sage) 12%, transparent)`
+                          : `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
                         color: isPaid ? THEME.sage : THEME.gold,
                         border: `1px solid color-mix(in srgb, ${isPaid ? THEME.sage : THEME.gold} 35%, transparent)`,
                         fontSize: 10,
@@ -12735,7 +13749,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
   const color = negative ? "#F87171" : sage ? "#34D399" : "rgba(255,255,255,0.9)";
   // Border uses explicit rgba so appending digits to color string is avoided
-  const borderColor = negative ? "rgba(248,113,113,0.18)" : sage ? "rgba(52,211,153,0.18)" : "rgba(255,255,255,0.09)";
+  const borderColor = negative
+    ? "rgba(248,113,113,0.18)"
+    : sage
+      ? "rgba(52,211,153,0.18)"
+      : "rgba(255,255,255,0.09)";
   const isClickable = !!(tabId && setTab);
   return (
     <div
@@ -12792,4 +13810,3 @@ const HeroStat = ({ label, value, negative, sage, tabId, setTab }: any) => {
     </div>
   );
 };
-

@@ -69,6 +69,7 @@ export function useMetrics(
       corporateActions: filterByOwner(state.corporateActions || []),
       goldHoldings: filterByOwner(state.goldHoldings || []),
       lifeEvents: filterByOwner(state.lifeEvents || []),
+      govtSchemes: filterByOwner(state.govtSchemes || []),
       netWorthHistory: [],
     };
   }, [state, activeProfile]);
@@ -76,8 +77,18 @@ export function useMetrics(
   // ================== COMPUTED FINANCIAL METRICS ==================
   const metrics = useMemo(() => {
     const sState = filteredState;
-    const cashInBanks = (sState.bankAccounts || []).reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
-    const fdValue = sState.fixedDeposits.reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
+    const cashInBanks = (sState.bankAccounts || []).reduce(
+      (s: number, a: any) => s + Number(a.balance || 0),
+      0
+    );
+    const fdValue = sState.fixedDeposits.reduce(
+      (s: number, f: any) => s + Number(f.principal || 0),
+      0
+    );
+    const govtSchemesValue = (sState.govtSchemes || []).reduce(
+      (s: number, sc: any) => s + Number(sc.currentBalance || 0),
+      0
+    );
     const rdValue = sState.recurringDeposits.reduce((s: number, r: any) => {
       const elapsed = r.startDate
         ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
@@ -85,7 +96,8 @@ export function useMetrics(
       return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
     }, 0);
     const bondValue = sState.bonds.reduce(
-      (s: number, b: any) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+      (s: number, b: any) =>
+        s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
       0
     );
     const ppfValue = sState.ppf.reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
@@ -93,11 +105,16 @@ export function useMetrics(
       const bal = Number(n.balance) || 0;
       if (bal > 0) return s + bal;
       const txTotal = (n.transactions || []).reduce(
-        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0), 0
+        (ss: number, t: any) =>
+          ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+        0
       );
       return s + txTotal;
     }, 0);
-    const epfValue = (sState.epf || []).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+    const epfValue = (sState.epf || []).reduce(
+      (s: number, e: any) => s + calculateEpfBalance(e),
+      0
+    );
     const licValue = sState.lic.reduce((s: number, l: any) => {
       const txTotal = (l.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
@@ -137,7 +154,10 @@ export function useMetrics(
       0
     );
 
-    const loansGivenValue = sState.loansGiven.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
+    const loansGivenValue = sState.loansGiven.reduce(
+      (s: number, l: any) => s + Number(l.outstanding || 0),
+      0
+    );
     const prepaidValue = sState.prepaidCards
       .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
       .reduce((s: number, p: any) => {
@@ -154,13 +174,19 @@ export function useMetrics(
     const ccOutstanding = sState.creditCards
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
-    const loansTakenValue = sState.loansTaken.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
+    const loansTakenValue = sState.loansTaken.reduce(
+      (s: number, l: any) => s + Number(l.outstanding || 0),
+      0
+    );
     const rentalDepositLiability = (sState.rentalProperties || []).reduce((s: number, p: any) => {
       const actualDeposit =
         p.depositTransactions && p.depositTransactions.length > 0
           ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
           : Number(p.securityDeposit || 0);
-      const deducted = (p.depositDeductions || []).reduce((a: number, d: any) => a + Number(d.amount || 0), 0);
+      const deducted = (p.depositDeductions || []).reduce(
+        (a: number, d: any) => a + Number(d.amount || 0),
+        0
+      );
       const returned = Number(p.depositReturned || 0);
       return s + Math.max(0, actualDeposit - deducted - returned);
     }, 0);
@@ -181,13 +207,16 @@ export function useMetrics(
       return s + Math.max(0, totalT - totalP);
     }, 0);
 
-    const informalBorrowedValue = (sState.informalBorrowed || []).reduce((s: number, person: any) => {
-      const tranches = person.tranches || [];
-      const payments = person.payments || [];
-      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-      return s + Math.max(0, totalT - totalP);
-    }, 0);
+    const informalBorrowedValue = (sState.informalBorrowed || []).reduce(
+      (s: number, person: any) => {
+        const tranches = person.tranches || [];
+        const payments = person.payments || [];
+        const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        return s + Math.max(0, totalT - totalP);
+      },
+      0
+    );
 
     const rentalPropertiesAsset = (sState.rentalProperties || []).reduce(
       (s: number, r: any) => s + Number(r.propertyValue || 0),
@@ -202,12 +231,21 @@ export function useMetrics(
 
     // Gold & SGBs: value at current gold price (stored in localStorage), fallback to purchase price
     const goldPrice = (() => {
-      try { return Number(localStorage.getItem("gold_price_per_gram")) || 7200; } catch { return 7200; }
+      try {
+        return Number(localStorage.getItem("gold_price_per_gram")) || 7200;
+      } catch {
+        return 7200;
+      }
     })();
-    const PURITY_FACTOR: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
+    const PURITY_FACTOR: Record<string, number> = {
+      "24K": 1,
+      "22K": 22 / 24,
+      "18K": 18 / 24,
+      "14K": 14 / 24,
+    };
     const goldValue = (sState.goldHoldings || []).reduce((s: number, h: any) => {
       const grams = Number(h.grams || 0);
-      const purityMul = h.type === "physical" ? (PURITY_FACTOR[h.purity] || 1) : 1;
+      const purityMul = h.type === "physical" ? PURITY_FACTOR[h.purity] || 1 : 1;
       const currentValue = grams * goldPrice * purityMul;
       return s + currentValue;
     }, 0);
@@ -252,9 +290,14 @@ export function useMetrics(
       rentalPropertiesAsset +
       realEstateAsset +
       vehicleAsset +
-      goldValue;
+      goldValue +
+      govtSchemesValue;
     const totalLiabilities =
-      ccOutstanding + loansTakenValue + rentalDepositLiability + informalBorrowedValue + realEstateOutstanding;
+      ccOutstanding +
+      loansTakenValue +
+      rentalDepositLiability +
+      informalBorrowedValue +
+      realEstateOutstanding;
     const netWorth = totalAssets - totalLiabilities;
 
     // Income/Expense current month
@@ -278,9 +321,12 @@ export function useMetrics(
       return sum + paymentsThisMonth;
     }, 0);
 
-    const txnDebitTotal = monthTxns.filter((t: any) => t.type === "debit").reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const txnDebitTotal = monthTxns
+      .filter((t: any) => t.type === "debit")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const hasRentTxn = monthTxns.some((t: any) => t.type === "debit" && t.category === "Rent");
-    const monthExpense = txnDebitTotal + (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
+    const monthExpense =
+      txnDebitTotal + (rentPaidThisMonth > 0 && !hasRentTxn ? rentPaidThisMonth : 0);
 
     // Annual income from income ledger
     const fyStart = new Date(`${(sState.profile?.fy || getCurrentFY()).split("-")[0]}-04-01`);
@@ -308,7 +354,18 @@ export function useMetrics(
 
     const liquidAssets = cashInBanks + mfValue + stockValue;
     const lockedAssets =
-      fdValue + rdValue + bondValue + ppfValue + npsValue + epfValue + licValue + investmentValue + realEstateAsset + vehicleAsset + goldValue;
+      fdValue +
+      rdValue +
+      bondValue +
+      ppfValue +
+      npsValue +
+      epfValue +
+      licValue +
+      investmentValue +
+      realEstateAsset +
+      vehicleAsset +
+      goldValue +
+      govtSchemesValue;
     const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
     const debtToAssetRatio = totalAssets > 0 ? (totalLiabilities / totalAssets) * 100 : 0;
 
@@ -320,16 +377,25 @@ export function useMetrics(
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 
     // Credit utilization: cc outstanding / cc total limit (shared-pool deduplication)
-    const activeCC = (sState.creditCards || []).filter((c: any) => (c.status || "").toLowerCase() !== "closed");
+    const activeCC = (sState.creditCards || []).filter(
+      (c: any) => (c.status || "").toLowerCase() !== "closed"
+    );
     const ccGroupPools: Record<string, number> = {};
     activeCC.forEach((c: any) => {
       if (c.sharedGroup) {
-        ccGroupPools[c.sharedGroup] = Math.max(ccGroupPools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+        ccGroupPools[c.sharedGroup] = Math.max(
+          ccGroupPools[c.sharedGroup] || 0,
+          Number(c.sharedGroupLimit) || 0
+        );
       }
     });
     const totalCCLimit =
-      activeCC.filter((c: any) => !c.sharedGroup).reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0) +
-      (Object.values(ccGroupPools) as number[]).reduce((s: number, v: number) => s + v, 0);
+      activeCC
+        .filter((c: any) => !c.sharedGroup)
+        .reduce(
+          (s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0),
+          0
+        ) + (Object.values(ccGroupPools) as number[]).reduce((s: number, v: number) => s + v, 0);
     const creditUtilization = totalCCLimit > 0 ? (ccOutstanding / totalCCLimit) * 100 : 0;
 
     // Compute FY-aware tax liability with auto-detected deductions and manual overrides
@@ -337,11 +403,14 @@ export function useMetrics(
 
     const expenseBreakdownMap: Record<string, number> = monthTxns
       .filter((t: any) => t.type === "debit")
-      .reduce((acc: Record<string, number>, t: any) => {
-        const cat = t.category || "Uncategorized";
-        acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
-        return acc;
-      }, {} as Record<string, number>);
+      .reduce(
+        (acc: Record<string, number>, t: any) => {
+          const cat = t.category || "Uncategorized";
+          acc[cat] = (acc[cat] || 0) + Number(t.amount || 0);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
     // Add rental-ledger rent only when there are no "Rent"-categorised debit transactions
     // for the month. If the user already logged rent in the bank transactions tab, adding
@@ -362,8 +431,14 @@ export function useMetrics(
       { name: "Stocks", Invested: stockInvested, Current: stockValue },
     ].filter((x) => x.Invested > 0 || x.Current > 0);
 
-    const totalGoalTarget = sState.goals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
-    const totalGoalSaved = sState.goals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
+    const totalGoalTarget = sState.goals.reduce(
+      (s: number, g: any) => s + Number(g.targetAmount || 0),
+      0
+    );
+    const totalGoalSaved = sState.goals.reduce(
+      (s: number, g: any) => s + Number(g.currentAmount || 0),
+      0
+    );
     const totalGoalRemaining = Math.max(0, totalGoalTarget - totalGoalSaved);
     const overallGoalPct = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
     const goalsCompleted = sState.goals.filter(
@@ -389,6 +464,7 @@ export function useMetrics(
       prepaidValue,
       rentalDepositLiability,
       rentedDepositAsset,
+      govtSchemesValue,
       totalAssets,
       totalLiabilities,
       netWorth,
@@ -489,6 +565,7 @@ export function useMetrics(
         { name: "Real Estate", value: metrics.realEstateAsset },
         { name: "Vehicles", value: metrics.vehicleAsset },
         { name: "Gold & SGBs", value: metrics.goldValue },
+        { name: "Govt Schemes", value: metrics.govtSchemesValue },
       ].filter((x) => x.value > 0),
     [metrics]
   );
@@ -517,14 +594,16 @@ export function useMetrics(
       // Include rent paid via rental ledger (rentedProperties.payments) so the
       // trend chart stays consistent with the monthExpense metric on the dashboard.
       const hasRentTxnTrend = txns.some((t: any) => t.type === "debit" && t.category === "Rent");
-      const rentExp = hasRentTxnTrend ? 0 : (filteredState.rentedProperties || []).reduce((sum: number, p: any) => {
-        return (
-          sum +
-          (p.payments || [])
-            .filter((pay: any) => pay.date && pay.date.startsWith(ym))
-            .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
-        );
-      }, 0);
+      const rentExp = hasRentTxnTrend
+        ? 0
+        : (filteredState.rentedProperties || []).reduce((sum: number, p: any) => {
+            return (
+              sum +
+              (p.payments || [])
+                .filter((pay: any) => pay.date && pay.date.startsWith(ym))
+                .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0)
+            );
+          }, 0);
       const exp = txnExp + rentExp;
       arr.push({ month: label, income: inc, expense: exp, net: inc - exp });
     }
