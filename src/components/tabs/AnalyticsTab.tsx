@@ -3209,7 +3209,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           display: "flex",
           alignItems: "center",
           gap: 12,
-          marginBottom: 24,
+          marginBottom: 8,
           flexWrap: "wrap",
         }}
       >
@@ -3232,24 +3232,104 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             );
           })}
         </div>
-        <div style={{ flexShrink: 0, display: "flex", gap: 6 }}>
-          <Button
-            variant="secondary"
-            size="sm"
+        <div style={{ flexShrink: 0, display: "flex", gap: 6, marginLeft: "auto" }}>
+          <button
             onClick={() => setShowWidgetConfig(!showWidgetConfig)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: 10,
+              border: `1.5px solid ${showWidgetConfig ? THEME.accent : THEME.line}`,
+              background: showWidgetConfig
+                ? `color-mix(in srgb, var(--t-accent) 10%, transparent)`
+                : "transparent",
+              color: showWidgetConfig ? THEME.accent : THEME.muted,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (!showWidgetConfig) {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
+                (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showWidgetConfig) {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+                (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
+              }
+            }}
           >
-            ⚙️ Widgets
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Printer size={14} />}
+            <span style={{ fontSize: 13 }}>⚙️</span> Widgets
+          </button>
+          <button
             onClick={() => setShowReport(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: 10,
+              border: `1.5px solid ${THEME.line}`,
+              background: "transparent",
+              color: THEME.muted,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
+              (e.currentTarget as HTMLButtonElement).style.color = THEME.ink;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+              (e.currentTarget as HTMLButtonElement).style.color = THEME.muted;
+            }}
           >
-            Monthly Report
-          </Button>
+            <Printer size={13} /> Report
+          </button>
         </div>
       </div>
+
+      {/* Active sub-tab breadcrumb / description */}
+      {(() => {
+        const descriptions: Record<string, string> = {
+          dashboard: "Executive overview · Net worth, health score, cash flow & portfolio vitals",
+          trends: "Historical charts · Net worth growth, P&L, savings rate & portfolio returns",
+          allocation: "Asset distribution · Diversification, concentration risk & sector breakdown",
+          planning: "Goals & milestones · Loan tracker, retirement planner & financial targets",
+          spending: "Budget analysis · Monthly category breakdown, top expenses & spending trends",
+          calendar: "Scheduled events · Upcoming EMIs, renewals, dues & financial milestones",
+          habits: "Streaks & rewards · Financial discipline tracking and achievement badges",
+        };
+        const desc = descriptions[sub];
+        if (!desc) return null;
+        const ActiveIcon = subs.find((s) => s.id === sub)?.icon;
+        return (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 20,
+              padding: "6px 0",
+              borderBottom: `1px solid ${THEME.line}`,
+            }}
+          >
+            {ActiveIcon && (
+              <span style={{ color: THEME.accent, display: "flex", alignItems: "center" }}>
+                <ActiveIcon size={13} />
+              </span>
+            )}
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>{desc}</span>
+          </div>
+        );
+      })()}
 
       {/* Widget Configuration Panel */}
       {showWidgetConfig && (
@@ -6215,6 +6295,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: TRENDS ────────────────── */}
       {sub === "trends" && (
         <div key="trends" className="tab-content-enter">
+          {/* Hero Header */}
+          <div className="sub-tab-hero animate-fade-in">
+            <span className="sub-tab-hero-icon">📈</span>
+            <div className="sub-tab-hero-body">
+              <div className="sub-tab-hero-title">Trends &amp; History</div>
+              <div className="sub-tab-hero-desc">
+                Track wealth growth, income/expense patterns, savings trajectory and investment
+                returns over time
+              </div>
+            </div>
+            <div className="sub-tab-hero-badge">
+              🕒 {trendPeriod === "All" ? "All time" : `Last ${trendPeriod}`}
+            </div>
+          </div>
+
           {/* ── Trends KPI Strip ── */}
           <div
             style={{
@@ -7440,6 +7535,18 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: ALLOCATION ────────────────── */}
       {sub === "allocation" && (
         <div key="allocation" className="tab-content-enter">
+          {/* Hero Header */}
+          <div className="sub-tab-hero animate-fade-in">
+            <span className="sub-tab-hero-icon">🎯</span>
+            <div className="sub-tab-hero-body">
+              <div className="sub-tab-hero-title">Portfolio Allocation</div>
+              <div className="sub-tab-hero-desc">
+                Asset class distribution, diversification analysis, sector breakdown and
+                concentration risk
+              </div>
+            </div>
+            <div className="sub-tab-hero-badge">💰 {fmtINRFull(metrics.totalAssets)} assets</div>
+          </div>
           <div
             style={{
               display: "grid",
@@ -10224,6 +10331,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: PLANNING (NEW!) ────────────────── */}
       {sub === "planning" && (
         <div key="planning" className="tab-content-enter">
+          {/* Hero Header */}
+          <div className="sub-tab-hero animate-fade-in">
+            <span className="sub-tab-hero-icon">🎯</span>
+            <div className="sub-tab-hero-body">
+              <div className="sub-tab-hero-title">Financial Planning</div>
+              <div className="sub-tab-hero-desc">
+                FIRE progress, SIP planner, loan EMI tracker, retirement corpus and goal milestones
+              </div>
+            </div>
+            <div className="sub-tab-hero-badge">🚀 FIRE &amp; Goals</div>
+          </div>
           {/* FIRE Progress */}
           <Card style={{ padding: 24, marginBottom: 28 }}>
             <div
@@ -12242,100 +12360,268 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           };
           return (
             <div key="spending" className="tab-content-enter">
-              {/* Month navigation bar */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 20,
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "rgba(128,128,128,0.04)",
-                  border: `1px solid ${THEME.line}`,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <button
-                    onClick={() => navToMonth(-1)}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      cursor: "pointer",
-                      color: THEME.ink,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const now = new Date();
-                      setSpendingViewMonth(
-                        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-                      );
-                      setSelectedExpenseCategory(null);
-                      setActiveExpenseIndex(null);
-                    }}
-                    disabled={isCurrentMonth}
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      height: 32,
-                      padding: "0 12px",
-                      borderRadius: 8,
-                      border: `1px solid ${THEME.line}`,
-                      background: "transparent",
-                      cursor: isCurrentMonth ? "default" : "pointer",
-                      color: isCurrentMonth ? THEME.muted : THEME.ink,
-                      opacity: isCurrentMonth ? 0.4 : 1,
-                    }}
-                  >
-                    Today
-                  </button>
+              {/* Hero Header */}
+              <div className="sub-tab-hero animate-fade-in">
+                <span className="sub-tab-hero-icon">💳</span>
+                <div className="sub-tab-hero-body">
+                  <div className="sub-tab-hero-title">Spending Analysis</div>
+                  <div className="sub-tab-hero-desc">
+                    {spendMonthLabel} · Category breakdown, budget tracking and month-over-month
+                    comparison
+                  </div>
                 </div>
-                <div style={{ textAlign: "center" }}>
+                {spendingData.total > 0 && (
+                  <div className="sub-tab-hero-badge">
+                    💸 {fmtINRFull(spendingData.total)} spent
+                  </div>
+                )}
+              </div>
+
+              {/* Premium Month navigation bar */}
+              {(() => {
+                const prevMonthActualYear = svm === 1 ? svy - 1 : svy;
+                const prevMonthActualYm = `${prevMonthActualYear}-${String(svm === 1 ? 12 : svm - 1).padStart(2, "0")}`;
+                const prevMonthTxns = (state.transactions || []).filter((t: any) => {
+                  const d = (t.date || "").slice(0, 7);
+                  return (
+                    d === prevMonthActualYm &&
+                    t.type === "debit" &&
+                    t.category !== "Transfer" &&
+                    t.category !== "Self Transfer" &&
+                    t.category !== "Self-Transfer"
+                  );
+                });
+                const prevMonthTotal = prevMonthTxns.reduce(
+                  (s: number, t: any) => s + Number(t.amount || 0),
+                  0
+                );
+                const spendVsPrev =
+                  prevMonthTotal > 0 && spendingData.total > 0
+                    ? Math.round(((spendingData.total - prevMonthTotal) / prevMonthTotal) * 100)
+                    : null;
+                const maxBarVal = Math.max(spendingData.total, prevMonthTotal, 1);
+                return (
                   <div
                     style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      letterSpacing: "-0.01em",
+                      marginBottom: 20,
+                      padding: "16px 20px",
+                      borderRadius: 16,
+                      background: isDark ? "var(--surface-1)" : "rgba(255,255,255,0.9)",
+                      border: `1px solid ${THEME.line}`,
+                      boxShadow: isDark
+                        ? "0 2px 12px rgba(0,0,0,0.2)"
+                        : "0 2px 12px rgba(0,0,0,0.05)",
                     }}
                   >
-                    {spendMonthLabel}
-                  </div>
-                  {spendingData.total > 0 && (
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                      Total spent: {fmtINRFull(spendingData.total)}
+                    {/* Top row: nav arrows + month title + Today */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: spendingData.total > 0 ? 14 : 0,
+                      }}
+                    >
+                      <button
+                        onClick={() => navToMonth(-1)}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          border: `1.5px solid ${THEME.line}`,
+                          background: "transparent",
+                          cursor: "pointer",
+                          color: THEME.ink,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.15s",
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.accent;
+                          (e.currentTarget as HTMLButtonElement).style.background =
+                            `color-mix(in srgb, var(--t-accent) 8%, transparent)`;
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+                          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                        }}
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+
+                      {/* Center: month + spend summary */}
+                      <div style={{ textAlign: "center", flex: 1, padding: "0 16px" }}>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 900,
+                            color: THEME.ink,
+                            letterSpacing: "-0.02em",
+                            lineHeight: 1.1,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {spendMonthLabel}
+                        </div>
+                        {spendingData.total > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 8,
+                              fontSize: 12,
+                              color: THEME.muted,
+                              fontWeight: 500,
+                            }}
+                          >
+                            <span style={{ fontWeight: 700, color: THEME.rust }}>
+                              {fmtINRFull(spendingData.total)}
+                            </span>
+                            {spendVsPrev !== null && (
+                              <span
+                                style={{
+                                  padding: "1px 7px",
+                                  borderRadius: 20,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  background: `color-mix(in srgb, ${spendVsPrev > 0 ? THEME.rust : THEME.sage} 10%, transparent)`,
+                                  color: spendVsPrev > 0 ? THEME.rust : THEME.sage,
+                                }}
+                              >
+                                {spendVsPrev > 0 ? "▲" : "▼"} {Math.abs(spendVsPrev)}% vs{" "}
+                                {prevMonthLabel}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        {!isCurrentMonth && (
+                          <button
+                            onClick={() => {
+                              const now = new Date();
+                              setSpendingViewMonth(
+                                `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+                              );
+                              setSelectedExpenseCategory(null);
+                              setActiveExpenseIndex(null);
+                            }}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              height: 30,
+                              padding: "0 12px",
+                              borderRadius: 8,
+                              border: `1.5px solid ${THEME.accent}`,
+                              background: `color-mix(in srgb, var(--t-accent) 8%, transparent)`,
+                              cursor: "pointer",
+                              color: THEME.accent,
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            Today
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navToMonth(1)}
+                          disabled={isCurrentMonth}
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            border: `1.5px solid ${THEME.line}`,
+                            background: "transparent",
+                            cursor: isCurrentMonth ? "default" : "pointer",
+                            color: isCurrentMonth ? THEME.muted : THEME.ink,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            opacity: isCurrentMonth ? 0.35 : 1,
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isCurrentMonth) {
+                              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                                THEME.accent;
+                              (e.currentTarget as HTMLButtonElement).style.background =
+                                `color-mix(in srgb, var(--t-accent) 8%, transparent)`;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.borderColor = THEME.line;
+                            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                          }}
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => navToMonth(1)}
-                  disabled={isCurrentMonth}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.line}`,
-                    background: "transparent",
-                    cursor: isCurrentMonth ? "default" : "pointer",
-                    color: isCurrentMonth ? THEME.muted : THEME.ink,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: isCurrentMonth ? 0.35 : 1,
-                  }}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+
+                    {/* Mini spend comparison bar */}
+                    {spendingData.total > 0 && prevMonthTotal > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            color: THEME.muted,
+                            marginBottom: 6,
+                          }}
+                        >
+                          <span>This month</span>
+                          <span>{prevMonthLabel}</span>
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: 6,
+                          }}
+                        >
+                          {[
+                            {
+                              val: spendingData.total,
+                              color:
+                                spendVsPrev !== null && spendVsPrev > 0 ? THEME.rust : THEME.sage,
+                              label: spendMonthLabel,
+                            },
+                            { val: prevMonthTotal, color: THEME.muted, label: prevMonthLabel },
+                          ].map(({ val, color }) => (
+                            <div key={val}>
+                              <div
+                                style={{
+                                  height: 6,
+                                  background: THEME.line,
+                                  borderRadius: 4,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: "100%",
+                                    width: `${(val / maxBarVal) * 100}%`,
+                                    background: color,
+                                    borderRadius: 4,
+                                    transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
                 <Card style={{ padding: 24, display: "flex", flexDirection: "column" }}>
@@ -12875,6 +13161,17 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: CALENDAR ────────────────── */}
       {sub === "calendar" && (
         <div key="calendar" className="tab-content-enter">
+          {/* Hero Header */}
+          <div className="sub-tab-hero animate-fade-in">
+            <span className="sub-tab-hero-icon">📅</span>
+            <div className="sub-tab-hero-body">
+              <div className="sub-tab-hero-title">Financial Calendar</div>
+              <div className="sub-tab-hero-desc">
+                Upcoming EMIs, insurance renewals, SIP dates and scheduled financial commitments
+              </div>
+            </div>
+            <div className="sub-tab-hero-badge">🔔 Upcoming dues</div>
+          </div>
           <Card style={{ padding: 24, marginBottom: 32 }}>
             <div
               style={{

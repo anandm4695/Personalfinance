@@ -434,7 +434,12 @@ tbody tr:hover td {
 .hero-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, #0f172a 0%, color-mix(in srgb, var(--t-accent) 15%, #0f172a) 50%, #0f172a 100%) !important;
+  background: linear-gradient(
+    145deg,
+    #0f172a 0%,
+    color-mix(in srgb, var(--t-accent) 15%, #0f172a) 50%,
+    #0f172a 100%
+  ) !important;
   border-radius: var(--radius-xl);
   padding: clamp(24px, 4vw, 40px);
   color: #fff !important;
@@ -450,7 +455,11 @@ tbody tr:hover td {
   right: -25%;
   width: 70%;
   height: 200%;
-  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--t-accent) 12%, transparent) 0%, transparent 60%);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--t-accent) 12%, transparent) 0%,
+    transparent 60%
+  );
   pointer-events: none;
   animation: glow-pulse 6s ease-in-out infinite;
 }
@@ -458,7 +467,11 @@ tbody tr:hover td {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 75% 15%, color-mix(in srgb, var(--t-accent) 10%, transparent) 0%, transparent 45%),
+    radial-gradient(
+      circle at 75% 15%,
+      color-mix(in srgb, var(--t-accent) 10%, transparent) 0%,
+      transparent 45%
+    ),
     radial-gradient(circle at 25% 85%, rgba(52, 211, 153, 0.04) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.02) 0%, transparent 60%);
   pointer-events: none;
@@ -1654,7 +1667,9 @@ input[type="date"].form-input {
     padding: 11px 12px;
     font-size: 15px;
   }
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 15px;
   }
 
@@ -1797,14 +1812,85 @@ input[type="date"].form-input {
 }
 
 .demat-portfolio-pill.active {
-  background: var(--active-bg, color-mix(in srgb, var(--t-accent) 12%, transparent));
-  color: var(--active-color, var(--t-accent));
-  border-color: var(--active-border, color-mix(in srgb, var(--t-accent) 22%, transparent));
+  background: var(--t-accent);
+  color: #fff;
+  border-color: var(--t-accent);
   font-weight: 800;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 14px color-mix(in srgb, var(--t-accent) 35%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
-/* ── Widescreen Stats Grid (4 columns on desktop) ── */
+/* ── Sub-tab hero header ────────────────────────────────────────── */
+.sub-tab-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--t-accent) 6%, var(--surface-1)) 0%,
+    var(--surface-1) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--t-accent) 14%, var(--t-line));
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.sub-tab-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    180deg,
+    var(--t-accent),
+    color-mix(in srgb, var(--t-accent) 50%, #34d399)
+  );
+  border-radius: 4px 0 0 4px;
+}
+.sub-tab-hero-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.sub-tab-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+.sub-tab-hero-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--t-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 3px;
+}
+.sub-tab-hero-desc {
+  font-size: 12px;
+  color: var(--t-muted);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.sub-tab-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--t-accent) 12%, transparent);
+  color: var(--t-accent);
+  border: 1px solid color-mix(in srgb, var(--t-accent) 20%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .demat-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
