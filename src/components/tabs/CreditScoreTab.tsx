@@ -24,6 +24,7 @@ import { THEME, PROFILES } from "../../utils/constants";
 import { uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ModalSection } from "../ui/ModalSection";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -68,9 +69,12 @@ function ScoreForm({ initial, onSave, onClose }: any) {
     onSave({ ...form, score, id: initial?.id || uid() });
   };
 
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
+
   return (
-    <Modal title={initial?.id ? "Edit Credit Score Entry" : "Add Credit Score"} onClose={onClose}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    <Modal title={initial?.id ? "Edit Credit Score Entry" : "Add Credit Score"} onClose={onClose} maxWidth={560}>
+      <ModalSection title="Score Details" first />
+      <div style={g2}>
         <Field label="Credit Score (300–900) *">
           <input
             className="input"
@@ -101,7 +105,9 @@ function ScoreForm({ initial, onSave, onClose }: any) {
           </select>
         </Field>
       </div>
-      <Field label="Notes" style={{ marginTop: 12 }}>
+
+      <ModalSection title="Additional Details" />
+      <Field label="Notes">
         <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional note" />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" />

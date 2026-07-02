@@ -17,6 +17,7 @@ import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ModalSection } from "../ui/ModalSection";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -149,8 +150,10 @@ function SchemeForm({ initial, onSave, onClose }: any) {
     onSave({ ...form, schemeName: name, id: initial?.id || uid() });
   };
 
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
+
   return (
-    <Modal title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"} onClose={onClose} maxWidth={720}>
+    <Modal title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"} onClose={onClose} maxWidth={640}>
       <Field label="Scheme Type *">
         <select className="input" value={form.schemeType} onChange={(e) => set("schemeType", e.target.value)}>
           {SCHEMES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -166,7 +169,8 @@ function SchemeForm({ initial, onSave, onClose }: any) {
         {meta.description}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <ModalSection title="Account Details" />
+      <div style={g2}>
         {meta.fields.includes("memberName") && (
           <Field label="Member Name (Beneficiary)">
             <input className="input" value={form.memberName} onChange={(e) => set("memberName", e.target.value)} placeholder="e.g. Daughter's name" />
@@ -183,13 +187,20 @@ function SchemeForm({ initial, onSave, onClose }: any) {
             {PROFILES.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>
+      </div>
+
+      <ModalSection title="Timeline" />
+      <div style={g2}>
         <Field label="Start Date">
           <input className="input" type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
         </Field>
         <Field label="Maturity Date">
           <input className="input" type="date" value={form.maturityDate} onChange={(e) => set("maturityDate", e.target.value)} />
         </Field>
+      </div>
 
+      <ModalSection title="Contribution & Value" />
+      <div style={g2}>
         {meta.hasBalance && (
           <Field label="Current Balance (₹)">
             <input className="input" type="number" value={form.currentBalance} onChange={(e) => set("currentBalance", e.target.value)} placeholder="Current corpus" />
@@ -200,7 +211,6 @@ function SchemeForm({ initial, onSave, onClose }: any) {
             <input className="input" type="number" value={form.interestRate} onChange={(e) => set("interestRate", e.target.value)} placeholder="e.g. 8.2" />
           </Field>
         )}
-
         <Field label="Contribution Amount (₹)">
           <input className="input" type="number" value={form.contributionAmount} onChange={(e) => set("contributionAmount", e.target.value)} placeholder="Per instalment" />
         </Field>
@@ -211,7 +221,6 @@ function SchemeForm({ initial, onSave, onClose }: any) {
             ))}
           </select>
         </Field>
-
         {meta.fields.includes("pensionAmount") && (
           <Field label="Monthly Pension at 60 (₹)">
             <input className="input" type="number" value={form.pensionAmount} onChange={(e) => set("pensionAmount", e.target.value)} placeholder="e.g. 5000" />
@@ -227,7 +236,10 @@ function SchemeForm({ initial, onSave, onClose }: any) {
             <input className="input" type="number" value={form.premium} onChange={(e) => set("premium", e.target.value)} placeholder="e.g. 436" />
           </Field>
         )}
+      </div>
 
+      <ModalSection title="Additional Details" />
+      <div style={g2}>
         <Field label="Nominee">
           <input className="input" value={form.nominee} onChange={(e) => set("nominee", e.target.value)} placeholder="Nominee name" />
         </Field>
@@ -235,8 +247,7 @@ function SchemeForm({ initial, onSave, onClose }: any) {
           <input className="input" value={form.bankAccount} onChange={(e) => set("bankAccount", e.target.value)} placeholder="Bank name / branch" />
         </Field>
       </div>
-
-      <Field label="Notes" style={{ marginTop: 12 }}>
+      <Field label="Notes">
         <textarea className="input" rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Scheme" />

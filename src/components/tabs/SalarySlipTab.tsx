@@ -30,6 +30,7 @@ import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ModalSection } from "../ui/ModalSection";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -131,7 +132,7 @@ Return only the JSON, no explanation.`;
 
   return (
     <Modal title={initial?.id ? "Edit Salary Slip" : "Add Salary Slip"} onClose={onClose} maxWidth={720}>
-      {/* Month / employer */}
+      <ModalSection title="Slip Info" first />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
         <Field label="Month *">
           <input className="input" type="month" value={form.slipMonth} onChange={(e) => set("slipMonth", e.target.value)} />

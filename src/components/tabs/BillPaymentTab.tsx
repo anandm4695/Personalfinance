@@ -21,6 +21,7 @@ import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ModalSection } from "../ui/ModalSection";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -92,9 +93,12 @@ function BillForm({ initial, onSave, onClose }: any) {
     onSave({ ...form, amount: Number(form.amount), dueDay: Number(form.dueDay), id: initial?.id || uid() });
   };
 
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
+
   return (
-    <Modal title={initial?.id ? "Edit Bill" : "Add Bill"} onClose={onClose}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    <Modal title={initial?.id ? "Edit Bill" : "Add Bill"} onClose={onClose} maxWidth={560}>
+      <ModalSection title="Bill Details" first />
+      <div style={g2}>
         <Field label="Category *">
           <select className="input" value={form.category} onChange={(e) => set("category", e.target.value)}>
             {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -109,6 +113,10 @@ function BillForm({ initial, onSave, onClose }: any) {
         <Field label="Account / Consumer No.">
           <input className="input" value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} placeholder="Consumer/Account number" />
         </Field>
+      </div>
+
+      <ModalSection title="Billing Schedule" />
+      <div style={g2}>
         <Field label="Typical Amount (₹) *">
           <input className="input" type="number" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="e.g. 2500" />
         </Field>
@@ -127,7 +135,9 @@ function BillForm({ initial, onSave, onClose }: any) {
           </label>
         </Field>
       </div>
-      <Field label="Notes" style={{ marginTop: 12 }}>
+
+      <ModalSection title="Additional Details" />
+      <Field label="Notes">
         <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Bill" />

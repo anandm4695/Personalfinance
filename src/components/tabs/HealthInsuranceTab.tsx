@@ -19,6 +19,7 @@ import { THEME, PROFILES } from "../../utils/constants";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ModalSection } from "../ui/ModalSection";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -107,13 +108,16 @@ function PolicyForm({ initial, onSave, onClose }: any) {
     onSave({ ...form, insuredMembers: members, id: initial?.id || uid() });
   };
 
+  const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
+
   return (
     <Modal
       title={initial?.id ? "Edit Health Insurance Policy" : "Add Health Insurance Policy"}
       onClose={onClose}
-      maxWidth={720}
+      maxWidth={640}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <ModalSection title="Policy Details" first />
+      <div style={g2}>
         <Field label="Insurer / Company *">
           <input className="input" value={form.insurer} onChange={(e) => set("insurer", e.target.value)} placeholder="e.g. Star Health, HDFC Ergo" />
         </Field>
@@ -133,6 +137,10 @@ function PolicyForm({ initial, onSave, onClose }: any) {
             {PROFILES.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>
+      </div>
+
+      <ModalSection title="Coverage & Premium" />
+      <div style={g2}>
         <Field label="Sum Insured (₹) *">
           <input className="input" type="number" value={form.sumInsured} onChange={(e) => set("sumInsured", e.target.value)} placeholder="e.g. 500000" />
         </Field>
@@ -150,6 +158,10 @@ function PolicyForm({ initial, onSave, onClose }: any) {
         <Field label="Renewal Date">
           <input className="input" type="date" value={form.renewalDate} onChange={(e) => set("renewalDate", e.target.value)} />
         </Field>
+      </div>
+
+      <ModalSection title="Policy Features" />
+      <div style={g2}>
         <Field label="Hospital Network">
           <input className="input" value={form.hospitalNetwork} onChange={(e) => set("hospitalNetwork", e.target.value)} placeholder="e.g. 10,000+ hospitals" />
         </Field>
@@ -159,44 +171,36 @@ function PolicyForm({ initial, onSave, onClose }: any) {
         <Field label="No Claim Bonus (₹)">
           <input className="input" type="number" value={form.noClaimBonus} onChange={(e) => set("noClaimBonus", e.target.value)} placeholder="Current NCB amount" />
         </Field>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-          <Field label="Cashless Available">
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}>
-              <input type="checkbox" checked={form.cashless} onChange={(e) => set("cashless", e.target.checked)} />
-              <span style={{ fontSize: 13 }}>Yes, cashless hospitalisation</span>
-            </label>
-          </Field>
-        </div>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-          <Field label="Pre-existing Diseases Covered">
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}>
-              <input type="checkbox" checked={form.preExistingCovered} onChange={(e) => set("preExistingCovered", e.target.checked)} />
-              <span style={{ fontSize: 13 }}>Yes, after waiting period</span>
-            </label>
-          </Field>
-        </div>
+        <div />
+        <Field label="Cashless Available">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}>
+            <input type="checkbox" checked={form.cashless} onChange={(e) => set("cashless", e.target.checked)} />
+            <span style={{ fontSize: 13 }}>Yes, cashless hospitalisation</span>
+          </label>
+        </Field>
+        <Field label="Pre-existing Diseases Covered">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }}>
+            <input type="checkbox" checked={form.preExistingCovered} onChange={(e) => set("preExistingCovered", e.target.checked)} />
+            <span style={{ fontSize: 13 }}>Yes, after waiting period</span>
+          </label>
+        </Field>
       </div>
 
-      {/* Insured members */}
-      <div style={{ marginTop: 20 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: THEME.textMuted }}>
-          INSURED MEMBERS
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <input className="input" placeholder="Member name" value={memberName} onChange={(e) => setMemberName(e.target.value)} style={{ flex: 2 }} />
-          <input className="input" placeholder="Relation (self, spouse…)" value={memberRelation} onChange={(e) => setMemberRelation(e.target.value)} style={{ flex: 1 }} />
-          <Button size="sm" onClick={addMember}>Add</Button>
-        </div>
-        {members.map((m, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <Badge>{m.relation}</Badge>
-            <span style={{ fontSize: 13 }}>{m.name}</span>
-            <button onClick={() => removeMember(i)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: THEME.danger }}>
-              <X size={14} />
-            </button>
-          </div>
-        ))}
+      <ModalSection title="Insured Members" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <input className="input" placeholder="Member name" value={memberName} onChange={(e) => setMemberName(e.target.value)} style={{ flex: 2 }} />
+        <input className="input" placeholder="Relation (self, spouse…)" value={memberRelation} onChange={(e) => setMemberRelation(e.target.value)} style={{ flex: 1 }} />
+        <Button size="sm" onClick={addMember}>Add</Button>
       </div>
+      {members.map((m, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <Badge>{m.relation}</Badge>
+          <span style={{ fontSize: 13 }}>{m.name}</span>
+          <button onClick={() => removeMember(i)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: THEME.danger }}>
+            <X size={14} />
+          </button>
+        </div>
+      ))}
 
       <Field label="Notes" style={{ marginTop: 16 }}>
         <textarea className="input" rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Any additional details…" />
