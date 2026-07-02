@@ -72,12 +72,16 @@ function ScoreForm({ initial, onSave, onClose }: any) {
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 
   return (
-    <Modal title={initial?.id ? "Edit Credit Score Entry" : "Add Credit Score"} onClose={onClose} maxWidth={560}>
+    <Modal
+      title={initial?.id ? "Edit Credit Score Entry" : "Add Credit Score"}
+      onClose={onClose}
+      maxWidth={560}
+    >
       <ModalSection title="Score Details" first />
       <div style={g2}>
         <Field label="Credit Score (300–900) *">
           <input
-            className="input"
+            className="form-input"
             type="number"
             min={300}
             max={900}
@@ -87,28 +91,62 @@ function ScoreForm({ initial, onSave, onClose }: any) {
           />
         </Field>
         <Field label="Bureau">
-          <select className="input" value={form.bureau} onChange={(e) => set("bureau", e.target.value)}>
-            {BUREAUS.map((b) => <option key={b} value={b}>{b}</option>)}
+          <select
+            className="form-input"
+            value={form.bureau}
+            onChange={(e) => set("bureau", e.target.value)}
+          >
+            {BUREAUS.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Check Date *">
-          <input className="input" type="date" value={form.checkDate} onChange={(e) => set("checkDate", e.target.value)} />
+          <input
+            className="form-input"
+            type="date"
+            value={form.checkDate}
+            onChange={(e) => set("checkDate", e.target.value)}
+          />
         </Field>
         <Field label="Owner">
-          <select className="input" value={form.owner} onChange={(e) => set("owner", e.target.value)}>
-            {PROFILES.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <select
+            className="form-input"
+            value={form.owner}
+            onChange={(e) => set("owner", e.target.value)}
+          >
+            {PROFILES.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Source">
-          <select className="input" value={form.source} onChange={(e) => set("source", e.target.value)}>
-            {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+          <select
+            className="form-input"
+            value={form.source}
+            onChange={(e) => set("source", e.target.value)}
+          >
+            {SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
         </Field>
       </div>
 
       <ModalSection title="Additional Details" />
       <Field label="Notes">
-        <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional note" />
+        <input
+          className="form-input"
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="Optional note"
+        />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Score" />
     </Modal>
@@ -122,16 +160,29 @@ function ScoreGauge({ score }: { score: number }) {
   return (
     <div style={{ textAlign: "center", padding: "16px 0" }}>
       <div style={{ position: "relative", display: "inline-block", marginBottom: 12 }}>
-        <div style={{
-          width: 120, height: 120, borderRadius: "50%",
-          background: `conic-gradient(${grade.color} ${pct * 3.6}deg, ${THEME.border} 0)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{
-            width: 90, height: 90, borderRadius: "50%",
-            background: THEME.card, display: "flex", alignItems: "center", justifyContent: "center",
-            flexDirection: "column",
-          }}>
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: "50%",
+            background: `conic-gradient(${grade.color} ${pct * 3.6}deg, ${THEME.border} 0)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              width: 90,
+              height: 90,
+              borderRadius: "50%",
+              background: THEME.card,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+            }}
+          >
             <span style={{ fontSize: 28, fontWeight: 800, color: grade.color }}>{score}</span>
           </div>
         </div>
@@ -174,9 +225,11 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
     <div>
       <SectionTitle
         sub="Track your CIBIL / Experian credit score over time"
-        rightElement={<Button size="sm" onClick={() => setModal({})}>
-          <Plus size={14} /> Log Score
-        </Button>}
+        rightElement={
+          <Button size="sm" onClick={() => setModal({})}>
+            <Plus size={14} /> Log Score
+          </Button>
+        }
       >
         Credit Score History
       </SectionTitle>
@@ -188,7 +241,12 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
           dotColor="#7c3aed"
           title="No Credit Score Entries Yet"
           description="Log your credit score from CIBIL, Experian, or other bureaus to track it over time."
-          pills={["CIBIL / Experian / CRIF", "Score Trend Chart", "Score Bands", "Improvement Tips"]}
+          pills={[
+            "CIBIL / Experian / CRIF",
+            "Score Trend Chart",
+            "Score Bands",
+            "Improvement Tips",
+          ]}
           buttonLabel="Log Score"
           onAdd={() => setModal({})}
         />
@@ -204,7 +262,10 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                   key={b}
                   onClick={() => setBureau(b)}
                   style={{
-                    padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600,
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    fontSize: 13,
+                    fontWeight: 600,
                     border: `2px solid ${bureau === b ? BUREAU_COLORS[b] : THEME.border}`,
                     background: bureau === b ? `${BUREAU_COLORS[b]}18` : "transparent",
                     color: bureau === b ? BUREAU_COLORS[b] : THEME.textMuted,
@@ -224,12 +285,24 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
           ) : (
             <>
               {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                  gap: 12,
+                  marginBottom: 24,
+                }}
+              >
                 {latest && (
                   <Card style={{ textAlign: "center", padding: 0 }}>
                     <ScoreGauge score={latest.score} />
                     <div style={{ fontSize: 11, color: THEME.textMuted, paddingBottom: 12 }}>
-                      Latest · {new Date(latest.checkDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      Latest ·{" "}
+                      {new Date(latest.checkDate).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </div>
                   </Card>
                 )}
@@ -238,9 +311,25 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                     <StatCard
                       label="Change"
                       value={
-                        <span style={{ color: delta > 0 ? THEME.success : delta < 0 ? THEME.danger : THEME.textMuted }}>
-                          {delta > 0 ? <TrendingUp size={14} style={{ display: "inline", marginRight: 4 }} /> : delta < 0 ? <TrendingDown size={14} style={{ display: "inline", marginRight: 4 }} /> : <Minus size={14} style={{ display: "inline", marginRight: 4 }} />}
-                          {delta > 0 ? "+" : ""}{delta}
+                        <span
+                          style={{
+                            color:
+                              delta > 0
+                                ? THEME.success
+                                : delta < 0
+                                  ? THEME.danger
+                                  : THEME.textMuted,
+                          }}
+                        >
+                          {delta > 0 ? (
+                            <TrendingUp size={14} style={{ display: "inline", marginRight: 4 }} />
+                          ) : delta < 0 ? (
+                            <TrendingDown size={14} style={{ display: "inline", marginRight: 4 }} />
+                          ) : (
+                            <Minus size={14} style={{ display: "inline", marginRight: 4 }} />
+                          )}
+                          {delta > 0 ? "+" : ""}
+                          {delta}
                         </span>
                       }
                       icon={<TrendingUp size={18} />}
@@ -266,7 +355,16 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
 
               {/* Score guide */}
               <Card style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: THEME.textMuted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: THEME.textMuted,
+                    marginBottom: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   Score Bands
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -277,8 +375,20 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                     { range: "600–649", label: "Poor", color: "#dc2626", bg: "#fee2e2" },
                     { range: "< 600", label: "Very Poor", color: "#7f1d1d", bg: "#fecaca" },
                   ].map((b) => (
-                    <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, background: b.bg }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: b.color }}>{b.range}</span>
+                    <div
+                      key={b.label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 10px",
+                        borderRadius: 20,
+                        background: b.bg,
+                      }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 700, color: b.color }}>
+                        {b.range}
+                      </span>
                       <span style={{ fontSize: 11, color: b.color }}>{b.label}</span>
                     </div>
                   ))}
@@ -288,7 +398,9 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
               {/* Chart */}
               {chartData.length > 1 && (
                 <Card style={{ marginBottom: 20 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Score Trend — {bureau}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
+                    Score Trend — {bureau}
+                  </div>
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
@@ -296,9 +408,23 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                       <YAxis domain={[300, 900]} tick={{ fontSize: 11 }} />
                       <Tooltip
                         formatter={(v: number) => [v, "Score"]}
-                        contentStyle={{ background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: 8 }}
+                        contentStyle={{
+                          background: THEME.card,
+                          border: `1px solid ${THEME.border}`,
+                          borderRadius: 8,
+                        }}
                       />
-                      <ReferenceLine y={750} stroke="#16a34a" strokeDasharray="4 4" label={{ value: "Excellent", fontSize: 11, fill: "#16a34a", position: "right" }} />
+                      <ReferenceLine
+                        y={750}
+                        stroke="#16a34a"
+                        strokeDasharray="4 4"
+                        label={{
+                          value: "Excellent",
+                          fontSize: 11,
+                          fill: "#16a34a",
+                          position: "right",
+                        }}
+                      />
                       <ReferenceLine y={700} stroke="#2563eb" strokeDasharray="4 4" />
                       <Line
                         type="monotone"
@@ -319,26 +445,50 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
                   const grade = scoreGrade(s.score);
                   return (
                     <Card key={s.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{
-                        width: 52, height: 52, borderRadius: 10,
-                        background: grade.bg, display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: grade.color }}>{s.score}</span>
+                      <div
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 10,
+                          background: grade.bg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span style={{ fontSize: 18, fontWeight: 800, color: grade.color }}>
+                          {s.score}
+                        </span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>
-                          {new Date(s.checkDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
+                          {new Date(s.checkDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
                         </div>
                         <div style={{ fontSize: 12, color: THEME.textMuted }}>
                           {s.bureau} · {s.source}
                           {s.notes ? ` · ${s.notes}` : ""}
                         </div>
                       </div>
-                      <Badge style={{ background: grade.bg, color: grade.color }}>{grade.label}</Badge>
+                      <Badge style={{ background: grade.bg, color: grade.color }}>
+                        {grade.label}
+                      </Badge>
                       <button
-                        onClick={() => { if (window.confirm("Delete this entry?")) removeItem("creditScores", s.id); }}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: THEME.danger, padding: 4 }}
+                        onClick={() => {
+                          if (window.confirm("Delete this entry?"))
+                            removeItem("creditScores", s.id);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: THEME.danger,
+                          padding: 4,
+                        }}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -352,12 +502,28 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem }: any) 
       )}
 
       {latest && latest.score < 700 && (
-        <Card style={{ marginTop: 16, background: `${THEME.warning}12`, border: `1px solid ${THEME.warning}40` }}>
+        <Card
+          style={{
+            marginTop: 16,
+            background: `${THEME.warning}12`,
+            border: `1px solid ${THEME.warning}40`,
+          }}
+        >
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <AlertCircle size={16} color={THEME.warning} style={{ marginTop: 2, flexShrink: 0 }} />
             <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: THEME.warning }}>Tips to improve your score</div>
-              <ul style={{ fontSize: 12, color: THEME.textMuted, margin: "8px 0 0", paddingLeft: 16, lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: THEME.warning }}>
+                Tips to improve your score
+              </div>
+              <ul
+                style={{
+                  fontSize: 12,
+                  color: THEME.textMuted,
+                  margin: "8px 0 0",
+                  paddingLeft: 16,
+                  lineHeight: 1.8,
+                }}
+              >
                 <li>Pay all credit card bills before the due date</li>
                 <li>Keep credit card utilisation below 30% of limit</li>
                 <li>Don't apply for multiple loans/cards in a short period</li>

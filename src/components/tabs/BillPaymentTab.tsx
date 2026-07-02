@@ -90,7 +90,12 @@ function BillForm({ initial, onSave, onClose }: any) {
 
   const save = () => {
     if (!form.provider || !form.amount || !form.dueDay) return;
-    onSave({ ...form, amount: Number(form.amount), dueDay: Number(form.dueDay), id: initial?.id || uid() });
+    onSave({
+      ...form,
+      amount: Number(form.amount),
+      dueDay: Number(form.dueDay),
+      id: initial?.id || uid(),
+    });
   };
 
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
@@ -100,37 +105,94 @@ function BillForm({ initial, onSave, onClose }: any) {
       <ModalSection title="Bill Details" first />
       <div style={g2}>
         <Field label="Category *">
-          <select className="input" value={form.category} onChange={(e) => set("category", e.target.value)}>
-            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          <select
+            className="form-input"
+            value={form.category}
+            onChange={(e) => set("category", e.target.value)}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Provider / Company *">
-          <input className="input" value={form.provider} onChange={(e) => set("provider", e.target.value)} placeholder="e.g. MSEDCL, BSNL" />
+          <input
+            className="form-input"
+            value={form.provider}
+            onChange={(e) => set("provider", e.target.value)}
+            placeholder="e.g. MSEDCL, BSNL"
+          />
         </Field>
         <Field label="Nickname">
-          <input className="input" value={form.nickname} onChange={(e) => set("nickname", e.target.value)} placeholder="e.g. Home Electricity" />
+          <input
+            className="form-input"
+            value={form.nickname}
+            onChange={(e) => set("nickname", e.target.value)}
+            placeholder="e.g. Home Electricity"
+          />
         </Field>
         <Field label="Account / Consumer No.">
-          <input className="input" value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} placeholder="Consumer/Account number" />
+          <input
+            className="form-input"
+            value={form.accountNumber}
+            onChange={(e) => set("accountNumber", e.target.value)}
+            placeholder="Consumer/Account number"
+          />
         </Field>
       </div>
 
       <ModalSection title="Billing Schedule" />
       <div style={g2}>
         <Field label="Typical Amount (₹) *">
-          <input className="input" type="number" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="e.g. 2500" />
+          <input
+            className="form-input"
+            type="number"
+            value={form.amount}
+            onChange={(e) => set("amount", e.target.value)}
+            placeholder="e.g. 2500"
+          />
         </Field>
         <Field label="Due Day of Month *">
-          <input className="input" type="number" min={1} max={31} value={form.dueDay} onChange={(e) => set("dueDay", e.target.value)} placeholder="e.g. 15" />
+          <input
+            className="form-input"
+            type="number"
+            min={1}
+            max={31}
+            value={form.dueDay}
+            onChange={(e) => set("dueDay", e.target.value)}
+            placeholder="e.g. 15"
+          />
         </Field>
         <Field label="Owner">
-          <select className="input" value={form.owner} onChange={(e) => set("owner", e.target.value)}>
-            {PROFILES.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <select
+            className="form-input"
+            value={form.owner}
+            onChange={(e) => set("owner", e.target.value)}
+          >
+            {PROFILES.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Auto-Pay">
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, cursor: "pointer" }}>
-            <input type="checkbox" checked={form.autoPay} onChange={(e) => set("autoPay", e.target.checked)} />
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 8,
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={form.autoPay}
+              onChange={(e) => set("autoPay", e.target.checked)}
+            />
             <span style={{ fontSize: 13 }}>Yes, auto-pay enabled</span>
           </label>
         </Field>
@@ -138,7 +200,12 @@ function BillForm({ initial, onSave, onClose }: any) {
 
       <ModalSection title="Additional Details" />
       <Field label="Notes">
-        <input className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
+        <input
+          className="form-input"
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="Optional notes"
+        />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Bill" />
     </Modal>
@@ -164,24 +231,55 @@ function PaymentForm({ bill, onSave, onClose }: any) {
     <Modal title={`Log Payment — ${bill.nickname || bill.provider}`} onClose={onClose}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Field label="Paid Date *">
-          <input className="input" type="date" value={form.paidDate} onChange={(e) => set("paidDate", e.target.value)} />
+          <input
+            className="form-input"
+            type="date"
+            value={form.paidDate}
+            onChange={(e) => set("paidDate", e.target.value)}
+          />
         </Field>
         <Field label="Amount Paid (₹) *">
-          <input className="input" type="number" value={form.amount} onChange={(e) => set("amount", e.target.value)} />
+          <input
+            className="form-input"
+            type="number"
+            value={form.amount}
+            onChange={(e) => set("amount", e.target.value)}
+          />
         </Field>
-        {(bill.category === "electricity" || bill.category === "gas" || bill.category === "water") && (
+        {(bill.category === "electricity" ||
+          bill.category === "gas" ||
+          bill.category === "water") && (
           <Field label="Units Consumed">
-            <input className="input" type="number" value={form.unitsConsumed} onChange={(e) => set("unitsConsumed", e.target.value)} placeholder="kWh / cubic m" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.unitsConsumed}
+              onChange={(e) => set("unitsConsumed", e.target.value)}
+              placeholder="kWh / cubic m"
+            />
           </Field>
         )}
         <Field label="Payment Method">
-          <select className="input" value={form.paymentMethod} onChange={(e) => set("paymentMethod", e.target.value)}>
+          <select
+            className="form-input"
+            value={form.paymentMethod}
+            onChange={(e) => set("paymentMethod", e.target.value)}
+          >
             <option value="">Select</option>
-            {["UPI", "NEFT/IMPS", "Net Banking", "Auto-debit", "Cash", "Cheque"].map((m) => <option key={m} value={m}>{m}</option>)}
+            {["UPI", "NEFT/IMPS", "Net Banking", "Auto-debit", "Cash", "Cheque"].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Receipt / Ref No.">
-          <input className="input" value={form.receiptNumber} onChange={(e) => set("receiptNumber", e.target.value)} placeholder="Optional reference" />
+          <input
+            className="form-input"
+            value={form.receiptNumber}
+            onChange={(e) => set("receiptNumber", e.target.value)}
+            placeholder="Optional reference"
+          />
         </Field>
       </div>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Log Payment" />
@@ -225,16 +323,25 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
     <div>
       <SectionTitle
         sub="Track electricity, gas, water, broadband, mobile and other recurring utility bills"
-        rightElement={<Button size="sm" onClick={() => setModal({})}>
-          <Plus size={14} /> Add Bill
-        </Button>}
+        rightElement={
+          <Button size="sm" onClick={() => setModal({})}>
+            <Plus size={14} /> Add Bill
+          </Button>
+        }
       >
         Bill Payment Tracker
       </SectionTitle>
 
       {/* Stats */}
       {bills.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
           <StatCard
             label="Monthly Bills"
             value={<Prv>{fmtINRFull(totalMonthly)}</Prv>}
@@ -266,18 +373,28 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
       {upcomingDue.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           {upcomingDue.map((b) => (
-            <div key={b.id} style={{
-              background: `${b.color}12`, border: `1px solid ${b.color}40`,
-              borderRadius: 10, padding: "10px 14px", marginBottom: 6,
-              display: "flex", alignItems: "center", gap: 10,
-            }}>
+            <div
+              key={b.id}
+              style={{
+                background: `${b.color}12`,
+                border: `1px solid ${b.color}40`,
+                borderRadius: 10,
+                padding: "10px 14px",
+                marginBottom: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
               <AlertCircle size={14} color={b.color} />
               <span style={{ fontSize: 13, fontWeight: 600, color: b.color }}>{b.label}</span>
               <span style={{ fontSize: 13 }}>{b.nickname || b.provider}</span>
               <span style={{ fontSize: 13, color: THEME.textMuted, marginLeft: "auto" }}>
                 <Prv>{fmtINRFull(Number(b.amount))}</Prv>
               </span>
-              <Button size="sm" onClick={() => setPayModal(b)}>Pay Now</Button>
+              <Button size="sm" onClick={() => setPayModal(b)}>
+                Pay Now
+              </Button>
             </div>
           ))}
         </div>
@@ -290,7 +407,12 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
           dotColor="#ea580c"
           title="No Bills Tracked Yet"
           description="Add your recurring utility bills to track due dates, payment history, and spot trends."
-          pills={["Electricity / Gas / Water", "Due Date Alerts", "Auto-pay Tracking", "Payment History"]}
+          pills={[
+            "Electricity / Gas / Water",
+            "Due Date Alerts",
+            "Auto-pay Tracking",
+            "Payment History",
+          ]}
           buttonLabel="Add Bill"
           onAdd={() => setModal({})}
         />
@@ -306,16 +428,22 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
             return (
               <Card key={b.id} style={{ borderLeft: `4px solid ${cat.color}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10, background: `${cat.color}18`,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: `${cat.color}18`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
                     {catIcon(b.category)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {b.nickname || b.provider}
-                    </div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{b.nickname || b.provider}</div>
                     <div style={{ fontSize: 12, color: THEME.textMuted }}>
                       {cat.label} · {b.provider}
                       {b.accountNumber ? ` · #${b.accountNumber}` : ""}
@@ -331,7 +459,15 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     </div>
                   </div>
                   {status && (
-                    <Badge color={status.daysLeft <= 3 ? "danger" : status.daysLeft <= 7 ? "warning" : "success"}>
+                    <Badge
+                      color={
+                        status.daysLeft <= 3
+                          ? "danger"
+                          : status.daysLeft <= 7
+                            ? "warning"
+                            : "success"
+                      }
+                    >
                       {status.label}
                     </Badge>
                   )}
@@ -339,16 +475,42 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
                     <CheckCircle size={16} color={THEME.success} title="Auto-pay enabled" />
                   )}
                   <div style={{ display: "flex", gap: 4 }}>
-                    <Button size="sm" variant="ghost" onClick={() => setPayModal(b)}>Log</Button>
-                    <button onClick={() => setExpanded(isExpanded ? null : b.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted }}>
+                    <Button size="sm" variant="ghost" onClick={() => setPayModal(b)}>
+                      Log
+                    </Button>
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : b.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.textMuted,
+                      }}
+                    >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
-                    <button onClick={() => setModal(b)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted }}>
+                    <button
+                      onClick={() => setModal(b)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.textMuted,
+                      }}
+                    >
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => { if (window.confirm(`Delete "${b.nickname || b.provider}"?`)) removeItem("billPayments", b.id); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.danger }}
+                      onClick={() => {
+                        if (window.confirm(`Delete "${b.nickname || b.provider}"?`))
+                          removeItem("billPayments", b.id);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.danger,
+                      }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -357,27 +519,77 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
 
                 {/* Expanded payment history */}
                 {isExpanded && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${THEME.border}` }}>
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: `1px solid ${THEME.border}`,
+                    }}
+                  >
                     {bHistory.length === 0 ? (
-                      <div style={{ fontSize: 12, color: THEME.textMuted, textAlign: "center", padding: "8px 0" }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: THEME.textMuted,
+                          textAlign: "center",
+                          padding: "8px 0",
+                        }}
+                      >
                         No payment history yet
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: THEME.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: THEME.textMuted,
+                            marginBottom: 8,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
                           Payment History
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {bHistory.slice(0, 6).map((h: any) => (
-                            <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                            <div
+                              key={h.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                fontSize: 13,
+                              }}
+                            >
                               <CheckCircle size={13} color={THEME.success} />
-                              <span>{new Date(h.paidDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                              <span style={{ fontWeight: 600 }}><Prv>{fmtINRFull(Number(h.amount))}</Prv></span>
-                              {h.unitsConsumed && <span style={{ color: THEME.textMuted }}>{h.unitsConsumed} units</span>}
-                              {h.paymentMethod && <Badge style={{ fontSize: 10 }}>{h.paymentMethod}</Badge>}
+                              <span>
+                                {new Date(h.paidDate).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                              <span style={{ fontWeight: 600 }}>
+                                <Prv>{fmtINRFull(Number(h.amount))}</Prv>
+                              </span>
+                              {h.unitsConsumed && (
+                                <span style={{ color: THEME.textMuted }}>
+                                  {h.unitsConsumed} units
+                                </span>
+                              )}
+                              {h.paymentMethod && (
+                                <Badge style={{ fontSize: 10 }}>{h.paymentMethod}</Badge>
+                              )}
                               <button
                                 onClick={() => removeItem("billPaymentHistory", h.id)}
-                                style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: THEME.danger }}
+                                style={{
+                                  marginLeft: "auto",
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.danger,
+                                }}
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -395,7 +607,11 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
       )}
 
       {modal !== null && (
-        <BillForm initial={modal?.id ? modal : undefined} onSave={saveBill} onClose={() => setModal(null)} />
+        <BillForm
+          initial={modal?.id ? modal : undefined}
+          onSave={saveBill}
+          onClose={() => setModal(null)}
+        />
       )}
       {payModal !== null && (
         <PaymentForm bill={payModal} onSave={savePayment} onClose={() => setPayModal(null)} />
@@ -404,7 +620,9 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem }: any) 
   );
 }
 
-function ClipboardList(props: any) { return <IndianRupee {...props} />; }
+function ClipboardList(props: any) {
+  return <IndianRupee {...props} />;
+}
 
 function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];

@@ -38,7 +38,8 @@ const SCHEMES = [
   {
     value: "SSY",
     label: "SSY — Sukanya Samriddhi Yojana",
-    description: "Tax-free savings scheme for girl child. 8.2% p.a. Matures at 21 years / marriage.",
+    description:
+      "Tax-free savings scheme for girl child. 8.2% p.a. Matures at 21 years / marriage.",
     color: "#ec4899",
     fields: ["memberName", "interestRate"],
     hasBalance: true,
@@ -153,19 +154,38 @@ function SchemeForm({ initial, onSave, onClose }: any) {
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 
   return (
-    <Modal title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"} onClose={onClose} maxWidth={640}>
+    <Modal
+      title={initial?.id ? "Edit Government Scheme" : "Add Government Scheme"}
+      onClose={onClose}
+      maxWidth={640}
+    >
       <Field label="Scheme Type *">
-        <select className="input" value={form.schemeType} onChange={(e) => set("schemeType", e.target.value)}>
-          {SCHEMES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        <select
+          className="form-input"
+          value={form.schemeType}
+          onChange={(e) => set("schemeType", e.target.value)}
+        >
+          {SCHEMES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
         </select>
       </Field>
 
       {/* Scheme info card */}
-      <div style={{
-        background: `${meta.color}12`, border: `1px solid ${meta.color}30`,
-        borderRadius: 8, padding: "10px 14px", marginBottom: 16,
-        fontSize: 12, color: THEME.textMuted, lineHeight: 1.6,
-      }}>
+      <div
+        style={{
+          background: `${meta.color}12`,
+          border: `1px solid ${meta.color}30`,
+          borderRadius: 8,
+          padding: "10px 14px",
+          marginBottom: 16,
+          fontSize: 12,
+          color: THEME.textMuted,
+          lineHeight: 1.6,
+        }}
+      >
         {meta.description}
       </div>
 
@@ -173,18 +193,41 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <div style={g2}>
         {meta.fields.includes("memberName") && (
           <Field label="Member Name (Beneficiary)">
-            <input className="input" value={form.memberName} onChange={(e) => set("memberName", e.target.value)} placeholder="e.g. Daughter's name" />
+            <input
+              className="form-input"
+              value={form.memberName}
+              onChange={(e) => set("memberName", e.target.value)}
+              placeholder="e.g. Daughter's name"
+            />
           </Field>
         )}
         <Field label="Custom Label">
-          <input className="input" value={form.schemeName} onChange={(e) => set("schemeName", e.target.value)} placeholder="Optional display name" />
+          <input
+            className="form-input"
+            value={form.schemeName}
+            onChange={(e) => set("schemeName", e.target.value)}
+            placeholder="Optional display name"
+          />
         </Field>
         <Field label="Account Number">
-          <input className="input" value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} placeholder="Scheme / PRAN number" />
+          <input
+            className="form-input"
+            value={form.accountNumber}
+            onChange={(e) => set("accountNumber", e.target.value)}
+            placeholder="Scheme / PRAN number"
+          />
         </Field>
         <Field label="Owner / Profile">
-          <select className="input" value={form.owner} onChange={(e) => set("owner", e.target.value)}>
-            {PROFILES.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <select
+            className="form-input"
+            value={form.owner}
+            onChange={(e) => set("owner", e.target.value)}
+          >
+            {PROFILES.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
         </Field>
       </div>
@@ -192,10 +235,20 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <ModalSection title="Timeline" />
       <div style={g2}>
         <Field label="Start Date">
-          <input className="input" type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+          <input
+            className="form-input"
+            type="date"
+            value={form.startDate}
+            onChange={(e) => set("startDate", e.target.value)}
+          />
         </Field>
         <Field label="Maturity Date">
-          <input className="input" type="date" value={form.maturityDate} onChange={(e) => set("maturityDate", e.target.value)} />
+          <input
+            className="form-input"
+            type="date"
+            value={form.maturityDate}
+            onChange={(e) => set("maturityDate", e.target.value)}
+          />
         </Field>
       </div>
 
@@ -203,37 +256,79 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <div style={g2}>
         {meta.hasBalance && (
           <Field label="Current Balance (₹)">
-            <input className="input" type="number" value={form.currentBalance} onChange={(e) => set("currentBalance", e.target.value)} placeholder="Current corpus" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.currentBalance}
+              onChange={(e) => set("currentBalance", e.target.value)}
+              placeholder="Current corpus"
+            />
           </Field>
         )}
         {meta.fields.includes("interestRate") && (
           <Field label="Interest Rate (% p.a.)">
-            <input className="input" type="number" value={form.interestRate} onChange={(e) => set("interestRate", e.target.value)} placeholder="e.g. 8.2" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.interestRate}
+              onChange={(e) => set("interestRate", e.target.value)}
+              placeholder="e.g. 8.2"
+            />
           </Field>
         )}
         <Field label="Contribution Amount (₹)">
-          <input className="input" type="number" value={form.contributionAmount} onChange={(e) => set("contributionAmount", e.target.value)} placeholder="Per instalment" />
+          <input
+            className="form-input"
+            type="number"
+            value={form.contributionAmount}
+            onChange={(e) => set("contributionAmount", e.target.value)}
+            placeholder="Per instalment"
+          />
         </Field>
         <Field label="Contribution Frequency">
-          <select className="input" value={form.frequency} onChange={(e) => set("frequency", e.target.value)}>
+          <select
+            className="form-input"
+            value={form.frequency}
+            onChange={(e) => set("frequency", e.target.value)}
+          >
             {["monthly", "quarterly", "annual", "one_time"].map((f) => (
-              <option key={f} value={f}>{f.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+              <option key={f} value={f}>
+                {f.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              </option>
             ))}
           </select>
         </Field>
         {meta.fields.includes("pensionAmount") && (
           <Field label="Monthly Pension at 60 (₹)">
-            <input className="input" type="number" value={form.pensionAmount} onChange={(e) => set("pensionAmount", e.target.value)} placeholder="e.g. 5000" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.pensionAmount}
+              onChange={(e) => set("pensionAmount", e.target.value)}
+              placeholder="e.g. 5000"
+            />
           </Field>
         )}
         {meta.fields.includes("coverageAmount") && (
           <Field label="Coverage Amount (₹)">
-            <input className="input" type="number" value={form.coverageAmount} onChange={(e) => set("coverageAmount", e.target.value)} placeholder="e.g. 200000" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.coverageAmount}
+              onChange={(e) => set("coverageAmount", e.target.value)}
+              placeholder="e.g. 200000"
+            />
           </Field>
         )}
         {meta.fields.includes("premium") && (
           <Field label="Annual Premium (₹)">
-            <input className="input" type="number" value={form.premium} onChange={(e) => set("premium", e.target.value)} placeholder="e.g. 436" />
+            <input
+              className="form-input"
+              type="number"
+              value={form.premium}
+              onChange={(e) => set("premium", e.target.value)}
+              placeholder="e.g. 436"
+            />
           </Field>
         )}
       </div>
@@ -241,14 +336,30 @@ function SchemeForm({ initial, onSave, onClose }: any) {
       <ModalSection title="Additional Details" />
       <div style={g2}>
         <Field label="Nominee">
-          <input className="input" value={form.nominee} onChange={(e) => set("nominee", e.target.value)} placeholder="Nominee name" />
+          <input
+            className="form-input"
+            value={form.nominee}
+            onChange={(e) => set("nominee", e.target.value)}
+            placeholder="Nominee name"
+          />
         </Field>
         <Field label="Linked Bank">
-          <input className="input" value={form.bankAccount} onChange={(e) => set("bankAccount", e.target.value)} placeholder="Bank name / branch" />
+          <input
+            className="form-input"
+            value={form.bankAccount}
+            onChange={(e) => set("bankAccount", e.target.value)}
+            placeholder="Bank name / branch"
+          />
         </Field>
       </div>
       <Field label="Notes">
-        <textarea className="input" rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
+        <textarea
+          className="form-input"
+          rows={2}
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="Optional notes"
+        />
       </Field>
       <ModalActions onSave={save} onClose={onClose} saveLabel="Save Scheme" />
     </Modal>
@@ -288,16 +399,25 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
     <div>
       <SectionTitle
         sub="APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC, KVP and more"
-        rightElement={<Button size="sm" onClick={() => setModal({})}>
-          <Plus size={14} /> Add Scheme
-        </Button>}
+        rightElement={
+          <Button size="sm" onClick={() => setModal({})}>
+            <Plus size={14} /> Add Scheme
+          </Button>
+        }
       >
         Government Schemes
       </SectionTitle>
 
       {/* Stats */}
       {schemes.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
           <StatCard
             label="Total Corpus"
             value={<Prv>{fmtINRFull(totalCorpus)}</Prv>}
@@ -328,26 +448,52 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
             dotColor="#1d4ed8"
             title="No Government Schemes Tracked"
             description="Add APY, Sukanya Samriddhi, PMJJBY, PMSBY, SCSS, NSC and other govt savings schemes."
-            pills={["Guaranteed Returns", "Tax Benefits (80C)", "Maturity Tracking", "Nominee Details"]}
+            pills={[
+              "Guaranteed Returns",
+              "Tax Benefits (80C)",
+              "Maturity Tracking",
+              "Nominee Details",
+            ]}
             buttonLabel="Add Scheme"
             onAdd={() => setModal({})}
           />
           {/* Scheme discovery grid */}
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: THEME.textMuted }}>
+            <div
+              style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: THEME.textMuted }}
+            >
               Popular Government Schemes
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 10,
+              }}
+            >
               {SCHEMES.slice(0, 6).map((s) => (
-                <Card key={s.value} style={{ borderLeft: `4px solid ${s.color}`, cursor: "pointer" }} onClick={() => setModal({ schemeType: s.value })}>
+                <Card
+                  key={s.value}
+                  style={{ borderLeft: `4px solid ${s.color}`, cursor: "pointer" }}
+                  onClick={() => setModal({ schemeType: s.value })}
+                >
                   <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>
                     {s.label.split("—")[0].trim()}
                   </div>
-                  <div style={{ fontSize: 12, color: THEME.textMuted, marginTop: 4, lineHeight: 1.5 }}>
+                  <div
+                    style={{ fontSize: 12, color: THEME.textMuted, marginTop: 4, lineHeight: 1.5 }}
+                  >
                     {s.description}
                   </div>
                   <div style={{ marginTop: 8 }}>
-                    <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setModal({ schemeType: s.value }); }}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModal({ schemeType: s.value });
+                      }}
+                    >
                       + Add
                     </Button>
                   </div>
@@ -359,16 +505,27 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {schemes.map((sc: any) => {
-            const meta = SCHEME_MAP[sc.schemeType] || { color: THEME.primary, label: sc.schemeType };
+            const meta = SCHEME_MAP[sc.schemeType] || {
+              color: THEME.primary,
+              label: sc.schemeType,
+            };
             const isExpanded = expanded === sc.id;
 
             return (
               <Card key={sc.id} style={{ borderLeft: `4px solid ${meta.color}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 10, background: `${meta.color}18`,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 10,
+                      background: `${meta.color}18`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
                     <Star size={20} color={meta.color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -413,15 +570,38 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
                   )}
 
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => setExpanded(isExpanded ? null : sc.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted }}>
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : sc.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.textMuted,
+                      }}
+                    >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
-                    <button onClick={() => setModal(sc)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted }}>
+                    <button
+                      onClick={() => setModal(sc)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.textMuted,
+                      }}
+                    >
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => { if (window.confirm(`Delete this scheme?`)) removeItem("govtSchemes", sc.id); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: THEME.danger }}
+                      onClick={() => {
+                        if (window.confirm(`Delete this scheme?`)) removeItem("govtSchemes", sc.id);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: THEME.danger,
+                      }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -429,17 +609,67 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
                 </div>
 
                 {isExpanded && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${THEME.border}` }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, fontSize: 12, color: THEME.textMuted }}>
-                      {sc.startDate && <div>Start: {new Date(sc.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>}
-                      {sc.maturityDate && <div>Maturity: {new Date(sc.maturityDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>}
-                      {Number(sc.contributionAmount) > 0 && (
-                        <div>Contribution: <Prv>{fmtINRFull(Number(sc.contributionAmount))}</Prv> / {sc.frequency?.replace("_", " ")}</div>
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: `1px solid ${THEME.border}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                        gap: 10,
+                        fontSize: 12,
+                        color: THEME.textMuted,
+                      }}
+                    >
+                      {sc.startDate && (
+                        <div>
+                          Start:{" "}
+                          {new Date(sc.startDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </div>
                       )}
-                      {Number(sc.premium) > 0 && <div>Premium: <Prv>{fmtINRFull(Number(sc.premium))}/yr</Prv></div>}
+                      {sc.maturityDate && (
+                        <div>
+                          Maturity:{" "}
+                          {new Date(sc.maturityDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </div>
+                      )}
+                      {Number(sc.contributionAmount) > 0 && (
+                        <div>
+                          Contribution: <Prv>{fmtINRFull(Number(sc.contributionAmount))}</Prv> /{" "}
+                          {sc.frequency?.replace("_", " ")}
+                        </div>
+                      )}
+                      {Number(sc.premium) > 0 && (
+                        <div>
+                          Premium: <Prv>{fmtINRFull(Number(sc.premium))}/yr</Prv>
+                        </div>
+                      )}
                       {sc.bankAccount && <div>Bank: {sc.bankAccount}</div>}
                     </div>
-                    {sc.notes && <div style={{ marginTop: 8, fontSize: 12, fontStyle: "italic", color: THEME.textMuted }}>{sc.notes}</div>}
+                    {sc.notes && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 12,
+                          fontStyle: "italic",
+                          color: THEME.textMuted,
+                        }}
+                      >
+                        {sc.notes}
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -450,7 +680,7 @@ export function GovtSchemesTab({ state, addItem, removeItem, updateItem }: any) 
 
       {modal !== null && (
         <SchemeForm
-          initial={modal?.id ? modal : (modal?.schemeType ? modal : undefined)}
+          initial={modal?.id ? modal : modal?.schemeType ? modal : undefined}
           onSave={save}
           onClose={() => setModal(null)}
         />
