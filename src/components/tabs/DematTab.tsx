@@ -21,8 +21,12 @@ import {
   Star,
   X,
   Upload,
+  AlertTriangle,
+  Lightbulb,
+  CheckCircle2,
 } from "lucide-react";
 import { THEME, PROFILES } from "../../utils/constants";
+import { Prv } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -531,9 +535,10 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
     <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
       <button onClick={onEdit} className="icon-btn" style={iconBtn} title="Edit account">
         <Edit3 size={14} />
+        <Edit3 size={15} />
       </button>
       <button onClick={onRemove} className="icon-btn danger" style={iconBtn} title="Delete account">
-        <Trash2 size={14} />
+        <Trash2 size={15} />
       </button>
     </div>
     {children}
@@ -542,21 +547,21 @@ const InvestCard = ({ children, onRemove, onEdit, style: extraStyle }: any) => (
 
 const th = {
   textAlign: "left" as const,
-  padding: "11px 10px",
+  padding: "12px 14px",
   fontSize: 10,
-  letterSpacing: "0.1em",
+  letterSpacing: "0.08em",
   textTransform: "uppercase" as const,
   color: THEME.muted,
-  fontWeight: 700,
-  borderBottom: `1px solid var(--t-line)`,
+  fontWeight: 800,
+  borderBottom: `1.5px solid var(--t-line)`,
   whiteSpace: "nowrap" as const,
+  background: "var(--surface-0)",
 };
 const td = {
-  padding: "12px 10px",
+  padding: "14px 14px",
+  borderBottom: "1px solid var(--t-line)",
+  color: "var(--t-ink)",
   verticalAlign: "middle" as const,
-  fontSize: 13,
-  borderBottom: `1px solid var(--t-line)`,
-  fontVariantNumeric: "tabular-nums" as const,
 };
 
 type FifoAlloc = {
@@ -888,11 +893,11 @@ export function DematTab({
     }
   };
 
-  const CHART_PERIODS = ["1d", "5d", "1m", "6m", "ytd", "1y", "3y", "5y", "max"] as const;
   const CHART_PERIOD_LABELS: Record<string, string> = {
     "1d": "1D", "5d": "5D", "1m": "1M", "6m": "6M", "ytd": "YTD",
     "1y": "1Y", "3y": "3Y", "5y": "5Y", "max": "All",
   };
+  const CHART_PERIODS = Object.keys(CHART_PERIOD_LABELS);
 
   const fetchChart = async (yfSym: string, range: string = "1d") => {
     const cacheKey = `${yfSym}__${range}`;
@@ -1471,47 +1476,201 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 
       {/* ── MAIN CONTENT AREA (100% width) ── */}
       {dematView === "holdings" && <div style={{ width: "100%", marginTop: 24 }}>
-        <div className="demat-stats-grid">
-          <StatCard
-            icon={<BarChart3 />}
-            label="Portfolio Value"
-            value={fmtINRFull(totalValue)}
-            color={THEME.accent}
-            borderColor={THEME.accent}
-            sub={`Invested ${fmtINRFull(totalInvested)}`}
-          />
-          <StatCard
-            icon={<Activity />}
-            label="Day's P&L"
-            value={fmtINRFull(totalDaysPnL)}
-            color={totalDaysPnL >= 0 ? THEME.sage : THEME.rust}
-            borderColor="#f59e0b"
-            sub={
-              totalDaysPnL !== 0
-                ? `${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}% today`
-                : "No change today"
-            }
-          />
-          <StatCard
-            icon={<TrendingUp />}
-            label="Unrealized P&L"
-            value={fmtINRFull(pnl)}
-            color={pnl >= 0 ? THEME.sage : THEME.rust}
-            borderColor={pnl >= 0 ? THEME.sage : THEME.rust}
-            sub={
-              totalInvested
-                ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
-                : undefined
-            }
-          />
-          <StatCard
-            icon={<TrendingUp />}
-            label="Overall XIRR"
-            value={overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
-            color={overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}
-            borderColor="#8b5cf6"
-            sub="Annualized rate of return"
-          />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          {/* Card 1: Portfolio Value */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${THEME.accent}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: THEME.accent,
+                  flexShrink: 0,
+                }}
+              >
+                <BarChart3 size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Portfolio Value
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Current assets valuation
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{fmtINRFull(totalValue)}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 2: Day's P&L */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                <Activity size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Day's P&L
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Daily market fluctuation
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{(totalDaysPnL >= 0 ? "+" : "") + fmtINRFull(totalDaysPnL)}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust, fontWeight: 700, marginTop: 4 }}>
+                {totalDaysPnL !== 0
+                  ? `${totalDaysPnL >= 0 ? "+" : ""}${totalDaysPnLPct.toFixed(2)}% today`
+                  : "No change today"}
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 3: Unrealized P&L */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: pnl >= 0 ? THEME.sage : THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Unrealized P&L
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Total returns value
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: pnl >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{(pnl >= 0 ? "+" : "") + fmtINRFull(pnl)}</Prv>
+              </div>
+              <div style={{ fontSize: 11, color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 700, marginTop: 4 }}>
+                {totalInvested
+                  ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
+                  : "—"}
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 4: Overall XIRR */}
+          <Card
+            hover
+            style={{
+              padding: "18px 20px",
+              borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
+                  flexShrink: 0,
+                }}
+              >
+                <Percent size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Overall XIRR
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                  Annualized wealth rate
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                {overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Annualized rate of return
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Broker Account Cards */}
@@ -1523,22 +1682,63 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           )}
           {state.demat.map((d: any) => {
             const theme = getBrokerTheme(d.broker || "");
+            
+            // Calculate specific broker stats
+            const dematStocks = state.stocks.filter((st: any) => st.dematId === d.id);
+            const dematValue = dematStocks.reduce((s: number, st: any) => {
+              const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+              const exch = st.exchange || "NSE";
+              const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+              const livePrice = marketData[yfSym]?.price;
+              const price = livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
+              return s + Number(st.qty) * price;
+            }, 0);
+            const dematInvested = dematStocks.reduce((s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice), 0);
+            const dematPnl = dematValue - dematInvested;
+            const dematPnlPct = dematInvested > 0 ? (dematPnl / dematInvested) * 100 : 0;
+            const scripsCount = new Set(dematStocks.map((st: any) => st.symbol)).size;
+
             return (
               <InvestCard
                 key={d.id}
                 onRemove={() => removeItem("demat", d.id)}
                 onEdit={() => setEditDematId(d.id)}
-                style={{ borderTop: `4px solid ${theme.color}` }}
+                style={{
+                  borderTop: `4px solid ${theme.color}`,
+                  padding: "20px 24px 20px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  height: "100%",
+                }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                   <BrokerLogo broker={d.broker || "?"} theme={theme} size={46} borderRadius={13} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}
-                    >
-                      {d.broker || "Broker"}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                      <span style={{ fontSize: 16, fontWeight: 850, color: THEME.ink }}>
+                        {d.broker || "Broker"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: THEME.sage,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                          padding: "2px 8px",
+                          borderRadius: 20,
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.sage }} />
+                        Active
+                      </span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}>
                       {d.dpId && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span
@@ -1546,8 +1746,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               fontSize: 9,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: `${theme.color}18`,
-                              color: theme.color,
+                              background: `var(--t-line)`,
+                              color: THEME.muted,
                               fontWeight: 700,
                               letterSpacing: "0.06em",
                               lineHeight: 1.2,
@@ -1559,9 +1759,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             style={{
                               color: THEME.ink,
                               fontFamily: "monospace",
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 600,
                               fontVariantNumeric: "tabular-nums",
+                              opacity: 0.8,
                             }}
                           >
                             {d.dpId}
@@ -1575,8 +1776,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               fontSize: 9,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: `${theme.color}18`,
-                              color: theme.color,
+                              background: `var(--t-line)`,
+                              color: THEME.muted,
                               fontWeight: 700,
                               letterSpacing: "0.06em",
                               lineHeight: 1.2,
@@ -1588,9 +1789,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             style={{
                               color: THEME.ink,
                               fontFamily: "monospace",
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 600,
                               fontVariantNumeric: "tabular-nums",
+                              opacity: 0.8,
                             }}
                           >
                             {d.clientId}
@@ -1603,6 +1805,54 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                         </span>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    borderTop: `1.5px dashed ${THEME.line}`,
+                    paddingTop: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Holding Value
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                      {fmtINRFull(dematValue)}
+                    </div>
+                    {dematStocks.length > 0 && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: dematPnl >= 0 ? THEME.sage : THEME.rust,
+                          marginTop: 3,
+                        }}
+                      >
+                        {dematPnl >= 0 ? "+" : ""}
+                        {dematPnlPct.toFixed(2)}% ({dematPnl >= 0 ? "+" : ""}₹{Math.round(dematPnl).toLocaleString("en-IN")})
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background: `color-mix(in srgb, ${theme.color} 12%, transparent)`,
+                        color: theme.color,
+                        padding: "3px 10px",
+                        borderRadius: 20,
+                        border: `1px solid color-mix(in srgb, ${theme.color} 20%, transparent)`,
+                      }}
+                    >
+                      {scripsCount} scrip{scripsCount === 1 ? "" : "s"}
+                    </span>
                   </div>
                 </div>
               </InvestCard>
@@ -1619,9 +1869,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               alignItems: "center",
               marginBottom: 20,
               gap: 16,
+              flexWrap: "wrap",
             }}
           >
-            <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+            <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 400 }}>
               <input
                 placeholder="Search stocks or sectors..."
                 value={search}
@@ -1629,25 +1880,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 style={{
                   ...input,
                   paddingLeft: 40,
-                  borderRadius: 14,
-                  height: 44,
+                  borderRadius: 12,
+                  height: 42,
                   border: `1.5px solid ${THEME.line}`,
+                  background: "var(--t-input-bg)",
+                  color: THEME.ink,
+                  transition: "border-color 0.2s, box-shadow 0.2s",
                 }}
               />
-              <div style={{ position: "absolute", left: 14, top: 13, color: THEME.muted }}>
-                <Search size={18} />
+              <div style={{ position: "absolute", left: 14, top: 12, color: THEME.muted }}>
+                <Search size={16} />
               </div>
             </div>
+            
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                background: "var(--surface-0)",
-                padding: "0 12px",
+                background: "var(--t-input-bg)",
+                padding: "0 14px",
                 borderRadius: 12,
-                border: `1px solid ${THEME.line}`,
-                height: 40,
+                border: `1.5px solid ${THEME.line}`,
+                height: 42,
               }}
             >
               <span
@@ -1659,7 +1914,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   letterSpacing: "0.05em",
                 }}
               >
-                Sort by:
+                Sort by
               </span>
               <select
                 value={sortBy}
@@ -2039,13 +2294,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       {isExpanded && (
                         <tr
                           className="demat-drawer-row"
-                          style={{ background: `${THEME.accent}08` }}
+                          style={{
+                            background: `linear-gradient(180deg, color-mix(in srgb, ${THEME.accent} 4%, transparent) 0%, var(--t-card-bg) 100%)`,
+                          }}
                         >
                           <td
                             colSpan={8}
                             style={{
-                              padding: "20px 24px",
-                              borderBottom: `1px solid ${THEME.line}`,
+                              padding: "24px 28px",
+                              borderBottom: `1.5px solid ${THEME.line}`,
                             }}
                           >
                             <div
@@ -2055,7 +2312,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               {/* Left Panel: Price chart with period selector */}
                               {isLive && (
                                 <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
                                     <div
                                       style={{
                                         fontSize: 11,
@@ -2069,7 +2326,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         ? `Intraday — ${chartDate}`
                                         : `${CHART_PERIOD_LABELS[activePeriod]} Chart`}
                                     </div>
-                                    <div style={{ display: "flex", gap: 2 }}>
+                                    
+                                    {/* Segmented Period Selector */}
+                                    <div style={{
+                                      display: "flex",
+                                      background: "var(--t-line)",
+                                      padding: 2,
+                                      borderRadius: 8,
+                                      border: `1px solid ${THEME.line}`,
+                                    }}>
                                       {CHART_PERIODS.map((p) => (
                                         <button
                                           key={p}
@@ -2079,15 +2344,16 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             fetchChart(yfSym, p);
                                           }}
                                           style={{
-                                            padding: "3px 7px",
-                                            fontSize: 10,
-                                            fontWeight: activePeriod === p ? 800 : 600,
+                                            padding: "4px 8px",
+                                            fontSize: 9,
+                                            fontWeight: activePeriod === p ? 850 : 600,
                                             border: "none",
-                                            borderRadius: 4,
+                                            borderRadius: 6,
                                             cursor: "pointer",
-                                            background: activePeriod === p ? THEME.accent : "transparent",
-                                            color: activePeriod === p ? "#fff" : THEME.muted,
-                                            transition: "all 0.15s ease",
+                                            background: activePeriod === p ? "var(--t-card-bg)" : "transparent",
+                                            color: activePeriod === p ? THEME.accent : THEME.muted,
+                                            boxShadow: activePeriod === p ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                                            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                                           }}
                                         >
                                           {CHART_PERIOD_LABELS[p]}
@@ -2095,13 +2361,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       ))}
                                     </div>
                                   </div>
+                                  
                                   <div
                                     style={{
-                                      background: "var(--surface-0)",
+                                      background: "var(--t-card-bg)",
                                       border: `1.5px solid ${THEME.line}`,
                                       borderRadius: 12,
-                                      padding: "12px 14px",
+                                      padding: "16px 14px",
                                       boxSizing: "border-box",
+                                      boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
                                     }}
                                   >
                                     {charts && charts.length > 2 ? (
@@ -2122,12 +2390,12 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                 <stop
                                                   offset="5%"
                                                   stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
-                                                  stopOpacity={0.35}
+                                                  stopOpacity={0.3}
                                                 />
                                                 <stop
                                                   offset="95%"
                                                   stopColor={changeAmt >= 0 ? THEME.sage : THEME.rust}
-                                                  stopOpacity={0.02}
+                                                  stopOpacity={0.01}
                                                 />
                                               </linearGradient>
                                             </defs>
@@ -2142,11 +2410,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <Tooltip
                                               cursor={{ stroke: THEME.line }}
                                               contentStyle={{
-                                                fontSize: 12,
-                                                background: "var(--surface-0)",
-                                                border: `1px solid ${THEME.line}`,
-                                                borderRadius: 6,
+                                                fontSize: 11,
+                                                background: "rgba(var(--t-card-bg-rgb, 255, 255, 255), 0.8)",
+                                                backdropFilter: "blur(12px)",
+                                                WebkitBackdropFilter: "blur(12px)",
+                                                border: `1.5px solid ${THEME.line}`,
+                                                borderRadius: 10,
                                                 color: THEME.ink,
+                                                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
                                               }}
                                               labelStyle={{ color: THEME.ink }}
                                               itemStyle={{ color: THEME.ink }}
@@ -2170,26 +2441,26 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             display: "flex",
                                             flexWrap: "wrap",
                                             gap: "10px 16px",
-                                            marginTop: 12,
+                                            marginTop: 14,
                                             fontSize: 12,
                                             borderTop: `1px solid ${THEME.line}`,
-                                            paddingTop: 10,
+                                            paddingTop: 12,
                                           }}
                                         >
                                           {md.prevClose != null && (
                                             <span>
                                               <span style={{ color: THEME.muted }}>Prev Close: </span>
-                                              <b>₹{md.prevClose.toFixed(2)}</b>
+                                              <b style={{ fontVariantNumeric: "tabular-nums" }}>₹{md.prevClose.toFixed(2)}</b>
                                             </span>
                                           )}
                                           {md.dayHigh != null && (
                                             <span>
                                               <span style={{ color: THEME.muted }}>Day High/Low: </span>
-                                              <b style={{ color: THEME.sage }}>
+                                              <b style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
                                                 ₹{md.dayHigh.toFixed(2)}
                                               </b>{" "}
                                               /{" "}
-                                              <b style={{ color: THEME.rust }}>
+                                              <b style={{ color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
                                                 ₹{md.dayLow?.toFixed(2) ?? "—"}
                                               </b>
                                             </span>
@@ -2197,11 +2468,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           {md.weekHigh52 != null && (
                                             <span>
                                               <span style={{ color: THEME.muted }}>52W H/L: </span>
-                                              <b style={{ color: THEME.sage }}>
+                                              <b style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
                                                 ₹{md.weekHigh52.toFixed(2)}
                                               </b>{" "}
                                               /{" "}
-                                              <b style={{ color: THEME.rust }}>
+                                              <b style={{ color: THEME.rust, fontVariantNumeric: "tabular-nums" }}>
                                                 ₹{md.weekLow52?.toFixed(2) ?? "—"}
                                               </b>
                                             </span>
@@ -2209,7 +2480,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           {md.volume != null && (
                                             <span>
                                               <span style={{ color: THEME.muted }}>Volume: </span>
-                                              <b>{fmtVol(md.volume)}</b>
+                                              <b style={{ fontVariantNumeric: "tabular-nums" }}>{fmtVol(md.volume)}</b>
                                             </span>
                                           )}
                                         </div>
@@ -2250,11 +2521,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     style={{
                                       fontSize: 10,
                                       fontWeight: 800,
-                                      background: `${THEME.accent}15`,
+                                      background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
                                       color: THEME.accent,
                                       padding: "1px 8px",
                                       borderRadius: 20,
-                                      border: `1px solid ${THEME.accent}25`,
+                                      border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
                                     }}
                                   >
                                     {lots.length} {lots.length === 1 ? "lot" : "lots"}
@@ -2263,20 +2534,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 <table
                                   style={{
                                     width: "100%",
-                                    borderCollapse: "separate",
-                                    borderSpacing: "0 6px",
+                                    borderCollapse: "collapse",
                                     fontSize: 12,
                                   }}
                                 >
                                   <thead>
-                                    <tr>
+                                    <tr style={{ background: "var(--surface-0)" }}>
                                       <th
                                         style={{
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
-                                          paddingLeft: 8,
+                                          padding: "8px 8px",
                                         }}
                                       >
                                         Broker
@@ -2286,7 +2555,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                           textAlign: "right",
                                         }}
                                       >
@@ -2297,7 +2566,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                           textAlign: "right",
                                         }}
                                       >
@@ -2308,7 +2577,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                           textAlign: "right",
                                           cursor: "pointer",
                                           userSelect: "none",
@@ -2342,7 +2611,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                           textAlign: "right",
                                         }}
                                       >
@@ -2353,7 +2622,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                           textAlign: "right",
                                         }}
                                       >
@@ -2364,7 +2633,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           ...th,
                                           background: "transparent",
                                           borderBottom: `1.5px solid ${THEME.line}`,
-                                          padding: "4px 8px",
+                                          padding: "8px 8px",
                                         }}
                                       ></th>
                                     </tr>
@@ -2391,15 +2660,15 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         return (
                                           <tr
                                             key={lot.id}
-                                            style={{ background: `${THEME.accent}08` }}
+                                            style={{
+                                              background: "transparent",
+                                              borderBottom: `1px dashed ${THEME.line}80`,
+                                            }}
                                           >
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
-                                                borderTopLeftRadius: 8,
-                                                borderBottomLeftRadius: 8,
+                                                padding: "10px 8px",
                                               }}
                                             >
                                               <div
@@ -2423,10 +2692,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
+                                                padding: "10px 8px",
                                                 textAlign: "right",
                                                 fontWeight: 700,
+                                                fontVariantNumeric: "tabular-nums",
                                               }}
                                             >
                                               {lot.qty}
@@ -2434,10 +2703,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
+                                                padding: "10px 8px",
                                                 textAlign: "right",
                                                 fontWeight: 600,
+                                                fontVariantNumeric: "tabular-nums",
                                               }}
                                             >
                                               ₹
@@ -2448,12 +2717,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
+                                                padding: "10px 8px",
                                                 textAlign: "right",
                                               }}
                                             >
-                                              <div style={{ fontWeight: 600 }}>
+                                              <div style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                                                 {lot.buyDate
                                                   ? new Date(lot.buyDate).toLocaleDateString(
                                                       "en-IN",
@@ -2481,17 +2749,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                         marginTop: 3,
                                                         display: "inline-block",
                                                         fontSize: 9,
-                                                        fontWeight: 800,
+                                                        fontWeight: 850,
                                                         padding: "1px 6px",
                                                         borderRadius: 4,
                                                         background: isLTCG
-                                                          ? `${THEME.sage}1f`
-                                                          : `${THEME.gold}1a`,
+                                                          ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                                                          : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                                                         color: isLTCG
                                                           ? THEME.sage
                                                           : nearLTCG
                                                             ? "#d97706"
                                                             : THEME.gold,
+                                                        border: `1px solid ${isLTCG ? `${THEME.sage}20` : `${THEME.gold}20`}`,
                                                       }}
                                                     >
                                                       {isLTCG
@@ -2504,8 +2773,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
+                                                padding: "10px 8px",
                                                 textAlign: "right",
                                               }}
                                             >
@@ -2523,6 +2791,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                   fontSize: 10,
                                                   color: lPnl >= 0 ? THEME.sage : THEME.rust,
                                                   fontWeight: 600,
+                                                  fontVariantNumeric: "tabular-nums",
                                                 }}
                                               >
                                                 {lPnl >= 0 ? "+" : ""}
@@ -2542,6 +2811,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                               ? THEME.gold
                                                               : THEME.rust,
                                                         fontWeight: 800,
+                                                        marginTop: 2,
                                                       }}
                                                     >
                                                       {cagr.toFixed(0)}% CAGR
@@ -2552,10 +2822,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
+                                                padding: "10px 8px",
                                                 textAlign: "right",
                                                 fontWeight: 800,
+                                                fontVariantNumeric: "tabular-nums",
                                               }}
                                             >
                                               {fmtINRFull(lCurr)}
@@ -2563,16 +2833,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                             <td
                                               style={{
                                                 ...td,
-                                                borderBottom: "none",
-                                                padding: "8px",
-                                                borderTopRightRadius: 8,
-                                                borderBottomRightRadius: 8,
+                                                padding: "10px 8px",
                                               }}
                                             >
                                               <div
                                                 style={{
                                                   display: "flex",
-                                                  gap: 3,
+                                                  gap: 4,
                                                   justifyContent: "flex-end",
                                                 }}
                                               >
@@ -2588,7 +2855,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     });
                                                   }}
                                                   className="icon-btn danger"
-                                                  style={{ ...iconBtn, padding: 4 }}
+                                                  style={{ ...iconBtn, padding: 5 }}
                                                   title="Sell Shares"
                                                 >
                                                   <ArrowLeftRight size={12} />
@@ -2599,7 +2866,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     setEditStockId(lot.id);
                                                   }}
                                                   className="icon-btn"
-                                                  style={{ ...iconBtn, padding: 4 }}
+                                                  style={{ ...iconBtn, padding: 5 }}
                                                   title="Edit lot"
                                                 >
                                                   <Edit3 size={12} />
@@ -2610,7 +2877,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                                     removeItem("stocks", lot.id);
                                                   }}
                                                   className="icon-btn danger"
-                                                  style={{ ...iconBtn, padding: 4 }}
+                                                  style={{ ...iconBtn, padding: 5 }}
                                                   title="Delete lot"
                                                 >
                                                   <Trash2 size={12} />
@@ -2622,11 +2889,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       })}
                                   </tbody>
                                   <tfoot>
-                                    <tr>
+                                    <tr style={{ background: "var(--surface-0)" }}>
                                       <td
                                         colSpan={2}
                                         style={{
-                                          padding: "8px",
+                                          padding: "10px 8px",
                                           borderTop: `1.5px solid ${THEME.line}`,
                                           fontSize: 11,
                                           fontWeight: 800,
@@ -2639,12 +2906,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       </td>
                                       <td
                                         style={{
-                                          padding: "8px",
+                                          padding: "10px 8px",
                                           borderTop: `1.5px solid ${THEME.line}`,
                                           textAlign: "right",
                                           fontWeight: 700,
                                           fontSize: 12,
                                           color: THEME.ink,
+                                          fontVariantNumeric: "tabular-nums",
                                         }}
                                       >
                                         ₹
@@ -2658,7 +2926,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
                                       <td
                                         style={{
-                                          padding: "8px",
+                                          padding: "10px 8px",
                                           borderTop: `1.5px solid ${THEME.line}`,
                                           textAlign: "right",
                                         }}
@@ -2670,13 +2938,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                           }}
                                         >
                                           {totalPnl >= 0 ? "+" : ""}
-                                          {Math.round(totalPnlPct)}%
+                                          {totalInv ? Math.round((totalPnl / totalInv) * 100) : 0}%
                                         </div>
                                         <div
                                           style={{
                                             fontSize: 10,
-                                            fontWeight: 600,
                                             color: totalPnl >= 0 ? THEME.sage : THEME.rust,
+                                            fontWeight: 600,
+                                            fontVariantNumeric: "tabular-nums",
                                           }}
                                         >
                                           {totalPnl >= 0 ? "+" : ""}
@@ -2685,12 +2954,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       </td>
                                       <td
                                         style={{
-                                          padding: "8px",
+                                          padding: "10px 8px",
                                           borderTop: `1.5px solid ${THEME.line}`,
                                           textAlign: "right",
-                                          fontWeight: 800,
-                                          fontSize: 13,
+                                          fontWeight: 850,
+                                          fontSize: 12,
                                           color: THEME.ink,
+                                          fontVariantNumeric: "tabular-nums",
                                         }}
                                       >
                                         {fmtINRFull(totalCurr)}
@@ -2700,40 +2970,39 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   </tfoot>
                                 </table>
 
-                                {/* Corporate actions logs */}
+                                {/* Corporate Actions History inside Drawer */}
                                 {(() => {
-                                  const caHistory = (state.corporateActions || [])
-                                    .filter(
-                                      (a: any) => a.symbol === base && a.exchange === exchange
-                                    )
-                                    .sort(
-                                      (a: any, b: any) =>
-                                        new Date(b.actionDate || b.createdAt).getTime() -
-                                        new Date(a.actionDate || a.createdAt).getTime()
-                                    );
+                                  const baseSym = base.trim().toLowerCase();
+                                  const caHistory = (state.corporateActions || []).filter(
+                                    (a: any) =>
+                                      (a.symbol || "").trim().toLowerCase() === baseSym &&
+                                      (a.exchange || "NSE").trim().toUpperCase() ===
+                                        exchange.trim().toUpperCase()
+                                  );
                                   if (caHistory.length === 0) return null;
+
                                   return (
                                     <div
                                       style={{
-                                        marginTop: 14,
-                                        borderTop: `1px solid ${THEME.line}`,
-                                        paddingTop: 10,
+                                        marginTop: 16,
+                                        borderTop: `1.5px solid ${THEME.line}`,
+                                        paddingTop: 12,
                                       }}
                                     >
                                       <div
                                         style={{
-                                          fontSize: 10,
+                                          fontSize: 11,
                                           color: THEME.muted,
-                                          fontWeight: 700,
-                                          letterSpacing: "0.06em",
+                                          fontWeight: 800,
                                           textTransform: "uppercase",
-                                          marginBottom: 6,
+                                          letterSpacing: "0.05em",
+                                          marginBottom: 8,
                                         }}
                                       >
                                         Corporate Actions History
                                       </div>
                                       <div
-                                        style={{ display: "flex", flexDirection: "column", gap: 5 }}
+                                        style={{ display: "flex", flexDirection: "column", gap: 6 }}
                                       >
                                         {caHistory.map((a: any) => (
                                           <div
@@ -2743,29 +3012,34 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               alignItems: "center",
                                               flexWrap: "wrap",
                                               gap: 6,
-                                              fontSize: 11,
+                                              fontSize: 12,
                                             }}
                                           >
                                             <span
                                               style={{
-                                                padding: "1px 6px",
-                                                borderRadius: 4,
-                                                fontWeight: 800,
+                                                padding: "2px 8px",
+                                                borderRadius: 6,
+                                                fontWeight: 850,
                                                 fontSize: 9,
                                                 background:
                                                   a.actionType === "split"
-                                                    ? `${THEME.gold}1a`
-                                                    : `${THEME.sage}1a`,
+                                                    ? `color-mix(in srgb, ${THEME.gold} 12%, transparent)`
+                                                    : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                                                 color:
                                                   a.actionType === "split"
                                                     ? THEME.gold
                                                     : THEME.sage,
+                                                border: `1px solid ${
+                                                  a.actionType === "split"
+                                                    ? `${THEME.gold}20`
+                                                    : `${THEME.sage}20`
+                                                }`,
                                               }}
                                             >
                                               {a.actionType === "split" ? "SPLIT" : "BONUS"}{" "}
                                               {a.ratioN}:{a.ratioM}
                                             </span>
-                                            <span style={{ color: THEME.muted }}>
+                                            <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums" }}>
                                               {a.actionDate
                                                 ? new Date(a.actionDate).toLocaleDateString(
                                                     "en-IN",
@@ -2823,7 +3097,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     variant="ghost"
                                     size="sm"
                                     icon={<ArrowLeftRight size={11} />}
-                                    style={{ color: THEME.rust, borderColor: `${THEME.rust}60` }}
+                                    style={{ color: THEME.rust, borderColor: `${THEME.rust}40`, background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)` }}
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation();
                                       setFifoSellGroup({ base, exchange, yfSym, lots });
@@ -2835,7 +3109,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     variant="ghost"
                                     size="sm"
                                     icon={<Scissors size={11} />}
-                                    style={{ color: THEME.gold }}
+                                    style={{ color: THEME.gold, borderColor: `${THEME.gold}40`, background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)` }}
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation();
                                       setSplitBonusGroup({ base, exchange, lots });
@@ -2868,43 +3142,199 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {/* Stat Cards Overview */}
-              <div className="demat-stats-grid">
-                <StatCard
-                  icon={<BarChart3 />}
-                  label="Portfolio Value"
-                  value={fmtINRFull(totalValue)}
-                  color={THEME.accent}
-                  borderColor={THEME.accent}
-                  sub={`Invested ${fmtINRFull(totalInvested)}`}
-                />
-                <StatCard
-                  icon={<TrendingUp />}
-                  label="Unrealized P&L"
-                  value={fmtINRFull(pnl)}
-                  color={pnl >= 0 ? THEME.sage : THEME.rust}
-                  borderColor={pnl >= 0 ? THEME.sage : THEME.rust}
-                  sub={
-                    totalInvested
-                      ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
-                      : undefined
-                  }
-                />
-                <StatCard
-                  icon={<Percent />}
-                  label="Net Return"
-                  value={totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
-                  color={pnl >= 0 ? THEME.sage : THEME.rust}
-                  borderColor="#f59e0b"
-                  sub="Absolute portfolio performance"
-                />
-                <StatCard
-                  icon={<TrendingUp />}
-                  label="Overall XIRR"
-                  value={overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
-                  color={overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}
-                  borderColor="#8b5cf6"
-                  sub="Annualized rate of return"
-                />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 16,
+                  marginBottom: 24,
+                }}
+              >
+                {/* Card 1: Portfolio Value */}
+                <Card
+                  hover
+                  style={{
+                    padding: "18px 20px",
+                    borderTop: `4px solid ${THEME.accent}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: THEME.accent,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <BarChart3 size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Portfolio Value
+                      </div>
+                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                        Current assets valuation
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                      <Prv>{fmtINRFull(totalValue)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                      Invested: <Prv>{fmtINRFull(totalInvested)}</Prv>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Card 2: Unrealized P&L */}
+                <Card
+                  hover
+                  style={{
+                    padding: "18px 20px",
+                    borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: pnl >= 0 ? THEME.sage : THEME.rust,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <TrendingUp size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Unrealized P&L
+                      </div>
+                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                        Total returns value
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: pnl >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                      <Prv>{(pnl >= 0 ? "+" : "") + fmtINRFull(pnl)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 11, color: pnl >= 0 ? THEME.sage : THEME.rust, fontWeight: 700, marginTop: 4 }}>
+                      {totalInvested
+                        ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
+                        : "—"}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Card 3: Net Return */}
+                <Card
+                  hover
+                  style={{
+                    padding: "18px 20px",
+                    borderTop: `4px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, ${pnl >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: pnl >= 0 ? THEME.sage : THEME.rust,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Percent size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Net Return
+                      </div>
+                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                        Total return rate
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: pnl >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                      {totalInvested ? ((pnl / totalInvested) * 100).toFixed(2) + "%" : "—"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                      Absolute portfolio return
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Card 4: Overall XIRR */}
+                <Card
+                  hover
+                  style={{
+                    padding: "18px 20px",
+                    borderTop: `4px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `color-mix(in srgb, ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust} 12%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Percent size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Overall XIRR
+                      </div>
+                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                        Annualized wealth rate
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                      {overallXirr !== null ? `${overallXirr >= 0 ? "+" : ""}${overallXirr.toFixed(2)}%` : "—"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                      Annualized rate of return
+                    </div>
+                  </div>
+                </Card>
               </div>
 
               {/* Portfolio Health Score Card */}
@@ -3048,8 +3478,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       </div>
                       
                       {/* Bar Track */}
-                      <div style={{ width: "100%", height: 8, borderRadius: 4, background: "var(--t-line)", overflow: "hidden" }}>
-                        <div style={{ width: `${s.score}%`, height: "100%", borderRadius: 4, background: s.color, transition: "width 0.8s ease-in-out" }} />
+                      <div style={{ width: "100%", height: 6, borderRadius: 10, background: "var(--t-line)", overflow: "hidden" }}>
+                        <div style={{
+                          width: `${s.score}%`,
+                          height: "100%",
+                          borderRadius: 10,
+                          background: `linear-gradient(90deg, ${s.color} 0%, color-mix(in srgb, ${s.color} 75%, white) 100%)`,
+                          transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)"
+                        }} />
                       </div>
                       
                       <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4, marginTop: 2 }}>
@@ -3309,33 +3745,52 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {portfolioScoreData.insights.map((insight: string, idx: number) => (
-                    <div key={idx} style={{
-                      display: "flex",
-                      gap: 12,
-                      alignItems: "flex-start",
-                      padding: "10px 14px",
-                      borderRadius: 10,
-                      background: insight.includes("⚠️") || insight.includes("📉") 
-                        ? `color-mix(in srgb, ${THEME.rust} 6%, transparent)` 
-                        : insight.includes("💡") 
-                          ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)` 
-                          : `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                      border: `1.5px solid ${
-                        insight.includes("⚠️") || insight.includes("📉") 
-                          ? `color-mix(in srgb, ${THEME.rust} 20%, transparent)` 
-                          : insight.includes("💡") 
-                            ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)` 
-                            : `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
-                      }`,
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      color: THEME.ink
-                    }}>
-                      <div style={{ marginTop: 1 }}>{insight.split(" ")[0]}</div>
-                      <div style={{ fontWeight: 500 }}>{insight.substring(insight.indexOf(" ") + 1)}</div>
-                    </div>
-                  ))}
+                  {portfolioScoreData.insights.map((insight: string, idx: number) => {
+                    const isWarn = insight.includes("⚠️") || insight.includes("📉");
+                    const isIdea = insight.includes("💡") || insight.includes("ℹ️");
+                    const text = insight
+                      .replace("⚠️ ", "")
+                      .replace("📉 ", "")
+                      .replace("💡 ", "")
+                      .replace("ℹ️ ", "")
+                      .replace("✓ ", "");
+                    
+                    return (
+                      <div key={idx} style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        background: isWarn 
+                          ? `color-mix(in srgb, ${THEME.rust} 6%, transparent)` 
+                          : isIdea 
+                            ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)` 
+                            : `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                        border: `1.5px solid ${
+                          isWarn 
+                            ? `color-mix(in srgb, ${THEME.rust} 15%, transparent)` 
+                            : isIdea 
+                              ? `color-mix(in srgb, ${THEME.gold} 15%, transparent)` 
+                              : `color-mix(in srgb, ${THEME.sage} 15%, transparent)`
+                        }`,
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: THEME.ink
+                      }}>
+                        <div style={{ marginTop: 2, display: "flex", flexShrink: 0 }}>
+                          {isWarn ? (
+                            <AlertTriangle size={15} color={THEME.rust} />
+                          ) : isIdea ? (
+                            <Lightbulb size={15} color={THEME.gold} />
+                          ) : (
+                            <CheckCircle2 size={15} color={THEME.sage} />
+                          )}
+                        </div>
+                        <div style={{ fontWeight: 650, flex: 1 }}>{text}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </Card>
 
@@ -3458,6 +3913,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                       }}>
                         {items.length} stock{items.length !== 1 ? "s" : ""}
                       </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWishlistItemTarget(wl.id);
+                          setEditWishlistItemId(null);
+                          setShowWishlistItemModal(true);
+                        }}
+                        className="icon-btn"
+                        style={{ ...iconBtn, color: THEME.accent }}
+                        title="Add stock"
+                      >
+                        <Plus size={14} />
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditWishlistId(wl.id); }}
                         className="icon-btn"

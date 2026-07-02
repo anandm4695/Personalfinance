@@ -1912,11 +1912,11 @@ input[type="date"].form-input {
 
 /* ── Demat Collapsible Drawer Transitions ── */
 .demat-holdings-row {
-  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .demat-holdings-row:hover {
-  background-color: var(--t-accent) 09 !important;
+  background-color: color-mix(in srgb, var(--t-accent) 5%, transparent) !important;
 }
 
 .demat-drawer-row {
