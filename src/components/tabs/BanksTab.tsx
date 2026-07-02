@@ -428,6 +428,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
   const [inlineEditId, setInlineEditId] = useState<string | null>(null);
   const [inlineEdit, setInlineEdit] = useState<any>(null);
   const [activeRange, setActiveRange] = useState<string | null>(null);
+  const [hoveredTxnId, setHoveredTxnId] = useState<string | null>(null);
   const { transactionCategories: txnCats } = useMasterData();
 
   const autoPostLinkedTransaction = (linkedKey: string, txn: any) => {
@@ -676,13 +677,13 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
   }, [liquidityWeights]);
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── HEADER & ACTIONS ────────────────────────────────────────────────── */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          marginBottom: 24,
           flexWrap: "wrap",
           gap: 12,
         }}
@@ -708,191 +709,235 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         </div>
       </div>
 
+      {/* ── QUICK STATS ──────────────────────────────────────────────────────── */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
         }}
       >
-        <StatCard
-          label="Total Balance"
-          value={fmtINRFull(totalBalance)}
-          icon={<IndianRupee />}
-          color={THEME.accent}
-          sub={`${state.bankAccounts.length} Connected Accounts`}
-        />
-        <StatCard
-          label="Monthly Income"
-          value={fmtINRFull(monthlyIncome)}
-          icon={<TrendingUp />}
-          color={THEME.sage}
-          sub="Current month credits"
-        />
-        <StatCard
-          label="Monthly Spends"
-          value={fmtINRFull(monthlyExpense)}
-          icon={<TrendingDown />}
-          color={THEME.rust}
-          sub="Current month debits"
-        />
+        {/* Card 1: Total Balance */}
+        <Card
+          hover
+          style={{
+            padding: "18px 20px",
+            borderTop: `4px solid ${THEME.accent}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.accent,
+                flexShrink: 0,
+              }}
+            >
+              <IndianRupee size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Total Balance
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                Across all banks
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <Prv>{fmtINRFull(totalBalance)}</Prv>
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+              {state.bankAccounts.length} Connected Account{state.bankAccounts.length === 1 ? "" : "s"}
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 2: Monthly Income */}
+        <Card
+          hover
+          style={{
+            padding: "18px 20px",
+            borderTop: `4px solid ${THEME.sage}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.sage,
+                flexShrink: 0,
+              }}
+            >
+              <TrendingUp size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Monthly Income
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                Current month credits
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <Prv>{fmtINRFull(monthlyIncome)}</Prv>
+            </div>
+            <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700, marginTop: 4 }}>
+              Inflow cash positions
+            </div>
+          </div>
+        </Card>
+
+        {/* Card 3: Monthly Spends */}
+        <Card
+          hover
+          style={{
+            padding: "18px 20px",
+            borderTop: `4px solid ${THEME.rust}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.rust,
+                flexShrink: 0,
+              }}
+            >
+              <TrendingDown size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Monthly Spends
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
+                Current month debits
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <Prv>{fmtINRFull(monthlyExpense)}</Prv>
+            </div>
+            <div style={{ fontSize: 11, color: THEME.rust, fontWeight: 700, marginTop: 4 }}>
+              Outflow cash ledger
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Cash Flow Analytics Dashboard Panel */}
+      {/* ── CASH FLOW ANALYTICS PANEL ────────────────────────────────────────── */}
       {state.bankAccounts.length > 0 && (
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 16,
-            marginBottom: 32,
+            gap: 20,
           }}
         >
           {/* Column 1: Savings Rate indicator */}
-          <div style={{ ...card, background: "var(--surface-0)" }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: THEME.muted,
-                marginBottom: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
+          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               <span>📈 Monthly Savings Rate</span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                marginBottom: 6,
-              }}
-            >
-              <span style={{ fontSize: 28, fontWeight: 800, color: THEME.ink }}>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
                 {monthlySavingsRate.toFixed(1)}%
               </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  color:
-                    monthlySavingsRate >= 40
-                      ? THEME.sage
-                      : monthlySavingsRate >= 20
-                        ? THEME.gold
-                        : THEME.rust,
-                }}
-              >
-                {monthlySavingsRate >= 40
-                  ? "Excellent"
-                  : monthlySavingsRate >= 20
-                    ? "Healthy"
-                    : "Low"}
-              </span>
+              <Badge variant={monthlySavingsRate >= 40 ? "sage" : monthlySavingsRate >= 20 ? "gold" : "rust"} style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
+                {monthlySavingsRate >= 40 ? "Excellent" : monthlySavingsRate >= 20 ? "Healthy" : "Low"}
+              </Badge>
             </div>
+
             {/* Savings Rate Bar */}
-            <div
-              style={{
-                width: "100%",
-                height: 8,
-                background: `${THEME.line}40`,
-                borderRadius: 10,
-                overflow: "hidden",
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: `${monthlySavingsRate}%`,
-                  height: "100%",
-                  background:
-                    monthlySavingsRate >= 40
-                      ? THEME.sage
-                      : monthlySavingsRate >= 20
-                        ? THEME.gold
-                        : THEME.rust,
-                  borderRadius: 10,
-                  transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ width: "100%", height: 8, background: "var(--t-line)", borderRadius: 4, overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${Math.min(100, Math.max(0, monthlySavingsRate))}%`,
+                    height: "100%",
+                    background: `linear-gradient(90deg, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 0%, color-mix(in srgb, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 75%, white) 100%)`,
+                    borderRadius: 4,
+                    transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+                <span>Net Savings: <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv></span>
+                <span>Goal Buffer</span>
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.4" }}>
+
+            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500 }}>
               {monthlySavingsRate >= 40
-                ? "Superb! You are maintaining an excellent savings buffer to accelerate your goals."
+                ? "Superb! You are maintaining an excellent savings buffer to accelerate your wealth building."
                 : monthlySavingsRate >= 20
-                  ? "Good buffer. Try automated transfers to direct this pool into investments."
-                  : "Savings rate is low. Review your non-essential categories to optimize outflows."}
+                  ? "Good buffer. Try setting up automated transfers to direct this savings pool into active investments."
+                  : "Savings rate is low. Review your non-essential categories to optimize outflow leakages."}
             </div>
-          </div>
+          </Card>
 
           {/* Column 2: Top Expense Categories Breakdown */}
-          <div style={{ ...card, background: "var(--surface-0)" }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: THEME.muted,
-                marginBottom: 12,
-              }}
-            >
+          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               <span>📊 Monthly Spend Categories</span>
             </div>
+            
             {topSpendCategories.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  height: "80px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: THEME.muted,
-                  fontSize: 12,
-                }}
-              >
+              <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12, padding: "20px 0" }}>
                 No spend transactions recorded this month
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {topSpendCategories.map((c) => {
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {topSpendCategories.slice(0, 4).map((c) => {
                   const percentage = monthlyExpense > 0 ? (c.amount / monthlyExpense) * 100 : 0;
                   return (
-                    <div key={c.name}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 12,
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span style={{ fontWeight: 700 }}>{c.name}</span>
-                        <span style={{ color: THEME.muted, fontWeight: 600 }}>
+                    <div key={c.name} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ color: THEME.ink }}>{c.name}</span>
+                        <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
                           ₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
                         </span>
                       </div>
-                      <div
-                        style={{
-                          width: "100%",
-                          height: 6,
-                          background: `${THEME.line}40`,
-                          borderRadius: 10,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div style={{ width: "100%", height: 6, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
                         <div
                           style={{
                             width: `${percentage}%`,
                             height: "100%",
                             background: THEME.accent,
-                            borderRadius: 10,
+                            borderRadius: 3,
+                            transition: "width 0.5s ease",
                           }}
                         />
                       </div>
@@ -901,45 +946,29 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 })}
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Column 3: Liquidity Distribution Share */}
-          <div style={{ ...card, background: "var(--surface-0)" }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: THEME.muted,
-                marginBottom: 12,
-              }}
-            >
+          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               <span>💳 Liquidity Asset Weight</span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 11,
-                color: THEME.muted,
-                marginBottom: 8,
-                fontWeight: 700,
-              }}
-            >
+            
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
               <span>ACCOUNT ALLOCATION</span>
               <span>SHARE %</span>
             </div>
+
             {/* Allocated segmented bar */}
             <div
               style={{
                 display: "flex",
                 width: "100%",
                 height: 14,
-                background: `${THEME.line}40`,
-                borderRadius: 10,
+                background: "var(--t-line)",
+                borderRadius: 7,
                 overflow: "hidden",
-                marginBottom: 14,
+                boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
               }}
             >
               {liquidityWeights.map((w) => (
@@ -950,25 +979,35 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                     width: `${w.share}%`,
                     height: "100%",
                     background: w.color,
-                    transition: "width 0.3s ease",
+                    transition: "width 0.5s ease",
                   }}
                 />
               ))}
             </div>
+
             {/* Details legends list */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
               {liquidityWeights.map((w) => (
                 <div
                   key={w.id}
-                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
                 >
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: w.color }} />
-                  <span style={{ fontWeight: 600 }}>{w.name}</span>
-                  <span style={{ color: THEME.muted }}>{w.share.toFixed(0)}%</span>
+                  <span style={{ fontWeight: 700, color: THEME.ink }}>{w.name}</span>
+                  <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{w.share.toFixed(0)}%</span>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -981,7 +1020,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         }}
       >
         {state.bankAccounts.length === 0 && (
-          <div style={{ ...card, gridColumn: "1 / -1" }}>
+          <div style={{ gridColumn: "1 / -1" }}>
             <BankEmptyState onAdd={() => setShowBank(true)} />
           </div>
         )}
@@ -989,12 +1028,19 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
           const theme = getAccountTheme(a.type);
           const accentColor = chartColorById[a.id] || theme.color;
           return (
-            <div
+            <Card
               key={a.id}
-              className="card-lift"
-              style={{ ...card, position: "relative", overflow: "hidden" }}
+              hover
+              style={{
+                position: "relative",
+                overflow: "hidden",
+                padding: "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
             >
-              {/* Type indicator strip */}
+              {/* Left-side accent strip */}
               <div
                 style={{
                   position: "absolute",
@@ -1006,45 +1052,41 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 }}
               />
 
-              <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 2 }}>
+              {/* Action buttons (top right) */}
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4, zIndex: 2 }}>
                 <button
                   onClick={() => setEditBankId(a.id)}
                   className="icon-btn"
-                  style={iconBtn}
+                  style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "var(--surface-1)", border: `1.5px solid ${THEME.line}` }}
                   title="Edit account"
                 >
-                  <Edit3 size={14} />
+                  <Edit3 size={12} />
                 </button>
                 <button
                   onClick={() => removeItem("bankAccounts", a.id)}
                   className="icon-btn danger"
-                  style={iconBtn}
+                  style={{ ...iconBtn, padding: 6, borderRadius: 8, background: "var(--surface-1)", border: `1.5px solid ${THEME.line}` }}
                   title="Delete account"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={12} />
                 </button>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              {/* Bank Header Info */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 48 }}>
                 <BankLogo bankName={a.bankName} />
-                <div style={{ flex: 1, paddingRight: 52 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <div
                       style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: "0.05em",
+                        fontSize: 9,
+                        fontWeight: 800,
                         textTransform: "uppercase",
+                        letterSpacing: "0.06em",
                         color: accentColor,
-                        background: `${accentColor}15`,
+                        background: `color-mix(in srgb, ${accentColor} 10%, transparent)`,
                         padding: "2px 8px",
-                        borderRadius: 20,
+                        borderRadius: 12,
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 4,
@@ -1056,11 +1098,13 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                   </div>
                   <div
                     style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: 18,
-                      fontWeight: 700,
+                      fontSize: 16,
+                      fontWeight: 800,
                       color: THEME.ink,
                       marginTop: 4,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {a.bankName}
@@ -1068,129 +1112,107 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 </div>
               </div>
 
-              <div
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}
-              >
+              {/* Balance & Account Number */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: THEME.muted,
-                      marginBottom: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
                     <span>Account Balance</span>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                        background: `${THEME.sage}1f`,
-                        color: THEME.sage,
-                        fontWeight: 700,
-                      }}
-                    >
+                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, color: THEME.sage, fontWeight: 800 }}>
                       ● Live
                     </span>
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: 24,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                    }}
-                  >
+                  <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
                     <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: THEME.muted,
-                    fontWeight: 600,
-                    letterSpacing: "0.05em",
-                    paddingBottom: 4,
-                  }}
-                >
+                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, letterSpacing: "0.05em", paddingBottom: 2 }}>
                   <Prv>•••• {(a.accountNumber || "").slice(-4) || "—"}</Prv>
                 </div>
               </div>
+
+              {/* Transactions count & view button */}
               <div
                 style={{
-                  marginTop: 14,
-                  paddingTop: 12,
-                  borderTop: `1px solid ${THEME.line}`,
+                  marginTop: 4,
+                  paddingTop: 14,
+                  borderTop: `1.5px solid ${THEME.line}`,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                 }}
               >
-                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                  {state.transactions.filter((t: any) => t.accountId === a.id).length} transactions
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+                  {state.transactions.filter((t: any) => t.accountId === a.id).length} Transactions recorded
                 </span>
                 <button
                   style={{
                     fontSize: 11,
-                    padding: "3px 12px",
+                    padding: "4px 12px",
                     borderRadius: 8,
-                    background: "transparent",
-                    border: `1px solid ${THEME.accent}40`,
+                    background: "var(--surface-1)",
+                    border: `1.5px solid ${THEME.line}`,
                     color: THEME.accent,
                     fontWeight: 700,
                     cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
                   onClick={() => setFilterAcc(a.id)}
                 >
-                  View →
+                  View Ledger →
                 </button>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
-      <div style={card}>
-        <div style={{ marginBottom: 16 }}>
-          {/* Row 1: Title + count + quick range presets */}
+      <Card style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Row 1: Header title & presets */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            borderBottom: `1.5px solid ${THEME.line}`,
+            paddingBottom: 16,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+              Transaction Ledger
+            </span>
+            <Badge variant="accent">{sortedTxns.length} entries</Badge>
+          </div>
+          
+          {/* Segmented presets buttons */}
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-              flexWrap: "wrap",
-              gap: 8,
+              background: "var(--surface-1)",
+              padding: "4px",
+              borderRadius: "var(--radius-md)",
+              border: `1.5px solid ${THEME.line}`,
+              gap: "2px",
             }}
           >
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>
-                Transaction Ledger
-              </span>
-              <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                {sortedTxns.length} {sortedTxns.length === 1 ? "entry" : "entries"}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-              {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => (
+            {["thisMonth", "lastMonth", "3months", "thisFY"].map((p) => {
+              const isActive = activeRange === p;
+              return (
                 <button
                   key={p}
                   style={{
-                    ...btnGhost,
-                    padding: "4px 10px",
-                    fontSize: 10,
-                    whiteSpace: "nowrap",
-                    borderRadius: 8,
-                    ...(activeRange === p
-                      ? {
-                          background: `${THEME.accent}12`,
-                          borderColor: `${THEME.accent}40`,
-                          color: THEME.accent,
-                        }
-                      : {}),
+                    padding: "5px 12px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "none",
+                    background: isActive ? "var(--surface-0)" : "transparent",
+                    color: isActive ? "var(--t-ink)" : "var(--t-muted)",
+                    fontWeight: 700,
+                    fontSize: "11px",
+                    cursor: "pointer",
+                    boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                    transition: "all 0.2s var(--ease-premium)",
                   }}
                   onClick={() => setQuickRange(p)}
                 >
@@ -1203,191 +1225,192 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                     }[p]
                   }
                 </button>
-              ))}
-              {(dateFrom || dateTo) && (
-                <button
-                  style={{
-                    ...btnGhost,
-                    padding: "3px 8px",
-                    fontSize: 10,
-                    color: THEME.rust,
-                    borderColor: `${THEME.rust}50`,
-                    borderRadius: 8,
-                  }}
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                    setActiveRange(null);
-                  }}
-                >
-                  ✕ Clear
-                </button>
-              )}
-            </div>
-          </div>
-          {/* Row 2: Search + account + type + date range */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ position: "relative", flex: "1 1 180px", minWidth: 160 }}>
-              <span
+              );
+            })}
+            {(dateFrom || dateTo) && (
+              <button
                 style={{
-                  position: "absolute",
-                  left: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: THEME.muted,
-                  fontSize: 14,
-                  pointerEvents: "none",
+                  padding: "5px 10px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "none",
+                  background: "transparent",
+                  color: THEME.rust,
+                  fontWeight: 800,
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                  setActiveRange(null);
                 }}
               >
-                🔍
-              </span>
-              <input
-                style={{ ...input, paddingLeft: 32 }}
-                placeholder="Search notes, category…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <select
-              style={{ ...input, width: "auto", minWidth: 140 }}
-              value={filterAcc}
-              onChange={(e) => setFilterAcc(e.target.value)}
-            >
-              <option value="all">All accounts</option>
-              {state.bankAccounts.map((a: any) => (
-                <option key={a.id} value={a.id}>
-                  {accountLabel(a)}
-                </option>
-              ))}
-            </select>
-            <select
-              style={{ ...input, width: "auto", minWidth: 120 }}
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <option value="all">All types</option>
-              <option value="credit">Credit only</option>
-              <option value="debit">Debit only</option>
-              <option value="transfer">↔ Transfers</option>
-            </select>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="date"
-                style={{ ...input, width: "auto" }}
-                title="From date"
-                value={dateFrom}
-                onChange={(e) => { setDateFrom(e.target.value); setActiveRange(null); }}
-              />
-              <span style={{ color: THEME.muted, fontSize: 12, flexShrink: 0 }}>to</span>
-              <input
-                type="date"
-                style={{ ...input, width: "auto" }}
-                title="To date"
-                value={dateTo}
-                onChange={(e) => { setDateTo(e.target.value); setActiveRange(null); }}
-              />
-            </div>
+                ✕ Clear
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Row 2: Search inputs & filters deck */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Search Notes */}
+          <div style={{ position: "relative", flex: "2 1 200px", minWidth: 200 }}>
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: THEME.muted, fontSize: 13, pointerEvents: "none" }}>
+              🔍
+            </span>
+            <input
+              style={{ ...input, paddingLeft: 34, height: 38, fontSize: 13, fontWeight: 600 }}
+              placeholder="Search notes, categories, references…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Account selector */}
+          <select
+            style={{ ...input, width: "auto", minWidth: 150, height: 38, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            value={filterAcc}
+            onChange={(e) => setFilterAcc(e.target.value)}
+          >
+            <option value="all">All Accounts</option>
+            {state.bankAccounts.map((a: any) => (
+              <option key={a.id} value={a.id}>
+                {accountLabel(a)}
+              </option>
+            ))}
+          </select>
+
+          {/* Type selector */}
+          <select
+            style={{ ...input, width: "auto", minWidth: 130, height: 38, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="all">All Types</option>
+            <option value="credit">Credit only</option>
+            <option value="debit">Debit only</option>
+            <option value="transfer">Transfers</option>
+          </select>
+
+          {/* Custom Date from-to fields */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <input
+              type="date"
+              style={{ ...input, width: "auto", height: 38, fontSize: 13, fontWeight: 600 }}
+              title="From date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setActiveRange(null); }}
+            />
+            <span style={{ color: THEME.muted, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>to</span>
+            <input
+              type="date"
+              style={{ ...input, width: "auto", height: 38, fontSize: 13, fontWeight: 600 }}
+              title="To date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setActiveRange(null); }}
+            />
+          </div>
+        </div>
+
+        {/* Ledger Table Container */}
         {sortedTxns.length === 0 ? (
           state.transactions.length === 0 ? (
             <TxnEmptyState onAdd={() => setShowTxn(true)} />
           ) : (
-            <EmptyHint text="No transactions match your filters" />
+            <EmptyHint text="No transactions match your query filters" />
           )
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto", borderRadius: 12, border: `1.5px solid ${THEME.line}` }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
-                <tr>
+                <tr style={{ background: "var(--surface-1)" }}>
                   <th
-                    style={{ ...th, cursor: "pointer", userSelect: "none" }}
+                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
                     onClick={() => requestSort("date")}
                   >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Date{" "}
                       {sortField === "date" ? (
                         sortDirection === "asc" ? (
-                          <ArrowUp size={9} />
+                          <ArrowUp size={11} strokeWidth={3} />
                         ) : (
-                          <ArrowDown size={9} />
+                          <ArrowDown size={11} strokeWidth={3} />
                         )
                       ) : (
-                        <ArrowUpDown size={9} />
+                        <ArrowUpDown size={11} />
                       )}
                     </span>
                   </th>
                   <th
-                    style={{ ...th, cursor: "pointer", userSelect: "none" }}
+                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
                     onClick={() => requestSort("note")}
                   >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Particulars{" "}
                       {sortField === "note" ? (
                         sortDirection === "asc" ? (
-                          <ArrowUp size={9} />
+                          <ArrowUp size={11} strokeWidth={3} />
                         ) : (
-                          <ArrowDown size={9} />
+                          <ArrowDown size={11} strokeWidth={3} />
                         )
                       ) : (
-                        <ArrowUpDown size={9} />
+                        <ArrowUpDown size={11} />
                       )}
                     </span>
                   </th>
                   <th
-                    style={{ ...th, cursor: "pointer", userSelect: "none" }}
+                    style={{ ...th, padding: "12px 16px", cursor: "pointer", userSelect: "none" }}
                     onClick={() => requestSort("category")}
                   >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Category{" "}
                       {sortField === "category" ? (
                         sortDirection === "asc" ? (
-                          <ArrowUp size={9} />
+                          <ArrowUp size={11} strokeWidth={3} />
                         ) : (
-                          <ArrowDown size={9} />
+                          <ArrowDown size={11} strokeWidth={3} />
                         )
                       ) : (
-                        <ArrowUpDown size={9} />
+                        <ArrowUpDown size={11} />
                       )}
                     </span>
                   </th>
-                  <th style={th}>Account</th>
+                  <th style={{ ...th, padding: "12px 16px" }}>Account</th>
                   <th
-                    style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }}
+                    style={{ ...th, padding: "12px 16px", textAlign: "right", cursor: "pointer", userSelect: "none" }}
                     onClick={() => requestSort("amount")}
                   >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Debit{" "}
                       {sortField === "amount" ? (
                         sortDirection === "asc" ? (
-                          <ArrowUp size={9} />
+                          <ArrowUp size={11} strokeWidth={3} />
                         ) : (
-                          <ArrowDown size={9} />
+                          <ArrowDown size={11} strokeWidth={3} />
                         )
                       ) : (
-                        <ArrowUpDown size={9} />
+                        <ArrowUpDown size={11} />
                       )}
                     </span>
                   </th>
                   <th
-                    style={{ ...th, textAlign: "right", cursor: "pointer", userSelect: "none" }}
+                    style={{ ...th, padding: "12px 16px", textAlign: "right", cursor: "pointer", userSelect: "none" }}
                     onClick={() => requestSort("amount")}
                   >
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Credit{" "}
                       {sortField === "amount" ? (
                         sortDirection === "asc" ? (
-                          <ArrowUp size={9} />
+                          <ArrowUp size={11} strokeWidth={3} />
                         ) : (
-                          <ArrowDown size={9} />
+                          <ArrowDown size={11} strokeWidth={3} />
                         )
                       ) : (
-                        <ArrowUpDown size={9} />
+                        <ArrowUpDown size={11} />
                       )}
                     </span>
                   </th>
-                  <th style={th}></th>
+                  <th style={{ ...th, padding: "12px 16px" }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -1409,19 +1432,19 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       <tr
                         key={t.id}
                         style={{
-                          borderBottom: `1px solid ${THEME.accent}`,
-                          background: `${THEME.accent}09`,
+                          borderBottom: `1.5px solid ${THEME.accent}`,
+                          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
                         }}
                       >
-                        <td style={td}>
+                        <td style={{ ...td, padding: "12px 16px" }}>
                           <input
                             type="date"
                             value={inlineEdit.date}
                             onChange={(e) => setInlineEdit({ ...inlineEdit, date: e.target.value })}
-                            style={{ ...input, padding: "4px 6px", fontSize: 12, width: 130 }}
+                            style={{ ...input, padding: "6px 10px", fontSize: 12, height: 32, width: 130 }}
                           />
                         </td>
-                        <td style={td}>
+                        <td style={{ ...td, padding: "12px 16px" }}>
                           <input
                             value={inlineEdit.note || ""}
                             onChange={(e) => setInlineEdit({ ...inlineEdit, note: e.target.value })}
@@ -1429,7 +1452,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                               if (e.key === "Enter") handleSaveInline();
                               if (e.key === "Escape") setInlineEditId(null);
                             }}
-                            style={{ ...input, padding: "4px 6px", fontSize: 12, minWidth: 140 }}
+                            style={{ ...input, padding: "6px 10px", fontSize: 12, height: 32, minWidth: 150 }}
                             autoFocus
                           />
                           <input
@@ -1440,9 +1463,9 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             placeholder="Narration (bank description)"
                             style={{
                               ...input,
-                              padding: "4px 6px",
+                              padding: "4px 8px",
                               fontSize: 11,
-                              minWidth: 140,
+                              minWidth: 150,
                               marginTop: 4,
                             }}
                           />
@@ -1454,30 +1477,30 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             placeholder="Cheque / Ref Number"
                             style={{
                               ...input,
-                              padding: "4px 6px",
+                              padding: "4px 8px",
                               fontSize: 11,
-                              minWidth: 140,
+                              minWidth: 150,
                               marginTop: 4,
                             }}
                           />
                         </td>
-                        <td style={td}>
+                        <td style={{ ...td, padding: "12px 16px" }}>
                           <select
                             value={inlineEdit.category || ""}
                             onChange={(e) =>
                               setInlineEdit({ ...inlineEdit, category: e.target.value })
                             }
-                            style={{ ...input, padding: "4px 6px", fontSize: 12 }}
+                            style={{ ...input, padding: "4px 8px", height: 32, fontSize: 12 }}
                           >
-                            {txnCats.map((c) => (
+                            {txnCats.map((c: string) => (
                               <option key={c}>{c}</option>
                             ))}
                           </select>
                         </td>
-                        <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
+                        <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
                           {bank ? accountLabel(bank) : "—"}
                         </td>
-                        <td style={{ ...td, textAlign: "right" }} colSpan={2}>
+                        <td style={{ ...td, padding: "12px 16px", textAlign: "right" }} colSpan={2}>
                           <div
                             style={{
                               display: "flex",
@@ -1494,14 +1517,14 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                               style={{
                                 background:
                                   inlineEdit.type === "credit"
-                                    ? `${THEME.sage}15`
-                                    : `${THEME.rust}15`,
+                                    ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                                    : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                                 color: inlineEdit.type === "credit" ? THEME.sage : THEME.rust,
                                 border: `1.5px solid ${inlineEdit.type === "credit" ? THEME.sage : THEME.rust}44`,
                                 borderRadius: 6,
                                 fontSize: 11,
                                 fontWeight: 800,
-                                padding: "2px 4px",
+                                padding: "4px 8px",
                                 cursor: "pointer",
                                 outline: "none",
                               }}
@@ -1521,7 +1544,8 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                               }}
                               style={{
                                 ...input,
-                                padding: "4px 6px",
+                                padding: "4px 8px",
+                                height: 32,
                                 fontSize: 12,
                                 width: 90,
                                 textAlign: "right",
@@ -1529,12 +1553,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             />
                           </div>
                         </td>
-                        <td style={td}>
+                        <td style={{ ...td, padding: "12px 16px" }}>
                           <div style={{ display: "flex", gap: 2 }}>
                             <button
                               onClick={handleSaveInline}
                               className="icon-btn"
-                              style={{ ...iconBtn, color: THEME.sage }}
+                              style={{ ...iconBtn, color: THEME.sage, padding: 6 }}
                               title="Save"
                             >
                               <Check size={14} />
@@ -1542,7 +1566,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             <button
                               onClick={() => setInlineEditId(null)}
                               className="icon-btn danger"
-                              style={{ ...iconBtn, color: THEME.rust }}
+                              style={{ ...iconBtn, color: THEME.rust, padding: 6 }}
                               title="Cancel"
                             >
                               <X size={14} />
@@ -1552,17 +1576,27 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       </tr>
                     );
                   }
+
+                  const isHovered = hoveredTxnId === t.id;
+
                   return (
                     <tr
                       key={t.id}
+                      onMouseEnter={() => setHoveredTxnId(t.id)}
+                      onMouseLeave={() => setHoveredTxnId(null)}
                       onDoubleClick={() => {
                         setInlineEditId(t.id);
                         setInlineEdit({ ...t });
                       }}
-                      style={{ cursor: "default" }}
+                      style={{
+                        cursor: "pointer",
+                        background: isHovered ? "var(--surface-1)" : "transparent",
+                        transform: isHovered ? "translateX(2px)" : "none",
+                        transition: "all 0.2s var(--ease-premium)",
+                      }}
                       title="Double-click to edit inline"
                     >
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12, whiteSpace: "nowrap" }}>
+                      <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, whiteSpace: "nowrap", fontWeight: 600 }}>
                         {t.date
                           ? new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
                               day: "2-digit",
@@ -1571,19 +1605,19 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             })
                           : "—"}
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, padding: "12px 16px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                             {t.note || "—"}
                             {t.category === "Transfer" && (
                               <span
                                 style={{
-                                  fontSize: 9,
+                                  fontSize: 8,
                                   padding: "1px 5px",
                                   borderRadius: 4,
-                                  background: "#8B5CF633",
-                                  color: "#8B5CF6",
-                                  fontWeight: 700,
+                                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                                  color: "var(--t-accent)",
+                                  fontWeight: 800,
                                   whiteSpace: "nowrap",
                                 }}
                               >
@@ -1593,12 +1627,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                             {t.linkedType && (
                               <span
                                 style={{
-                                  fontSize: 9,
+                                  fontSize: 8,
                                   padding: "1px 5px",
                                   borderRadius: 4,
-                                  background: "#0EA5E933",
-                                  color: "#0EA5E9",
-                                  fontWeight: 700,
+                                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                                  color: "var(--t-accent)",
+                                  fontWeight: 800,
                                   whiteSpace: "nowrap",
                                 }}
                               >
@@ -1609,12 +1643,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                               recurringKeys.has((t.note || "") + "|" + t.amount + "|" + t.type) && (
                                 <span
                                   style={{
-                                    fontSize: 9,
+                                    fontSize: 8,
                                     padding: "1px 5px",
                                     borderRadius: 4,
-                                    background: `${THEME.gold}33`,
+                                    background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                                     color: THEME.gold,
-                                    fontWeight: 700,
+                                    fontWeight: 800,
                                     whiteSpace: "nowrap",
                                   }}
                                 >
@@ -1623,25 +1657,25 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                               )}
                           </div>
                           {t.narration && (
-                            <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic", fontWeight: 500 }}>
                               {t.narration}
                             </div>
                           )}
                           {t.referenceNumber && (
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
                               Ref: {t.referenceNumber}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td style={{ ...td, fontSize: 12 }}>
+                      <td style={{ ...td, padding: "12px 16px" }}>
                         {t.category ? (
                           <span
                             style={{
                               padding: "2px 8px",
                               borderRadius: 20,
                               fontSize: 10,
-                              fontWeight: 700,
+                              fontWeight: 800,
                               background: getCategoryStyle(t.category).bg,
                               color: getCategoryStyle(t.category).color,
                               whiteSpace: "nowrap",
@@ -1653,16 +1687,17 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                           <span style={{ color: THEME.muted }}>—</span>
                         )}
                       </td>
-                      <td style={{ ...td, color: THEME.muted, fontSize: 12 }}>
+                      <td style={{ ...td, padding: "12px 16px", color: THEME.muted, fontSize: 12, fontWeight: 600 }}>
                         {bank ? accountLabel(bank) : "—"}
                       </td>
                       <td
                         style={{
                           ...td,
+                          padding: "12px 16px",
                           textAlign: "right",
                           color: THEME.rust,
                           fontVariantNumeric: "tabular-nums",
-                          fontWeight: 700,
+                          fontWeight: 800,
                         }}
                       >
                         {t.type === "debit" ? fmtINRExact(t.amount) : ""}
@@ -1670,30 +1705,32 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       <td
                         style={{
                           ...td,
+                          padding: "12px 16px",
                           textAlign: "right",
                           color: THEME.sage,
                           fontVariantNumeric: "tabular-nums",
+                          fontWeight: 800,
                         }}
                       >
                         {t.type === "credit" ? fmtINRExact(t.amount) : ""}
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 2 }}>
                           <button
                             onClick={() => setEditTxnId(t.id)}
                             className="icon-btn"
-                            style={iconBtn}
+                            style={{ ...iconBtn, padding: 6, borderRadius: 8, background: isHovered ? "var(--surface-0)" : "transparent" }}
                             title="Edit"
                           >
-                            <Edit3 size={13} />
+                            <Edit3 size={12} />
                           </button>
                           <button
                             onClick={() => removeItem("transactions", t.id)}
                             className="icon-btn danger"
-                            style={iconBtn}
+                            style={{ ...iconBtn, padding: 6, borderRadius: 8, background: isHovered ? "var(--surface-0)" : "transparent" }}
                             title="Delete"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </td>
@@ -1713,30 +1750,30 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 const borderTop = `1.5px solid ${THEME.line}`;
                 return (
                   <tfoot>
-                    <tr style={{ background: `${THEME.accent}08` }}>
+                    <tr style={{ background: "var(--surface-1)" }}>
                       <td
                         colSpan={3}
                         style={{
-                          padding: "10px",
+                          padding: "12px 16px",
                           fontSize: 11,
                           fontWeight: 800,
                           color: THEME.muted,
                           textTransform: "uppercase",
-                          letterSpacing: "0.04em",
+                          letterSpacing: "0.05em",
                           borderTop,
                         }}
                       >
-                        {sortedTxns.length} {sortedTxns.length === 1 ? "transaction" : "transactions"}
+                        {sortedTxns.length} Transaction{sortedTxns.length === 1 ? "" : "s"} total
                       </td>
                       <td
                         style={{
-                          padding: "10px",
+                          padding: "12px 16px",
                           textAlign: "right",
                           fontSize: 11,
-                          fontWeight: 700,
+                          fontWeight: 800,
                           color: THEME.muted,
                           textTransform: "uppercase",
-                          letterSpacing: "0.04em",
+                          letterSpacing: "0.05em",
                           borderTop,
                         }}
                       >
@@ -1744,11 +1781,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       </td>
                       <td
                         style={{
-                          padding: "10px",
+                          padding: "12px 16px",
                           textAlign: "right",
-                          fontWeight: 900,
+                          fontWeight: 800,
                           color: THEME.rust,
                           fontSize: 13,
+                          fontVariantNumeric: "tabular-nums",
                           borderTop,
                         }}
                       >
@@ -1756,11 +1794,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       </td>
                       <td
                         style={{
-                          padding: "10px",
+                          padding: "12px 16px",
                           textAlign: "right",
-                          fontWeight: 900,
+                          fontWeight: 800,
                           color: THEME.sage,
                           fontSize: 13,
+                          fontVariantNumeric: "tabular-nums",
                           borderTop,
                         }}
                       >
@@ -1768,11 +1807,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                       </td>
                       <td
                         style={{
-                          padding: "10px",
+                          padding: "12px 16px",
                           textAlign: "right",
                           fontWeight: 900,
                           color: netColor,
                           fontSize: 13,
+                          fontVariantNumeric: "tabular-nums",
                           borderTop,
                         }}
                       >
@@ -1785,7 +1825,7 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {editBankId && (
         <BankEditModal
