@@ -168,6 +168,28 @@ const splitCSVRow = (line: string, delimiter = ","): string[] => {
   return vals;
 };
 
+/* Many Indian banks' "Excel" statement download (HDFC, SBI, etc.) is actually
+   an HTML table saved with a .xls extension, not a real spreadsheet — detect
+   and convert it to CSV-style lines so it parses like any other export. */
+const isHtmlTable = (text: string): boolean => /<table[\s>]/i.test(text.slice(0, 5000));
+
+const htmlTableToCsvLines = (html: string): string[] => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return Array.from(doc.querySelectorAll("tr"))
+    .map((tr) =>
+      Array.from(tr.querySelectorAll("td,th"))
+        .map((cell) => (cell.textContent || "").replace(/\s+/g, " ").trim().replace(/,/g, ""))
+        .join(",")
+    )
+    .filter((line) => line.replace(/,/g, "").trim().length > 0);
+};
+
+/* Real binary spreadsheets (.xlsx/.xls) are ZIP/OLE containers, not text —
+   FileReader.readAsText garbles them. Catch this before it produces a
+   confusing "no rows found" error. */
+const isBinarySpreadsheet = (text: string): boolean =>
+  text.startsWith("PK\x03\x04") || text.startsWith("\xD0\xCF\x11\xE0");
+
 export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existingTransactions = [], onClose, onImport }) => {
   const [mode, setMode] = useState<"template" | "smart">("smart");
   const [csvText, setCsvText] = useState("");
@@ -304,7 +326,18 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
     setDetectedBank("");
 
     try {
-      const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (isBinarySpreadsheet(text)) {
+        setSmartError(
+          "This is a real Excel (.xlsx/.xls) file, which can't be read as text. In Excel/Sheets, use \"Save As\" or \"Download\" → CSV, or use the CSV option on your bank's statement page, then upload that file instead."
+        );
+        return;
+      }
+
+      // Many bank "Excel" downloads are actually an HTML table with a .xls
+      // extension — convert it to CSV-style lines before parsing.
+      const workingText = isHtmlTable(text) ? htmlTableToCsvLines(text).join("\n") : text;
+
+      const rawLines = workingText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       if (rawLines.length < 2) {
         setSmartError("CSV must have a header row and at least one data row.");
         return;
@@ -750,7 +783,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xls,.xlsx"
               style={{ display: "none" }}
               onChange={(e) => {
                 const file = e.target.files?.[0];
