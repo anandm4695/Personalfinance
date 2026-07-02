@@ -6215,131 +6215,390 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       {/* ────────────────── SUB-TAB: TRENDS ────────────────── */}
       {sub === "trends" && (
         <div key="trends" className="tab-content-enter">
+          {/* ── Trends KPI Strip ── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 16,
+              marginBottom: 24,
+            }}
+          >
+            {(
+              [
+                {
+                  label: "Net Worth",
+                  value: fmtINRFull(metrics.netWorth),
+                  delta:
+                    filteredNetWorthTrend.length >= 2
+                      ? (
+                          ((filteredNetWorthTrend[filteredNetWorthTrend.length - 1].value -
+                            filteredNetWorthTrend[0].value) /
+                            Math.abs(filteredNetWorthTrend[0].value || 1)) *
+                          100
+                        ).toFixed(1) + "%"
+                      : null,
+                  positive:
+                    filteredNetWorthTrend.length >= 2
+                      ? filteredNetWorthTrend[filteredNetWorthTrend.length - 1].value >=
+                        filteredNetWorthTrend[0].value
+                      : metrics.netWorth >= 0,
+                  icon: "📈",
+                },
+                {
+                  label: "YTD Income",
+                  value: fmtINRFull(ytdData.ytdIncome),
+                  delta: null,
+                  positive: ytdData.ytdIncome >= 0,
+                  icon: "💰",
+                },
+                {
+                  label: "YTD Savings Rate",
+                  value: ytdData.ytdIncome > 0 ? ytdData.ytdSavingsRate.toFixed(1) + "%" : "—",
+                  delta: null,
+                  positive: ytdData.ytdSavingsRate >= 20,
+                  icon: "🏦",
+                },
+                {
+                  label: "Portfolio Return",
+                  value:
+                    metrics.mfInvested + metrics.stockInvested > 0
+                      ? (
+                          ((metrics.mfValue +
+                            metrics.stockValue -
+                            (metrics.mfInvested + metrics.stockInvested)) /
+                            (metrics.mfInvested + metrics.stockInvested)) *
+                          100
+                        ).toFixed(1) + "%"
+                      : "—",
+                  delta: null,
+                  positive:
+                    metrics.mfValue + metrics.stockValue >=
+                    metrics.mfInvested + metrics.stockInvested,
+                  icon: "📊",
+                },
+              ] as {
+                label: string;
+                value: string;
+                delta: string | null;
+                positive: boolean;
+                icon: string;
+              }[]
+            ).map(({ label, value, delta, positive, icon }) => (
+              <div
+                key={label}
+                style={{
+                  padding: "18px 20px",
+                  borderRadius: 16,
+                  background: isDark ? "var(--surface-1)" : "rgba(255,255,255,0.9)",
+                  border: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  cursor: "default",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = isDark
+                    ? "0 6px 24px rgba(0,0,0,0.4)"
+                    : "0 6px 24px rgba(0,0,0,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.transform = "";
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = isDark
+                    ? "0 2px 12px rgba(0,0,0,0.25)"
+                    : "0 2px 12px rgba(0,0,0,0.06)";
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      color: THEME.muted,
+                    }}
+                  >
+                    {label}
+                  </span>
+                  <span style={{ fontSize: 16 }}>{icon}</span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 22,
+                    fontWeight: 900,
+                    color: positive ? THEME.sage : THEME.rust,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {value}
+                </div>
+                {delta !== null && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: positive ? THEME.sage : THEME.rust,
+                      background: `color-mix(in srgb, ${
+                        positive ? THEME.sage : THEME.rust
+                      } 10%, transparent)`,
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                      width: "fit-content",
+                    }}
+                  >
+                    {positive ? "▲" : "▼"} {delta}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
           <div className="bento-grid">
             {/* Left Column (8 columns): Graphical Charts */}
             <div
               className="bento-col-8"
               style={{ display: "flex", flexDirection: "column", gap: 24 }}
             >
-              {/* Net Worth Growth */}
-              <Card style={{ padding: 24 }}>
-                <div
+              {/* Section Header: Charts */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingBottom: 4,
+                  borderBottom: `2px solid ${THEME.line}`,
+                }}
+              >
+                <span
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 16,
+                    fontSize: 18,
+                    lineHeight: 1,
                   }}
                 >
-                  <div className="section-label" style={{ marginBottom: 0 }}>
-                    Net Worth Growth
-                  </div>
+                  📉
+                </span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    color: THEME.ink,
+                  }}
+                >
+                  Historical Charts
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: THEME.line,
+                    marginLeft: 4,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: THEME.muted,
+                    fontWeight: 500,
+                  }}
+                >
+                  Growth · P&L · Savings · Returns
+                </span>
+              </div>
+
+              {/* Net Worth Growth */}
+              <Card
+                style={{
+                  padding: 0,
+                  overflow: "hidden",
+                  borderTop: `3px solid ${THEME.accent}`,
+                }}
+              >
+                <div style={{ padding: "20px 24px 0" }}>
                   <div
                     style={{
                       display: "flex",
-                      gap: 3,
-                      background: THEME.line,
-                      padding: 3,
-                      borderRadius: 8,
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      marginBottom: 16,
                     }}
                   >
-                    {(["3M", "6M", "12M", "All"] as const).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setTrendPeriod(p)}
+                    <div>
+                      <div
                         style={{
-                          padding: "3px 10px",
-                          borderRadius: 6,
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: trendPeriod === p ? THEME.accent : "transparent",
-                          color: trendPeriod === p ? "#fff" : THEME.muted,
-                          transition: "all 0.2s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 4,
                         }}
                       >
-                        {p}
-                      </button>
-                    ))}
+                        <span style={{ fontSize: 16 }}>📈</span>
+                        <span
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            letterSpacing: "-0.01em",
+                          }}
+                        >
+                          Net Worth Growth
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
+                        Cumulative wealth trajectory over time
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 3,
+                        background: THEME.line,
+                        padding: 3,
+                        borderRadius: 8,
+                      }}
+                    >
+                      {(["3M", "6M", "12M", "All"] as const).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setTrendPeriod(p)}
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: 6,
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: trendPeriod === p ? THEME.accent : "transparent",
+                            color: trendPeriod === p ? "#fff" : THEME.muted,
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                {filteredNetWorthTrend.length === 0 ||
-                filteredNetWorthTrend.every((t) => t.value === 0) ? (
-                  <div
-                    style={{
-                      height: 280,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: THEME.muted,
-                      fontSize: 13,
-                      background: "rgba(128,128,128,0.03)",
-                      borderRadius: 12,
-                    }}
-                  >
-                    Not enough history to show net worth trend
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={filteredNetWorthTrend}>
-                      <defs>
-                        <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
-                          <stop
-                            offset="0%"
-                            stopColor={THEME.accent}
-                            stopOpacity={isDark ? 0.55 : 0.4}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor={THEME.accent}
-                            stopOpacity={isDark ? 0.08 : 0}
-                          />
-                        </linearGradient>
-                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow
-                            dx="0"
-                            dy="4"
-                            stdDeviation="6"
-                            floodColor={THEME.accent}
-                            floodOpacity={isDark ? "0.65" : "0.5"}
-                          />
-                        </filter>
-                      </defs>
-                      <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
-                      <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
-                      <YAxis
-                        tick={{ fill: THEME.muted, fontSize: 11 }}
-                        tickFormatter={fmtINRFull}
-                      />
-                      <Tooltip
-                        formatter={(v: any) => fmtINRFull(v)}
-                        contentStyle={{
-                          background: "var(--surface-0)",
-                          border: "1px solid var(--t-line)",
-                          borderRadius: 12,
-                          boxShadow: "var(--shadow-xl)",
-                          color: THEME.ink,
-                        }}
-                        labelStyle={{ color: THEME.muted }}
-                        itemStyle={{ color: THEME.ink }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke={THEME.accent}
-                        strokeWidth={3}
-                        fill="url(#gNw)"
-                        style={{ filter: "url(#glow)" }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
+                <div style={{ padding: "0 24px 20px" }}>
+                  {filteredNetWorthTrend.length === 0 ||
+                  filteredNetWorthTrend.every((t) => t.value === 0) ? (
+                    <div
+                      style={{
+                        height: 280,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: THEME.muted,
+                        fontSize: 13,
+                        background: "rgba(128,128,128,0.03)",
+                        borderRadius: 12,
+                      }}
+                    >
+                      Not enough history to show net worth trend
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={filteredNetWorthTrend}>
+                        <defs>
+                          <linearGradient id="gNw" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              stopColor={THEME.accent}
+                              stopOpacity={isDark ? 0.55 : 0.4}
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor={THEME.accent}
+                              stopOpacity={isDark ? 0.08 : 0}
+                            />
+                          </linearGradient>
+                          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow
+                              dx="0"
+                              dy="4"
+                              stdDeviation="6"
+                              floodColor={THEME.accent}
+                              floodOpacity={isDark ? "0.65" : "0.5"}
+                            />
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} />
+                        <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 11 }} />
+                        <YAxis
+                          tick={{ fill: THEME.muted, fontSize: 11 }}
+                          tickFormatter={fmtINRFull}
+                        />
+                        <Tooltip
+                          formatter={(v: any) => fmtINRFull(v)}
+                          contentStyle={{
+                            background: "var(--surface-0)",
+                            border: "1px solid var(--t-line)",
+                            borderRadius: 12,
+                            boxShadow: "var(--shadow-xl)",
+                            color: THEME.ink,
+                          }}
+                          labelStyle={{ color: THEME.muted }}
+                          itemStyle={{ color: THEME.ink }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke={THEME.accent}
+                          strokeWidth={3}
+                          fill="url(#gNw)"
+                          style={{ filter: "url(#glow)" }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
               </Card>
 
               {/* Historical P&L Bar Chart */}
-              <Card style={{ padding: 24 }}>
-                <div className="section-label">Monthly P&L (Last 6 Months)</div>
+              <Card
+                style={{
+                  padding: 24,
+                  borderTop: `3px solid ${THEME.sage}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>💹</span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: THEME.ink,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    Monthly P&L (Last 6 Months)
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
+                  Income vs. Expense comparison across recent months
+                </div>
                 {trendData.filter((t) => t.income > 0 || t.expense > 0).length === 0 ? (
                   <div
                     style={{
@@ -6449,8 +6708,35 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }}
               >
                 {/* Monthly Net Savings */}
-                <Card style={{ padding: 24 }}>
-                  <div className="section-label">Monthly Net Savings</div>
+                <Card
+                  style={{
+                    padding: 24,
+                    borderTop: `3px solid ${THEME.accent}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>💵</span>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      Monthly Net Savings
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
+                    Green = surplus, red = deficit
+                  </div>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={trendData.slice(-6)}>
                       <defs>
@@ -6525,8 +6811,35 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </Card>
 
                 {/* Portfolio Return */}
-                <Card style={{ padding: 24 }}>
-                  <div className="section-label">Portfolio Return</div>
+                <Card
+                  style={{
+                    padding: 24,
+                    borderTop: `3px solid ${THEME.gold}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>📊</span>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      Portfolio Return
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
+                    Current value vs. amount invested (MF & Stocks)
+                  </div>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart
                       data={[
@@ -6615,21 +6928,82 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               className="bento-col-4"
               style={{ display: "flex", flexDirection: "column", gap: 24 }}
             >
+              {/* Section Header: Metrics */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingBottom: 4,
+                  borderBottom: `2px solid ${THEME.line}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 18,
+                    lineHeight: 1,
+                  }}
+                >
+                  🎯
+                </span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    color: THEME.ink,
+                  }}
+                >
+                  Performance
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: THEME.line,
+                    marginLeft: 4,
+                  }}
+                />
+              </div>
+
               {/* YTD Cumulative block */}
-              <Card style={{ padding: 24 }}>
+              <Card
+                style={{
+                  padding: 24,
+                  borderTop: `3px solid ${THEME.accent}`,
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     marginBottom: 20,
                     flexWrap: "wrap",
                     gap: 12,
                   }}
                 >
                   <div>
-                    <div className="section-label" style={{ marginBottom: 2 }}>
-                      Year-to-Date Performance
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>📅</span>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: THEME.ink,
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        Year-to-Date Performance
+                      </span>
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted }}>
                       {ytdData.labelStart} – {ytdData.monthName} {new Date().getFullYear()} ·{" "}
