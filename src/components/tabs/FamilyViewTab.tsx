@@ -97,6 +97,54 @@ const getAssetClassColors = (dark: boolean) => dark ? ASSET_CLASS_COLORS_DARK : 
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
+// ── Custom Tooltip for Recharts ────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const isPie = payload[0]?.payload?.percent !== undefined || payload[0]?.payload?.cx !== undefined;
+  
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 90%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid var(--t-line)`,
+        borderRadius: "12px",
+        padding: "14px 16px",
+        boxShadow: "var(--shadow-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        minWidth: "200px",
+      }}
+    >
+      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--t-muted)", borderBottom: `1px solid var(--t-line)`, paddingBottom: "6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        {isPie ? "Wealth Share" : label}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {payload.map((entry: any, index: number) => {
+          const color = entry.color || entry.fill;
+          const value = Number(entry.value) || 0;
+          return (
+            <div key={index} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--t-ink)" }}>
+                  {entry.name}
+                </span>
+              </div>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--t-ink)", fontVariantNumeric: "tabular-nums" }}>
+                <Prv>{fmtINRFull(value)}</Prv>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const memberAssets = (state, owner, marketData) => {
   const filter = (arr) => (arr || []).filter((a) => a.owner === owner);
 
@@ -499,60 +547,73 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="tab-content-enter">
+    <div className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* ── PAGE HEADER ───────────────────────────────────────────── */}
       <SectionTitle sub="Consolidated financial overview across all family members">
         Family View
       </SectionTitle>
 
       {/* ── 1. HERO CARD — FAMILY NET WORTH ──────────────────────── */}
-      <Card variant="hero" style={{ padding: "clamp(24px, 4vw, 40px)", marginBottom: 24 }}>
+      <Card
+        variant="hero"
+        style={{
+          padding: "clamp(24px, 4vw, 40px)",
+          marginBottom: 8,
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: 24,
+          boxShadow: "var(--shadow-xl)",
+        }}
+      >
         <div style={{ position: "relative", zIndex: 1 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 14,
-              marginBottom: 28,
+              gap: 16,
+              marginBottom: 32,
             }}
           >
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                background: "rgba(255,255,255,0.1)",
-                backdropFilter: "blur(8px)",
+                width: 56,
+                height: 56,
+                borderRadius: 18,
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1.5px solid rgba(255, 255, 255, 0.15)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
               }}
             >
-              <Users size={26} color="#fff" />
+              <Users size={28} color="#fff" />
             </div>
             <div>
               <div
                 style={{
                   fontSize: 11,
-                  fontWeight: 700,
-                  color: "rgba(255,255,255,0.5)",
+                  fontWeight: 800,
+                  color: "rgba(255, 255, 255, 0.6)",
                   textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                  marginBottom: 6,
+                  letterSpacing: "0.14em",
+                  marginBottom: 4,
                 }}
               >
-                Family Net Worth
+                Consolidated Family Net Worth
               </div>
               <div
                 style={{
-                  fontSize: "clamp(28px, 5vw, 42px)",
+                  fontSize: "clamp(32px, 5vw, 46px)",
                   fontWeight: 900,
                   color: "#fff",
                   letterSpacing: "-0.04em",
                   lineHeight: 1,
                   fontVariantNumeric: "tabular-nums",
+                  textShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
                 }}
               >
                 <Prv>{fmtINRFull(totalNetWorth)}</Prv>
@@ -565,35 +626,48 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 10,
-              padding: "20px 0 0",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
+              gap: 12,
+              padding: "24px 0 0",
+              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
             }}
           >
             {activeMembers.map((m) => {
               const pct = totalNetWorth > 0 ? (m.netWorth / totalNetWorth) * 100 : 0;
               const MemberIcon = MEMBER_ICONS[m.id] || User;
               return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  key={m.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    background: "rgba(255, 255, 255, 0.03)",
+                    padding: "10px 16px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    transition: "all 0.2s var(--ease-premium)",
+                  }}
+                >
                   <div
                     style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background: `${m.color}30`,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, ${m.color} 20%, rgba(255, 255, 255, 0.1))`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                     }}
                   >
-                    <MemberIcon size={14} color={m.color} />
+                    <MemberIcon size={15} color="#fff" />
                   </div>
                   <span
                     style={{
                       fontSize: 13,
-                      fontWeight: 600,
-                      color: "rgba(255,255,255,0.85)",
+                      fontWeight: 700,
+                      color: "#fff",
                       minWidth: 70,
                     }}
                   >
@@ -604,7 +678,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       flex: 1,
                       height: 8,
                       borderRadius: 4,
-                      background: "rgba(255,255,255,0.08)",
+                      background: "rgba(255, 255, 255, 0.08)",
                       overflow: "hidden",
                     }}
                   >
@@ -613,17 +687,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         width: `${Math.max(pct, 2)}%`,
                         height: "100%",
                         borderRadius: 4,
-                        background: m.color,
-                        transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                        background: `linear-gradient(90deg, ${m.color} 0%, color-mix(in srgb, ${m.color} 75%, white) 100%)`,
+                        transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                       }}
                     />
                   </div>
                   <span
                     style={{
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 13,
+                      fontWeight: 800,
                       color: "#fff",
-                      minWidth: 90,
+                      minWidth: 100,
                       textAlign: "right",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -633,13 +707,14 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   <span
                     style={{
                       fontSize: 10,
-                      fontWeight: 700,
-                      color: m.color,
-                      background: `${m.color}20`,
+                      fontWeight: 800,
+                      color: "#fff",
+                      background: "rgba(255, 255, 255, 0.15)",
                       padding: "2px 8px",
-                      borderRadius: 10,
-                      minWidth: 38,
+                      borderRadius: 12,
+                      minWidth: 42,
                       textAlign: "center",
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {pct.toFixed(1)}%
@@ -656,16 +731,222 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
+          gap: 16,
+          marginBottom: 8,
         }}
       >
-        <StatCard label="Total Assets" value={fmtINRFull(totalAssets)} icon={<TrendingUp />} color={THEME.sage} />
-        <StatCard label="Liabilities" value={fmtINRFull(totalLiabilities)} icon={<CreditCard />} color={totalLiabilities > 0 ? THEME.rust : THEME.sage} />
-        <StatCard label="Members" value={`${activeMembers.length} / ${PROFILES.length}`} icon={<Users />} color={THEME.accent} />
-        <StatCard label="Debt Ratio" value={`${debtToAssetRatio.toFixed(1)}%`} icon={<Percent />} color={debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} />
+        {/* Total Assets */}
+        <Card
+          hover
+          style={{
+            padding: "16px 20px",
+            borderTop: `4px solid ${THEME.sage}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.sage,
+              }}
+            >
+              <TrendingUp size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Total Family Assets
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <Prv>{fmtINRFull(totalAssets)}</Prv>
+            </div>
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+              Combined Financial Capital
+            </div>
+          </div>
+        </Card>
+
+        {/* Total Liabilities */}
+        <Card
+          hover
+          style={{
+            padding: "16px 20px",
+            borderTop: `4px solid ${totalLiabilities > 0 ? THEME.rust : THEME.sage}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                background: totalLiabilities > 0 ? `color-mix(in srgb, ${THEME.rust} 12%, transparent)` : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: totalLiabilities > 0 ? THEME.rust : THEME.sage,
+              }}
+            >
+              <CreditCard size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Total Liabilities
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              <Prv>{fmtINRFull(totalLiabilities)}</Prv>
+            </div>
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+              Outstanding Debt & Cards
+            </div>
+          </div>
+        </Card>
+
+        {/* Active Members */}
+        <Card
+          hover
+          style={{
+            padding: "16px 20px",
+            borderTop: `4px solid ${THEME.accent}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: THEME.accent,
+              }}
+            >
+              <Users size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Active Profiles
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              {activeMembers.length} / {PROFILES.length}
+            </div>
+            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+              Profiles with Registered Assets
+            </div>
+          </div>
+        </Card>
+
+        {/* Debt-to-Asset Ratio */}
+        <Card
+          hover
+          style={{
+            padding: "16px 20px",
+            borderTop: `4px solid ${debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                background: `color-mix(in srgb, ${debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage} 12%, transparent)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: debtToAssetRatio > 30 ? THEME.rust : debtToAssetRatio > 15 ? THEME.gold : THEME.sage,
+              }}
+            >
+              <Percent size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Debt-to-Asset Ratio
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+              {debtToAssetRatio.toFixed(1)}%
+            </div>
+            <div style={{ marginTop: 4 }}>
+              <Badge variant={debtToAssetRatio > 30 ? "rust" : debtToAssetRatio > 15 ? "gold" : "sage"} style={{ fontSize: 9, padding: "1px 5px", textTransform: "uppercase" }}>
+                {debtToAssetRatio > 30 ? "High Leverage" : debtToAssetRatio > 15 ? "Moderate Leverage" : "Healthy Leverage"}
+              </Badge>
+            </div>
+          </div>
+        </Card>
+
+        {/* Life Insurance Coverage */}
         {totalLifeCover > 0 && (
-          <StatCard label="Life Cover" value={fmtINRFull(totalLifeCover)} icon={<Shield />} color={dark ? "#A78BFA" : "#7C3AED"} />
+          <Card
+            hover
+            style={{
+              padding: "16px 20px",
+              borderTop: `4px solid ${dark ? "#A78BFA" : "#7C3AED"}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${dark ? "#A78BFA" : "#7C3AED"} 12%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: dark ? "#A78BFA" : "#7C3AED",
+                }}
+              >
+                <Shield size={16} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Consolidated Life Cover
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                <Prv>{fmtINRFull(totalLifeCover)}</Prv>
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
+                Aggregate Insurance Cover
+              </div>
+            </div>
+          </Card>
         )}
       </div>
 
@@ -675,16 +956,17 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           <SectionTitle sub="How each member contributes to family wealth">
             Net Worth Contribution
           </SectionTitle>
-          <Card style={{ padding: "24px 28px", marginBottom: 28 }}>
+          <Card style={{ padding: 24 }}>
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 28,
+                gap: 32,
               }}
             >
+              {/* Pie/Donut Container */}
               <div style={{ width: 220, height: 220, flexShrink: 0, margin: "0 auto" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -695,29 +977,21 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       innerRadius={60}
                       outerRadius={95}
                       dataKey="value"
-                      stroke="none"
+                      stroke="var(--surface-0)"
+                      strokeWidth={2}
                       paddingAngle={2}
                     >
                       {contributionData.map((d, i) => (
-                        <Cell key={i} fill={d.color} />
+                        <Cell key={i} fill={d.color} style={{ outline: "none", cursor: "pointer" }} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      formatter={(v) => fmtINRFull(v)}
-                      contentStyle={{
-                        background: "var(--surface-0)",
-                        border: `1px solid ${THEME.line}`,
-                        borderRadius: 10,
-                        fontSize: 12,
-                        color: THEME.ink,
-                      }}
-                      labelStyle={{ color: THEME.muted }}
-                      itemStyle={{ color: THEME.ink }}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minWidth: 200 }}>
+
+              {/* Legend List on Right */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 240 }}>
                 {contributionData.map((d) => {
                   const pct = totalNetWorth > 0 ? ((d.value / totalNetWorth) * 100).toFixed(1) : "0";
                   return (
@@ -728,21 +1002,24 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         alignItems: "center",
                         gap: 12,
                         padding: "12px 16px",
-                        borderRadius: 12,
-                        background: `color-mix(in srgb, ${d.color} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${d.color} 12%, transparent)`,
+                        borderRadius: 14,
+                        background: `color-mix(in srgb, ${d.color} 6%, var(--surface-0))`,
+                        border: `1.5px solid color-mix(in srgb, ${d.color} 12%, transparent)`,
+                        transition: "transform 0.2s var(--ease-premium)",
+                        cursor: "pointer",
                       }}
                     >
                       <span
                         style={{
-                          width: 12,
-                          height: 12,
+                          width: 10,
+                          height: 10,
                           borderRadius: "50%",
                           background: d.color,
                           flexShrink: 0,
+                          boxShadow: `0 0 0 3px color-mix(in srgb, ${d.color} 20%, transparent)`,
                         }}
                       />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, flex: 1 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, flex: 1 }}>
                         {d.name}
                       </span>
                       <span
@@ -755,7 +1032,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       >
                         <Prv>{fmtINRFull(d.value)}</Prv>
                       </span>
-                      <Badge variant="accent" style={{ fontSize: 10, minWidth: 40, textAlign: "center" }}>
+                      <Badge variant="accent" style={{ fontSize: 10, fontWeight: 800, minWidth: 42, textAlign: "center" }}>
                         {pct}%
                       </Badge>
                     </div>
@@ -774,9 +1051,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))",
-          gap: 18,
-          marginBottom: 28,
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))",
+          gap: 20,
         }}
       >
         {activeMembers.map((m) => {
@@ -785,9 +1061,13 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           return (
             <Card
               key={m.id}
+              hover
               style={{
                 padding: "24px 24px 20px",
                 borderTop: `4px solid ${m.color}`,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
               }}
             >
               {/* Member header */}
@@ -796,20 +1076,20 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
-                  marginBottom: 20,
                 }}
               >
                 <div
                   style={{
                     width: 44,
                     height: 44,
-                    borderRadius: 13,
+                    borderRadius: 12,
                     background: `color-mix(in srgb, ${m.color} 12%, transparent)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: m.color,
                     flexShrink: 0,
+                    border: `1px solid color-mix(in srgb, ${m.color} 20%, transparent)`,
                   }}
                 >
                   <MemberIcon size={22} />
@@ -838,59 +1118,59 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 </div>
               </div>
 
-              {/* Assets / Liabilities pills */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+              {/* Assets / Liabilities Sub-Cards */}
+              <div style={{ display: "flex", gap: 10 }}>
                 {(() => {
                   const assetColor = dark ? "#34D399" : "#059669";
                   const liabColor = dark ? "#F87171" : "#DC2626";
                   return (
                     <>
-                <div
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    background: `color-mix(in srgb, ${assetColor} ${dark ? "10" : "7"}%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${assetColor} ${dark ? "18" : "12"}%, transparent)`,
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: assetColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Assets
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    <Prv>{fmtINRFull(m.totalAssets)}</Prv>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    background: `color-mix(in srgb, ${liabColor} ${dark ? "10" : "7"}%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${liabColor} ${dark ? "18" : "12"}%, transparent)`,
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: liabColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Liabilities
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    <Prv>{fmtINRFull(m.totalLiabilities)}</Prv>
-                  </div>
-                </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          background: `color-mix(in srgb, ${assetColor} 8%, var(--surface-0))`,
+                          border: `1.5px solid color-mix(in srgb, ${assetColor} 15%, transparent)`,
+                        }}
+                      >
+                        <div style={{ fontSize: 9, fontWeight: 800, color: assetColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          Assets
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          <Prv>{fmtINRFull(m.totalAssets)}</Prv>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          background: `color-mix(in srgb, ${liabColor} 8%, var(--surface-0))`,
+                          border: `1.5px solid color-mix(in srgb, ${liabColor} 15%, transparent)`,
+                        }}
+                      >
+                        <div style={{ fontSize: 9, fontWeight: 800, color: liabColor, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          Liabilities
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          <Prv>{fmtINRFull(m.totalLiabilities)}</Prv>
+                        </div>
+                      </div>
                     </>
                   );
                 })()}
@@ -898,18 +1178,19 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
               {/* Asset allocation pie + legend */}
               {m.allocation.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-                  <div style={{ width: 110, height: 110, flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, background: "var(--surface-1)", padding: "12px", borderRadius: 14, border: `1.5px solid ${THEME.line}` }}>
+                  <div style={{ width: 100, height: 100, flexShrink: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={m.allocation}
                           cx="50%"
                           cy="50%"
-                          innerRadius={30}
-                          outerRadius={48}
+                          innerRadius={28}
+                          outerRadius={45}
                           dataKey="value"
-                          stroke="none"
+                          stroke="var(--surface-1)"
+                          strokeWidth={1.5}
                           paddingAngle={1}
                         >
                           {m.allocation.map((d, i) => (
@@ -919,18 +1200,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                             />
                           ))}
                         </Pie>
-                        <Tooltip
-                          formatter={(v) => fmtINRFull(v)}
-                          contentStyle={{
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderRadius: 8,
-                            fontSize: 11,
-                            color: THEME.ink,
-                          }}
-                          labelStyle={{ color: THEME.muted }}
-                          itemStyle={{ color: THEME.ink }}
-                        />
+                        <Tooltip content={<CustomTooltip />} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -953,90 +1223,93 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                               width: 7,
                               height: 7,
                               borderRadius: "50%",
-                              background:
-                                ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length],
+                              background: ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length],
                               flexShrink: 0,
                             }}
                           />
-                          <span style={{ color: THEME.muted, flex: 1 }}>{d.name}</span>
+                          <span style={{ color: THEME.muted, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
                           <span style={{ fontWeight: 700, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>{allocPct}%</span>
                         </div>
                       );
                     })}
                     {m.allocation.length > 5 && (
-                      <div style={{ fontSize: 10, color: THEME.muted, paddingLeft: 13 }}>
-                        +{m.allocation.length - 5} more
+                      <div style={{ fontSize: 10, color: THEME.muted, paddingLeft: 13, fontWeight: 600 }}>
+                        +{m.allocation.length - 5} more classes
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Top 3 holdings */}
+              {/* Top holdings checklist */}
               {m.topHoldings.length > 0 && (
                 <div
                   style={{
                     borderTop: `1px solid ${THEME.line}`,
-                    paddingTop: 14,
+                    paddingTop: 16,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
                   }}
                 >
                   <div
                     style={{
                       fontSize: 10,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: THEME.muted,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
-                      marginBottom: 10,
                       display: "flex",
                       alignItems: "center",
-                      gap: 5,
+                      gap: 6,
                     }}
                   >
-                    <Award size={11} color={THEME.muted} />
-                    Top Holdings
+                    <Award size={13} color={THEME.muted} />
+                    Top Asset Holdings
                   </div>
-                  {m.topHoldings.map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "7px 0",
-                        borderBottom:
-                          i < m.topHoldings.length - 1 ? `1px dashed color-mix(in srgb, ${THEME.line} 60%, transparent)` : "none",
-                      }}
-                    >
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: THEME.ink,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {h.name}
-                        </div>
-                        <div style={{ fontSize: 10, color: THEME.muted }}>{h.type}</div>
-                      </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {m.topHoldings.map((h, i) => (
                       <div
+                        key={i}
                         style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: THEME.ink,
-                          fontVariantNumeric: "tabular-nums",
-                          flexShrink: 0,
-                          marginLeft: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          background: "var(--surface-0)",
+                          border: `1.5px solid ${THEME.line}`,
                         }}
                       >
-                        <Prv>{fmtINRFull(h.value)}</Prv>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h.name}
+                          </div>
+                          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 1 }}>{h.type}</div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: THEME.ink,
+                            fontVariantNumeric: "tabular-nums",
+                            marginLeft: 12,
+                          }}
+                        >
+                          <Prv>{fmtINRFull(h.value)}</Prv>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </Card>
@@ -1050,29 +1323,24 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           <SectionTitle sub="Side-by-side comparison across asset classes">
             Asset Class Comparison
           </SectionTitle>
-          <Card style={{ padding: "24px 20px", marginBottom: 28 }}>
+          <Card style={{ padding: 24 }}>
             <div style={{ width: "100%", height: 380 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={comparisonData}
-                  margin={{ top: 10, right: 16, left: 0, bottom: 30 }}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 20 }}
                   barGap={4}
                   barCategoryGap="25%"
                 >
                   <defs>
                     {activeMembers.map((m) => (
-                      <React.Fragment key={m.id}>
-                        <linearGradient id={`gBar-${m.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={m.color} stopOpacity={dark ? 1 : 0.9} />
-                          <stop offset="100%" stopColor={m.color} stopOpacity={dark ? 0.7 : 0.4} />
-                        </linearGradient>
-                        <filter id={`glow-${m.id}`} x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={m.color} floodOpacity={dark ? "0.55" : "0.4"} />
-                        </filter>
-                      </React.Fragment>
+                      <linearGradient id={`gBar-${m.id}`} key={m.id} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={m.color} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={m.color} stopOpacity={0.25} />
+                      </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={THEME.line} vertical={false} />
+                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} opacity={0.25} vertical={false} />
                   <XAxis
                     dataKey="name"
                     tick={{ fill: THEME.muted, fontSize: 11, fontWeight: 600 }}
@@ -1080,7 +1348,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tickLine={false}
                     angle={-30}
                     textAnchor="end"
-                    height={60}
+                    height={50}
                   />
                   <YAxis
                     tick={{ fill: THEME.muted, fontSize: 11 }}
@@ -1088,32 +1356,23 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     tickLine={false}
                     tickFormatter={(v) => fmtINRFull(v)}
                   />
-                  <Tooltip
-                    cursor={{ fill: THEME.line, opacity: 0.4 }}
-                    contentStyle={{
-                      background: "var(--surface-0)",
-                      border: "1px solid var(--t-line)",
-                      borderRadius: 12,
-                      boxShadow: "var(--shadow-xl)",
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.muted }}
-                    itemStyle={{ color: THEME.ink }}
-                    formatter={(value) => fmtINRFull(value)}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend
                     wrapperStyle={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}
                     iconType="circle"
                     iconSize={8}
+                    verticalAlign="top"
+                    height={36}
                   />
                   {activeMembers.map((m) => (
                     <Bar
                       key={m.id}
                       dataKey={capitalize(m.id)}
                       fill={`url(#gBar-${m.id})`}
+                      stroke={m.color}
+                      strokeWidth={1}
                       radius={[4, 4, 0, 0]}
-                      maxBarSize={48}
-                      style={{ filter: `url(#glow-${m.id})` }}
+                      maxBarSize={36}
                     />
                   ))}
                 </BarChart>
@@ -1125,20 +1384,20 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
       {/* ── 6. INSURANCE COVERAGE ────────────────────────────────── */}
       <SectionTitle sub="Life cover adequacy benchmark: 10x annual income">
-        Insurance Coverage
+        Insurance Coverage Adequacy
       </SectionTitle>
-      <Card style={{ padding: "24px 24px", marginBottom: 28 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {activeMembers.map((m) => {
             const MemberIcon = MEMBER_ICONS[m.id] || User;
             const hasIncome = m.memberIncome > 0;
             const isAdequate = m.coverageRatio >= 10;
             const hasCoverage = m.totalLifeCover > 0;
 
-            const statusColor = !hasCoverage ? (dark ? "#F87171" : "#DC2626") : hasIncome && !isAdequate ? (dark ? "#FBBF24" : "#D97706") : (dark ? "#34D399" : "#059669");
-            const goodColor = dark ? "#34D399" : "#059669";
-            const warnColor = dark ? "#FBBF24" : "#D97706";
-            const dangerColor = dark ? "#F87171" : "#DC2626";
+            const statusColor = !hasCoverage ? THEME.rust : hasIncome && !isAdequate ? THEME.gold : THEME.sage;
+            const goodColor = THEME.sage;
+            const warnColor = THEME.gold;
+            const dangerColor = THEME.rust;
 
             return (
               <div
@@ -1147,10 +1406,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   display: "flex",
                   alignItems: "center",
                   gap: 14,
-                  padding: "16px 18px",
-                  borderRadius: 12,
-                  background: `color-mix(in srgb, ${statusColor} ${dark ? "8" : "5"}%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${statusColor} ${dark ? "20" : "14"}%, transparent)`,
+                  padding: "14px 18px",
+                  borderRadius: 14,
+                  background: `color-mix(in srgb, ${statusColor} 6%, var(--surface-0))`,
+                  border: `1.5px solid color-mix(in srgb, ${statusColor} 20%, transparent)`,
                   transition: "all 0.2s ease",
                   flexWrap: "wrap",
                 }}
@@ -1166,18 +1425,19 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     justifyContent: "center",
                     color: m.color,
                     flexShrink: 0,
+                    border: `1px solid color-mix(in srgb, ${m.color} 20%, transparent)`,
                   }}
                 >
                   <MemberIcon size={18} />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 100 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                <div style={{ flex: 1, minWidth: 120 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                     {capitalize(m.id)}
                   </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, display: "flex", gap: 6, flexWrap: "wrap", fontWeight: 600 }}>
                     <span>LIC: <Prv>{fmtINRFull(m.licCover)}</Prv></span>
-                    <span style={{ opacity: 0.4 }}>|</span>
+                    <span style={{ opacity: 0.3 }}>|</span>
                     <span>Term: <Prv>{fmtINRFull(m.termCover)}</Prv></span>
                   </div>
                 </div>
@@ -1186,9 +1446,10 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   <div
                     style={{
                       fontSize: 16,
-                      fontWeight: 800,
+                      fontWeight: 900,
                       color: THEME.ink,
                       fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.01em",
                     }}
                   >
                     <Prv>{fmtINRFull(m.totalLifeCover)}</Prv>
@@ -1205,20 +1466,26 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                         {!isAdequate && " (need 10x)"}
                       </span>
                     ) : (
-                      <span style={{ color: THEME.muted, fontStyle: "italic", fontSize: 10 }}>
+                      <span style={{ color: THEME.muted, fontStyle: "italic", fontSize: 10, fontWeight: 600 }}>
                         No income data
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div style={{ flexShrink: 0, marginLeft: 2 }}>
+                <div style={{ flexShrink: 0, marginLeft: 6, display: "flex", alignItems: "center" }}>
                   {!hasCoverage ? (
-                    <XCircle size={20} color={dangerColor} />
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${dangerColor} 12%, transparent)`, color: dangerColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <XCircle size={16} strokeWidth={2.5} />
+                    </div>
                   ) : hasIncome && !isAdequate ? (
-                    <AlertTriangle size={20} color={warnColor} />
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${warnColor} 12%, transparent)`, color: warnColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <AlertTriangle size={15} strokeWidth={2.5} />
+                    </div>
                   ) : (
-                    <CheckCircle2 size={20} color={goodColor} />
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: `color-mix(in srgb, ${goodColor} 12%, transparent)`, color: goodColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <CheckCircle2 size={16} strokeWidth={2.5} />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1226,27 +1493,28 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           })}
         </div>
 
-        {/* Legend */}
+        {/* Legend indicators */}
         <div
           style={{
             display: "flex",
             gap: 18,
             marginTop: 16,
             paddingTop: 14,
-            borderTop: `1px solid ${THEME.line}`,
+            borderTop: `1.5px solid ${THEME.line}`,
             flexWrap: "wrap",
             fontSize: 11,
+            fontWeight: 700,
             color: THEME.muted,
           }}
         >
-          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <CheckCircle2 size={13} color={dark ? "#34D399" : "#059669"} /> Adequate (10x+)
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <CheckCircle2 size={14} color={THEME.sage} /> Adequate Coverage (10x+ Income)
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <AlertTriangle size={13} color={dark ? "#FBBF24" : "#D97706"} /> Under-covered
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <AlertTriangle size={14} color={THEME.gold} /> Under-insured (Coverage &lt; 10x)
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <XCircle size={13} color={dark ? "#F87171" : "#DC2626"} /> No coverage
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <XCircle size={14} color={THEME.rust} /> Uninsured (No active policies)
           </span>
         </div>
       </Card>
@@ -1259,44 +1527,45 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           </SectionTitle>
           <Card
             style={{
-              padding: "22px 24px",
-              borderLeft: `4px solid ${dark ? "#FBBF24" : "#D97706"}`,
-              background: `color-mix(in srgb, ${dark ? "#FBBF24" : "#D97706"} ${dark ? "6" : "3"}%, transparent)`,
-              marginBottom: 28,
+              padding: 24,
+              borderLeft: `4px solid ${THEME.gold}`,
+              background: `color-mix(in srgb, ${THEME.gold} 5%, var(--surface-0))`,
+              marginBottom: 12,
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                marginBottom: 16,
+                gap: 12,
+                marginBottom: 18,
               }}
             >
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9,
-                  background: `color-mix(in srgb, ${dark ? "#FBBF24" : "#D97706"} 12%, transparent)`,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  color: THEME.gold,
                 }}
               >
-                <ShieldAlert size={16} color={dark ? "#FBBF24" : "#D97706"} />
+                <ShieldAlert size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
-                  {unownedAssets.length} asset{unownedAssets.length !== 1 ? "s" : ""} without owner
+                <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
+                  {unownedAssets.length} Asset{unownedAssets.length !== 1 ? "s" : ""} without Owner assigned
                 </div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
-                  Edit each asset and set a specific owner to include it
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1, fontWeight: 600 }}>
+                  Edit assets and set a specific member owner to incorporate them in the summary
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {unownedAssets.map((a, i) => (
                 <div
                   key={i}
@@ -1304,21 +1573,21 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
-                    padding: "9px 14px",
-                    borderRadius: 10,
+                    padding: "10px 14px",
+                    borderRadius: 12,
                     background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
+                    border: `1.5px solid ${THEME.line}`,
                   }}
                 >
-                  <Info size={14} color={dark ? "#FBBF24" : "#D97706"} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <Info size={14} color={THEME.gold} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {a.name}
                   </span>
-                  <Badge variant="gold" style={{ fontSize: 10 }}>
+                  <Badge variant="gold" style={{ fontSize: 10, fontWeight: 800 }}>
                     {a.type}
                   </Badge>
-                  <Badge variant="muted" style={{ fontSize: 10 }}>
-                    {a.owner}
+                  <Badge variant="muted" style={{ fontSize: 10, fontWeight: 800 }}>
+                    Unassigned ({a.owner})
                   </Badge>
                 </div>
               ))}
