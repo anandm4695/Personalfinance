@@ -1035,10 +1035,9 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
               style={{
                 position: "relative",
                 overflow: "hidden",
-                padding: "20px 24px",
+                padding: 0,
                 display: "flex",
                 flexDirection: "column",
-                gap: 16,
               }}
             >
               {/* Left-side accent strip */}
@@ -1050,11 +1049,12 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                   bottom: 0,
                   width: 4,
                   background: accentColor,
+                  zIndex: 2,
                 }}
               />
 
               {/* Action buttons (top right) */}
-              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4, zIndex: 2 }}>
+              <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4, zIndex: 3 }}>
                 <button
                   onClick={() => setEditBankId(a.id)}
                   className="icon-btn"
@@ -1073,94 +1073,106 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
                 </button>
               </div>
 
-              {/* Bank Header Info */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 48 }}>
-                <BankLogo bankName={a.bankName} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <div
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        color: accentColor,
-                        background: `color-mix(in srgb, ${accentColor} 10%, transparent)`,
-                        padding: "2px 8px",
-                        borderRadius: 12,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      <span>{theme.icon}</span> {a.type || "Savings"}
-                    </div>
-                    <OwnerBadge owner={a.owner} />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      marginTop: 4,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.bankName}
-                  </div>
-                </div>
-              </div>
-
-              {/* Balance & Account Number */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                <div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
-                    <span>Account Balance</span>
-                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, color: THEME.sage, fontWeight: 800 }}>
-                      ● Live
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
-                    <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, letterSpacing: "0.05em", paddingBottom: 2 }}>
-                  <Prv>•••• {(a.accountNumber || "").slice(-4) || "—"}</Prv>
-                </div>
-              </div>
-
-              {/* Transactions count & view button */}
+              {/* Inner wrapper with custom paddings to clear the left accent line */}
               <div
                 style={{
-                  marginTop: 4,
-                  paddingTop: 14,
-                  borderTop: `1.5px solid ${THEME.line}`,
+                  padding: "20px 24px 20px 28px",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  flexDirection: "column",
+                  gap: 16,
+                  width: "100%",
+                  height: "100%",
                 }}
               >
-                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
-                  {state.transactions.filter((t: any) => t.accountId === a.id).length} Transactions recorded
-                </span>
-                <button
+                {/* Bank Header Info */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 48 }}>
+                  <BankLogo bankName={a.bankName} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <div
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          color: accentColor,
+                          background: `color-mix(in srgb, ${accentColor} 10%, transparent)`,
+                          padding: "2px 8px",
+                          borderRadius: 12,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <span>{theme.icon}</span> {a.type || "Savings"}
+                      </div>
+                      <OwnerBadge owner={a.owner} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: THEME.ink,
+                        marginTop: 4,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {a.bankName}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Balance & Account Number */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 4, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                      <span>Account Balance</span>
+                      <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`, color: THEME.sage, fontWeight: 800 }}>
+                        ● Live
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                      <Prv>{fmtINRFull(getDisplayBalance(a))}</Prv>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 700, letterSpacing: "0.05em", paddingBottom: 2 }}>
+                    <Prv>•••• {(a.accountNumber || "").slice(-4) || "—"}</Prv>
+                  </div>
+                </div>
+
+                {/* Transactions count & view button */}
+                <div
                   style={{
-                    fontSize: 11,
-                    padding: "4px 12px",
-                    borderRadius: 8,
-                    background: "var(--surface-1)",
-                    border: `1.5px solid ${THEME.line}`,
-                    color: THEME.accent,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
+                    marginTop: 4,
+                    paddingTop: 14,
+                    borderTop: `1.5px solid ${THEME.line}`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
-                  onClick={() => setFilterAcc(a.id)}
                 >
-                  View Ledger →
-                </button>
+                  <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+                    {state.transactions.filter((t: any) => t.accountId === a.id).length} Transactions recorded
+                  </span>
+                  <button
+                    style={{
+                      fontSize: 11,
+                      padding: "4px 12px",
+                      borderRadius: 8,
+                      background: "var(--surface-1)",
+                      border: `1.5px solid ${THEME.line}`,
+                      color: THEME.accent,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onClick={() => setFilterAcc(a.id)}
+                  >
+                    View Ledger →
+                  </button>
+                </div>
               </div>
             </Card>
           );
