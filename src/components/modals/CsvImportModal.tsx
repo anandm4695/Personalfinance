@@ -310,53 +310,73 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ accounts, existi
         return;
       }
 
-      const delimiter = rawLines[0].includes("\t") ? "\t" : ",";
-      const headers = splitCSVRow(rawLines[0], delimiter).map((h) => h.toLowerCase().trim());
-
+      // Real bank exports (HDFC/ICICI/SBI/Axis/Kotak) prepend several lines of
+      // account/statement metadata before the actual column header row, so scan
+      // for the header instead of assuming it's line 1.
+      const scanLimit = Math.min(rawLines.length - 1, 20);
+      let headerIdx = -1;
+      let delimiter = ",";
       let dateIdx = -1, descIdx = -1, debitIdx = -1, creditIdx = -1, balIdx = -1;
       let matchedBank = "";
 
-      for (const profile of BANK_PROFILES) {
-        const dI = headers.findIndex((h) => profile.date.includes(h));
-        const nI = headers.findIndex((h) => profile.desc.includes(h));
-        const drI = headers.findIndex((h) => profile.debit.includes(h));
-        const crI = headers.findIndex((h) => profile.credit.includes(h));
+      for (let li = 0; li <= scanLimit; li++) {
+        const candidateDelimiter = rawLines[li].includes("\t") ? "\t" : ",";
+        const headers = splitCSVRow(rawLines[li], candidateDelimiter).map((h) => h.toLowerCase().trim());
+
+        let dI = -1, nI = -1, drI = -1, crI = -1, bI = -1, bank = "";
+
+        for (const profile of BANK_PROFILES) {
+          const pdI = headers.findIndex((h) => profile.date.includes(h));
+          const pnI = headers.findIndex((h) => profile.desc.includes(h));
+          const pdrI = headers.findIndex((h) => profile.debit.includes(h));
+          const pcrI = headers.findIndex((h) => profile.credit.includes(h));
+          if (pdI >= 0 && pnI >= 0 && (pdrI >= 0 || pcrI >= 0)) {
+            dI = pdI;
+            nI = pnI;
+            drI = pdrI;
+            crI = pcrI;
+            bI = headers.findIndex((h) => profile.balance.includes(h));
+            bank = profile.bank;
+            break;
+          }
+        }
+
+        if (dI < 0) {
+          const gdI = headers.findIndex((h) => GENERIC_KEYWORDS.date.some((k) => h.includes(k)));
+          const gnI = headers.findIndex((h) => GENERIC_KEYWORDS.desc.some((k) => h.includes(k)));
+          const gdrI = headers.findIndex((h) => GENERIC_KEYWORDS.debit.some((k) => h.includes(k)));
+          const gcrI = headers.findIndex((h) => GENERIC_KEYWORDS.credit.some((k) => h.includes(k)));
+          if (gdI >= 0 && gnI >= 0 && (gdrI >= 0 || gcrI >= 0)) {
+            dI = gdI;
+            nI = gnI;
+            drI = gdrI;
+            crI = gcrI;
+            bI = headers.findIndex((h) => GENERIC_KEYWORDS.balance.some((k) => h.includes(k)));
+            bank = "Auto-detected";
+          }
+        }
+
         if (dI >= 0 && nI >= 0 && (drI >= 0 || crI >= 0)) {
+          headerIdx = li;
+          delimiter = candidateDelimiter;
           dateIdx = dI;
           descIdx = nI;
           debitIdx = drI;
           creditIdx = crI;
-          balIdx = headers.findIndex((h) => profile.balance.includes(h));
-          matchedBank = profile.bank;
+          balIdx = bI;
+          matchedBank = bank;
           break;
         }
       }
 
-      if (dateIdx < 0) {
-        dateIdx = headers.findIndex((h) => GENERIC_KEYWORDS.date.some((k) => h.includes(k)));
-        descIdx = headers.findIndex((h) => GENERIC_KEYWORDS.desc.some((k) => h.includes(k)));
-        debitIdx = headers.findIndex((h) => GENERIC_KEYWORDS.debit.some((k) => h.includes(k)));
-        creditIdx = headers.findIndex((h) => GENERIC_KEYWORDS.credit.some((k) => h.includes(k)));
-        balIdx = headers.findIndex((h) => GENERIC_KEYWORDS.balance.some((k) => h.includes(k)));
-        matchedBank = "Auto-detected";
-      }
-
-      if (dateIdx < 0) {
-        setSmartError("Could not detect a date column. Ensure your CSV has a header row with a date column (e.g. 'Date', 'Txn Date').");
-        return;
-      }
-      if (descIdx < 0) {
-        setSmartError("Could not detect a description/narration column.");
-        return;
-      }
-      if (debitIdx < 0 && creditIdx < 0) {
-        setSmartError("Could not detect debit or credit columns.");
+      if (headerIdx < 0) {
+        setSmartError("Could not detect a header row with date, description, and debit/credit columns. Ensure your CSV includes the column headers exported by your bank (e.g. 'Date', 'Narration', 'Withdrawal Amt', 'Deposit Amt').");
         return;
       }
 
       setDetectedBank(matchedBank);
 
-      const dataLines = rawLines.slice(1);
+      const dataLines = rawLines.slice(headerIdx + 1);
       const rows: any[] = [];
       for (let i = 0; i < dataLines.length; i++) {
         const cols = splitCSVRow(dataLines[i], delimiter);
