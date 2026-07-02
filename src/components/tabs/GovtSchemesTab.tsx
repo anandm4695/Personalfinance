@@ -140,7 +140,7 @@ const EMPTY: any = {
 };
 
 function SchemeForm({ initial, onSave, onClose }: any) {
-  const [form, setForm] = useState({ ...EMPTY, ...initial });
+  const [form, setForm] = useState({ ...EMPTY, startDate: today(), ...initial });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const meta = SCHEME_MAP[form.schemeType] || SCHEMES[0];
 
