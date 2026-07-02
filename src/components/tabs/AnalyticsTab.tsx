@@ -9246,7 +9246,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     alignItems: "flex-start",
                     flexWrap: "wrap",
                     gap: 12,
-                    marginBottom: 20,
+                    marginBottom: 24,
                   }}
                 >
                   <div>
@@ -9258,23 +9258,34 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       ICE360 & Credit Suisse (2024)
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: THEME.muted }}>Your age:</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      background: "rgba(128,128,128,0.04)",
+                      padding: "6px 14px",
+                      borderRadius: 20,
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: THEME.ink, fontWeight: 700 }}>
+                      Age: {ageInput}
+                    </span>
                     <input
-                      type="number"
+                      type="range"
                       min={20}
-                      max={70}
+                      max={65}
+                      step={1}
                       value={ageInput}
                       onChange={(e) => setAgeInput(Number(e.target.value))}
                       style={{
-                        width: 60,
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        border: `1px solid ${THEME.border}`,
-                        background: THEME.bg,
-                        color: THEME.text,
-                        fontSize: 13,
-                        textAlign: "center",
+                        accentColor: THEME.accent,
+                        cursor: "pointer",
+                        width: 110,
+                        height: 5,
+                        borderRadius: 3,
+                        background: THEME.line,
                       }}
                     />
                   </div>
@@ -9286,7 +9297,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 20,
-                    marginBottom: 20,
+                    marginBottom: 24,
                     flexWrap: "wrap",
                   }}
                 >
@@ -9295,10 +9306,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       {pct}th
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>percentile</div>
-                    <div style={{ marginTop: 6 }}>
+                    <div style={{ marginTop: 8 }}>
                       <span
                         style={{
-                          background: `${color}20`,
+                          background: `${color}18`,
                           color,
                           fontSize: 12,
                           fontWeight: 700,
@@ -9316,10 +9327,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       style={{
                         position: "relative",
                         height: 20,
-                        background: `${THEME.border}`,
+                        background: `${THEME.line}`,
                         borderRadius: 10,
                         overflow: "hidden",
-                        marginBottom: 8,
+                        marginBottom: 6,
                       }}
                     >
                       <div
@@ -9341,7 +9352,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             top: 0,
                             bottom: 0,
                             width: 2,
-                            background: "rgba(255,255,255,0.4)",
+                            background: "rgba(255,255,255,0.35)",
                             transform: "translateX(-50%)",
                           }}
                         />
@@ -9349,19 +9360,27 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     </div>
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: 10,
+                        position: "relative",
+                        height: 16,
                         color: THEME.muted,
+                        fontSize: 10,
+                        fontWeight: 600,
                       }}
                     >
-                      <span>0</span>
+                      <span style={{ position: "absolute", left: 0, transform: "none" }}>0</span>
                       {[25, 50, 75, 90, 95].map((p) => (
-                        <span key={p} style={{ transform: "translateX(-50%)" }}>
+                        <span
+                          key={p}
+                          style={{
+                            position: "absolute",
+                            left: `${p}%`,
+                            transform: "translateX(-50%)",
+                          }}
+                        >
                           {p}th
                         </span>
                       ))}
-                      <span>99+</span>
+                      <span style={{ position: "absolute", right: 0, transform: "none" }}>99+</span>
                     </div>
                   </div>
                 </div>
@@ -9371,18 +9390,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                    gap: 8,
-                    marginBottom: 16,
+                    gap: 10,
+                    marginBottom: 20,
                   }}
                 >
                   {milestones.map((m) => (
                     <div
                       key={m.label}
+                      className="card-lift"
                       style={{
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        background: nw >= m.value ? `${THEME.success}18` : `${THEME.border}40`,
-                        border: `1px solid ${nw >= m.value ? `${THEME.success}40` : THEME.border}`,
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        background:
+                          nw >= m.value
+                            ? `color-mix(in srgb, ${THEME.success} 8%, transparent)`
+                            : `var(--surface-1)`,
+                        border: `1px solid ${nw >= m.value ? `color-mix(in srgb, ${THEME.success} 20%, transparent)` : THEME.line}`,
+                        transition: "all 0.2s ease",
                       }}
                     >
                       <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 2 }}>
@@ -9390,9 +9414,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div
                         style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: nw >= m.value ? THEME.success : THEME.text,
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: nw >= m.value ? THEME.success : THEME.ink,
                         }}
                       >
                         {m.value >= 10000000
@@ -9400,7 +9424,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           : `₹${(m.value / 100000).toFixed(0)}L`}
                       </div>
                       {nw >= m.value && (
-                        <div style={{ fontSize: 10, color: THEME.success, marginTop: 2 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.success,
+                            marginTop: 4,
+                            fontWeight: 600,
+                          }}
+                        >
                           ✓ Achieved
                         </div>
                       )}
@@ -9412,12 +9443,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 {nextMilestone && (
                   <div
                     style={{
-                      background: `${THEME.primary}0a`,
-                      border: `1px solid ${THEME.primary}30`,
-                      borderRadius: 8,
-                      padding: "10px 14px",
+                      background: `color-mix(in srgb, ${THEME.primary} 6%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.primary} 15%, transparent)`,
+                      borderRadius: 10,
+                      padding: "12px 16px",
                       fontSize: 13,
-                      color: THEME.muted,
+                      color: THEME.ink,
+                      fontWeight: 500,
                     }}
                   >
                     <strong style={{ color: THEME.primary }}>Next milestone:</strong>{" "}
@@ -9426,7 +9458,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       ? `₹${(nextMilestone.value / 10000000).toFixed(1)}Cr`
                       : `₹${(nextMilestone.value / 100000).toFixed(0)}L`}
                     . Need{" "}
-                    <strong>
+                    <strong style={{ color: THEME.accent }}>
                       {nextMilestone.value - nw >= 10000000
                         ? `₹${((nextMilestone.value - nw) / 10000000).toFixed(1)}Cr`
                         : `₹${Math.max(0, (nextMilestone.value - nw) / 100000).toFixed(0)}L`}
@@ -9435,7 +9467,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   </div>
                 )}
                 <div
-                  style={{ fontSize: 10, color: THEME.muted, marginTop: 10, fontStyle: "italic" }}
+                  style={{ fontSize: 10, color: THEME.muted, marginTop: 12, fontStyle: "italic" }}
                 >
                   * Benchmarks are estimates for Indian urban professionals. Percentile reflects
                   household net worth (assets minus liabilities), not income.
