@@ -29,32 +29,38 @@ const EmptyHint = ({ text }: { text: string }) => (
 );
 
 const GoalEmptyState = ({ onAdd }: any) => (
-  <Card
+  <div
     style={{
-      padding: "64px 40px",
-      textAlign: "center",
+      padding: "54px 36px",
+      textAlign: "center" as const,
+      background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      border: `1.5px solid ${THEME.line}`,
+      borderRadius: 20,
+      boxShadow: "0 4px 24px -4px rgba(0, 0, 0, 0.03)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
+      justifyContent: "center",
       gap: 24,
     }}
   >
     <div
       style={{
-        width: 64,
-        height: 64,
-        borderRadius: 20,
+        width: 68,
+        height: 68,
+        borderRadius: 22,
         background: "linear-gradient(135deg,#d97706 0%,#fbbf24 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 10px 20px rgba(217,119,6,0.2)",
+        boxShadow: "0 8px 24px -4px rgba(217, 119, 6, 0.3)",
+        border: "2px solid rgba(255, 255, 255, 0.2)",
       }}
     >
-      <Flag size={28} color="#fff" />
+      <Flag size={30} color="#fff" />
     </div>
     <div>
-      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.02em" }}>
+      <h3 style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginBottom: 12, letterSpacing: "-0.02em" }}>
         No Goals Added Yet
       </h3>
       <p
@@ -70,12 +76,35 @@ const GoalEmptyState = ({ onAdd }: any) => (
         fund — and watch your progress every day.
       </p>
     </div>
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
       {["Retirement Planning", "Home Down Payment", "Education Fund", "Emergency Reserve"].map(
         (f) => (
-          <Badge key={f} variant="muted" style={{ padding: "6px 14px", fontSize: 11 }}>
-            ● {f}
-          </Badge>
+          <span
+            key={f}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 10px",
+              borderRadius: 12,
+              background: "var(--surface-1)",
+              border: `1.5px solid ${THEME.line}`,
+              fontWeight: 600,
+              fontSize: 11,
+              color: THEME.muted,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#f59e0b",
+                display: "inline-block",
+              }}
+            />
+            {f}
+          </span>
         )
       )}
     </div>
@@ -88,7 +117,7 @@ const GoalEmptyState = ({ onAdd }: any) => (
     >
       Set Your First Goal
     </Button>
-  </Card>
+  </div>
 );
 
 const PRIORITY_ORDER: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
@@ -248,24 +277,27 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 key={label}
                 className="card-lift"
                 style={{
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
+                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+                  border: `1.5px solid ${THEME.line}`,
                   borderTop: `4px solid ${color}`,
-                  borderRadius: 14,
-                  padding: "18px 20px",
+                  borderRadius: 16,
+                  padding: "20px 22px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  boxShadow: "var(--shadow-card)",
+                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `${color}1f`,
+                      width: 38,
+                      height: 38,
+                      borderRadius: 11,
+                      background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+                      border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+                      boxShadow: `0 2px 8px color-mix(in srgb, ${color} 8%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -289,7 +321,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                 </div>
                 <div
                   style={{
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight: 900,
                     color: THEME.ink,
                     letterSpacing: "-0.04em",
@@ -363,14 +395,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
               >
                 {priBreakdown.map((p) => {
                   const pPct = p.target > 0 ? (p.saved / p.target) * 100 : 0;
+                  const color = PRIORITY_COLOR[p.priority];
                   return (
                     <div
                       key={p.priority}
                       style={{
-                        padding: "16px 20px",
-                        borderRadius: 14,
-                        border: `1px solid ${PRIORITY_COLOR[p.priority]}28`,
-                        background: `${PRIORITY_COLOR[p.priority]}08`,
+                        padding: "18px 20px",
+                        borderRadius: 16,
+                        border: `1.5px solid ${color}20`,
+                        background: `linear-gradient(135deg, color-mix(in srgb, ${color} 4%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
+                        boxShadow: "0 2px 12px -2px rgba(0, 0, 0, 0.01)",
                       }}
                     >
                       <div
@@ -385,7 +419,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                           style={{
                             fontSize: 12,
                             fontWeight: 800,
-                            color: PRIORITY_COLOR[p.priority],
+                            color,
                             textTransform: "uppercase",
                             letterSpacing: "0.1em",
                           }}
@@ -409,7 +443,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                           style={{
                             height: "100%",
                             width: `${Math.min(pPct, 100)}%`,
-                            background: PRIORITY_COLOR[p.priority],
+                            background: color,
                             borderRadius: 3,
                             transition: "width 0.6s ease",
                           }}
@@ -530,11 +564,17 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
             const rc = ringColor(progress);
 
             return (
-              <Card
+              <div
                 key={g.id}
+                className="card-lift"
                 style={{
                   padding: 24,
-                  borderTop: `3px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
+                  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                  border: `1.5px solid ${THEME.line}`,
+                  borderTop: `4px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.muted}`,
+                  borderRadius: 16,
+                  boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
                 {/* Header Row: Category/Priority Tags & Action Badges/Buttons */}
@@ -1074,7 +1114,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics }: an
                     )}
                   </div>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
