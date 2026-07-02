@@ -256,15 +256,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // ─── Shared card shell ────────────────────────────────────────────────────────
-// Inline card style avoids the Card/spotlight-wrapper component so we get a clean
-// border without any hover-lift or ::before overlay artifacts.
+// Premium glassmorphic card with gradient background, double border, and soft shadow
 const cardShell: React.CSSProperties = {
-  background: "var(--surface-0)",
-  border: "1px solid var(--t-line)",
-  borderRadius: 14,
-  boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+  background: "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 10%, var(--surface-0)) 100%)",
+  border: "1.5px solid var(--t-line)",
+  borderRadius: 18,
+  boxShadow: "0 4px 24px -4px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
   overflow: "hidden",
-  marginBottom: 16,
+  marginBottom: 20,
+  transition: "box-shadow 0.25s cubic-bezier(0.4,0,0.2,1)",
 };
 
 // ─── Property Modal ──────────────────────────────────────────────────────────
@@ -590,23 +590,33 @@ function PropertyCard({
 
   return (
     <div style={cardShell}>
-      {/* Header */}
-      <div style={{ padding: "16px 20px", borderBottom: divider, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      {/* Header — premium glassmorphic */}
+      <div style={{
+        padding: "20px 24px",
+        borderBottom: divider,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 14,
+        background: `linear-gradient(135deg, ${statusHex}06 0%, transparent 60%)`,
+      }}>
         {/* Builder logo */}
         {property.developerName && (
           <div style={{ flexShrink: 0, marginTop: 2 }}>
-            <BuilderLogo name={property.developerName} size={46} borderRadius={13} />
+            <BuilderLogo name={property.developerName} size={50} borderRadius={14} />
           </div>
         )}
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>{property.name}</span>
-            {/* Status badge — uses hex so appending "28" gives valid 8-digit hex color */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+            <span style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>{property.name}</span>
+            {/* Status badge */}
             <span style={{
               fontSize: 11, fontWeight: 700,
               color: statusHex,
-              background: statusHex + "22",
-              padding: "2px 8px", borderRadius: 20, textTransform: "uppercase",
+              background: statusHex + "18",
+              border: `1.5px solid ${statusHex}30`,
+              padding: "3px 10px", borderRadius: 20, textTransform: "uppercase" as const,
+              letterSpacing: "0.06em",
             }}>
               {property.status === "under-construction" ? "Under Const." : property.status}
             </span>
@@ -614,25 +624,26 @@ function PropertyCard({
               fontSize: 11, fontWeight: 600,
               color: THEME.muted,
               background: "var(--surface-1)",
-              padding: "2px 8px", borderRadius: 20,
+              border: `1.5px solid ${THEME.line}`,
+              padding: "3px 10px", borderRadius: 20,
             }}>
               {TYPE_LABELS[property.type] || property.type}
             </span>
           </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {property.location && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
-                <MapPin size={11} /> {property.location}
+              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                <MapPin size={12} /> {property.location}
               </span>
             )}
             {property.developerName && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
-                <Building2 size={11} /> {property.developerName}
+              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                <Building2 size={12} /> {property.developerName}
               </span>
             )}
             {property.purchaseDate && (
-              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
-                <Calendar size={11} /> {fmtDate(property.purchaseDate)}
+              <span style={{ fontSize: 12, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                <Calendar size={12} /> {fmtDate(property.purchaseDate)}
               </span>
             )}
             {property.areaSqft && (
@@ -641,16 +652,34 @@ function PropertyCard({
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <button onClick={() => onEditProperty(property)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.muted, padding: 6, borderRadius: 6 }}>
-            <Pencil size={14} />
+          <button onClick={() => onEditProperty(property)} style={{
+            background: "color-mix(in srgb, var(--t-muted) 8%, transparent)",
+            border: `1.5px solid ${THEME.line}`,
+            cursor: "pointer",
+            color: THEME.muted,
+            padding: "6px 8px",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+          }}>
+            <Pencil size={13} />
           </button>
-          <button onClick={() => onDeleteProperty(property.id)} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.rust, padding: 6, borderRadius: 6 }}>
-            <Trash2 size={14} />
+          <button onClick={() => onDeleteProperty(property.id)} style={{
+            background: "color-mix(in srgb, #ef4444 8%, transparent)",
+            border: "1.5px solid #ef444428",
+            cursor: "pointer",
+            color: THEME.rust,
+            padding: "6px 8px",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+          }}>
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
 
-      {/* Financials grid */}
+      {/* Financials grid — premium tinted cells */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: divider }}>
         {[
           { label: "Agreement Value", value: property.agreementValue, color: THEME.accent },
@@ -659,68 +688,104 @@ function PropertyCard({
           { label: "Market Value", value: property.marketValue, color: "#22c55e" },
         ].map(({ label, value, color }, i) => (
           <div key={label} style={{
-            padding: "12px 16px",
+            padding: "14px 18px",
             borderRight: i < 3 ? divider : "none",
+            background: value ? `linear-gradient(135deg, color-mix(in srgb, ${color} 5%, transparent) 0%, transparent 100%)` : "transparent",
           }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: value ? color : THEME.muted }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+              <div style={{
+                width: 6, height: 6, borderRadius: 3,
+                background: value ? color : THEME.muted,
+                flexShrink: 0,
+              }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{label}</div>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: value ? color : THEME.muted, letterSpacing: "-0.02em" }}>
               <Prv>{value ? fmtINRFull(Number(value)) : "—"}</Prv>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gain/Loss */}
+      {/* Gain/Loss — premium pill */}
       {((isSold && Number(property.salePrice || 0) > 0) || (!isSold && property.marketValue)) && totalCost > 0 && (
         <div style={{
-          padding: "8px 20px",
+          padding: "10px 24px",
           borderBottom: divider,
-          background: gain >= 0 ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
+          background: gain >= 0
+            ? "linear-gradient(90deg, rgba(34,197,94,0.07) 0%, transparent 100%)"
+            : "linear-gradient(90deg, rgba(239,68,68,0.07) 0%, transparent 100%)",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: gain >= 0 ? "#22c55e" : "#ef4444" }}>
+          <span style={{
+            fontSize: 12, fontWeight: 800,
+            color: gain >= 0 ? "#22c55e" : "#ef4444",
+            background: gain >= 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+            border: `1.5px solid ${gain >= 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+            padding: "3px 10px",
+            borderRadius: 20,
+            letterSpacing: "0.04em",
+          }}>
             {gain >= 0 ? "▲" : "▼"} {isSold ? "Realised" : "Unrealised"} {gain >= 0 ? "Gain" : "Loss"}: <Prv>{fmtINRFull(Math.abs(gain))}</Prv>
           </span>
-          <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 8 }}>
-            (Total cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? <> · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv></> : ""})
+          <span style={{ fontSize: 11, color: THEME.muted }}>
+            Cost: <Prv>{fmtINRFull(totalCost)}</Prv>{isSold ? <> · Net sale: <Prv>{fmtINRFull(saleProceeds)}</Prv></> : ""}
           </span>
         </div>
       )}
 
-      {/* Payment progress — only shown when demands exist */}
+      {/* Payment progress — premium gradient track */}
       {totalDemanded > 0 && (
-        <div style={{ padding: "12px 20px", borderBottom: divider }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+        <div style={{ padding: "14px 24px", borderBottom: divider }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
               Payment Progress — {demands.length} demand{demands.length !== 1 ? "s" : ""}
             </span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e" }}>
-              <Prv>{fmtINRFull(totalPaid)}</Prv> paid of <Prv>{fmtINRFull(totalDemanded)}</Prv>
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#22c55e" }}>
+                <Prv>{fmtINRFull(totalPaid)}</Prv>
+              </span>
+              <span style={{ fontSize: 11, color: THEME.muted }}>of <Prv>{fmtINRFull(totalDemanded)}</Prv></span>
+              <span style={{
+                fontSize: 11, fontWeight: 800,
+                color: paidPct >= 100 ? "#22c55e" : THEME.accent,
+                background: paidPct >= 100 ? "rgba(34,197,94,0.12)" : `${THEME.accent}15`,
+                padding: "2px 8px", borderRadius: 12,
+              }}>{paidPct.toFixed(0)}%</span>
+            </div>
           </div>
-          <div style={{ height: 6, background: "var(--surface-1)", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: 7, background: "var(--surface-1)", borderRadius: 4, overflow: "hidden", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)" }}>
             <div style={{
               height: "100%",
               width: `${paidPct}%`,
-              background: paidPct >= 100 ? "#22c55e" : THEME.accent,
-              borderRadius: 3,
-              transition: "width 0.4s",
+              background: paidPct >= 100
+                ? "linear-gradient(90deg, #22c55e, #4ade80)"
+                : `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, ${THEME.accent} 70%, #60a5fa))`,
+              borderRadius: 4,
+              transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
             }} />
           </div>
           {outstanding > 0 && (
-            <div style={{ marginTop: 4, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>
+            <div style={{ marginTop: 6, fontSize: 11, color: "#ef4444", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{
+                display: "inline-block", width: 6, height: 6, borderRadius: 3,
+                background: "#ef4444", flexShrink: 0,
+              }} />
               Outstanding: <Prv>{fmtINRFull(outstanding)}</Prv>
             </div>
           )}
         </div>
       )}
 
-      {/* Expand / Collapse toggle */}
+      {/* Expand / Collapse toggle — premium */}
       <button
         onClick={() => setExpanded((v) => !v)}
         style={{
           width: "100%",
-          padding: "10px 20px",
-          background: "none",
+          padding: "12px 24px",
+          background: expanded ? `${THEME.accent}06` : "transparent",
           border: "none",
           borderBottom: expanded ? divider : "none",
           cursor: "pointer",
@@ -730,12 +795,23 @@ function PropertyCard({
           fontSize: 12,
           fontWeight: 700,
           color: THEME.accent,
+          transition: "background 0.2s",
         }}
       >
-        <span>
-          {demands.length} demand letter{demands.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}
-        </span>
-        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 6, height: 6, borderRadius: 3,
+            background: demands.length > 0 ? THEME.accent : THEME.muted,
+          }} />
+          <span>{demands.length} demand letter{demands.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div style={{
+          width: 22, height: 22, borderRadius: 6,
+          background: `${THEME.accent}12`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </div>
       </button>
 
       {expanded && (
@@ -958,11 +1034,22 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      {/* Header — premium */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em" }}>Real Estate</div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+          <div style={{ fontSize: 24, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11,
+              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 70%, #22c55e) 100%)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+              flexShrink: 0,
+            }}>
+              <Home size={18} color="#fff" />
+            </div>
+            Real Estate
+          </div>
+          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4, marginLeft: 46 }}>
             {properties.length} propert{properties.length !== 1 ? "ies" : "y"} · Track purchases, demand letters &amp; payments
           </div>
         </div>
@@ -971,9 +1058,9 @@ export function RealEstateTab({ state, addItem, removeItem, updateItem }: RealEs
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats — premium gradient cards */}
       {properties.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
           <StatCard label="Portfolio Value" value={<Prv>{fmtINRFull(stats.portfolioValue)}</Prv>} icon={<TrendingUp />} color="#22c55e" />
           <StatCard label="Total Invested" value={<Prv>{fmtINRFull(stats.totalInvested)}</Prv>} sub="Agreement + Stamp + TDS" icon={<IndianRupee />} color={THEME.accent} />
           <StatCard label="Total Paid" value={<Prv>{fmtINRFull(stats.totalPaid)}</Prv>} sub="All payments" icon={<CheckCircle />} color={THEME.accent} />
