@@ -657,6 +657,9 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
         return {
           id: a.id,
           name: accountLabel(a),
+          bankName: a.bankName,
+          type: a.type || "Savings",
+          accountNumberSuffix: a.accountNumber ? String(a.accountNumber).slice(-4) : "",
           balance: bal,
           share,
         };
@@ -864,43 +867,46 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: 20,
+            marginBottom: 24,
           }}
         >
           {/* Column 1: Savings Rate indicator */}
-          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <span>📈 Monthly Savings Rate</span>
-            </div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
-                {monthlySavingsRate.toFixed(1)}%
-              </span>
-              <Badge variant={monthlySavingsRate >= 40 ? "sage" : monthlySavingsRate >= 20 ? "gold" : "rust"} style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
-                {monthlySavingsRate >= 40 ? "Excellent" : monthlySavingsRate >= 20 ? "Healthy" : "Low"}
-              </Badge>
+          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span>📈 Monthly Savings Rate</span>
+              </div>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontSize: 32, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
+                  {monthlySavingsRate.toFixed(1)}%
+                </span>
+                <Badge variant={monthlySavingsRate >= 40 ? "sage" : monthlySavingsRate >= 20 ? "gold" : "rust"} style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>
+                  {monthlySavingsRate >= 40 ? "Excellent" : monthlySavingsRate >= 20 ? "Healthy" : "Low"}
+                </Badge>
+              </div>
+
+              {/* Savings Rate Bar */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ width: "100%", height: 8, background: "var(--t-line)", borderRadius: 4, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, Math.max(0, monthlySavingsRate))}%`,
+                      height: "100%",
+                      background: `linear-gradient(90deg, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 0%, color-mix(in srgb, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 75%, white) 100%)`,
+                      borderRadius: 4,
+                      transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+                  <span>Net Savings: <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv></span>
+                  <span>Monthly Buffer</span>
+                </div>
+              </div>
             </div>
 
-            {/* Savings Rate Bar */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ width: "100%", height: 8, background: "var(--t-line)", borderRadius: 4, overflow: "hidden" }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, Math.max(0, monthlySavingsRate))}%`,
-                    height: "100%",
-                    background: `linear-gradient(90deg, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 0%, color-mix(in srgb, ${monthlySavingsRate >= 40 ? THEME.sage : monthlySavingsRate >= 20 ? THEME.gold : THEME.rust} 75%, white) 100%)`,
-                    borderRadius: 4,
-                    transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: THEME.muted }}>
-                <span>Net Savings: <Prv>{fmtINRFull(Math.max(0, monthlyIncome - monthlyExpense))}</Prv></span>
-                <span>Goal Buffer</span>
-              </div>
-            </div>
-
-            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500 }}>
+            <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500, borderTop: `1.5px dashed ${THEME.line}`, paddingTop: 12, marginTop: 12 }}>
               {monthlySavingsRate >= 40
                 ? "Superb! You are maintaining an excellent savings buffer to accelerate your wealth building."
                 : monthlySavingsRate >= 20
@@ -910,103 +916,117 @@ export function BanksTab({ state, addItem, removeItem, updateItem, masterData: _
           </Card>
 
           {/* Column 2: Top Expense Categories Breakdown */}
-          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <span>📊 Monthly Spend Categories</span>
-            </div>
-            
-            {topSpendCategories.length === 0 ? (
-              <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12, padding: "20px 0" }}>
-                No spend transactions recorded this month
+          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span>📊 Monthly Spend Categories</span>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {topSpendCategories.slice(0, 4).map((c) => {
-                  const percentage = monthlyExpense > 0 ? (c.amount / monthlyExpense) * 100 : 0;
-                  return (
-                    <div key={c.name} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                        <span style={{ color: THEME.ink }}>{c.name}</span>
-                        <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
-                          ₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
-                        </span>
+              
+              {topSpendCategories.length === 0 ? (
+                <div style={{ display: "flex", height: 120, alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12 }}>
+                  No spend transactions recorded this month
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {topSpendCategories.slice(0, 4).map((c) => {
+                    const percentage = monthlyExpense > 0 ? (c.amount / monthlyExpense) * 100 : 0;
+                    return (
+                      <div key={c.name} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
+                          <span style={{ color: THEME.ink }}>{c.name}</span>
+                          <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                            ₹{c.amount.toLocaleString("en-IN")} ({percentage.toFixed(0)}%)
+                          </span>
+                        </div>
+                        <div style={{ width: "100%", height: 6, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
+                          <div
+                            style={{
+                              width: `${percentage}%`,
+                              height: "100%",
+                              background: THEME.accent,
+                              borderRadius: 3,
+                              transition: "width 0.5s ease",
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div style={{ width: "100%", height: 6, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
-                        <div
-                          style={{
-                            width: `${percentage}%`,
-                            height: "100%",
-                            background: THEME.accent,
-                            borderRadius: 3,
-                            transition: "width 0.5s ease",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {topSpendCategories.length > 0 && (
+              <div style={{ fontSize: 12, color: THEME.muted, lineHeight: "1.5", fontWeight: 500, borderTop: `1.5px dashed ${THEME.line}`, paddingTop: 12, marginTop: 12 }}>
+                Top expense categories for the current month. Optimize these to boost your savings rate.
               </div>
             )}
           </Card>
 
           {/* Column 3: Liquidity Distribution Share */}
-          <Card style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <span>💳 Liquidity Asset Weight</span>
-            </div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
-              <span>ACCOUNT ALLOCATION</span>
-              <span>SHARE %</span>
-            </div>
+          <Card style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span>💳 Liquidity Asset Weight</span>
+              </div>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 700 }}>
+                <span>ACCOUNT ALLOCATION</span>
+                <span>SHARE %</span>
+              </div>
 
-            {/* Allocated segmented bar */}
-            <div
-              style={{
-                display: "flex",
-                width: "100%",
-                height: 14,
-                background: "var(--t-line)",
-                borderRadius: 7,
-                overflow: "hidden",
-                boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
-              }}
-            >
-              {liquidityWeights.map((w) => (
-                <div
-                  key={w.id}
-                  title={`${w.name}: ${w.share.toFixed(1)}%`}
-                  style={{
-                    width: `${w.share}%`,
-                    height: "100%",
-                    background: w.color,
-                    transition: "width 0.5s ease",
-                  }}
-                />
-              ))}
-            </div>
+              {/* Allocated segmented bar */}
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: 14,
+                  background: "var(--t-line)",
+                  borderRadius: 7,
+                  overflow: "hidden",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
+                }}
+              >
+                {liquidityWeights.map((w) => (
+                  <div
+                    key={w.id}
+                    title={`${w.name}: ${w.share.toFixed(1)}%`}
+                    style={{
+                      width: `${w.share}%`,
+                      height: "100%",
+                      background: w.color,
+                      transition: "width 0.5s ease",
+                    }}
+                  />
+                ))}
+              </div>
 
-            {/* Details legends list */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
-              {liquidityWeights.map((w) => (
-                <div
-                  key={w.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 11,
-                    padding: "4px 10px",
-                    borderRadius: 8,
-                    background: "var(--surface-1)",
-                    border: `1px solid ${THEME.line}`,
-                  }}
-                >
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: w.color }} />
-                  <span style={{ fontWeight: 700, color: THEME.ink }}>{w.name}</span>
-                  <span style={{ color: THEME.muted, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{w.share.toFixed(0)}%</span>
-                </div>
-              ))}
+              {/* Details legends list formatted as a clean list table */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+                {liquidityWeights.map((w: any) => (
+                  <div
+                    key={w.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                      padding: "4px 0",
+                      borderBottom: `1.5px dashed ${THEME.line}50`,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: w.color, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>{w.bankName}</span>
+                      <span style={{ color: THEME.muted, fontSize: 10, fontWeight: 600 }}>
+                        ({w.type || "Savings"} •••• {w.accountNumberSuffix || "—"})
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
+                      {w.share.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
         </div>
