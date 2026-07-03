@@ -1283,9 +1283,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                   label: "Total Limit",
                   sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
                   value: <Prv>{fmtINRFull(totalLimit)}</Prv>,
-                  color: THEME.accent,
+                  color: "var(--t-accent)",
                   borderColor: "var(--t-accent)",
-                  iconBg: `${THEME.accent}1f`,
+                  iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`,
                   icon: (
                     <svg
                       width="16"
@@ -1306,9 +1306,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                   label: "Outstanding",
                   sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
                   value: <Prv>{fmtINRFull(totalOutstandingCC)}</Prv>,
-                  color: THEME.rust,
+                  color: "var(--t-rust)",
                   borderColor: "var(--t-rust)",
-                  iconBg: `${THEME.rust}1f`,
+                  iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`,
                   icon: (
                     <svg
                       width="16"
@@ -1336,9 +1336,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                         ? "All cards closed"
                         : "No cards yet",
                   value: <Prv>{fmtINRFull(totalAvailable)}</Prv>,
-                  color: THEME.sage,
+                  color: "var(--t-sage)",
                   borderColor: "var(--t-sage)",
-                  iconBg: `${THEME.sage}1f`,
+                  iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`,
                   icon: (
                     <svg
                       width="16"
@@ -1360,9 +1360,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                         label: "Annual Fees / yr",
                         sub: `${feeCardCount} card${feeCardCount !== 1 ? "s" : ""} · ${fmtINRFull(Math.round(totalAnnualFees / 12))}/mo`,
                         value: <Prv>{fmtINRFull(totalAnnualFees)}</Prv>,
-                        color: THEME.gold,
+                        color: "var(--t-gold)",
                         borderColor: "var(--t-gold)",
-                        iconBg: `${THEME.gold}1f`,
+                        iconBg: `color-mix(in srgb, var(--t-gold) 10%, transparent)`,
                         icon: (
                           <svg
                             width="16"
@@ -1399,7 +1399,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                         className="glass card-lift"
                         style={{
                           background: "transparent",
-                          border: `1px solid ${THEME.line}`,
+                          border: `1px solid var(--t-line)`,
                           borderTop: `4px solid ${color}`,
                           borderRadius: 14,
                           padding: "18px 20px",
@@ -2054,9 +2054,12 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           </div>
         )}
 
-        {/* Network logo + owner badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <CardNetworkLogo network={c.network} />
+        {/* Network logo + Bank Logo + owner badge */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BankLogo bankName={c.issuer} size={30} />
+            <CardNetworkLogo network={c.network} />
+          </div>
           {!isClosed && <OwnerBadge owner={c.owner} />}
         </div>
 
@@ -2366,10 +2369,10 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             style={{
               padding: "6px 18px",
               borderRadius: 20,
-              border: viewMode === mode ? "none" : `1.5px solid ${THEME.line}`,
+              border: viewMode === mode ? "none" : `1.5px solid var(--t-line)`,
               background:
-                viewMode === mode ? (mode === "active" ? THEME.accent : "#555") : "transparent",
-              color: viewMode === mode ? "#fff" : THEME.muted,
+                viewMode === mode ? (mode === "active" ? "var(--t-accent)" : "var(--t-muted)") : "transparent",
+              color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
