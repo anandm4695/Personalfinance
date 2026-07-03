@@ -3279,6 +3279,46 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
 
   if (!items.length) return <PrepaidEmptyState onAdd={onAdd} />;
 
+  const totalBalance = activeCards.reduce((s: number, p: any) => {
+    const { balance } = computeStats(p.transactions);
+    return s + balance;
+  }, 0);
+  const totalLoaded = activeCards.reduce((s: number, p: any) => {
+    const { loaded } = computeStats(p.transactions);
+    return s + loaded;
+  }, 0);
+  const totalSpent = activeCards.reduce((s: number, p: any) => {
+    const { spent } = computeStats(p.transactions);
+    return s + spent;
+  }, 0);
+
+  const prepaidStats = [
+    {
+      label: "Combined Balance",
+      value: <Prv>{fmtINRFull(totalBalance)}</Prv>,
+      sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
+      color: THEME.sage,
+      icon: <Wallet size={16} />,
+      iconBg: `${THEME.sage}1f`
+    },
+    {
+      label: "Total Loaded",
+      value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
+      sub: "Total funds loaded into cards",
+      color: THEME.accent,
+      icon: <ArrowUp size={16} />,
+      iconBg: `${THEME.accent}1f`
+    },
+    {
+      label: "Total Spent",
+      value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
+      sub: "Total expenditures on cards",
+      color: THEME.rust,
+      icon: <ArrowDown size={16} />,
+      iconBg: `${THEME.rust}1f`
+    }
+  ];
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
@@ -3306,6 +3346,79 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
         ))}
       </div>
 
+      {viewMode === "active" && activeCards.length > 0 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 14,
+            marginBottom: 20,
+          }}
+        >
+          {prepaidStats.map(({ label, value, color, sub: subText, icon, iconBg }) => (
+            <div
+              key={label}
+              className="glass card-lift"
+              style={{
+                background: "transparent",
+                border: `1px solid ${THEME.line}`,
+                borderTop: `4px solid ${color}`,
+                borderRadius: 14,
+                padding: "18px 20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: iconBg || `color-mix(in srgb, ${color} 10%, transparent)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color,
+                    flexShrink: 0,
+                  }}
+                >
+                  {icon}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: THEME.muted,
+                    textTransform: "uppercase" as const,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {label}
+                </div>
+              </div>
+              <div
+                style={{
+                  fontSize: 26,
+                  fontWeight: 900,
+                  color: THEME.ink,
+                  letterSpacing: "-0.04em",
+                  lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {value}
+              </div>
+              {subText && (
+                <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{subText}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {displayCards.length === 0 && (
         <Card style={{ padding: "40px 32px", textAlign: "center" as const }}>
           <div
@@ -3324,7 +3437,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
             <Wallet size={26} color="#fff" />
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.02em" }}>
-            {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Prepaid Cards"}
+            {viewMode === "active" ? "No Active Prepaid Cards" : "No Closed Credit Cards"}
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340, margin: "0 auto", lineHeight: 1.5 }}>
             {viewMode === "active"
@@ -3348,14 +3461,27 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   ? "linear-gradient(135deg, #2a2a1a 0%, #1a1a0d 100%)"
                   : getCardGradient(name),
                 color: "#fff",
-                borderRadius: 12,
+                borderRadius: 16,
                 padding: 20,
                 paddingBottom: isClosed ? 20 : 56,
                 position: "relative",
                 opacity: isClosed ? 0.8 : 1,
                 filter: isClosed ? "grayscale(35%)" : "none",
+                boxShadow: isClosed ? "none" : "0 8px 30px rgba(0, 0, 0, 0.3)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                overflow: "hidden"
               }}
             >
+              {/* Shimmer/Reflective Mesh Effect Overlay */}
+              {!isClosed && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
+                  pointerEvents: "none"
+                }} />
+              )}
+
               <div
                 style={{
                   position: "absolute",
@@ -3364,6 +3490,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   display: "flex",
                   gap: 6,
                   alignItems: "center",
+                  zIndex: 10
                 }}
               >
                 {!isClosed && closingId !== p.id && (
@@ -3374,14 +3501,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     }}
                     title="Mark card as closed"
                     style={{
-                      background: "rgba(239,68,68,0.18)",
-                      border: "1px solid rgba(239,68,68,0.3)",
+                      background: "rgba(239,68,68,0.22)",
+                      border: "1px solid rgba(239,68,68,0.45)",
                       cursor: "pointer",
-                      color: "#ff8080",
+                      color: "#ff9999",
                       padding: "3px 9px",
                       borderRadius: 6,
                       fontSize: 10,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       letterSpacing: "0.05em",
                     }}
                   >
@@ -3393,14 +3520,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     onClick={() => onUpdateCard(p.id, { status: "active", closedDate: "" })}
                     title="Reactivate card"
                     style={{
-                      background: "rgba(34,197,94,0.15)",
-                      border: "1px solid rgba(34,197,94,0.3)",
+                      background: "rgba(34,197,94,0.2)",
+                      border: "1px solid rgba(34,197,94,0.45)",
                       cursor: "pointer",
-                      color: "#6ee7b7",
+                      color: "#a7f3d0",
                       padding: "3px 9px",
                       borderRadius: 6,
                       fontSize: 10,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       letterSpacing: "0.05em",
                     }}
                   >
@@ -3413,7 +3540,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
-                    color: "rgba(255,255,255,0.5)",
+                    color: "rgba(255,255,255,0.75)",
                   }}
                 >
                   <Edit3 size={14} />
@@ -3424,7 +3551,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
-                    color: "rgba(255,255,255,0.5)",
+                    color: "rgba(255,255,255,0.75)",
                   }}
                 >
                   <Trash2 size={14} />
@@ -3436,8 +3563,8 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     position: "absolute",
                     top: 40,
                     right: 12,
-                    background: "rgba(15,15,25,0.97)",
-                    border: "1px solid rgba(239,68,68,0.45)",
+                    background: "rgba(15,15,25,0.98)",
+                    border: "1px solid rgba(239,68,68,0.5)",
                     borderRadius: 8,
                     padding: "8px 10px",
                     display: "flex",
@@ -3505,14 +3632,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 <span
                   style={{
                     fontSize: 9,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
-                    background: "rgba(34,197,94,0.2)",
-                    color: "#6ee7b7",
-                    padding: "2px 8px",
+                    background: "rgba(34,197,94,0.25)",
+                    color: "#a7f3d0",
+                    padding: "3px 8px",
                     borderRadius: 99,
-                    border: "1px solid rgba(34,197,94,0.3)",
+                    border: "1px solid rgba(34,197,94,0.4)",
                   }}
                 >
                   {p.cardType || "Prepaid"}
@@ -3520,14 +3647,39 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 {!isClosed && <OwnerBadge owner={p.owner} />}
               </div>
 
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 12 }}>{name}</div>
+              {/* EMV Chip and Contactless indicator */}
+              {!isClosed && (
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, marginBottom: 4 }}>
+                  {/* EMV Chip */}
+                  <div style={{
+                    width: 34, height: 26, borderRadius: 6,
+                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
+                    position: "relative", opacity: 0.9,
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.2)" }} />
+                    <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.2)" }} />
+                    <div style={{ position: "absolute", left: "25%", right: "25%", top: "25%", bottom: "25%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.15)" }} />
+                  </div>
+                  {/* Contactless Icon */}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" style={{ transform: "rotate(90deg)" }}>
+                    <path d="M5 12a7 7 0 0 1 7-7" />
+                    <path d="M5 17a12 12 0 0 1 12-12" />
+                    <path d="M5 22a17 17 0 0 1 17-17" />
+                    <circle cx="5" cy="7" r="1.5" fill="currentColor" />
+                  </svg>
+                </div>
+              )}
+
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>{name}</div>
               {p.last4 && (
-                <div style={{ fontSize: 13, letterSpacing: "0.1em", marginTop: 4, opacity: 0.5 }}>
+                <div style={{ fontSize: 13, letterSpacing: "0.08em", marginTop: 6, opacity: 0.8, fontFamily: "monospace", fontWeight: 600 }}>
                   •••• •••• •••• {p.last4}
                 </div>
               )}
               {isClosed && p.closedDate && (
-                <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
+                <div style={{ fontSize: 10.5, color: "rgba(255,140,140,0.85)", marginTop: 6, fontWeight: 600 }}>
                   Closed on{" "}
                   {new Date(p.closedDate).toLocaleDateString("en-IN", {
                     day: "numeric",
@@ -3537,13 +3689,14 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 </div>
               )}
 
-              <div style={{ marginTop: 18 }}>
+              <div style={{ marginTop: 20 }}>
                 <div
                   style={{
-                    fontSize: 10,
-                    color: "rgba(255,255,255,0.5)",
+                    fontSize: 9,
+                    color: "rgba(255,255,255,0.55)",
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
+                    fontWeight: 700
                   }}
                 >
                   Available Balance
@@ -3551,12 +3704,13 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 <div
                   style={{
                     fontSize: 28,
-                    fontWeight: 800,
-                    color: balance >= 0 ? "#6ee7b7" : "#ff8080",
+                    fontWeight: 900,
+                    color: balance >= 0 ? "#6ee7b7" : "#ff8888",
                     marginTop: 2,
+                    letterSpacing: "-0.02em"
                   }}
                 >
-                  {fmtINRFull(balance)}
+                  <Prv>{fmtINRFull(balance)}</Prv>
                 </div>
               </div>
               <div
@@ -3565,18 +3719,18 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                   gridTemplateColumns: "1fr 1fr",
                   gap: 8,
                   marginTop: 14,
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.55)",
+                  fontSize: 11.5,
+                  color: "rgba(255,255,255,0.75)",
                 }}
               >
                 <div>
-                  Loaded: <b style={{ color: "#6ee7b7" }}>{fmtINRFull(loaded)}</b>
+                  Loaded: <b style={{ color: "#6ee7b7" }}><Prv>{fmtINRFull(loaded)}</Prv></b>
                 </div>
                 <div>
-                  Spent: <b style={{ color: "#ff8080" }}>{fmtINRFull(spent)}</b>
+                  Spent: <b style={{ color: "#ff8888" }}><Prv>{fmtINRFull(spent)}</Prv></b>
                 </div>
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+              <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
                 {txnCount} transaction{txnCount !== 1 ? "s" : ""}
               </div>
 
@@ -3588,21 +3742,28 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    height: 44,
-                    background: "rgba(255,255,255,0.06)",
+                    height: 40,
+                    background: "rgba(255,255,255,0.07)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
                     border: "none",
-                    borderTop: "1px solid rgba(255,255,255,0.1)",
+                    borderTop: "1px solid rgba(255,255,255,0.12)",
                     color: "#fff",
                     cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: 12,
+                    fontWeight: 700,
+                    fontSize: 11.5,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
+                    borderBottomLeftRadius: 16,
+                    borderBottomRightRadius: 16,
+                    transition: "background 0.2s ease"
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
                 >
-                  <List size={14} /> Transactions & Load Money
+                  <List size={14} /> Transactions & Load Money ({txnCount})
                 </button>
               )}
               {isClosed && txnCount > 0 && (
@@ -3612,18 +3773,21 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                     marginTop: 14,
                     width: "100%",
                     padding: "8px 0",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.12)",
                     borderRadius: 8,
-                    color: "rgba(255,255,255,0.45)",
+                    color: "rgba(255,255,255,0.75)",
                     cursor: "pointer",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: 11,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
+                    transition: "background 0.2s ease"
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
                 >
                   <List size={12} /> View History ({txnCount} txns)
                 </button>
