@@ -1248,9 +1248,9 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                     {statCards.map(({ label, value, color, sub: subText, icon, iconBg }) => (
                       <div
                         key={label}
-                        className="card-lift"
+                        className="glass card-lift"
                         style={{
-                          background: "var(--surface-0)",
+                          background: "transparent",
                           border: `1px solid ${THEME.line}`,
                           borderTop: `4px solid ${color}`,
                           borderRadius: 14,
@@ -1267,7 +1267,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                               width: 36,
                               height: 36,
                               borderRadius: 10,
-                              background: iconBg || `${color}1f`,
+                              background: iconBg || `color-mix(in srgb, ${color} 10%, transparent)`,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1279,11 +1279,11 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                           </div>
                           <div
                             style={{
-                              fontSize: 11,
-                              fontWeight: 700,
+                              fontSize: 10,
+                              fontWeight: 800,
                               color: THEME.muted,
                               textTransform: "uppercase" as const,
-                              letterSpacing: "0.1em",
+                              letterSpacing: "0.08em",
                             }}
                           >
                             {label}
@@ -1302,33 +1302,76 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
                           {value}
                         </div>
                         {subText && (
-                          <div style={{ fontSize: 10, color: THEME.muted }}>{subText}</div>
+                          <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{subText}</div>
                         )}
                       </div>
                     ))}
                   </div>
-                  {activeCards.length > 0 && (
-                    <div
-                      style={{
-                        marginBottom: 24,
-                        padding: "9px 14px",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        background: utilPct > 30 ? `${THEME.rust}0f` : `${THEME.sage}0f`,
-                        border: `1px solid ${utilPct > 30 ? `${THEME.rust}2e` : `${THEME.sage}2e`}`,
-                        color: utilPct > 30 ? THEME.rust : THEME.sage,
-                      }}
-                    >
-                      {utilPct > 70
-                        ? `⚠ Critical: ${utilPct}% overall utilization — very high. Pay down balances urgently to protect your credit score.`
-                        : utilPct > 30
-                          ? `⚠ ${utilPct}% overall utilization — above the recommended 30% threshold. Reducing this will improve your credit score.`
-                          : utilPct > 0
-                            ? `✓ ${utilPct}% overall utilization — healthy range. Keeping below 30% is great for your credit score.`
-                            : `✓ No outstanding balance — excellent credit utilization.`}
-                    </div>
-                  )}
+                  {activeCards.length > 0 && (() => {
+                    const isCritical = utilPct > 70;
+                    const isWarning = utilPct > 30 && utilPct <= 70;
+                    const alertBg = isCritical
+                      ? "color-mix(in srgb, var(--t-rust) 6%, transparent)"
+                      : isWarning
+                        ? "color-mix(in srgb, var(--t-gold) 6%, transparent)"
+                        : "color-mix(in srgb, var(--t-sage) 6%, transparent)";
+                    const alertBorder = isCritical
+                      ? "color-mix(in srgb, var(--t-rust) 15%, transparent)"
+                      : isWarning
+                        ? "color-mix(in srgb, var(--t-gold) 15%, transparent)"
+                        : "color-mix(in srgb, var(--t-sage) 15%, transparent)";
+                    const alertLeftBorder = isCritical
+                      ? "var(--t-rust)"
+                      : isWarning
+                        ? "var(--t-gold)"
+                        : "var(--t-sage)";
+                    const alertColor = isCritical
+                      ? THEME.rust
+                      : isWarning
+                        ? THEME.gold
+                        : THEME.sage;
+                    const icon = isCritical ? "🚨" : isWarning ? "⚠️" : "✨";
+                    return (
+                      <div
+                        style={{
+                          marginBottom: 24,
+                          padding: "12px 16px",
+                          borderRadius: 12,
+                          fontSize: 12.5,
+                          fontWeight: 500,
+                          background: alertBg,
+                          border: `1px solid ${alertBorder}`,
+                          borderLeft: `4px solid ${alertLeftBorder}`,
+                          color: THEME.ink,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          lineHeight: 1.4
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>{icon}</span>
+                        <div>
+                          {utilPct > 70 ? (
+                            <span>
+                              <strong style={{ color: alertColor }}>Critical: {utilPct}% overall utilization.</strong> This is very high and can negatively impact your credit score. Pay down balances urgently.
+                            </span>
+                          ) : utilPct > 30 ? (
+                            <span>
+                              <strong style={{ color: alertColor }}>Utilization warning: {utilPct}%.</strong> Above the recommended 30% threshold. Reducing this balance will improve your credit history.
+                            </span>
+                          ) : utilPct > 0 ? (
+                            <span>
+                              <strong style={{ color: alertColor }}>Healthy utilization: {utilPct}%.</strong> Excellent work keeping balances below the recommended 30% mark.
+                            </span>
+                          ) : (
+                            <span>
+                              <strong style={{ color: alertColor }}>Optimal: 0% utilization.</strong> No active credit outstanding — ideal credit score protection.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </>
               );
             })()}
@@ -1705,8 +1748,22 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           paddingBottom: isClosed ? 20 : 60,
           opacity: isClosed ? 0.8 : 1,
           filter: isClosed ? "grayscale(35%)" : "none",
+          borderRadius: 16,
+          boxShadow: isClosed ? "none" : "0 8px 30px rgba(0, 0, 0, 0.3)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          overflow: "hidden"
         }}
       >
+        {/* Shimmer/Reflective Mesh Effect Overlay */}
+        {!isClosed && (
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(125deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, transparent 60%)",
+            pointerEvents: "none"
+          }} />
+        )}
+
         {/* Action buttons */}
         <div
           style={{
@@ -1716,6 +1773,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             display: "flex",
             gap: 6,
             alignItems: "center",
+            zIndex: 10
           }}
         >
           {!isClosed && closingId !== c.id && (
@@ -1726,14 +1784,14 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               }}
               title="Mark card as closed"
               style={{
-                background: "rgba(239,68,68,0.18)",
-                border: "1px solid rgba(239,68,68,0.3)",
+                background: "rgba(239,68,68,0.22)",
+                border: "1px solid rgba(239,68,68,0.45)",
                 cursor: "pointer",
-                color: "#ff8080",
+                color: "#ff9999",
                 padding: "3px 9px",
                 borderRadius: 6,
                 fontSize: 10,
-                fontWeight: 700,
+                fontWeight: 800,
                 letterSpacing: "0.05em",
               }}
             >
@@ -1745,14 +1803,14 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               onClick={() => onUpdateCard(c.id, { status: "active", closedDate: "" })}
               title="Reactivate card"
               style={{
-                background: "rgba(34,197,94,0.15)",
-                border: "1px solid rgba(34,197,94,0.3)",
+                background: "rgba(34,197,94,0.2)",
+                border: "1px solid rgba(34,197,94,0.45)",
                 cursor: "pointer",
-                color: "#6ee7b7",
+                color: "#a7f3d0",
                 padding: "3px 9px",
                 borderRadius: 6,
                 fontSize: 10,
-                fontWeight: 700,
+                fontWeight: 800,
                 letterSpacing: "0.05em",
               }}
             >
@@ -1765,7 +1823,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "rgba(245,239,227,0.6)",
+              color: "rgba(245,239,227,0.75)",
             }}
           >
             <Edit3 size={14} />
@@ -1776,7 +1834,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "rgba(245,239,227,0.6)",
+              color: "rgba(245,239,227,0.75)",
             }}
           >
             <Trash2 size={14} />
@@ -1788,8 +1846,8 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               position: "absolute",
               top: 40,
               right: 12,
-              background: "rgba(15,15,25,0.97)",
-              border: "1px solid rgba(239,68,68,0.45)",
+              background: "rgba(15,15,25,0.98)",
+              border: "1px solid rgba(239,68,68,0.5)",
               borderRadius: 8,
               padding: "8px 10px",
               display: "flex",
@@ -1848,17 +1906,42 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
         )}
 
         {/* Network logo + owner badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <CardNetworkLogo network={c.network} />
           {!isClosed && <OwnerBadge owner={c.owner} />}
         </div>
 
-        <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{c.issuer}</div>
-        <div style={{ fontSize: 16, letterSpacing: "0.05em", marginTop: 12, opacity: 0.8 }}>
+        {/* EMV Chip and Contactless indicator */}
+        {!isClosed && (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, marginBottom: 4 }}>
+            {/* EMV Chip */}
+            <div style={{
+              width: 34, height: 26, borderRadius: 6,
+              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #fef3c7 100%)",
+              position: "relative", opacity: 0.9,
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.15)",
+              overflow: "hidden"
+            }}>
+              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.2)" }} />
+              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.2)" }} />
+              <div style={{ position: "absolute", left: "25%", right: "25%", top: "25%", bottom: "25%", borderRadius: 2, border: "1px solid rgba(0,0,0,0.15)" }} />
+            </div>
+            {/* Contactless Icon */}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" style={{ transform: "rotate(90deg)" }}>
+              <path d="M5 12a7 7 0 0 1 7-7" />
+              <path d="M5 17a12 12 0 0 1 12-12" />
+              <path d="M5 22a17 17 0 0 1 17-17" />
+              <circle cx="5" cy="7" r="1.5" fill="currentColor" />
+            </svg>
+          </div>
+        )}
+
+        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 12, letterSpacing: "-0.02em" }}>{c.issuer}</div>
+        <div style={{ fontSize: 16, letterSpacing: "0.08em", marginTop: 8, opacity: 0.9, fontFamily: "monospace", fontWeight: 600 }}>
           •••• •••• •••• {c.last4 || "••••"}
         </div>
         {isClosed && c.closedDate && (
-          <div style={{ fontSize: 10, color: "rgba(255,128,128,0.7)", marginTop: 5 }}>
+          <div style={{ fontSize: 10.5, color: "rgba(255,140,140,0.85)", marginTop: 6, fontWeight: 600 }}>
             Closed on{" "}
             {new Date(c.closedDate).toLocaleDateString("en-IN", {
               day: "numeric",
@@ -1879,19 +1962,19 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
         >
           <div>
             <div
-              style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}
+              style={{ color: "rgba(245,239,227,0.55)", fontSize: 9, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
             >
               Outstanding
             </div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.outstanding)}</div>
+            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}><Prv>{fmtINRFull(c.outstanding)}</Prv></div>
           </div>
           <div>
             <div
-              style={{ color: "rgba(245,239,227,0.6)", fontSize: 9, textTransform: "uppercase" }}
+              style={{ color: "rgba(245,239,227,0.55)", fontSize: 9, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
             >
               {c.sharedGroup ? "Sub-Limit" : "Limit"}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtINRFull(c.limit)}</div>
+            <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}><Prv>{fmtINRFull(c.limit)}</Prv></div>
           </div>
         </div>
         <div
@@ -1899,20 +1982,20 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             marginTop: 16,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-            fontSize: 11,
-            color: "rgba(245,239,227,0.7)",
+            gap: 10,
+            fontSize: 11.5,
+            color: "rgba(245,239,227,0.8)",
           }}
         >
           <div>
-            Bill Date: <strong>{c.billDate ? `${c.billDate}th` : "—"}</strong>
+            Bill Date: <strong style={{ color: "#fff" }}>{c.billDate ? `${c.billDate}th` : "—"}</strong>
           </div>
           <div>
-            Due Day: <strong>{c.dueDay ? `${c.dueDay}th` : "—"}</strong>
+            Due Day: <strong style={{ color: "#fff" }}>{c.dueDay ? `${c.dueDay}th` : "—"}</strong>
           </div>
           <div>
             Fee:{" "}
-            <strong>
+            <strong style={{ color: "#fff" }}>
               {fmtINRExact(c.annualFee)}
               {c.feeMonth
                 ? ` · ${Number(c.feeDay) || 1} ${MONTH_NAMES[Number(c.feeMonth) - 1]}`
@@ -1920,18 +2003,19 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             </strong>
           </div>
           <div>
-            Helpline: <strong>{c.helpline || "—"}</strong>
+            Helpline: <strong style={{ color: "#fff" }}>{c.helpline || "—"}</strong>
           </div>
         </div>
         {c.waiverInfo && (
           <div
             style={{
               marginTop: 12,
-              fontSize: 10,
-              background: "rgba(255,255,255,0.05)",
+              fontSize: 10.5,
+              background: "rgba(255,255,255,0.08)",
               padding: "6px 10px",
               borderRadius: 6,
               color: THEME.gold,
+              fontWeight: 500
             }}
           >
             Waiver: {c.waiverInfo}
@@ -1950,21 +2034,36 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                 : new Date(now.getFullYear(), now.getMonth() + 1, dd);
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const daysLeft = Math.ceil((dueDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
-            const urgentColor =
-              daysLeft <= 3 ? "#ff8080" : daysLeft <= 7 ? "#fbbf24" : "rgba(245,239,227,0.55)";
+            const isUrgent = daysLeft <= 3;
+            const isWarning = daysLeft <= 7 && daysLeft > 3;
+
+            const badgeBg = isUrgent
+              ? "rgba(239, 68, 68, 0.25)"
+              : isWarning
+                ? "rgba(245, 158, 11, 0.25)"
+                : "rgba(255, 255, 255, 0.12)";
+            const badgeColor = isUrgent
+              ? "#ff8888"
+              : isWarning
+                ? "#fbbf24"
+                : "rgba(255,255,255,0.85)";
             const label =
               daysLeft <= 0
-                ? "⚠ Due today!"
+                ? "🚨 Due today!"
                 : daysLeft === 1
-                  ? "⚠ Due tomorrow!"
-                  : `Payment due in ${daysLeft} days`;
+                  ? "🚨 Due tomorrow!"
+                  : `🕒 Payment due in ${daysLeft} days`;
             return (
               <div
                 style={{
-                  marginTop: 10,
-                  fontSize: 11,
-                  color: urgentColor,
-                  fontWeight: daysLeft <= 7 ? 700 : 500,
+                  marginTop: 12,
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  background: badgeBg,
+                  color: badgeColor,
+                  fontSize: 10.5,
+                  fontWeight: daysLeft <= 7 ? 800 : 500,
+                  display: "inline-block"
                 }}
               >
                 {label}
@@ -1978,21 +2077,36 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
             const fee = getNextFeeDate(c);
             if (!fee) return null;
             const { dateStr, daysLeft } = fee;
-            const urgentColor =
-              daysLeft <= 7 ? "#ff8080" : daysLeft <= 30 ? "#fbbf24" : "rgba(245,239,227,0.55)";
+            const isUrgent = daysLeft <= 7;
+            const isWarning = daysLeft <= 30 && daysLeft > 7;
+
+            const badgeBg = isUrgent
+              ? "rgba(239, 68, 68, 0.25)"
+              : isWarning
+                ? "rgba(245, 158, 11, 0.25)"
+                : "rgba(255, 255, 255, 0.12)";
+            const badgeColor = isUrgent
+              ? "#ff8888"
+              : isWarning
+                ? "#fbbf24"
+                : "rgba(255,255,255,0.85)";
             const label =
               daysLeft === 0
-                ? `⚠ Annual fee ${fmtINRExact(c.annualFee)} due today!`
+                ? `🚨 Annual fee ${fmtINRExact(c.annualFee)} due today!`
                 : daysLeft === 1
-                  ? `⚠ Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
+                  ? `🚨 Annual fee ${fmtINRExact(c.annualFee)} due tomorrow!`
                   : `Annual fee ${fmtINRExact(c.annualFee)} on ${dateStr} (${daysLeft}d)`;
             return (
               <div
                 style={{
                   marginTop: 6,
-                  fontSize: 11,
-                  color: urgentColor,
-                  fontWeight: daysLeft <= 30 ? 700 : 400,
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  background: badgeBg,
+                  color: badgeColor,
+                  fontSize: 10.5,
+                  fontWeight: daysLeft <= 30 ? 800 : 400,
+                  display: "inline-block"
                 }}
               >
                 {label}
@@ -2002,25 +2116,29 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
 
         {/* Sub-limit utilization bar — active cards only */}
         {!isClosed && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ height: 4, background: "rgba(245,239,227,0.15)", borderRadius: 2 }}>
+          <div style={{ marginTop: 18 }}>
+            <div className="progress-track" style={{ height: 5, background: "rgba(255,255,255,0.2)", borderRadius: 2.5 }}>
               <div
+                className="progress-fill"
                 style={{
-                  height: "100%",
                   width: `${Math.min(util, 100)}%`,
-                  background: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage,
-                  borderRadius: 2,
+                  background: util > 70
+                    ? "linear-gradient(90deg, var(--t-rust), color-mix(in srgb, var(--t-rust) 75%, white))"
+                    : util > 40
+                      ? "linear-gradient(90deg, var(--t-gold), color-mix(in srgb, var(--t-gold) 75%, white))"
+                      : "linear-gradient(90deg, var(--t-sage), color-mix(in srgb, var(--t-sage) 75%, white))",
                 }}
               />
             </div>
             <div
               style={{
-                fontSize: 10,
-                color: util > 70 ? THEME.rust : util > 40 ? THEME.gold : THEME.sage,
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: util > 70 ? "#ff8888" : util > 40 ? "#fbbf24" : "#6ee7b7",
                 marginTop: 6,
               }}
             >
-              {util.toFixed(1)}% of {c.sharedGroup ? "sub-limit" : "limit"}
+              {util.toFixed(1)}% of {c.sharedGroup ? "sub-limit" : "limit"} used
             </div>
           </div>
         )}
@@ -2034,19 +2152,26 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               bottom: 0,
               left: 0,
               right: 0,
-              height: 44,
-              background: "rgba(255,255,255,0.05)",
+              height: 40,
+              background: "rgba(255,255,255,0.07)",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
               border: "none",
-              borderTop: `1px solid rgba(255,255,255,0.1)`,
+              borderTop: `1px solid rgba(255,255,255,0.12)`,
               color: "#fff",
               cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 12,
+              fontWeight: 700,
+              fontSize: 11.5,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 16,
+              transition: "background 0.2s ease"
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
           >
             <List size={14} /> View Transactions ({c.transactions?.length || 0})
           </button>
@@ -2058,18 +2183,21 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
               marginTop: 14,
               width: "100%",
               padding: "8px 0",
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid rgba(255,255,255,0.1)`,
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid rgba(255,255,255,0.12)`,
               borderRadius: 8,
-              color: "rgba(255,255,255,0.45)",
+              color: "rgba(255,255,255,0.75)",
               cursor: "pointer",
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: 11,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
+              transition: "background 0.2s ease"
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
           >
             <List size={12} /> View History ({c.transactions.length} txns)
           </button>
@@ -2151,12 +2279,13 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
           <div key={groupName} style={{ marginBottom: 32 }}>
             {/* Shared pool banner */}
             <div
+              className="glass"
               style={{
-                marginBottom: 14,
-                padding: "16px 20px",
-                borderRadius: 14,
-                background: "var(--surface-0)",
-                border: `1.5px solid ${barColor}55`,
+                marginBottom: 16,
+                padding: "18px 22px",
+                borderRadius: 16,
+                background: "transparent",
+                border: `1.5px solid color-mix(in srgb, ${barColor} 30%, transparent)`,
               }}
             >
               <div
@@ -2174,7 +2303,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.12em",
                       color: THEME.muted,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       marginBottom: 4,
                     }}
                   >
@@ -2182,15 +2311,15 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                   </div>
                   <div
                     style={{
-                      fontSize: 17,
-                      fontWeight: 800,
+                      fontSize: 18,
+                      fontWeight: 900,
                       color: THEME.ink,
                       letterSpacing: "-0.02em",
                     }}
                   >
                     {groupName}
                   </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2, fontWeight: 500 }}>
                     {cards.length} card{cards.length !== 1 ? "s" : ""} sharing this pool
                   </div>
                 </div>
@@ -2205,25 +2334,23 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                   >
                     {groupUtil.toFixed(0)}%
                   </div>
-                  <div style={{ fontSize: 11, color: THEME.muted }}>of pool used</div>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>of pool used</div>
                 </div>
               </div>
               <div
+                className="progress-track"
                 style={{
                   height: 8,
-                  background: "var(--t-line)",
                   borderRadius: 4,
-                  overflow: "hidden",
                   marginBottom: 12,
                 }}
               >
                 <div
+                  className="progress-fill"
                   style={{
                     height: "100%",
                     width: `${Math.min(groupUtil, 100)}%`,
-                    background: barColor,
-                    borderRadius: 4,
-                    transition: "width 0.5s ease",
+                    background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`,
                   }}
                 />
               </div>
@@ -2243,6 +2370,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
+                      fontWeight: 700
                     }}
                   >
                     Pool Limit
@@ -2259,6 +2387,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
+                      fontWeight: 700
                     }}
                   >
                     Combined Used
@@ -2275,6 +2404,7 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                       textTransform: "uppercase",
                       letterSpacing: "0.07em",
                       marginBottom: 2,
+                      fontWeight: 700
                     }}
                   >
                     Available
@@ -2290,10 +2420,11 @@ function CCList({ items, onRemove, onEdit, onUpdateCard, onAdd, existingGroups: 
                     marginTop: 10,
                     fontSize: 11,
                     color: THEME.gold,
-                    background: `${THEME.gold}12`,
-                    border: `1px solid ${THEME.gold}30`,
-                    borderRadius: 6,
-                    padding: "6px 10px",
+                    background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontWeight: 500
                   }}
                 >
                   Set the Pool Limit on any card in this group to track combined utilization.
