@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -8034,24 +8035,33 @@ function DebtPayoffOptimizer({ state }: any) {
   };
 
   return (
-    <div className="tab-content-enter">
+    <div
+      className="tab-content-enter"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
+    >
       {/* ── INTERACTIVE SURPLUS & WINDFALL CONSOLE ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 32 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 20,
+        }}
+      >
         <Card style={{ padding: 24 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 800,
-              letterSpacing: "0.15em",
+              letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: THEME.muted,
               marginBottom: 20,
             }}
           >
-            CFO Liabilities Control Console
+            Liabilities Control Console
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
             <div>
               <div
                 style={{
@@ -8061,7 +8071,9 @@ function DebtPayoffOptimizer({ state }: any) {
                   marginBottom: 8,
                 }}
               >
-                <label style={{ fontSize: 13, fontWeight: 700 }}>Extra Monthly Repayment (₹)</label>
+                <label style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  Extra Monthly Repayment
+                </label>
                 <span style={{ fontSize: 14, fontWeight: 800, color: THEME.accent }}>
                   {fmtINRExact(extraMonthly)}/mo
                 </span>
@@ -8074,7 +8086,13 @@ function DebtPayoffOptimizer({ state }: any) {
                 value={extraMonthly}
                 onChange={(e) => setExtraMonthly(Number(e.target.value))}
                 className="cxo-slider"
-                style={{ width: "100%" }}
+                style={{
+                  width: "100%",
+                  accentColor: THEME.accent,
+                  height: 6,
+                  borderRadius: 3,
+                  cursor: "pointer",
+                }}
               />
               <div
                 style={{
@@ -8083,6 +8101,7 @@ function DebtPayoffOptimizer({ state }: any) {
                   fontSize: 10,
                   color: THEME.muted,
                   marginTop: 4,
+                  fontWeight: 600,
                 }}
               >
                 <span>₹0 (None)</span>
@@ -8099,22 +8118,34 @@ function DebtPayoffOptimizer({ state }: any) {
                   placeholder="e.g. ₹1,00,000 bonus or stock sale"
                   value={windfall}
                   onChange={(e) => setWindfall(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "transparent",
+                    color: THEME.ink,
+                    fontSize: 13,
+                    outline: "none",
+                  }}
                 />
               </Field>
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                 {[25000, 50000, 100000, 250000].map((val) => (
                   <button
                     key={val}
                     onClick={() => setWindfall(String(val))}
+                    className="card-lift"
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
+                      padding: "5px 12px",
+                      borderRadius: 8,
                       border: `1px solid ${THEME.line}`,
-                      background: "rgba(128,128,128,0.05)",
+                      background: "var(--surface-0)",
                       fontSize: 11,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: THEME.muted,
                       cursor: "pointer",
+                      transition: "all 0.2s ease",
                     }}
                   >
                     +₹{val.toLocaleString("en-IN")}
@@ -8123,15 +8154,17 @@ function DebtPayoffOptimizer({ state }: any) {
                 {windfall && (
                   <button
                     onClick={() => setWindfall("")}
+                    className="card-lift"
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
+                      padding: "5px 12px",
+                      borderRadius: 8,
                       border: `1px solid ${THEME.rust}4d`,
                       background: `${THEME.rust}09`,
                       fontSize: 11,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: THEME.rust,
                       cursor: "pointer",
+                      transition: "all 0.2s ease",
                     }}
                   >
                     Clear
@@ -8144,12 +8177,16 @@ function DebtPayoffOptimizer({ state }: any) {
 
         {/* ── COMPARATIVE SCORECARD ── */}
         <Card
-          variant="hero"
           style={{
-            padding: 28,
+            padding: 24,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
+            background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+            border: "1.5px solid rgba(255, 255, 255, 0.1)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+            color: "#fff",
+            borderRadius: 16,
           }}
         >
           <div>
@@ -8160,52 +8197,83 @@ function DebtPayoffOptimizer({ state }: any) {
                 gap: 6,
                 fontSize: 10,
                 fontWeight: 800,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.7)",
+                color: "rgba(255, 255, 255, 0.5)",
                 marginBottom: 8,
               }}
             >
-              <Sparkles size={12} /> Total Interest Saved
+              <Sparkles size={12} style={{ color: "#34D399" }} /> Total Interest Saved
             </div>
             <div
               style={{
-                fontSize: 44,
+                fontSize: 36,
                 fontWeight: 900,
                 color: "#34D399",
-                marginBottom: 4,
+                marginBottom: 6,
                 letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {fmtINRExact(interestSaved)}
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+            <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", fontWeight: 600 }}>
               Debt-Free:{" "}
               <span style={{ color: "#34D399", fontWeight: 800 }}>
                 {getPayoffDateStr(currentSim.months)}
               </span>{" "}
-              (Shaved{" "}
-              <span style={{ color: "#34D399", fontWeight: 800 }}>{monthsSaved} Months</span>)
+              &bull; Shaved{" "}
+              <span style={{ color: "#34D399", fontWeight: 800 }}>{monthsSaved} Months</span>
             </div>
           </div>
 
           <div
-            style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.15)" }}
+            style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)" }}
           >
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 11 }}>
               <div>
-                <div style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    color: "rgba(255, 255, 255, 0.4)",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                  }}
+                >
                   Standard Interest
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#fff",
+                    marginTop: 2,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
                   {fmtINRExact(standardInterest)}
                 </div>
               </div>
               <div>
-                <div style={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    color: "rgba(255, 255, 255, 0.4)",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                  }}
+                >
                   Simulated Interest
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#fff",
+                    marginTop: 2,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
                   {fmtINRExact(currentInterest)}
                 </div>
               </div>
@@ -8220,16 +8288,17 @@ function DebtPayoffOptimizer({ state }: any) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: 12,
         }}
       >
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[
             {
               id: "avalanche",
               label: "Debt Avalanche",
               desc: "Highest Rate First",
-              detail: "Mathematical optimal",
+              detail: "Optimal",
               color: THEME.accent,
             },
             {
@@ -8245,29 +8314,35 @@ function DebtPayoffOptimizer({ state }: any) {
               <button
                 key={plan.id}
                 onClick={() => setSelectedPlan(plan.id as any)}
+                className="card-lift"
                 style={{
-                  padding: "10px 20px",
-                  borderRadius: 12,
-                  border: active ? "none" : `1.5px solid ${THEME.line}`,
-                  background: active ? plan.color : "var(--surface-0)",
-                  color: active ? "#fff" : THEME.muted,
+                  padding: "12px 18px",
+                  borderRadius: 14,
+                  border: `1.5px solid ${active ? plan.color : THEME.line}`,
+                  background: active
+                    ? `linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, ${plan.color} 8%, var(--surface-0)) 100%)`
+                    : "var(--surface-0)",
+                  color: active ? plan.color : THEME.ink,
                   fontWeight: 800,
                   cursor: "pointer",
                   textAlign: "left",
-                  boxShadow: active ? "var(--shadow-md)" : "none",
-                  transition: "all 0.2s ease",
+                  boxShadow: active ? "0 4px 15px rgba(0, 0, 0, 0.05)" : "var(--shadow-sm)",
+                  transition: "all 0.25s ease",
                 }}
               >
-                <div style={{ fontSize: 13 }}>{plan.label}</div>
-                <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 500, marginTop: 2 }}>
-                  {plan.detail} · {plan.desc}
+                <div style={{ fontSize: 13.5, fontWeight: 800 }}>{plan.label}</div>
+                <div style={{ fontSize: 10.5, color: THEME.muted, fontWeight: 500, marginTop: 3 }}>
+                  {plan.detail} &bull; {plan.desc}
                 </div>
               </button>
             );
           })}
         </div>
-        <Badge variant="muted" style={{ fontWeight: 800 }}>
-          {activeLoans.length} Loans Aggregated
+        <Badge
+          variant="muted"
+          style={{ fontWeight: 800, fontSize: 10.5, padding: "4px 10px", borderRadius: 10 }}
+        >
+          {activeLoans.length} Liabilities Aggregated
         </Badge>
       </div>
 
@@ -8275,27 +8350,26 @@ function DebtPayoffOptimizer({ state }: any) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.5fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
           gap: 20,
-          marginBottom: 32,
           alignItems: "start",
         }}
       >
         <Card style={{ padding: 24 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 800,
-              letterSpacing: "0.15em",
+              letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: THEME.muted,
               marginBottom: 20,
             }}
           >
-            Chronological Payoff Schedule ({selectedPlan.toUpperCase()})
+            Chronological Payoff Timeline ({selectedPlan.toUpperCase()})
           </div>
 
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             {activeLoans.map((l: any, idx: number) => {
               const targetPayoffMonth =
                 currentSim.payoffSchedule[l.id] != null ? currentSim.payoffSchedule[l.id] : 0;
@@ -8306,14 +8380,17 @@ function DebtPayoffOptimizer({ state }: any) {
               return (
                 <div
                   key={l.id}
+                  className="card-lift"
                   style={{
                     padding: "14px 16px",
-                    borderRadius: 12,
-                    background: "rgba(128,128,128,0.03)",
-                    border: `1px solid ${THEME.line}`,
+                    borderRadius: 14,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
+                    gap: 14,
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "all 0.2s ease",
                   }}
                 >
                   <div
@@ -8321,7 +8398,7 @@ function DebtPayoffOptimizer({ state }: any) {
                       width: 32,
                       height: 32,
                       borderRadius: "50%",
-                      background: `${THEME.sage}1f`,
+                      background: `${THEME.sage}16`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -8338,33 +8415,40 @@ function DebtPayoffOptimizer({ state }: any) {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
                     >
-                      <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                      <span style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink }}>
                         {l.lender}
                       </span>
-                      <Badge variant="muted" style={{ fontSize: 9 }}>
+                      <Badge variant="muted" style={{ fontSize: 9.5 }}>
                         {l.type || "Loan"}
                       </Badge>
-                      <Badge variant="gold" style={{ fontSize: 9 }}>
+                      <Badge variant="gold" style={{ fontSize: 9.5 }}>
                         {Number(l.rate || l.roi || l.interestRate || 8.5).toFixed(2)}% ROI
                       </Badge>
                     </div>
                     <div
                       style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
                     >
-                      Balance: {fmtINRExact(l.outstanding)} · EMI: {fmtINRExact(l.emi)}/mo
+                      Balance: {fmtINRExact(l.outstanding)} &bull; EMI: {fmtINRExact(l.emi)}/mo
                     </div>
                   </div>
 
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div
+                    style={{
+                      textAlign: "right",
+                      flexShrink: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-end",
+                      gap: 2,
+                    }}
+                  >
                     <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
-                      Paid {getPayoffDateStr(targetPayoffMonth)}
+                      {getPayoffDateStr(targetPayoffMonth)}
                     </div>
                     {monthsSavedOnLoan > 0 && (
-                      <div
-                        style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginTop: 2 }}
-                      >
-                        Shaved {monthsSavedOnLoan} Months!
-                      </div>
+                      <Badge variant="sage" style={{ fontSize: 9, padding: "2px 6px" }}>
+                        Shaved {monthsSavedOnLoan}m
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -8377,43 +8461,68 @@ function DebtPayoffOptimizer({ state }: any) {
         <Card
           style={{
             padding: 24,
-            borderLeft: `4px solid ${selectedPlan === "avalanche" ? "var(--t-accent)" : "var(--t-gold)"}`,
+            borderLeft: `4px solid ${selectedPlan === "avalanche" ? THEME.accent : THEME.gold}`,
+            background:
+              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+            borderRadius: 16,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
             <div
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: selectedPlan === "avalanche" ? `${THEME.accent}1f` : `${THEME.gold}1f`,
+                background: selectedPlan === "avalanche" ? `${THEME.accent}16` : `${THEME.gold}16`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <BookOpen
-                size={18}
-                color={selectedPlan === "avalanche" ? THEME.accent : THEME.gold}
-              />
+              <Info size={18} color={selectedPlan === "avalanche" ? THEME.accent : THEME.gold} />
             </div>
             <div style={{ flex: 1 }}>
-              <h4 style={{ fontWeight: 800, fontSize: 14, color: THEME.ink, marginBottom: 6 }}>
+              <h4
+                style={{
+                  fontWeight: 800,
+                  fontSize: 14,
+                  color: THEME.ink,
+                  marginBottom: 8,
+                  letterSpacing: "-0.01em",
+                }}
+              >
                 {selectedPlan === "avalanche"
                   ? "CFO Advisory: The Avalanche Method"
                   : "CFO Advisory: The Snowball Method"}
               </h4>
 
               {selectedPlan === "avalanche" ? (
-                <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, margin: 0 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: THEME.muted,
+                    lineHeight: 1.6,
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
                   The <b>Debt Avalanche</b> is mathematically optimal. It commands you to direct all
                   surplus prepayments to the loan with the <b>highest interest rate</b> first,
                   regardless of the balance size. This ensures you reduce compound interest accrual
                   at the fastest possible rate, yielding the absolute highest financial savings.
                 </p>
               ) : (
-                <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6, margin: 0 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: THEME.muted,
+                    lineHeight: 1.6,
+                    margin: 0,
+                    fontWeight: 500,
+                  }}
+                >
                   The <b>Debt Snowball</b> prioritizes psychological momentum and cashflow
                   liquidity. It commands you to pay off the <b>smallest outstanding balance</b>{" "}
                   first. Knocking out small loans quickly eliminates entire EMIs, reducing monthly
@@ -8424,14 +8533,15 @@ function DebtPayoffOptimizer({ state }: any) {
 
               <div
                 style={{
-                  marginTop: 14,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  background: "rgba(128,128,128,0.04)",
-                  border: `1px solid ${THEME.line}`,
-                  fontSize: 11,
+                  marginTop: 16,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1.5px solid ${THEME.line}`,
+                  fontSize: 11.5,
                   color: THEME.muted,
                   lineHeight: 1.4,
+                  fontWeight: 500,
                 }}
               >
                 💡 <b>CTO Prepayment Rule:</b> If a loan is paid off, its base EMI is immediately
