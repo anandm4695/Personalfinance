@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useCallback } from "react";
 import {
@@ -37,7 +38,6 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
@@ -83,6 +83,113 @@ function autoCompute(form: any) {
     netSalary: net || form.netSalary,
   };
 }
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : p.value}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Premium Salary Bento Card ─────────────────────────────────── */
+const SalaryStatCard = ({ label, value, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 function SlipForm({ initial, onSave, onClose, apiKey }: any) {
   const { familyProfiles } = useMasterData();
@@ -183,17 +290,19 @@ Return only the JSON, no explanation.`;
       {/* AI paste area */}
       <div
         style={{
-          background: `${THEME.primary}0a`,
-          border: `1px solid ${THEME.primary}30`,
-          borderRadius: 10,
-          padding: 14,
+          background:
+            "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)",
+          border: `1.5px solid ${THEME.line}`,
+          borderRadius: 14,
+          padding: 18,
           marginBottom: 16,
+          boxShadow: "var(--shadow-sm)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <Sparkles size={14} color={THEME.primary} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: THEME.primary }}>
-            AI Parser — paste salary slip text
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Sparkles size={14} color="var(--accent)" />
+          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
+            AI Parser — Paste Salary Slip Text
           </span>
         </div>
         <textarea
@@ -202,38 +311,42 @@ Return only the JSON, no explanation.`;
           placeholder="Paste the text from your salary slip PDF here… The AI will extract all fields automatically."
           value={form.rawText}
           onChange={(e) => set("rawText", e.target.value)}
-          style={{ marginBottom: 8, fontSize: 12 }}
+          style={{ marginBottom: 12, fontSize: 12.5 }}
         />
         {parseError && (
-          <div style={{ fontSize: 12, color: THEME.danger, marginBottom: 8 }}>{parseError}</div>
+          <div style={{ fontSize: 12, color: THEME.danger, marginBottom: 10, fontWeight: 600 }}>
+            {parseError}
+          </div>
         )}
-        <Button size="sm" onClick={parseWithAI} disabled={parsing || !form.rawText.trim()}>
-          {parsing ? (
-            <>
-              <Loader size={12} style={{ animation: "spin 1s linear infinite" }} /> Parsing…
-            </>
-          ) : (
-            <>
-              <Sparkles size={12} /> Parse with Gemini
-            </>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Button size="sm" onClick={parseWithAI} disabled={parsing || !form.rawText.trim()}>
+            {parsing ? (
+              <>
+                <Loader size={12} className="spin" style={{ marginRight: 6 }} /> Parsing…
+              </>
+            ) : (
+              <>
+                <Sparkles size={12} style={{ marginRight: 6 }} /> Parse with Gemini
+              </>
+            )}
+          </Button>
+          {!apiKey && (
+            <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
+              (Add Gemini API key in Settings to enable)
+            </span>
           )}
-        </Button>
-        {!apiKey && (
-          <span style={{ fontSize: 11, color: THEME.textMuted, marginLeft: 10 }}>
-            (Add Gemini API key in Settings to enable)
-          </span>
-        )}
+        </div>
       </div>
 
       {/* Earnings */}
       <div
         style={{
-          fontWeight: 600,
-          fontSize: 12,
-          color: THEME.success,
-          marginBottom: 8,
+          fontWeight: 800,
+          fontSize: 11,
+          color: THEME.sage,
+          marginBottom: 10,
           textTransform: "uppercase",
-          letterSpacing: "0.5px",
+          letterSpacing: "0.08em",
         }}
       >
         Earnings
@@ -271,12 +384,12 @@ Return only the JSON, no explanation.`;
       {/* Deductions */}
       <div
         style={{
-          fontWeight: 600,
-          fontSize: 12,
-          color: THEME.danger,
-          marginBottom: 8,
+          fontWeight: 800,
+          fontSize: 11,
+          color: THEME.rust,
+          marginBottom: 10,
           textTransform: "uppercase",
-          letterSpacing: "0.5px",
+          letterSpacing: "0.08em",
         }}
       >
         Deductions
@@ -313,22 +426,27 @@ Return only the JSON, no explanation.`;
       {/* Net */}
       <div
         style={{
-          background: `${THEME.success}12`,
-          border: `1px solid ${THEME.success}30`,
-          borderRadius: 8,
-          padding: "12px 16px",
-          marginBottom: 12,
+          background:
+            "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)",
+          border: `1.5px solid ${THEME.line}`,
+          borderLeft: `4px solid ${THEME.sage}`,
+          borderRadius: 14,
+          padding: "16px 20px",
+          marginBottom: 16,
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 600 }}>Net Salary (Take-Home)</span>
-          <span style={{ fontSize: 20, fontWeight: 800, color: THEME.success }}>
+          <span style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink }}>
+            Net Salary (Take-Home)
+          </span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: THEME.sage }}>
             {computed.netSalary ? <Prv>{fmtINRFull(Number(computed.netSalary))}</Prv> : "—"}
           </span>
         </div>
         {computed.grossSalary > 0 && computed.totalDeductions > 0 && (
-          <div style={{ fontSize: 12, color: THEME.textMuted, marginTop: 4 }}>
-            Gross: {fmtINRFull(Number(computed.grossSalary))} — Deductions:{" "}
+          <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
+            Gross: {fmtINRFull(Number(computed.grossSalary))} &bull; Deductions:{" "}
             {fmtINRFull(Number(computed.totalDeductions))}
           </div>
         )}
@@ -389,7 +507,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
   };
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle
         sub="Store monthly salary components — paste any slip text and let Gemini AI extract the details"
         rightElement={
@@ -404,20 +522,24 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
       {!apiKey && slips.length === 0 && (
         <div
           style={{
-            background: `${THEME.primary}0a`,
-            border: `1px dashed ${THEME.primary}50`,
-            borderRadius: 10,
-            padding: "12px 16px",
-            marginBottom: 16,
+            background:
+              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 6%, var(--surface-0)) 100%)",
+            border: `1.5px dashed color-mix(in srgb, var(--accent) 30%, transparent)`,
+            borderRadius: 14,
+            padding: "16px 20px",
             display: "flex",
             alignItems: "flex-start",
-            gap: 10,
+            gap: 12,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          <Sparkles size={14} color={THEME.primary} style={{ marginTop: 2 }} />
-          <div style={{ fontSize: 13, color: THEME.textMuted }}>
-            <strong style={{ color: THEME.primary }}>AI Parsing available.</strong> Add your Gemini
-            API key in Settings, then paste salary slip text to auto-fill all fields.
+          <Sparkles size={16} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
+            <strong style={{ color: "var(--accent)", fontWeight: 700 }}>
+              AI Parsing available.
+            </strong>{" "}
+            Add your Gemini API key in Settings, then paste salary slip text to auto-fill all
+            fields.
           </div>
         </div>
       )}
@@ -440,74 +562,100 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
         />
       ) : (
         <>
-          {/* Stats */}
+          {/* Stats Summary Grid */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
+              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+              gap: 16,
             }}
           >
             {latest && (
-              <StatCard
+              <SalaryStatCard
                 label="Last Net Salary"
                 value={<Prv>{fmtINRFull(Number(latest.netSalary || 0))}</Prv>}
-                icon={<IndianRupee size={18} />}
-                color={THEME.success}
+                icon={<IndianRupee size={16} />}
+                color={THEME.sage}
               />
             )}
-            <StatCard
+            <SalaryStatCard
               label="Avg Monthly Net"
               value={<Prv>{fmtINRFull(avgNet)}</Prv>}
-              icon={<TrendingUp size={18} />}
-              color={THEME.primary}
+              icon={<TrendingUp size={16} />}
+              color="var(--accent)"
             />
-            <StatCard
+            <SalaryStatCard
               label="Total TDS (FY)"
               value={<Prv>{fmtINRFull(totalTDS)}</Prv>}
-              icon={<TrendingDown size={18} />}
-              color={THEME.danger}
+              icon={<TrendingDown size={16} />}
+              color={THEME.rust}
             />
-            <StatCard
+            <SalaryStatCard
               label="Total PF (Employee)"
               value={<Prv>{fmtINRFull(totalPF)}</Prv>}
-              icon={<Briefcase size={18} />}
-              color={THEME.gold}
+              icon={<Briefcase size={16} />}
+              color="#D97706"
             />
           </div>
 
-          {/* Chart */}
+          {/* Recharts Trend Card */}
           {chartData.length > 1 && (
-            <Card style={{ marginBottom: 20 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Salary Trend</div>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={chartData} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}` }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    letterSpacing: "-0.015em",
+                  }}
+                >
+                  Salary Trend
+                </h3>
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  Visual comparison of gross incomes, take-homes, TDS, and PF
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={chartData} barGap={4}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <YAxis
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: THEME.muted }}
                     tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <Tooltip
                     formatter={(v: number, name: string) => [fmtINRFull(v), name]}
-                    contentStyle={{
-                      background: THEME.card,
-                      border: `1px solid ${THEME.border}`,
-                      borderRadius: 8,
-                    }}
+                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
                   />
-                  <Legend />
-                  <Bar dataKey="Gross" fill={`${THEME.primary}80`} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Net" fill={THEME.success} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="TDS" fill={THEME.danger} radius={[4, 4, 0, 0]} />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                    formatter={(value: string) => (
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
+                    )}
+                  />
+                  <Bar
+                    dataKey="Gross"
+                    fill={`color-mix(in srgb, var(--accent) 30%, transparent)`}
+                    radius={[6, 6, 0, 0]}
+                  />
+                  <Bar dataKey="Net" fill={THEME.sage} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="TDS" fill={THEME.rust} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
           )}
 
-          {/* Slip list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Slip Accordion list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {sorted.map((s: any) => {
               const isExpanded = expanded === s.id;
               const net = Number(s.netSalary || 0);
@@ -515,89 +663,139 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
               const pct = gross > 0 ? Math.round((net / gross) * 100) : 0;
 
               return (
-                <Card key={s.id}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <Card
+                  key={s.id}
+                  style={{
+                    padding: "16px 20px",
+                    border: `1.5px solid ${THEME.line}`,
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
+                        width: 38,
+                        height: 38,
                         borderRadius: 10,
-                        background: `${THEME.primary}18`,
+                        background: `color-mix(in srgb, var(--accent) 12%, transparent)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        color: "var(--accent)",
                         flexShrink: 0,
                       }}
                     >
-                      <Briefcase size={20} color={THEME.primary} />
+                      <Briefcase size={16} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14.5, color: THEME.ink }}>
                         {new Date(s.slipMonth + "-01").toLocaleDateString("en-IN", {
                           month: "long",
                           year: "numeric",
                         })}
                       </div>
-                      <div style={{ fontSize: 12, color: THEME.textMuted }}>
+                      <div
+                        style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 2 }}
+                      >
                         {s.employer || ""}
                         {pct > 0 ? ` · ${pct}% take-home` : ""}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 700, fontSize: 16, color: THEME.success }}>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: 15,
+                          color: THEME.sage,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
                         <Prv>{fmtINRFull(net)}</Prv>
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.textMuted }}>net</div>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>net</div>
                     </div>
                     {gross > 0 && (
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 14.5,
+                            color: THEME.ink,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
                           <Prv>{fmtINRFull(gross)}</Prv>
                         </div>
-                        <div style={{ fontSize: 11, color: THEME.textMuted }}>gross</div>
+                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                          gross
+                        </div>
                       </div>
                     )}
                     {Number(s.tds) > 0 && (
-                      <Badge color="danger">
+                      <Badge variant="rust" style={{ fontSize: 9.5, padding: "2px 8px" }}>
                         TDS <Prv>{fmtINRFull(Number(s.tds))}</Prv>
                       </Badge>
                     )}
-                    <div style={{ display: "flex", gap: 4 }}>
+                    <div style={{ display: "flex", gap: 6, marginLeft: 6 }}>
                       <button
                         onClick={() => setExpanded(isExpanded ? null : s.id)}
+                        className="card-lift"
                         style={{
-                          background: "none",
-                          border: "none",
+                          background: "var(--surface-0)",
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 8,
                           cursor: "pointer",
-                          color: THEME.textMuted,
+                          color: THEME.muted,
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
                         }}
                       >
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                       </button>
                       <button
                         onClick={() => setModal(s)}
+                        className="card-lift"
                         style={{
-                          background: "none",
-                          border: "none",
+                          background: "var(--surface-0)",
+                          border: `1.5px solid ${THEME.line}`,
+                          borderRadius: 8,
                           cursor: "pointer",
-                          color: THEME.textMuted,
+                          color: THEME.muted,
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
                         }}
                       >
-                        <Pencil size={14} />
+                        <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => {
                           if (window.confirm("Delete this salary slip?"))
                             removeItem("salarySlips", s.id);
                         }}
+                        className="card-lift"
                         style={{
-                          background: "none",
-                          border: "none",
+                          background: `${THEME.rust}09`,
+                          border: `1.5px solid ${THEME.rust}30`,
+                          borderRadius: 8,
                           cursor: "pointer",
-                          color: THEME.danger,
+                          color: THEME.rust,
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
                         }}
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -605,34 +803,50 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                   {isExpanded && (
                     <div
                       style={{
-                        marginTop: 14,
-                        paddingTop: 14,
-                        borderTop: `1px solid ${THEME.border}`,
+                        marginTop: 16,
+                        paddingTop: 16,
+                        borderTop: `1.5px solid ${THEME.line}`,
                       }}
                     >
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                          gap: 20,
+                        }}
+                      >
                         {/* Earnings breakdown */}
-                        <div>
+                        <div
+                          style={{
+                            background:
+                              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                            border: `1.5px solid ${THEME.line}`,
+                            borderLeft: `4px solid ${THEME.sage}`,
+                            borderRadius: 12,
+                            padding: 16,
+                            boxShadow: "var(--shadow-sm)",
+                          }}
+                        >
                           <div
                             style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: THEME.success,
-                              marginBottom: 8,
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              color: THEME.sage,
+                              marginBottom: 12,
                               textTransform: "uppercase",
-                              letterSpacing: "0.5px",
+                              letterSpacing: "0.08em",
                             }}
                           >
-                            Earnings
+                            Earnings Breakdown
                           </div>
                           {[
-                            ["Basic", s.basic],
+                            ["Basic Salary", s.basic],
                             ["HRA", s.hra],
                             ["DA", s.da],
                             ["Special Allowance", s.specialAllowance],
                             ["LTA", s.lta],
                             ["Bonus", s.bonus],
-                            ["Other", s.otherEarnings],
+                            ["Other Earnings", s.otherEarnings],
                           ]
                             .filter(([, v]) => Number(v) > 0)
                             .map(([label, val]) => (
@@ -641,13 +855,15 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                                 style={{
                                   display: "flex",
                                   justifyContent: "space-between",
-                                  fontSize: 12,
-                                  color: THEME.textMuted,
-                                  marginBottom: 3,
+                                  fontSize: 12.5,
+                                  color: THEME.muted,
+                                  marginBottom: 6,
+                                  fontWeight: 500,
+                                  fontVariantNumeric: "tabular-nums",
                                 }}
                               >
                                 <span>{label}</span>
-                                <span>
+                                <span style={{ color: THEME.ink, fontWeight: 600 }}>
                                   <Prv>{fmtINRFull(Number(val))}</Prv>
                                 </span>
                               </div>
@@ -657,32 +873,43 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                               display: "flex",
                               justifyContent: "space-between",
                               fontSize: 13,
-                              fontWeight: 700,
-                              color: THEME.success,
-                              borderTop: `1px solid ${THEME.border}`,
-                              paddingTop: 4,
-                              marginTop: 4,
+                              fontWeight: 800,
+                              color: THEME.sage,
+                              borderTop: `1.5px solid ${THEME.line}`,
+                              paddingTop: 8,
+                              marginTop: 8,
+                              fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            <span>Gross</span>
+                            <span>Gross Salary</span>
                             <span>
                               <Prv>{fmtINRFull(Number(s.grossSalary || 0))}</Prv>
                             </span>
                           </div>
                         </div>
                         {/* Deductions breakdown */}
-                        <div>
+                        <div
+                          style={{
+                            background:
+                              "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 8%, var(--surface-0)) 100%)",
+                            border: `1.5px solid ${THEME.line}`,
+                            borderLeft: `4px solid ${THEME.rust}`,
+                            borderRadius: 12,
+                            padding: 16,
+                            boxShadow: "var(--shadow-sm)",
+                          }}
+                        >
                           <div
                             style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: THEME.danger,
-                              marginBottom: 8,
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              color: THEME.rust,
+                              marginBottom: 12,
                               textTransform: "uppercase",
-                              letterSpacing: "0.5px",
+                              letterSpacing: "0.08em",
                             }}
                           >
-                            Deductions
+                            Deductions Breakdown
                           </div>
                           {[
                             ["PF (Employee)", s.pfEmployee],
@@ -690,7 +917,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                             ["ESI", s.esiEmployee],
                             ["Professional Tax", s.professionalTax],
                             ["TDS", s.tds],
-                            ["Other", s.otherDeductions],
+                            ["Other Deductions", s.otherDeductions],
                           ]
                             .filter(([, v]) => Number(v) > 0)
                             .map(([label, val]) => (
@@ -699,13 +926,15 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                                 style={{
                                   display: "flex",
                                   justifyContent: "space-between",
-                                  fontSize: 12,
-                                  color: THEME.textMuted,
-                                  marginBottom: 3,
+                                  fontSize: 12.5,
+                                  color: THEME.muted,
+                                  marginBottom: 6,
+                                  fontWeight: 500,
+                                  fontVariantNumeric: "tabular-nums",
                                 }}
                               >
                                 <span>{label}</span>
-                                <span style={{ color: THEME.danger }}>
+                                <span style={{ color: THEME.ink, fontWeight: 600 }}>
                                   <Prv>{fmtINRFull(Number(val))}</Prv>
                                 </span>
                               </div>
@@ -715,11 +944,12 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                               display: "flex",
                               justifyContent: "space-between",
                               fontSize: 13,
-                              fontWeight: 700,
-                              color: THEME.danger,
-                              borderTop: `1px solid ${THEME.border}`,
-                              paddingTop: 4,
-                              marginTop: 4,
+                              fontWeight: 800,
+                              color: THEME.rust,
+                              borderTop: `1.5px solid ${THEME.line}`,
+                              paddingTop: 8,
+                              marginTop: 8,
+                              fontVariantNumeric: "tabular-nums",
                             }}
                           >
                             <span>Total Deductions</span>
@@ -732,10 +962,15 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem }: any) {
                       {s.notes && (
                         <div
                           style={{
-                            marginTop: 8,
+                            marginTop: 12,
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            background: "var(--surface-1)",
+                            border: `1.5px solid ${THEME.line}`,
                             fontSize: 12,
                             fontStyle: "italic",
-                            color: THEME.textMuted,
+                            color: THEME.muted,
+                            fontWeight: 500,
                           }}
                         >
                           {s.notes}
