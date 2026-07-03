@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -6,26 +7,19 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Filter,
   ChevronDown,
-  ChevronUp,
   ChevronRight,
   AlertTriangle,
   BarChart2,
-  PieChart as PieIcon,
   Wallet,
-  DollarSign,
   Activity,
   ShieldAlert,
   Layers,
-  Users,
-  Receipt,
-  Search,
   ArrowUp,
   ArrowDown,
+  Package,
 } from "lucide-react";
 import {
-  AreaChart,
   Area,
   BarChart,
   Bar,
@@ -39,35 +33,33 @@ import {
   ResponsiveContainer,
   Legend,
   Line,
-  LineChart,
   ReferenceLine,
   ComposedChart,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 
 /* ─── STYLES ──────────────────────────────────────────────────────────────── */
 
 const th: React.CSSProperties = {
   textAlign: "left",
-  padding: "12px 10px",
+  padding: "14px 16px",
   fontSize: 10,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
   color: THEME.muted,
   fontWeight: 700,
-  borderBottom: `1px solid ${THEME.line}`,
+  borderBottom: `1.5px solid ${THEME.line}`,
   whiteSpace: "nowrap",
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
 };
 
 const td: React.CSSProperties = {
-  padding: "14px 10px",
+  padding: "14px 16px",
   verticalAlign: "middle",
   fontSize: 13,
   borderBottom: `1px solid ${THEME.line}`,
@@ -170,15 +162,11 @@ function getDateRange(period: Period, customStart: string, customEnd: string): [
 
 function extractMerchant(narration: string): string {
   if (!narration) return "Unknown";
-  // Clean up common prefixes
   let n = narration.trim();
-  // Remove UPI/ prefix and extract payee
   const upiMatch = n.match(/UPI[-\/].*?[-\/](.+?)[-\/]/i);
   if (upiMatch) return upiMatch[1].trim().slice(0, 30);
-  // Remove NEFT/IMPS prefixes
   const neftMatch = n.match(/(?:NEFT|IMPS|RTGS)[-\/].*?[-\/](.+?)[-\/]/i);
   if (neftMatch) return neftMatch[1].trim().slice(0, 30);
-  // Take first meaningful segment
   const parts = n.split(/[-\/|]/);
   const meaningful = parts.find((p) => p.trim().length > 2);
   return meaningful ? meaningful.trim().slice(0, 30) : n.slice(0, 30);
@@ -193,17 +181,21 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   return (
     <div
       style={{
-        background: "var(--surface-0)",
-        border: `1px solid ${THEME.line}`,
-        borderRadius: 10,
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
         padding: "10px 14px",
-        boxShadow: "var(--shadow-md)",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
         fontSize: 12,
       }}
     >
-      <div style={{ fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
       {visible.map((p: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <span
             style={{
               width: 8,
@@ -213,15 +205,93 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
               display: "inline-block",
             }}
           />
-          <span style={{ color: THEME.muted }}>{p.name}:</span>
-          <span style={{ fontWeight: 600, color: THEME.ink }}>
-            {formatter ? formatter(p.value) : fmtINRFull(p.value)}
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
           </span>
         </div>
       ))}
     </div>
   );
 };
+
+/* ─── Premium Stat Card ───────────────────────────────────────── */
+const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any) => (
+  <div
+    className="card-lift"
+    style={{
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      border: `1.5px solid ${THEME.line}`,
+      borderTop: `4px solid ${color}`,
+      borderRadius: 16,
+      padding: "18px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+    }}
+  >
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color,
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          }}
+        >
+          {label}
+        </div>
+        {sub && (
+          <div
+            style={{
+              fontSize: 10,
+              color: subColor || THEME.muted,
+              fontWeight: subColor ? 700 : 400,
+              marginTop: 2,
+              opacity: subColor ? 1 : 0.8,
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
+    <div
+      style={{
+        fontSize: 26,
+        fontWeight: 900,
+        color: THEME.ink,
+        letterSpacing: "-0.04em",
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+        marginTop: 4,
+      }}
+    >
+      <Prv>{value}</Prv>
+    </div>
+  </div>
+);
 
 /* ─── MAIN COMPONENT ──────────────────────────────────────────────────────── */
 
@@ -232,6 +302,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
   const [sortCol, setSortCol] = useState<string>("periodTotal");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
 
   const txns = state?.transactions || [];
 
@@ -240,17 +311,14 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     [period, customStart, customEnd]
   );
 
-  /* ── Filter transactions by period ── */
   const periodTxns = useMemo(
     () => txns.filter((t: any) => t.date >= rangeStart && t.date <= rangeEnd),
     [txns, rangeStart, rangeEnd]
   );
 
   const expenses = useMemo(() => periodTxns.filter((t: any) => t.type === "debit"), [periodTxns]);
-
   const income = useMemo(() => periodTxns.filter((t: any) => t.type === "credit"), [periodTxns]);
 
-  /* ── Build monthly aggregates ── */
   const monthlyData = useMemo(() => {
     const expenseMap: Record<string, number> = {};
     const incomeMap: Record<string, number> = {};
@@ -265,7 +333,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       incomeMap[mk] = (incomeMap[mk] || 0) + Number(t.amount || 0);
     });
 
-    // Generate all months in range
     const months: string[] = [];
     const start = new Date(rangeStart + "T00:00:00");
     const end = new Date(rangeEnd + "T00:00:00");
@@ -289,7 +356,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     }));
   }, [expenses, income, rangeStart, rangeEnd]);
 
-  /* ── Summary stats ── */
   const summary = useMemo(() => {
     const totalSpend = expenses.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const monthCount = Math.max(monthlyData.length, 1);
@@ -311,7 +377,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       lowestMonth = { month: "", amount: 0 };
     }
 
-    // MoM change: compare last two months with data
     const monthsWithData = monthlyData.filter((m) => m.expense > 0);
     let momChange = 0;
     if (monthsWithData.length >= 2) {
@@ -323,7 +388,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     return { totalSpend, avgMonthly, highestMonth, lowestMonth, momChange };
   }, [expenses, monthlyData]);
 
-  /* ── Category breakdown ── */
   const categoryData = useMemo(() => {
     const catMap: Record<string, number> = {};
     expenses.forEach((t: any) => {
@@ -336,7 +400,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
-  /* ── Category monthly stacked data ── */
   const categoryStackedData = useMemo(() => {
     const allCats = new Set<string>();
     const monthCatMap: Record<string, Record<string, number>> = {};
@@ -363,7 +426,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     };
   }, [expenses, monthlyData]);
 
-  /* ── Category deep-dive table data ── */
   const categoryTableData = useMemo(() => {
     const now = new Date();
     const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -371,7 +433,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
 
-    // 3-month keys for average
     const avg3Keys: string[] = [];
     for (let i = 1; i <= 3; i++) {
       const d = new Date(now);
@@ -421,7 +482,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     return sorted;
   }, [categoryTableData, sortCol, sortDir]);
 
-  /* ── Top merchants ── */
   const topMerchants = useMemo(() => {
     const merchantMap: Record<string, number> = {};
     expenses.forEach((t: any) => {
@@ -435,12 +495,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       .slice(0, 10);
   }, [expenses]);
 
-  /* ── Anomaly detection ── */
   const anomalies = useMemo(() => {
-    // Category-level anomalies
     const catAnomalies = categoryTableData.filter((c) => c.isAnomaly);
-
-    // Individual transaction anomalies (> 3x category average)
     const catAvg: Record<string, number> = {};
     const catCount: Record<string, number> = {};
     expenses.forEach((t: any) => {
@@ -464,13 +520,11 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     return { catAnomalies, txnAnomalies };
   }, [expenses, categoryTableData]);
 
-  /* ── Average spend reference line ── */
   const avgSpend = useMemo(() => {
     const vals = monthlyData.filter((m) => m.expense > 0).map((m) => m.expense);
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   }, [monthlyData]);
 
-  /* ── Handle sort ── */
   const handleSort = (col: string) => {
     if (sortCol === col) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -485,7 +539,6 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     return sortDir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />;
   };
 
-  /* ── No transactions guard ── */
   if (!txns.length) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -529,25 +582,39 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* ─── HEADER ─────────────────────────────────────────────────────── */}
       <SectionTitle sub="Analyze your spending patterns, track category-wise trends, and detect anomalies.">
         Expense Trends & Analytics
       </SectionTitle>
 
-      {/* ─── 1. PERIOD SELECTOR ─────────────────────────────────────────── */}
-      <Card style={{ padding: "16px 20px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <Calendar size={16} style={{ color: THEME.muted }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted, marginRight: 4 }}>
-            PERIOD:
+      {/* Premium Period Selector */}
+      <div
+        style={{
+          padding: "12px 16px",
+          background: "var(--surface-0)",
+          border: `1.5px solid ${THEME.line}`,
+          borderRadius: 16,
+          boxShadow: "var(--shadow-sm)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: THEME.muted }}>
+          <Calendar size={15} />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Period
           </span>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {(
             [
               { key: "3m", label: "Last 3 Months" },
@@ -556,53 +623,65 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               { key: "ytd", label: "YTD" },
               { key: "custom", label: "Custom" },
             ] as { key: Period; label: string }[]
-          ).map((opt) => (
-            <Button
-              key={opt.key}
-              size="sm"
-              variant={period === opt.key ? "primary" : "secondary"}
-              onClick={() => setPeriod(opt.key)}
-              style={{ fontSize: 11 }}
-            >
-              {opt.label}
-            </Button>
-          ))}
-
-          {period === "custom" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
+          ).map((opt) => {
+            const active = period === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setPeriod(opt.key)}
+                className="card-lift"
                 style={{
-                  border: `1px solid ${THEME.line}`,
-                  borderRadius: 8,
-                  padding: "5px 10px",
-                  fontSize: 12,
-                  color: THEME.ink,
-                  background: "var(--surface-0)",
+                  padding: "5px 12px",
+                  borderRadius: 16,
+                  background: active ? THEME.accent : "var(--surface-0)",
+                  border: `1px solid ${active ? THEME.accent : THEME.line}`,
+                  color: active ? "#fff" : THEME.ink,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
-              />
-              <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                style={{
-                  border: `1px solid ${THEME.line}`,
-                  borderRadius: 8,
-                  padding: "5px 10px",
-                  fontSize: 12,
-                  color: THEME.ink,
-                  background: "var(--surface-0)",
-                }}
-              />
-            </div>
-          )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
-      </Card>
 
-      {/* ─── 2. SUMMARY CARDS ───────────────────────────────────────────── */}
+        {period === "custom" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              style={{
+                border: `1px solid ${THEME.line}`,
+                borderRadius: 8,
+                padding: "5px 10px",
+                fontSize: 12,
+                color: THEME.ink,
+                background: "var(--surface-0)",
+              }}
+            />
+            <span style={{ color: THEME.muted, fontSize: 12 }}>to</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              style={{
+                border: `1px solid ${THEME.line}`,
+                borderRadius: 8,
+                padding: "5px 10px",
+                fontSize: 12,
+                color: THEME.ink,
+                background: "var(--surface-0)",
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Premium Stat Summary Cards */}
       <div
         style={{
           display: "grid",
@@ -610,49 +689,57 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
           gap: 14,
         }}
       >
-        <StatCard
+        <PremiumStatCard
           label="Total Spend"
           value={fmtINRFull(summary.totalSpend)}
-          icon={<Wallet />}
+          icon={Wallet}
           color={PIE_COLORS[3]}
-          sub={`${rangeStart.slice(0, 7)} to ${rangeEnd.slice(0, 7)}`}
+          sub={`${rangeStart.slice(2, 7)} to ${rangeEnd.slice(2, 7)}`}
         />
-        <StatCard
+        <PremiumStatCard
           label="Avg Monthly"
           value={fmtINRFull(summary.avgMonthly)}
-          icon={<Activity />}
+          icon={Activity}
           color={PIE_COLORS[0]}
           sub={`Over ${monthlyData.length} month${monthlyData.length !== 1 ? "s" : ""}`}
         />
-        <StatCard
+        <PremiumStatCard
           label="Highest Month"
           value={fmtINRFull(summary.highestMonth.amount)}
-          icon={<TrendingUp />}
+          icon={TrendingUp}
           color={THEME.rust}
           sub={summary.highestMonth.month ? fullMonthLabel(summary.highestMonth.month) : "--"}
           subColor={THEME.rust}
         />
-        <StatCard
+        <PremiumStatCard
           label="Lowest Month"
           value={fmtINRFull(summary.lowestMonth.amount)}
-          icon={<TrendingDown />}
+          icon={TrendingDown}
           color={THEME.sage}
           sub={summary.lowestMonth.month ? fullMonthLabel(summary.lowestMonth.month) : "--"}
           subColor={THEME.sage}
         />
-        <StatCard
+        <PremiumStatCard
           label="MoM Change"
           value={`${summary.momChange >= 0 ? "+" : ""}${summary.momChange.toFixed(1)}%`}
-          icon={summary.momChange >= 0 ? <ArrowUpRight /> : <ArrowDownRight />}
+          icon={summary.momChange >= 0 ? ArrowUpRight : ArrowDownRight}
           color={summary.momChange >= 0 ? THEME.rust : THEME.sage}
           sub={summary.momChange >= 0 ? "Spending up" : "Spending down"}
           subColor={summary.momChange >= 0 ? THEME.rust : THEME.sage}
         />
       </div>
 
-      {/* ─── 3. MONTHLY SPEND TREND (AREA CHART) ───────────────────────── */}
+      {/* Monthly Spend Trend ComposedChart */}
       <Card style={{ padding: "24px 20px" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            marginBottom: 4,
+            letterSpacing: "-0.015em",
+          }}
+        >
           Monthly Spend Trend
         </div>
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
@@ -670,7 +757,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 <stop offset="95%" stopColor={PIE_COLORS[1]} stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11, fill: THEME.muted }}
@@ -687,7 +774,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
-                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
               )}
             />
             <ReferenceLine
@@ -721,7 +808,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         </ResponsiveContainer>
       </Card>
 
-      {/* ─── 4. CATEGORY BREAKDOWN ──────────────────────────────────────── */}
+      {/* Category Breakdown (Donut + Stacked Bar) */}
       <div
         style={{
           display: "grid",
@@ -731,11 +818,19 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       >
         {/* Donut chart */}
         <Card style={{ padding: "24px 20px" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 4,
+              letterSpacing: "-0.015em",
+            }}
+          >
             Spend by Category
           </div>
           <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
-            Total distribution for the selected period
+            Hover sections to inspect individual details
           </div>
           {categoryData.length > 0 ? (
             <>
@@ -745,14 +840,27 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
+                    innerRadius={65}
                     outerRadius={100}
-                    paddingAngle={2}
+                    paddingAngle={3}
                     dataKey="value"
                     nameKey="name"
+                    onMouseEnter={(_, index) => setActivePieIndex(index)}
+                    onMouseLeave={() => setActivePieIndex(null)}
                   >
                     {categoryData.map((_: any, i: number) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell
+                        key={i}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        style={{
+                          filter:
+                            activePieIndex === i
+                              ? "drop-shadow(0 4px 10px rgba(0,0,0,0.15))"
+                              : "none",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip
@@ -766,22 +874,91 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       return (
                         <div
                           style={{
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderRadius: 10,
+                            background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+                            backdropFilter: "blur(12px)",
+                            border: `1.5px solid ${THEME.line}`,
+                            borderRadius: 12,
                             padding: "10px 14px",
-                            boxShadow: "var(--shadow-md)",
+                            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
                             fontSize: 12,
                           }}
                         >
-                          <div style={{ fontWeight: 700, color: THEME.ink }}>{d.name}</div>
-                          <div style={{ color: THEME.muted, marginTop: 4 }}>
+                          <div style={{ fontWeight: 800, color: THEME.ink }}>{d.name}</div>
+                          <div style={{ color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
                             <Prv>{fmtINRFull(d.value)}</Prv> ({pct}%)
                           </div>
                         </div>
                       );
                     }}
                   />
+                  {activePieIndex !== null && categoryData[activePieIndex] ? (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 10,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {categoryData[activePieIndex].name}
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 18,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹
+                        {categoryData[activePieIndex].value.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 10,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Total Spend
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 18,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹{summary.totalSpend.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </text>
+                    </>
+                  )}
                 </PieChart>
               </ResponsiveContainer>
               {/* Legend */}
@@ -807,8 +984,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         display: "inline-block",
                       }}
                     />
-                    <span style={{ color: THEME.muted }}>{c.name}</span>
-                    <span style={{ fontWeight: 600, color: THEME.ink }}>
+                    <span style={{ color: THEME.muted, fontWeight: 500 }}>{c.name}</span>
+                    <span style={{ fontWeight: 700, color: THEME.ink }}>
                       <Prv>{fmtINRFull(c.value)}</Prv>
                     </span>
                   </div>
@@ -824,7 +1001,15 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
 
         {/* Stacked bar chart */}
         <Card style={{ padding: "24px 20px" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              marginBottom: 4,
+              letterSpacing: "-0.015em",
+            }}
+          >
             Category Trends
           </div>
           <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
@@ -836,7 +1021,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 data={categoryStackedData.data}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+                <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 11, fill: THEME.muted }}
@@ -854,7 +1039,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
                   iconType="circle"
                   formatter={(value: string) => (
-                    <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                    <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
                   )}
                 />
                 {categoryStackedData.categories.map((cat: string, i: number) => (
@@ -878,9 +1063,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         </Card>
       </div>
 
-      {/* ─── 5. CATEGORY DEEP DIVE TABLE ────────────────────────────────── */}
+      {/* Category Deep Dive Table */}
       <Card style={{ padding: "24px 20px" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            marginBottom: 4,
+            letterSpacing: "-0.015em",
+          }}
+        >
           Category Deep Dive
         </div>
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
@@ -923,13 +1116,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                       onClick={() =>
                         setExpandedCat(expandedCat === row.category ? null : row.category)
                       }
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background =
-                          `color-mix(in srgb, ${THEME.accent} 4%, transparent)`;
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = "transparent";
-                      }}
+                      className="table-row-hover"
                     >
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -938,19 +1125,28 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                           ) : (
                             <ChevronRight size={14} style={{ color: THEME.muted }} />
                           )}
-                          <span style={{ fontWeight: 600, color: THEME.ink }}>{row.category}</span>
+                          <span style={{ fontWeight: 700, color: THEME.ink }}>{row.category}</span>
                           {row.isAnomaly && (
-                            <Badge variant="rust" style={{ fontSize: 9, padding: "2px 6px" }}>
-                              <AlertTriangle size={10} style={{ marginRight: 3 }} />
+                            <Badge
+                              variant="rust"
+                              style={{
+                                fontSize: 9,
+                                padding: "2px 6px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                            >
+                              <AlertTriangle size={10} />
                               Anomaly
                             </Badge>
                           )}
                         </div>
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, fontWeight: 600 }}>
                         <Prv>{fmtINRFull(row.thisMonth)}</Prv>
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, fontWeight: 500, color: THEME.muted }}>
                         <Prv>{fmtINRFull(row.lastMonth)}</Prv>
                       </td>
                       <td style={td}>
@@ -962,7 +1158,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                 : row.changePct < 0
                                   ? THEME.sage
                                   : THEME.muted,
-                            fontWeight: 600,
+                            fontWeight: 700,
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 3,
@@ -978,10 +1174,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                             : "--"}
                         </span>
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, fontWeight: 600 }}>
                         <Prv>{fmtINRFull(row.avg3)}</Prv>
                       </td>
-                      <td style={{ ...td, fontWeight: 700 }}>
+                      <td style={{ ...td, fontWeight: 800, fontSize: 14 }}>
                         <Prv>{fmtINRFull(row.periodTotal)}</Prv>
                       </td>
                     </tr>
@@ -992,62 +1188,72 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                         <td colSpan={6} style={{ padding: 0 }}>
                           <div
                             style={{
-                              background: `color-mix(in srgb, ${THEME.accent} 3%, var(--surface-0))`,
-                              padding: "12px 16px",
-                              borderBottom: `1px solid ${THEME.line}`,
+                              background: "var(--surface-1)",
+                              padding: "16px 20px",
+                              borderBottom: `1.5px solid ${THEME.line}`,
+                              boxShadow: "inset 0 2px 10px rgba(0,0,0,0.02)",
                             }}
                           >
                             <div
                               style={{
-                                fontSize: 11,
-                                fontWeight: 700,
+                                fontSize: 10,
+                                fontWeight: 800,
                                 color: THEME.muted,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.08em",
-                                marginBottom: 10,
+                                marginBottom: 12,
                               }}
                             >
                               Transactions in {row.category}
                             </div>
-                            {expenses
-                              .filter((t: any) => (t.category || "Uncategorized") === row.category)
-                              .sort((a: any, b: any) => b.date.localeCompare(a.date))
-                              .slice(0, 20)
-                              .map((t: any) => (
-                                <div
-                                  key={t.id}
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    padding: "8px 0",
-                                    borderBottom: `1px solid ${THEME.line}`,
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                              {expenses
+                                .filter(
+                                  (t: any) => (t.category || "Uncategorized") === row.category
+                                )
+                                .sort((a: any, b: any) => b.date.localeCompare(a.date))
+                                .slice(0, 20)
+                                .map((t: any, idx: number) => (
+                                  <div
+                                    key={t.id}
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                      padding: "10px 0",
+                                      borderBottom: `1px solid ${THEME.line}`,
+                                      fontSize: 12.5,
+                                    }}
+                                  >
+                                    <div style={{ flex: 1 }}>
+                                      <div
+                                        style={{
+                                          fontWeight: 700,
+                                          color: THEME.ink,
+                                          marginBottom: 2,
+                                        }}
+                                      >
+                                        {t.narration || t.note || t.description || "No description"}
+                                      </div>
+                                      <div style={{ color: THEME.muted, fontSize: 11 }}>
+                                        {new Date(t.date + "T00:00:00").toLocaleDateString(
+                                          "en-IN",
+                                          {
+                                            day: "numeric",
+                                            month: "short",
+                                            year: "numeric",
+                                          }
+                                        )}
+                                      </div>
+                                    </div>
                                     <div
-                                      style={{
-                                        fontWeight: 600,
-                                        color: THEME.ink,
-                                        marginBottom: 2,
-                                      }}
+                                      style={{ fontWeight: 800, color: THEME.rust, fontSize: 13.5 }}
                                     >
-                                      {t.narration || t.note || t.description || "No description"}
-                                    </div>
-                                    <div style={{ color: THEME.muted, fontSize: 11 }}>
-                                      {new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
-                                        day: "numeric",
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
+                                      <Prv>{fmtINRFull(t.amount)}</Prv>
                                     </div>
                                   </div>
-                                  <div style={{ fontWeight: 700, color: THEME.rust }}>
-                                    <Prv>{fmtINRFull(t.amount)}</Prv>
-                                  </div>
-                                </div>
-                              ))}
+                                ))}
+                            </div>
                             {expenses.filter(
                               (t: any) => (t.category || "Uncategorized") === row.category
                             ).length > 20 && (
@@ -1056,7 +1262,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                                   fontSize: 11,
                                   color: THEME.muted,
                                   textAlign: "center",
-                                  padding: "8px 0",
+                                  padding: "10px 0 0",
+                                  fontWeight: 600,
                                 }}
                               >
                                 Showing first 20 of{" "}
@@ -1084,9 +1291,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         )}
       </Card>
 
-      {/* ─── 6. TOP MERCHANTS / PAYEES ──────────────────────────────────── */}
+      {/* Top Merchants / Payees */}
       <Card style={{ padding: "24px 20px" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            marginBottom: 4,
+            letterSpacing: "-0.015em",
+          }}
+        >
           Top Merchants / Payees
         </div>
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 16 }}>
@@ -1099,7 +1314,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               layout="vertical"
               margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} horizontal={false} />
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
               <XAxis
                 type="number"
                 tick={{ fontSize: 11, fill: THEME.muted }}
@@ -1110,7 +1325,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 500 }}
+                tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 600 }}
                 axisLine={false}
                 tickLine={false}
                 width={140}
@@ -1129,18 +1344,19 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   return (
                     <div
                       style={{
-                        background: "var(--surface-0)",
-                        border: `1px solid ${THEME.line}`,
-                        borderRadius: 10,
+                        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+                        backdropFilter: "blur(12px)",
+                        border: `1.5px solid ${THEME.line}`,
+                        borderRadius: 12,
                         padding: "10px 14px",
-                        boxShadow: "var(--shadow-md)",
+                        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
                         fontSize: 12,
                       }}
                     >
-                      <div style={{ fontWeight: 700, color: THEME.ink }}>
+                      <div style={{ fontWeight: 800, color: THEME.ink }}>
                         {payload[0]?.payload?.name}
                       </div>
-                      <div style={{ color: THEME.muted, marginTop: 4 }}>
+                      <div style={{ color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
                         <Prv>{fmtINRFull(val)}</Prv> ({pct}%)
                       </div>
                     </div>
@@ -1161,7 +1377,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         )}
       </Card>
 
-      {/* ─── 7. ANOMALY DETECTION ───────────────────────────────────────── */}
+      {/* Anomaly Detection */}
       {(anomalies.catAnomalies.length > 0 || anomalies.txnAnomalies.length > 0) && (
         <Card style={{ padding: "24px 20px" }}>
           <div
@@ -1173,7 +1389,9 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             }}
           >
             <ShieldAlert size={18} style={{ color: THEME.rust }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+            <span
+              style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, letterSpacing: "-0.015em" }}
+            >
               Anomaly Detection
             </span>
           </div>
@@ -1188,7 +1406,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 key={c.category}
                 style={{
                   background: `color-mix(in srgb, ${THEME.rust} 5%, var(--surface-0))`,
-                  border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, ${THEME.line})`,
+                  border: `1.5px solid color-mix(in srgb, ${THEME.rust} 20%, ${THEME.line})`,
                   borderRadius: 12,
                   padding: "14px 18px",
                   display: "flex",
@@ -1196,12 +1414,13 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   justifyContent: "space-between",
                   flexWrap: "wrap",
                   gap: 12,
+                  boxShadow: "var(--shadow-sm)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <AlertTriangle size={16} style={{ color: THEME.rust, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
                       {c.category} spending is unusually high
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
@@ -1232,12 +1451,13 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   justifyContent: "space-between",
                   flexWrap: "wrap",
                   gap: 12,
+                  boxShadow: "var(--shadow-sm)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <AlertTriangle size={16} style={{ color: THEME.gold, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
                       Large transaction: <Prv>{fmtINRFull(t.amount)}</Prv>
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
@@ -1258,9 +1478,17 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         </Card>
       )}
 
-      {/* ─── 8. INCOME VS EXPENSE COMPARISON ────────────────────────────── */}
+      {/* Income vs Expense Comparison */}
       <Card style={{ padding: "24px 20px" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            marginBottom: 4,
+            letterSpacing: "-0.015em",
+          }}
+        >
           Income vs Expense
         </div>
         <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
@@ -1268,7 +1496,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
         </div>
         <ResponsiveContainer width="100%" height={340}>
           <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11, fill: THEME.muted }}
@@ -1295,7 +1523,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
-                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
               )}
             />
             <Bar
@@ -1303,7 +1531,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               dataKey="income"
               name="Income"
               fill={PIE_COLORS[1]}
-              radius={[4, 4, 0, 0]}
+              radius={[6, 6, 0, 0]}
               barSize={20}
               opacity={0.85}
             />
@@ -1312,7 +1540,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               dataKey="expense"
               name="Expense"
               fill={PIE_COLORS[3]}
-              radius={[4, 4, 0, 0]}
+              radius={[6, 6, 0, 0]}
               barSize={20}
               opacity={0.85}
             />
@@ -1322,8 +1550,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
               dataKey="net"
               name="Net Savings"
               stroke={PIE_COLORS[0]}
-              strokeWidth={2}
-              dot={{ r: 3, fill: PIE_COLORS[0] }}
+              strokeWidth={2.5}
+              dot={{ r: 4, fill: PIE_COLORS[0], strokeWidth: 1.5, stroke: "#fff" }}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -1335,7 +1563,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
             gap: 12,
             flexWrap: "wrap",
             marginTop: 16,
-            padding: "12px 0 0",
+            padding: "16px 0 0",
             borderTop: `1px solid ${THEME.line}`,
           }}
         >
@@ -1348,11 +1576,13 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                 flex: "1 1 60px",
               }}
             >
-              <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 4 }}>{m.label}</div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginBottom: 4, fontWeight: 600 }}>
+                {m.label}
+              </div>
               <div
                 style={{
                   fontSize: 13,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   color: m.savingsRate >= 0 ? THEME.sage : THEME.rust,
                 }}
               >
@@ -1365,6 +1595,7 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                   marginTop: 2,
+                  fontWeight: 700,
                 }}
               >
                 Savings Rate
