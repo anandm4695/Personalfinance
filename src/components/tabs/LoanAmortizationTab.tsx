@@ -1,14 +1,7 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
-import {
-  Calculator,
-  TrendingDown,
-  IndianRupee,
-  Calendar,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-} from "lucide-react";
+import { Calculator, TrendingDown, IndianRupee, Calendar, Zap, Info } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -20,17 +13,42 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
-  LineChart,
-  Line,
-  ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+
+const th: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.muted,
+  fontWeight: 800,
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  borderBottom: `2px solid ${THEME.line}`,
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.ink,
+  fontSize: 13,
+  fontWeight: 500,
+  borderBottom: `1px solid ${THEME.line}`,
+  fontVariantNumeric: "tabular-nums",
+};
+
+const thCenter: React.CSSProperties = { ...th, textAlign: "center" };
+const tdCenter: React.CSSProperties = {
+  ...td,
+  textAlign: "center",
+  color: THEME.muted,
+  fontWeight: 700,
+};
 
 const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly = 0) => {
   const monthlyRate = annualRate / 100 / 12;
@@ -74,6 +92,113 @@ const generateAmortization = (principal, annualRate, tenureMonths, extraMonthly 
     totalInterest: Math.round(totalInterest),
     totalMonths: month,
   };
+};
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {typeof label === "number" ? `Month ${label}` : label}
+      </div>
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : p.value}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Premium Amortization Bento Card ─────────────────────────────────── */
+const AmortizationStatCard = ({ label, value, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 export const LoanAmortizationTab = ({ state }) => {
@@ -175,43 +300,61 @@ export const LoanAmortizationTab = ({ state }) => {
 
       {/* Loan Selector */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-end" }}>
           <div>
             <label
               style={{
-                fontSize: 12,
-                color: THEME.textSecondary,
+                fontSize: 11,
+                fontWeight: 800,
+                color: THEME.muted,
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
               }}
             >
-              Source
+              Loan Source
             </label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                background: "var(--surface-0)",
+                border: `1.5px solid ${THEME.line}`,
+                padding: 4,
+                borderRadius: 14,
+              }}
+            >
               <button
                 onClick={() => setUseCustom(false)}
+                className="card-lift"
                 style={{
                   padding: "8px 16px",
-                  borderRadius: 8,
+                  borderRadius: 10,
                   cursor: "pointer",
-                  fontSize: 13,
-                  border: `1px solid ${!useCustom ? "var(--accent)" : THEME.border}`,
-                  background: !useCustom ? "var(--accent)" : THEME.card,
-                  color: !useCustom ? "#fff" : THEME.text,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  border: "none",
+                  background: !useCustom ? "var(--accent)" : "transparent",
+                  color: !useCustom ? "#fff" : THEME.ink,
+                  transition: "all 0.2s ease",
                 }}
               >
                 From My Loans ({loans.length})
               </button>
               <button
                 onClick={() => setUseCustom(true)}
+                className="card-lift"
                 style={{
                   padding: "8px 16px",
-                  borderRadius: 8,
+                  borderRadius: 10,
                   cursor: "pointer",
-                  fontSize: 13,
-                  border: `1px solid ${useCustom ? "var(--accent)" : THEME.border}`,
-                  background: useCustom ? "var(--accent)" : THEME.card,
-                  color: useCustom ? "#fff" : THEME.text,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  border: "none",
+                  background: useCustom ? "var(--accent)" : "transparent",
+                  color: useCustom ? "#fff" : THEME.ink,
+                  transition: "all 0.2s ease",
                 }}
               >
                 Custom Loan
@@ -220,27 +363,33 @@ export const LoanAmortizationTab = ({ state }) => {
           </div>
 
           {!useCustom && loans.length > 0 && (
-            <div>
+            <div style={{ flex: 1, minWidth: 200 }}>
               <label
                 style={{
-                  fontSize: 12,
-                  color: THEME.textSecondary,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: THEME.muted,
                   display: "block",
-                  marginBottom: 4,
+                  marginBottom: 8,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
                 }}
               >
-                Select Loan
+                Select Active Loan
               </label>
               <select
                 value={selectedLoan || loans[0]?.id || ""}
                 onChange={(e) => setSelectedLoan(e.target.value)}
                 style={{
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: THEME.card,
-                  color: THEME.text,
-                  fontSize: 14,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                  background: "var(--surface-0)",
+                  color: THEME.ink,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  width: "100%",
+                  outline: "none",
                 }}
               >
                 {loans.map((l) => (
@@ -257,36 +406,43 @@ export const LoanAmortizationTab = ({ state }) => {
               <div>
                 <label
                   style={{
-                    fontSize: 12,
-                    color: THEME.textSecondary,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: THEME.muted,
                     display: "block",
-                    marginBottom: 4,
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
                   }}
                 >
-                  Principal
+                  Principal (₹)
                 </label>
                 <input
                   type="number"
                   value={customPrincipal}
                   onChange={(e) => setCustomPrincipal(Number(e.target.value))}
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.border}`,
-                    background: THEME.card,
-                    color: THEME.text,
-                    fontSize: 14,
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                    fontSize: 13.5,
                     width: 140,
+                    outline: "none",
                   }}
                 />
               </div>
               <div>
                 <label
                   style={{
-                    fontSize: 12,
-                    color: THEME.textSecondary,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: THEME.muted,
                     display: "block",
-                    marginBottom: 4,
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
                   }}
                 >
                   Rate (% p.a.)
@@ -297,23 +453,27 @@ export const LoanAmortizationTab = ({ state }) => {
                   value={customRate}
                   onChange={(e) => setCustomRate(Number(e.target.value))}
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.border}`,
-                    background: THEME.card,
-                    color: THEME.text,
-                    fontSize: 14,
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                    fontSize: 13.5,
                     width: 100,
+                    outline: "none",
                   }}
                 />
               </div>
               <div>
                 <label
                   style={{
-                    fontSize: 12,
-                    color: THEME.textSecondary,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: THEME.muted,
                     display: "block",
-                    marginBottom: 4,
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
                   }}
                 >
                   Tenure (months)
@@ -323,13 +483,14 @@ export const LoanAmortizationTab = ({ state }) => {
                   value={customTenure}
                   onChange={(e) => setCustomTenure(Number(e.target.value))}
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.border}`,
-                    background: THEME.card,
-                    color: THEME.text,
-                    fontSize: 14,
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${THEME.line}`,
+                    background: "var(--surface-0)",
+                    color: THEME.ink,
+                    fontSize: 13.5,
                     width: 100,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -339,27 +500,31 @@ export const LoanAmortizationTab = ({ state }) => {
           <div>
             <label
               style={{
-                fontSize: 12,
-                color: THEME.textSecondary,
+                fontSize: 11,
+                fontWeight: 800,
+                color: THEME.muted,
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
               }}
             >
-              Extra Payment / Month
+              Extra Prepayment / Month
             </label>
             <input
               type="number"
               value={extraEMI}
               onChange={(e) => setExtraEMI(Number(e.target.value))}
-              placeholder="0"
+              placeholder="e.g. ₹5,000"
               style={{
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: `1px solid ${THEME.border}`,
-                background: THEME.card,
-                color: THEME.text,
-                fontSize: 14,
-                width: 140,
+                padding: "9px 12px",
+                borderRadius: 10,
+                border: `1.5px solid ${THEME.line}`,
+                background: "var(--surface-0)",
+                color: THEME.ink,
+                fontSize: 13.5,
+                width: 150,
+                outline: "none",
               }}
             />
           </div>
@@ -372,32 +537,32 @@ export const LoanAmortizationTab = ({ state }) => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 14,
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 16,
             }}
           >
-            <StatCard
+            <AmortizationStatCard
               label="Monthly EMI"
               value={<Prv>{fmtINRExact(baseAmort.emi)}</Prv>}
-              icon={<IndianRupee />}
+              icon={<IndianRupee size={16} />}
               color="var(--accent)"
             />
-            <StatCard
+            <AmortizationStatCard
               label="Total Interest"
               value={<Prv>{fmtINRFull(baseAmort.totalInterest)}</Prv>}
-              icon={<TrendingDown />}
+              icon={<TrendingDown size={16} />}
               color={THEME.rust}
             />
-            <StatCard
+            <AmortizationStatCard
               label="Total Payment"
               value={<Prv>{fmtINRFull(loanData.principal + baseAmort.totalInterest)}</Prv>}
-              icon={<Calculator />}
-              color={THEME.accent}
+              icon={<Calculator size={16} />}
+              color="var(--accent)"
             />
-            <StatCard
+            <AmortizationStatCard
               label="Loan Closes In"
               value={`${Math.floor(baseAmort.totalMonths / 12)}y ${baseAmort.totalMonths % 12}m`}
-              icon={<Calendar />}
+              icon={<Calendar size={16} />}
               color={THEME.sage}
             />
           </div>
@@ -407,15 +572,18 @@ export const LoanAmortizationTab = ({ state }) => {
             <Card
               style={{
                 padding: 24,
-                background: `${THEME.sage}08`,
-                border: `1px solid ${THEME.sage}30`,
+                background:
+                  "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+                border: `1.5px solid ${THEME.line}`,
+                borderLeft: `4px solid ${THEME.sage}`,
+                boxShadow: "var(--shadow-sm)",
               }}
             >
               <h3
                 style={{
                   margin: "0 0 16px",
-                  fontSize: 16,
-                  fontWeight: 600,
+                  fontSize: 15,
+                  fontWeight: 800,
                   color: THEME.sage,
                   display: "flex",
                   alignItems: "center",
@@ -432,27 +600,79 @@ export const LoanAmortizationTab = ({ state }) => {
                 }}
               >
                 <div
-                  style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}
+                  className="card-lift"
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
                 >
-                  <div style={{ fontSize: 12, color: THEME.textSecondary }}>Interest Saved</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Interest Saved
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
                     <Prv>{fmtINRFull(savings.interestSaved)}</Prv>
                   </div>
                 </div>
                 <div
-                  style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}
+                  className="card-lift"
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
                 >
-                  <div style={{ fontSize: 12, color: THEME.textSecondary }}>Months Saved</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
-                    {Math.floor(savings.monthsSaved / 12)}y {savings.monthsSaved % 12}m (
-                    {savings.monthsSaved} months)
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Months Saved
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                    {Math.floor(savings.monthsSaved / 12)}y {savings.monthsSaved % 12}m
+                    <span
+                      style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginLeft: 6 }}
+                    >
+                      ({savings.monthsSaved} mo)
+                    </span>
                   </div>
                 </div>
                 <div
-                  style={{ padding: "12px 16px", borderRadius: 12, background: `${THEME.sage}15` }}
+                  className="card-lift"
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                  }}
                 >
-                  <div style={{ fontSize: 12, color: THEME.textSecondary }}>New Closure</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: THEME.sage }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    New Closure
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
                     {Math.floor(extraAmort.totalMonths / 12)}y {extraAmort.totalMonths % 12}m
                   </div>
                 </div>
@@ -460,111 +680,150 @@ export const LoanAmortizationTab = ({ state }) => {
             </Card>
           )}
 
-          {/* Principal vs Interest Over Time */}
-          <Card style={{ padding: 24 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-              Balance Over Time
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 11, fill: THEME.textSecondary }}
-                  label={{ value: "Month", position: "insideBottom", offset: -5 }}
-                />
-                <YAxis
-                  tickFormatter={(v) => fmtINRFull(v)}
-                  tick={{ fontSize: 11, fill: THEME.textSecondary }}
-                />
-                <Tooltip
-                  formatter={(v) => fmtINRFull(v)}
-                  cursor={{ stroke: THEME.line }}
-                  contentStyle={{
-                    background: THEME.card,
-                    border: `1px solid ${THEME.border}`,
-                    borderRadius: 12,
+          {/* Charts */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {/* Principal vs Interest Over Time */}
+            <Card style={{ padding: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 15,
+                    fontWeight: 700,
                     color: THEME.ink,
+                    letterSpacing: "-0.015em",
                   }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-                  formatter={(value: string) => (
-                    <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
-                  )}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="var(--accent)"
-                  fill="var(--accent)"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                  name="Outstanding Balance"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalInterest"
-                  stroke={THEME.rust}
-                  fill={THEME.rust}
-                  fillOpacity={0.12}
-                  strokeWidth={2}
-                  name="Cumulative Interest"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Card>
+                >
+                  Balance Over Time
+                </h3>
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  Outstanding balance trajectory vs cumulative interest paid
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="interestGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={THEME.rust} stopOpacity={0.15} />
+                      <stop offset="95%" stopColor={THEME.rust} stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => fmtINRFull(v)}
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v) => fmtINRFull(v)}
+                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    cursor={{ stroke: THEME.line }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                    formatter={(value: string) => (
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
+                    )}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="balance"
+                    stroke="var(--accent)"
+                    fill="url(#balanceGrad)"
+                    strokeWidth={2.5}
+                    name="Outstanding Balance"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="totalInterest"
+                    stroke={THEME.rust}
+                    fill="url(#interestGrad)"
+                    strokeWidth={2.5}
+                    name="Cumulative Interest"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
 
-          {/* Yearly Breakdown Bar Chart */}
-          <Card style={{ padding: 24 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-              Yearly Principal vs Interest
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={yearlyBreakdown}>
-                <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
-                <YAxis
-                  tickFormatter={(v) => fmtINRFull(v)}
-                  tick={{ fontSize: 11, fill: THEME.textSecondary }}
-                />
-                <Tooltip
-                  formatter={(v) => fmtINRFull(v)}
-                  cursor={{ fill: THEME.line, opacity: 0.4 }}
-                  contentStyle={{
-                    background: THEME.card,
-                    border: `1px solid ${THEME.border}`,
-                    borderRadius: 12,
+            {/* Yearly Breakdown Bar Chart */}
+            <Card style={{ padding: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 15,
+                    fontWeight: 700,
                     color: THEME.ink,
+                    letterSpacing: "-0.015em",
                   }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-                  formatter={(value: string) => (
-                    <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
-                  )}
-                />
-                <Bar
-                  dataKey="principal"
-                  name="Principal"
-                  fill={THEME.sage}
-                  stackId="a"
-                  radius={[0, 0, 0, 0]}
-                />
-                <Bar
-                  dataKey="interest"
-                  name="Interest"
-                  fill={THEME.rust}
-                  stackId="a"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
+                >
+                  Yearly Principal vs Interest
+                </h3>
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  Annual split of principal components vs interest charges
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={yearlyBreakdown}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => fmtINRFull(v)}
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v) => fmtINRFull(v)}
+                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    cursor={{ fill: THEME.line, opacity: 0.4 }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                    formatter={(value: string) => (
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
+                    )}
+                  />
+                  <Bar
+                    dataKey="principal"
+                    name="Principal"
+                    fill={THEME.sage}
+                    stackId="a"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="interest"
+                    name="Interest"
+                    fill={THEME.rust}
+                    stackId="a"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
 
           {/* Full Schedule */}
           <Card style={{ padding: 24 }}>
@@ -573,78 +832,92 @@ export const LoanAmortizationTab = ({ state }) => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 16,
+                marginBottom: 20,
+                flexWrap: "wrap",
+                gap: 12,
               }}
             >
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
-                Full Amortization Schedule
-              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    letterSpacing: "-0.015em",
+                  }}
+                >
+                  Full Amortization Schedule
+                </h3>
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  Month-by-month financial projection ledger
+                </div>
+              </div>
               <button
                 onClick={() => setShowTable(!showTable)}
+                className="card-lift"
                 style={{
-                  background: "none",
-                  border: `1px solid ${THEME.border}`,
-                  borderRadius: 8,
-                  padding: "6px 12px",
-                  fontSize: 13,
-                  color: THEME.textSecondary,
+                  background: "var(--surface-0)",
+                  border: `1.5px solid ${THEME.line}`,
+                  borderRadius: 12,
+                  padding: "8px 16px",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: THEME.ink,
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "var(--shadow-sm)",
                 }}
               >
-                {showTable ? "Hide Table" : `Show Table (${baseAmort.schedule.length} rows)`}
+                {showTable
+                  ? "Hide Table Ledger"
+                  : `View Table Ledger (${baseAmort.schedule.length} months)`}
               </button>
             </div>
 
             {showTable && (
-              <div style={{ overflowX: "auto", maxHeight: 500, overflowY: "auto" }}>
+              <div
+                style={{
+                  overflowX: "auto",
+                  maxHeight: 500,
+                  overflowY: "auto",
+                  border: `1.5px solid ${THEME.line}`,
+                  borderRadius: 12,
+                }}
+              >
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr
                       style={{
-                        borderBottom: `2px solid ${THEME.border}`,
                         position: "sticky",
                         top: 0,
-                        background: THEME.card,
+                        background: "var(--surface-1)",
+                        zIndex: 2,
                       }}
                     >
-                      <th style={{ padding: 8, textAlign: "center", color: THEME.textSecondary }}>
-                        #
-                      </th>
-                      <th style={{ padding: 8, textAlign: "right", color: THEME.textSecondary }}>
-                        EMI
-                      </th>
-                      <th style={{ padding: 8, textAlign: "right", color: THEME.textSecondary }}>
-                        Principal
-                      </th>
-                      <th style={{ padding: 8, textAlign: "right", color: THEME.textSecondary }}>
-                        Interest
-                      </th>
-                      <th style={{ padding: 8, textAlign: "right", color: THEME.textSecondary }}>
-                        Balance
-                      </th>
+                      <th style={thCenter}>Month</th>
+                      <th style={th}>EMI</th>
+                      <th style={th}>Principal</th>
+                      <th style={th}>Interest</th>
+                      <th style={th}>Outstanding Balance</th>
                     </tr>
                   </thead>
                   <tbody>
                     {baseAmort.schedule.map((row) => (
-                      <tr key={row.month} style={{ borderBottom: `1px solid ${THEME.border}` }}>
-                        <td style={{ padding: 8, textAlign: "center", color: THEME.textSecondary }}>
-                          {row.month}
-                        </td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.text }}>
-                          {fmtINRExact(row.emi)}
-                        </td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.sage }}>
+                      <tr key={row.month} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                        <td style={tdCenter}>{row.month}</td>
+                        <td style={td}>{fmtINRExact(row.emi)}</td>
+                        <td style={{ ...td, color: THEME.sage, fontWeight: 600 }}>
                           {fmtINRExact(row.principal)}
                         </td>
-                        <td style={{ padding: 8, textAlign: "right", color: THEME.rust }}>
+                        <td style={{ ...td, color: THEME.rust, fontWeight: 600 }}>
                           {fmtINRExact(row.interest)}
                         </td>
                         <td
                           style={{
-                            padding: 8,
-                            textAlign: "right",
-                            fontWeight: 600,
-                            color: THEME.text,
+                            ...td,
+                            fontWeight: 700,
+                            color: THEME.ink,
                           }}
                         >
                           {fmtINRExact(row.balance)}
