@@ -84,6 +84,9 @@ const BANK_LOGO_DOMAINS: Record<string, string> = {
   airtel: "airtel.in",
   paytm: "paytm.com",
   amazon: "amazon.in",
+  sodexo: "sodexo.com",
+  niyo: "goniyo.com",
+  omnicard: "omnicard.in",
 };
 
 const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
@@ -3449,25 +3452,25 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
       label: "Combined Balance",
       value: <Prv>{fmtINRFull(totalBalance)}</Prv>,
       sub: `${activeCards.length} active card${activeCards.length !== 1 ? "s" : ""}`,
-      color: THEME.sage,
+      color: "var(--t-sage)",
       icon: <Wallet size={16} />,
-      iconBg: `${THEME.sage}1f`
+      iconBg: `color-mix(in srgb, var(--t-sage) 10%, transparent)`
     },
     {
       label: "Total Loaded",
       value: <Prv>{fmtINRFull(totalLoaded)}</Prv>,
       sub: "Total funds loaded into cards",
-      color: THEME.accent,
+      color: "var(--t-accent)",
       icon: <ArrowUp size={16} />,
-      iconBg: `${THEME.accent}1f`
+      iconBg: `color-mix(in srgb, var(--t-accent) 10%, transparent)`
     },
     {
       label: "Total Spent",
       value: <Prv>{fmtINRFull(totalSpent)}</Prv>,
       sub: "Total expenditures on cards",
-      color: THEME.rust,
+      color: "var(--t-rust)",
       icon: <ArrowDown size={16} />,
-      iconBg: `${THEME.rust}1f`
+      iconBg: `color-mix(in srgb, var(--t-rust) 10%, transparent)`
     }
   ];
 
@@ -3481,10 +3484,10 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
             style={{
               padding: "6px 18px",
               borderRadius: 20,
-              border: viewMode === mode ? "none" : `1.5px solid ${THEME.line}`,
+              border: viewMode === mode ? "none" : `1.5px solid var(--t-line)`,
               background:
-                viewMode === mode ? (mode === "active" ? THEME.accent : "#555") : "transparent",
-              color: viewMode === mode ? "#fff" : THEME.muted,
+                viewMode === mode ? (mode === "active" ? "var(--t-accent)" : "var(--t-muted)") : "transparent",
+              color: viewMode === mode ? "#fff" : "var(--t-muted)",
               fontWeight: 600,
               fontSize: 12,
               cursor: "pointer",
@@ -3513,7 +3516,7 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
               className="glass card-lift"
               style={{
                 background: "transparent",
-                border: `1px solid ${THEME.line}`,
+                border: `1px solid var(--t-line)`,
                 borderTop: `4px solid ${color}`,
                 borderRadius: 14,
                 padding: "18px 20px",
@@ -3778,24 +3781,27 @@ function PrepaidList({ items, onRemove, onEdit, onUpdateCard, onAdd }: any) {
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  alignItems: "center",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    background: "rgba(34,197,94,0.25)",
-                    color: "#a7f3d0",
-                    padding: "3px 8px",
-                    borderRadius: 99,
-                    border: "1px solid rgba(34,197,94,0.4)",
-                  }}
-                >
-                  {p.cardType || "Prepaid"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <BankLogo bankName={name} size={30} />
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      background: "rgba(34,197,94,0.25)",
+                      color: "#a7f3d0",
+                      padding: "3px 8px",
+                      borderRadius: 99,
+                      border: "1px solid rgba(34,197,94,0.4)",
+                    }}
+                  >
+                    {p.cardType || "Prepaid"}
+                  </span>
+                </div>
                 {!isClosed && <OwnerBadge owner={p.owner} />}
               </div>
 
