@@ -47,6 +47,125 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
 
+// Bank logo domains for Clearbit / Google Favicon API
+const BANK_LOGO_DOMAINS: Record<string, string> = {
+  hdfc: "hdfcbank.com",
+  icici: "icicibank.com",
+  sbi: "sbi.co.in",
+  "state bank": "sbi.co.in",
+  axis: "axisbank.com",
+  kotak: "kotak.com",
+  idfc: "idfcfirstbank.com",
+  indusind: "indusind.com",
+  yesbank: "yesbank.in",
+  "yes bank": "yesbank.in",
+  sc: "sc.com",
+  "standard chartered": "sc.com",
+  citi: "citi.com",
+  hsbc: "hsbc.com",
+  dbs: "dbs.com",
+  bob: "bankofbaroda.in",
+  baroda: "bankofbaroda.in",
+  "bank of baroda": "bankofbaroda.in",
+  pnb: "pnbindia.in",
+  "punjab national": "pnbindia.in",
+  canara: "canarabank.com",
+  idbi: "idbibank.in",
+  union: "unionbankofindia.co.in",
+  federal: "federalbank.co.in",
+  equitas: "equitasbank.com",
+  au: "aubank.in",
+  rbl: "rblbank.com",
+  bandhan: "bandhanbank.com",
+  jupiter: "jupiter.money",
+  fi: "fi.money",
+  slice: "sliceit.com",
+  onecard: "getonecard.com",
+  airtel: "airtel.in",
+  paytm: "paytm.com",
+  amazon: "amazon.in",
+};
+
+const BankLogo = ({ bankName, size = 40 }: { bankName: string; size?: number }) => {
+  const name = (bankName || "").toLowerCase();
+  let domain = "";
+  for (const [k, d] of Object.entries(BANK_LOGO_DOMAINS)) {
+    if (name.includes(k)) {
+      domain = d;
+      break;
+    }
+  }
+
+  const [imgSrc, setImgSrc] = React.useState<string | null>(null);
+  const [fallbackLevel, setFallbackLevel] = React.useState<number>(0); // 0: hunter.io, 1: google favicon, 2: initials
+
+  React.useEffect(() => {
+    if (domain) {
+      setImgSrc(`https://logos.hunter.io/${domain}`);
+      setFallbackLevel(0);
+    } else {
+      setImgSrc(null);
+      setFallbackLevel(2);
+    }
+  }, [domain]);
+
+  const handleError = () => {
+    if (fallbackLevel === 0) {
+      setFallbackLevel(1);
+      setImgSrc(`https://www.google.com/s2/favicons?domain=${domain}&sz=256`);
+    } else if (fallbackLevel === 1) {
+      setFallbackLevel(2);
+      setImgSrc(null);
+    }
+  };
+
+  if (domain && fallbackLevel < 2 && imgSrc) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 10,
+          background: "var(--surface-0)",
+          border: `1px solid var(--t-line)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          flexShrink: 0,
+        }}
+      >
+        <img
+          src={imgSrc}
+          alt={bankName}
+          style={{ width: "80%", height: "80%", objectFit: "contain" }}
+          onError={handleError}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 10,
+        background: `color-mix(in srgb, var(--t-line) 40%, transparent)`,
+        border: `1px solid var(--t-line)`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: size / 2.5, fontWeight: 800, color: "var(--t-muted)" }}>
+        {bankName.slice(0, 2).toUpperCase()}
+      </span>
+    </div>
+  );
+};
+
 /** Renders authentic SVG logos for each payment network */
 const CardNetworkLogo = ({ network }: { network?: string }) => {
   const n = (network || "").toLowerCase();
@@ -4801,21 +4920,21 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             label: "Total Borrowed",
             value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
             sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
-            color: THEME.muted,
+            color: "var(--t-muted)",
             Icon: TrendingDown,
           },
           {
             label: "Outstanding Balance",
             value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Debt remaining" : "All paid off",
-            color: THEME.rust,
+            color: "var(--t-rust)",
             Icon: Wallet,
           },
           {
             label: "Monthly EMI Outflow",
             value: <Prv>{fmtINRFull(totalEMI)}</Prv>,
             sub: "Combined monthly payment",
-            color: THEME.accent,
+            color: "var(--t-accent)",
             Icon: Calendar,
           },
         ].map(({ label, value, sub, color, Icon }) => (
@@ -4824,7 +4943,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             className="glass card-lift"
             style={{
               background: "transparent",
-              border: `1px solid ${THEME.line}`,
+              border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
               padding: "18px 20px",
@@ -4854,7 +4973,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 style={{
                   fontSize: 10,
                   fontWeight: 800,
-                  color: THEME.muted,
+                  color: "var(--t-muted)",
                   textTransform: "uppercase" as const,
                   letterSpacing: "0.08em",
                 }}
@@ -4866,7 +4985,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               style={{
                 fontSize: 26,
                 fontWeight: 900,
-                color: THEME.ink,
+                color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
@@ -4874,7 +4993,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -4897,45 +5016,64 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                   return d.toLocaleString("en-IN", { month: "short", year: "numeric" });
                 })()
               : null;
-          const barColor = paidPct > 60 ? THEME.sage : paidPct > 30 ? THEME.gold : THEME.rust;
+          const barColor = paidPct > 60 ? "var(--t-sage)" : paidPct > 30 ? "var(--t-gold)" : "var(--t-rust)";
 
           return (
             <InvestCard
               key={l.id}
               onRemove={() => onRemove(l.id)}
               onEdit={() => onEdit(l.id)}
-              cardStyle={{ borderTop: `4px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}
+              cardStyle={{ 
+                borderTop: `4px solid ${isPaidOff ? "var(--t-sage)" : "var(--t-rust)"}`,
+                boxShadow: "var(--shadow-card)",
+              }}
             >
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  paddingRight: 64
+                  gap: 12,
+                  alignItems: "center",
+                  marginBottom: 12,
+                  paddingRight: 48,
                 }}
               >
-                <div>
+                <BankLogo bankName={l.lender} size={36} />
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: 10,
                       fontWeight: 800,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      color: isPaidOff ? THEME.sage : THEME.rust,
+                      color: isPaidOff ? "var(--t-sage)" : "var(--t-rust)",
+                      lineHeight: 1.2
                     }}
                   >
                     {l.type || "Loan"}
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4, color: THEME.ink, letterSpacing: "-0.01em" }}>{l.lender}</div>
+                  <div 
+                    style={{ 
+                      fontSize: 16, 
+                      fontWeight: 800, 
+                      marginTop: 2, 
+                      color: "var(--t-ink)", 
+                      letterSpacing: "-0.01em",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}
+                  >
+                    {l.lender}
+                  </div>
                 </div>
                 {isPaidOff && (
                   <span
                     style={{
                       fontSize: 9,
                       fontWeight: 800,
-                      color: THEME.sage,
-                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                      color: "var(--t-sage)",
+                      background: `color-mix(in srgb, var(--t-sage) 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, var(--t-sage) 25%, transparent)`,
                       borderRadius: 6,
                       padding: "3px 8px",
                       letterSpacing: "0.05em",
@@ -4946,28 +5084,32 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 )}
               </div>
 
-              <div
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  marginTop: 10,
-                  color: isPaidOff ? THEME.sage : THEME.rust,
-                  fontVariantNumeric: "tabular-nums",
-                  letterSpacing: "-0.03em"
-                }}
-              >
-                <Prv>{fmtINRFull(outstanding)}</Prv>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Outstanding Balance
+                </div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: isPaidOff ? "var(--t-sage)" : "var(--t-rust)",
+                    fontVariantNumeric: "tabular-nums",
+                    letterSpacing: "-0.03em",
+                    marginTop: 2
+                  }}
+                >
+                  <Prv>{fmtINRFull(outstanding)}</Prv>
+                </div>
               </div>
 
-              {/* Payoff progress bar */}
               {principal > 0 && (
-                <div style={{ marginTop: 16 }}>
+                <div style={{ marginTop: 14 }}>
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      fontSize: 10,
-                      color: THEME.muted,
+                      fontSize: 9,
+                      color: "var(--t-muted)",
                       marginBottom: 6,
                       fontWeight: 700,
                       textTransform: "uppercase",
@@ -4991,19 +5133,18 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                 </div>
               )}
 
-              {/* Stat cells */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
-                  { k: "Principal", v: fmtINRExact(l.principal), color: THEME.muted },
-                  { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: THEME.accent },
-                  { k: "Interest Rate", v: `${l.rate}%`, color: THEME.muted },
-                  { k: "Months Left", v: months > 0 ? String(months) : "—", color: THEME.ink },
-                  ...(payoffDate ? [{ k: "Payoff Date", v: payoffDate, color: THEME.sage }] : []),
+                  { k: "Principal", v: fmtINRExact(l.principal), color: "var(--t-muted)" },
+                  { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: "var(--t-accent)" },
+                  { k: "Interest Rate", v: `${l.rate}%`, color: "var(--t-muted)" },
+                  { k: "Months Left", v: months > 0 ? String(months) : "—", color: "var(--t-ink)" },
+                  ...(payoffDate ? [{ k: "Payoff Date", v: payoffDate, color: "var(--t-sage)" }] : []),
                   ...(paid > 0
-                    ? [{ k: "Total Paid", v: fmtINRExact(paid), color: THEME.sage }]
+                    ? [{ k: "Total Paid", v: fmtINRExact(paid), color: "var(--t-sage)" }]
                     : []),
                   ...(interestRemaining > 0
-                    ? [{ k: "Est. Interest Left", v: fmtINRExact(interestRemaining), color: THEME.rust }]
+                    ? [{ k: "Est. Interest Left", v: fmtINRExact(interestRemaining), color: "var(--t-rust)" }]
                     : []),
                 ].map(({ k, v, color }) => (
                   <div
@@ -5023,19 +5164,18 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       style={{
                         fontSize: 9,
                         textTransform: "uppercase" as const,
-                        color: THEME.muted,
+                        color: "var(--t-muted)",
                         fontWeight: 700,
                         letterSpacing: "0.04em"
                       }}
                     >
                       {k}
                     </span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: color === THEME.muted ? THEME.ink : color }}>{v}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: color === "var(--t-muted)" ? "var(--t-ink)" : color }}>{v}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Prepayment Calculator */}
               {!isPaidOff && outstanding > 0 && (
                 <div
                   style={{ marginTop: 16, borderTop: `1px solid var(--t-line)`, paddingTop: 14 }}
@@ -5047,7 +5187,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--t-ink)", display: "flex", alignItems: "center", gap: 6 }}>
                       ⚡ Prepayment Calculator
                     </div>
                     <button
@@ -5060,7 +5200,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       }
                       style={{
                         fontSize: 11,
-                        color: THEME.accent,
+                        color: "var(--t-accent)",
                         background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
                         border: "none",
                         borderRadius: 6,
@@ -5094,9 +5234,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                           marginBottom: 12,
                         }}
                       >
-                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>If I prepay a lump sum of</span>
+                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>If I prepay a lump sum of</span>
                         <div style={{ position: "relative", display: "inline-block" }}>
-                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: THEME.muted, fontWeight: 700 }}>₹</span>
+                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--t-muted)", fontWeight: 700 }}>₹</span>
                           <input
                             type="number"
                             placeholder="0.00"
@@ -5112,16 +5252,16 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                               background: "var(--surface-0)",
                               fontSize: 13,
                               fontWeight: 800,
-                              color: THEME.ink,
+                              color: "var(--t-ink)",
                               outline: "none",
                               boxShadow: "var(--shadow-xs)",
                               transition: "border-color 0.2s ease"
                             }}
-                            onFocus={(e) => { e.currentTarget.style.borderColor = THEME.accent; }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--t-accent)"; }}
                             onBlur={(e) => { e.currentTarget.style.borderColor = "var(--t-line)"; }}
                           />
                         </div>
-                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>today:</span>
+                        <span style={{ fontSize: 12, color: "var(--t-muted)", fontWeight: 500 }}>today:</span>
                       </div>
                       {prepayInputs[l.id] &&
                         Number(prepayInputs[l.id]) > 0 &&
@@ -5138,11 +5278,11 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                   borderLeft: `4px solid var(--t-sage)`,
                                   fontSize: 13,
                                   fontWeight: 600,
-                                  color: THEME.ink,
+                                  color: "var(--t-ink)",
                                   lineHeight: 1.4
                                 }}
                               >
-                                🎉 <strong style={{ color: THEME.sage, textTransform: "uppercase", fontSize: 11, display: "block", marginBottom: 2 }}>Full Loan Settlement</strong>
+                                🎉 <strong style={{ color: "var(--t-sage)", textTransform: "uppercase", fontSize: 11, display: "block", marginBottom: 2 }}>Full Loan Settlement</strong>
                                 You will completely close this loan today, saving **{fmtINRFull(interestRemaining)}** in estimated remaining interest!
                               </div>
                             );
@@ -5173,12 +5313,12 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                 {
                                   label: "Time Saved",
                                   value: `${monthsSaved} months`,
-                                  color: THEME.sage,
+                                  color: "var(--t-sage)",
                                 },
                                 {
                                   label: "Interest Saved",
                                   value: fmtINRFull(interestSaved),
-                                  color: THEME.sage,
+                                  color: "var(--t-sage)",
                                 },
                                 {
                                   label: "New Payoff Date",
@@ -5186,7 +5326,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                     month: "short",
                                     year: "numeric",
                                   }),
-                                  color: THEME.accent,
+                                  color: "var(--t-accent)",
                                 },
                               ].map(({ label, value, color }) => (
                                 <div
@@ -5207,7 +5347,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                     style={{
                                       fontSize: 9,
                                       textTransform: "uppercase" as const,
-                                      color: THEME.muted,
+                                      color: "var(--t-muted)",
                                       fontWeight: 700,
                                       letterSpacing: "0.04em"
                                     }}
@@ -6897,7 +7037,14 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
             style={input}
             type="number"
             value={f.principal}
-            onChange={(e) => setF({ ...f, principal: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              setF((prev: any) => ({
+                ...prev,
+                principal: val,
+                outstanding: prev.outstanding === "" || prev.outstanding === prev.principal ? val : prev.outstanding,
+              }));
+            }}
           />
         </Field>
         <Field label="Outstanding">
