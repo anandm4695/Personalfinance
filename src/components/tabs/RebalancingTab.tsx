@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -7,8 +8,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Settings,
-  BarChart2,
-  Shield,
   Zap,
   Info,
 } from "lucide-react";
@@ -25,7 +24,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, rdMaturity, calculateEpfBalance } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -33,6 +32,70 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+
+const th: React.CSSProperties = {
+  textAlign: "left",
+  padding: "14px 16px",
+  fontSize: 10,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: THEME.muted,
+  fontWeight: 700,
+  borderBottom: `1.5px solid ${THEME.line}`,
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+  whiteSpace: "nowrap",
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  borderBottom: `1px solid ${THEME.line}`,
+  color: THEME.ink,
+  fontSize: 13,
+  verticalAlign: "middle",
+  fontVariantNumeric: "tabular-nums",
+};
+
+const thRight: React.CSSProperties = { ...th, textAlign: "right" };
+const tdRight: React.CSSProperties = { ...td, textAlign: "right" };
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name || label}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const PRESETS = {
   aggressive: {
@@ -73,6 +136,9 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   const [selectedPreset, setSelectedPreset] = useState("moderate");
   const [customTarget, setCustomTarget] = useState({ equity: 60, debt: 30, gold: 0, cash: 10 });
   const [useCustom, setUseCustom] = useState(false);
+
+  const [activeCurrentIndex, setActiveCurrentIndex] = useState<number | null>(null);
+  const [activeTargetIndex, setActiveTargetIndex] = useState<number | null>(null);
 
   const target = useCustom ? customTarget : PRESETS[selectedPreset];
 
@@ -277,17 +343,17 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   }, [allocation, target]);
 
   const pieData = [
-    { name: "Equity", value: allocation.equity, color: "#6366F1" },
-    { name: "Debt", value: allocation.debt + allocation.nps, color: "#10B981" },
+    { name: "Equity", value: allocation.equity, color: "#4F46E5" },
+    { name: "Debt", value: allocation.debt + allocation.nps, color: "#059669" },
     { name: "Gold", value: allocation.gold, color: "#D97706" },
-    { name: "Cash", value: allocation.cash, color: "#F59E0B" },
+    { name: "Cash", value: allocation.cash, color: "#7C3AED" },
   ].filter((d) => d.value > 0);
 
   const targetPieData = [
-    { name: "Equity", value: target.equity, color: "#6366F1" },
-    { name: "Debt", value: target.debt, color: "#10B981" },
+    { name: "Equity", value: target.equity, color: "#4F46E5" },
+    { name: "Debt", value: target.debt, color: "#059669" },
     { name: "Gold", value: target.gold || 0, color: "#D97706" },
-    { name: "Cash", value: target.cash, color: "#F59E0B" },
+    { name: "Cash", value: target.cash, color: "#7C3AED" },
   ].filter((d) => d.value > 0);
 
   const comparisonData = [
@@ -299,64 +365,68 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
   if (!allocation.total) {
     return (
-      <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <SectionTitle sub="Compare your allocation to target and get actionable suggestions">
           Smart Rebalancing
         </SectionTitle>
         <EmptyState
           icon={PieIcon}
           title="No Portfolio Data"
-          subtitle="Add investments to see rebalancing suggestions"
+          description="Add investments to see rebalancing suggestions"
         />
       </div>
     );
   }
 
+  const scoreColor =
+    deviationScore > 80 ? THEME.sage : deviationScore > 50 ? "#D97706" : THEME.rust;
+
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <SectionTitle sub="Compare your allocation to target and get actionable suggestions">
         Smart Rebalancing
       </SectionTitle>
 
-      {/* Alignment Score */}
-      <Card>
-        <div
-          style={{ padding: 20, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}
-        >
+      {/* Alignment Score Bento Card */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 24 }}>
           <div
             style={{
-              width: 72,
-              height: 72,
+              width: 80,
+              height: 80,
               borderRadius: "50%",
-              background: `conic-gradient(${deviationScore > 80 ? "#10B981" : deviationScore > 50 ? "#F59E0B" : "#EF4444"} ${deviationScore * 3.6}deg, ${THEME.line} 0deg)`,
+              background: `conic-gradient(${scoreColor} ${deviationScore * 3.6}deg, ${THEME.line} 0deg)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.03)",
+              flexShrink: 0,
             }}
           >
             <div
               style={{
-                width: 56,
-                height: 56,
+                width: 64,
+                height: 64,
                 borderRadius: "50%",
-                background: THEME.paper,
+                background: "var(--surface-0)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
-                fontSize: 18,
-                color:
-                  deviationScore > 80 ? "#10B981" : deviationScore > 50 ? "#F59E0B" : "#EF4444",
+                fontWeight: 900,
+                fontSize: 20,
+                color: scoreColor,
               }}
             >
               {Math.round(deviationScore)}
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 180 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: THEME.ink }}>
+            <div
+              style={{ fontWeight: 800, fontSize: 16, color: THEME.ink, letterSpacing: "-0.015em" }}
+            >
               Portfolio Alignment Score
             </div>
-            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+            <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
               {deviationScore > 80
                 ? "Well aligned — minor adjustments only"
                 : deviationScore > 50
@@ -365,127 +435,181 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 12, color: THEME.muted }}>Total Portfolio</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: THEME.muted,
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+              }}
+            >
+              Total Portfolio
+            </div>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 900,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                marginTop: 2,
+              }}
+            >
               <Prv>{fmtINRFull(allocation.total)}</Prv>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Target Selection */}
-      <Card style={{ marginTop: 16 }}>
-        <div style={{ padding: 20 }}>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 14,
-              marginBottom: 14,
-              color: THEME.ink,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Settings size={15} /> Target Allocation
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 10,
-              marginBottom: 16,
-            }}
-          >
-            {Object.entries(PRESETS).map(([key, preset]) => (
+      {/* Target Selection Card */}
+      <Card style={{ padding: 24 }}>
+        <div
+          style={{
+            fontWeight: 800,
+            fontSize: 15,
+            marginBottom: 16,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            letterSpacing: "-0.015em",
+          }}
+        >
+          <Settings size={16} /> Target Allocation Profile
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
+            marginBottom: 18,
+          }}
+        >
+          {Object.entries(PRESETS).map(([key, preset]) => {
+            const active = !useCustom && selectedPreset === key;
+            return (
               <button
                 key={key}
                 onClick={() => {
                   setSelectedPreset(key);
                   setUseCustom(false);
                 }}
+                className="card-lift"
                 style={{
-                  padding: "12px 16px",
-                  borderRadius: 10,
+                  padding: "16px 18px",
+                  borderRadius: 14,
                   textAlign: "left",
-                  border: `1.5px solid ${!useCustom && selectedPreset === key ? THEME.accent : THEME.line}`,
-                  background:
-                    !useCustom && selectedPreset === key ? `${THEME.accent}10` : "transparent",
+                  border: `1.5px solid ${active ? "var(--accent)" : THEME.line}`,
+                  background: active
+                    ? "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface-0)) 100%)"
+                    : "var(--surface-0)",
                   cursor: "pointer",
+                  boxShadow: active ? "0 4px 15px rgba(99, 102, 241, 0.08)" : "var(--shadow-sm)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
                 }}
               >
-                <div style={{ fontWeight: 600, fontSize: 13, color: THEME.ink }}>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 13.5,
+                    color: active ? "var(--accent)" : THEME.ink,
+                  }}
+                >
                   {preset.label}
                 </div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>{preset.desc}</div>
+                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500, lineHeight: 1.3 }}>
+                  {preset.desc}
+                </div>
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Custom Toggle */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: 10,
-              marginTop: 8,
-            }}
-          >
+        {/* Custom target options switcher */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            borderTop: `1px solid ${THEME.line}`,
+            paddingTop: 16,
+          }}
+        >
+          <div>
             <button
               onClick={() => setUseCustom(!useCustom)}
+              className="card-lift"
               style={{
                 padding: "6px 14px",
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 12,
-                fontWeight: 600,
-                border: `1.5px solid ${useCustom ? THEME.accent : THEME.line}`,
-                background: useCustom ? `${THEME.accent}15` : "transparent",
-                color: useCustom ? THEME.accent : THEME.muted,
+                fontWeight: 700,
+                border: `1.5px solid ${useCustom ? "var(--accent)" : THEME.line}`,
+                background: useCustom
+                  ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                  : "transparent",
+                color: useCustom ? "var(--accent)" : THEME.ink,
                 cursor: "pointer",
+                transition: "all 0.2s ease",
               }}
             >
-              Custom Target
+              Custom Target Allocation
             </button>
-            {useCustom && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {["equity", "debt", "gold", "cash"].map((k) => (
-                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <label
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {k}:
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={customTarget[k]}
-                      onChange={(e) =>
-                        setCustomTarget((p) => ({ ...p, [k]: Number(e.target.value) }))
-                      }
-                      style={{
-                        width: 50,
-                        padding: "4px 6px",
-                        borderRadius: 6,
-                        border: `1px solid ${THEME.line}`,
-                        background: "transparent",
-                        color: THEME.ink,
-                        fontSize: 13,
-                        textAlign: "center",
-                      }}
-                    />
-                    <span style={{ fontSize: 11, color: THEME.muted }}>%</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
+          {useCustom && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+              {["equity", "debt", "gold", "cash"].map((k) => (
+                <div
+                  key={k}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 10,
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: 11.5,
+                      color: THEME.muted,
+                      fontWeight: 700,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {k}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={customTarget[k]}
+                    onChange={(e) =>
+                      setCustomTarget((p) => ({ ...p, [k]: Number(e.target.value) }))
+                    }
+                    style={{
+                      width: 50,
+                      padding: "4px 6px",
+                      borderRadius: 6,
+                      border: `1px solid ${THEME.line}`,
+                      background: "transparent",
+                      color: THEME.ink,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textAlign: "center",
+                      outline: "none",
+                    }}
+                  />
+                  <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>%</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Card>
 
@@ -495,52 +619,143 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 16,
-          marginTop: 16,
         }}
       >
-        {/* Current Pie */}
-        <Card>
-          <div style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: THEME.ink }}>
+        {/* Current Donut */}
+        <Card style={{ padding: "24px 16px" }}>
+          <div style={{ padding: "0 8px", textAlign: "center" }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 13.5,
+                marginBottom: 12,
+                color: THEME.ink,
+                letterSpacing: "-0.01em",
+              }}
+            >
               Current Allocation
             </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  innerRadius={35}
-                >
-                  {pieData.map((d, i) => (
-                    <Cell key={i} fill={d.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v) => fmtINRFull(v)}
-                  contentStyle={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderRadius: 8,
-                    color: THEME.ink,
-                  }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 8 }}>
+            <div style={{ width: "100%", height: 180, position: "relative" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    innerRadius={50}
+                    paddingAngle={3}
+                    stroke="none"
+                    onMouseEnter={(_, idx) => setActiveCurrentIndex(idx)}
+                    onMouseLeave={() => setActiveCurrentIndex(null)}
+                  >
+                    {pieData.map((d, i) => (
+                      <Cell
+                        key={i}
+                        fill={d.color}
+                        style={{
+                          filter:
+                            activeCurrentIndex === i
+                              ? "drop-shadow(0 4px 10px rgba(0,0,0,0.15))"
+                              : "none",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                  {activeCurrentIndex !== null && pieData[activeCurrentIndex] ? (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 9.5,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {pieData[activeCurrentIndex].name}
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 13,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹
+                        {pieData[activeCurrentIndex].value.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 9.5,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Portfolio
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 13,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹{allocation.total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </text>
+                    </>
+                  )}
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 10,
+                marginTop: 12,
+              }}
+            >
               {pieData.map((d) => (
                 <div
                   key={d.name}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 5,
                     fontSize: 11,
                     color: THEME.muted,
+                    fontWeight: 600,
                   }}
                 >
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />
@@ -552,85 +767,186 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         </Card>
 
         {/* Comparison Bar */}
-        <Card>
-          <div style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: THEME.ink }}>
+        <Card style={{ padding: "24px 16px" }}>
+          <div style={{ padding: "0 8px", textAlign: "center" }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 13.5,
+                marginBottom: 12,
+                color: THEME.ink,
+                letterSpacing: "-0.01em",
+              }}
+            >
               Current vs Target
             </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={comparisonData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: THEME.muted }} />
-                <YAxis tick={{ fontSize: 11, fill: THEME.muted }} unit="%" />
-                <Tooltip
-                  formatter={(v) => `${v}%`}
-                  contentStyle={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderRadius: 8,
-                    color: THEME.ink,
-                  }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                  cursor={{ fill: THEME.line, opacity: 0.4 }}
-                />
-                <Bar dataKey="Current" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Target" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-                  formatter={(value: string) => (
-                    <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
-                  )}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: "100%", height: 180 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: THEME.muted }}
+                    unit="%"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v) => `${v}%`}
+                    content={<ChartTooltip formatter={(v) => `${v}%`} />}
+                    cursor={{ fill: THEME.line, opacity: 0.4 }}
+                  />
+                  <Bar dataKey="Current" fill="#4F46E5" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="Target" fill="#059669" radius={[6, 6, 0, 0]} />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
+                    formatter={(value: string) => (
+                      <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
+                    )}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </Card>
 
-        {/* Target Pie */}
-        <Card>
-          <div style={{ padding: 16, textAlign: "center" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: THEME.ink }}>
+        {/* Target Donut */}
+        <Card style={{ padding: "24px 16px" }}>
+          <div style={{ padding: "0 8px", textAlign: "center" }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 13.5,
+                marginBottom: 12,
+                color: THEME.ink,
+                letterSpacing: "-0.01em",
+              }}
+            >
               Target Allocation
             </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={targetPieData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  innerRadius={35}
-                >
-                  {targetPieData.map((d, i) => (
-                    <Cell key={i} fill={d.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v) => `${v}%`}
-                  contentStyle={{
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderRadius: 8,
-                    color: THEME.ink,
-                  }}
-                  labelStyle={{ color: THEME.ink }}
-                  itemStyle={{ color: THEME.ink }}
-                  cursor={{ fill: THEME.line, opacity: 0.4 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 8 }}>
+            <div style={{ width: "100%", height: 180, position: "relative" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={targetPieData}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    innerRadius={50}
+                    paddingAngle={3}
+                    stroke="none"
+                    onMouseEnter={(_, idx) => setActiveTargetIndex(idx)}
+                    onMouseLeave={() => setActiveTargetIndex(null)}
+                  >
+                    {targetPieData.map((d, i) => (
+                      <Cell
+                        key={i}
+                        fill={d.color}
+                        style={{
+                          filter:
+                            activeTargetIndex === i
+                              ? "drop-shadow(0 4px 10px rgba(0,0,0,0.15))"
+                              : "none",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip formatter={(v) => `${v}%`} />} />
+                  {activeTargetIndex !== null && targetPieData[activeTargetIndex] ? (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 9.5,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {targetPieData[activeTargetIndex].name}
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 13,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        {targetPieData[activeTargetIndex].value}%
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 9.5,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Target
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 13,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        100%
+                      </text>
+                    </>
+                  )}
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: 10,
+                marginTop: 12,
+              }}
+            >
               {targetPieData.map((d) => (
                 <div
                   key={d.name}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 5,
                     fontSize: 11,
                     color: THEME.muted,
+                    fontWeight: 600,
                   }}
                 >
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />
@@ -642,212 +958,239 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         </Card>
       </div>
 
-      {/* Rebalancing Actions */}
-      <Card style={{ marginTop: 16 }}>
-        <div style={{ padding: 20 }}>
+      {/* Rebalancing Actions Suggestions */}
+      <Card style={{ padding: 24 }}>
+        <div
+          style={{
+            fontWeight: 800,
+            fontSize: 15,
+            marginBottom: 16,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            letterSpacing: "-0.015em",
+          }}
+        >
+          <Zap size={16} style={{ color: "#D97706" }} /> Actionable Suggestions
+        </div>
+        {suggestions.length === 0 ? (
           <div
             style={{
-              fontWeight: 700,
-              fontSize: 15,
-              marginBottom: 14,
-              color: THEME.ink,
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 12,
+              padding: "16px 20px",
+              borderRadius: 14,
+              background: "rgba(5, 150, 105, 0.05)",
+              border: `1.5px solid rgba(5, 150, 105, 0.15)`,
             }}
           >
-            <Zap size={16} style={{ color: "#F59E0B" }} /> Rebalancing Suggestions
+            <CheckCircle2 size={18} style={{ color: THEME.sage }} />
+            <span style={{ fontSize: 13.5, color: THEME.ink, fontWeight: 600 }}>
+              Your portfolio is perfectly aligned! No rebalancing suggestions required.
+            </span>
           </div>
-          {suggestions.length === 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: 16,
-                borderRadius: 10,
-                background: "rgba(16,185,129,0.06)",
-              }}
-            >
-              <CheckCircle2 size={18} style={{ color: "#10B981" }} />
-              <span style={{ fontSize: 14, color: THEME.ink }}>
-                Your portfolio is well-balanced! No rebalancing needed.
-              </span>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {suggestions.map((s, i) => (
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {suggestions.map((s, i) => (
+              <div
+                key={i}
+                className="card-lift"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  padding: "16px 20px",
+                  borderRadius: 14,
+                  background: "var(--surface-0)",
+                  border: `1.5px solid ${THEME.line}`,
+                  borderLeft: `5px solid ${s.overweight ? THEME.rust : THEME.sage}`,
+                  boxShadow: "var(--shadow-sm)",
+                  transition: "all 0.25s ease",
+                }}
+              >
                 <div
-                  key={i}
                   style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: s.overweight ? `${THEME.rust}16` : `${THEME.sage}16`,
                     display: "flex",
                     alignItems: "center",
-                    gap: 14,
-                    padding: "14px 16px",
-                    borderRadius: 10,
-                    background: s.overweight ? "rgba(239,68,68,0.04)" : "rgba(16,185,129,0.04)",
-                    border: `1.5px solid ${s.overweight ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)"}`,
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.overweight ? (
+                    <ArrowRight
+                      size={16}
+                      style={{ color: THEME.rust, transform: "rotate(-45deg)" }}
+                    />
+                  ) : (
+                    <ArrowRight
+                      size={16}
+                      style={{ color: THEME.sage, transform: "rotate(45deg)" }}
+                    />
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13.5, color: THEME.ink }}>
+                    {s.action} {s.asset} by {s.diffPct}%
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, fontWeight: 500 }}>
+                    Current: {s.current}% &rarr; Target: {s.target}%
+                  </div>
+                </div>
+                <div
+                  style={{
+                    textAlign: "right",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 4,
                   }}
                 >
                   <div
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: s.overweight ? "#EF444415" : "#10B98115",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      fontWeight: 900,
+                      fontSize: 14,
+                      color: s.overweight ? THEME.rust : THEME.sage,
                     }}
                   >
-                    {s.overweight ? (
-                      <ArrowRight
-                        size={18}
-                        style={{ color: "#EF4444", transform: "rotate(-45deg)" }}
-                      />
-                    ) : (
-                      <ArrowRight
-                        size={18}
-                        style={{ color: "#10B981", transform: "rotate(45deg)" }}
-                      />
-                    )}
+                    <Prv>{fmtINRFull(s.diffAmt)}</Prv>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: THEME.ink }}>
-                      {s.action} {s.asset} by {s.diffPct}%
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                      Current: {s.current}% → Target: {s.target}%
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 14,
-                        color: s.overweight ? "#EF4444" : "#10B981",
-                      }}
-                    >
-                      <Prv>{fmtINRFull(s.diffAmt)}</Prv>
-                    </div>
-                    <Badge variant={s.overweight ? "rust" : "sage"}>
-                      {s.overweight ? "Overweight" : "Underweight"}
-                    </Badge>
-                  </div>
+                  <Badge
+                    variant={s.overweight ? "rust" : "sage"}
+                    style={{ fontSize: 9.5, padding: "2px 6px" }}
+                  >
+                    {s.overweight ? "Overweight" : "Underweight"}
+                  </Badge>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
-      {/* Detailed Breakdown */}
-      <Card style={{ marginTop: 16 }}>
-        <div style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: THEME.ink }}>
+      {/* Detailed Breakdown Table */}
+      <Card style={{ padding: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              letterSpacing: "-0.015em",
+            }}
+          >
             Detailed Breakdown
+          </h3>
+          <div style={{ fontSize: 11, color: THEME.muted }}>
+            Individual asset components and their portfolio shares
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${THEME.line}` }}>
-                  {["Asset Class", "Value", "% of Portfolio"].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: "left",
-                        padding: "8px 10px",
-                        color: THEME.muted,
-                        fontWeight: 600,
-                        fontSize: 11,
-                        textTransform: "uppercase",
-                      }}
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ ...th, paddingLeft: 16 }}>Asset Class</th>
+                <th style={thRight}>Value</th>
+                <th style={{ ...thRight, paddingRight: 16 }}>% of Portfolio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                {
+                  label: "Stocks (Direct Equity)",
+                  value: allocation.breakdown.equityStocks,
+                  parent: "Equity",
+                },
+                {
+                  label: "Equity Mutual Funds",
+                  value: allocation.breakdown.equityMF,
+                  parent: "Equity",
+                },
+                {
+                  label: "Debt Mutual Funds",
+                  value: allocation.breakdown.debtMF,
+                  parent: "Debt",
+                },
+                { label: "Fixed Deposits", value: allocation.breakdown.fd, parent: "Debt" },
+                { label: "Recurring Deposits", value: allocation.breakdown.rd, parent: "Debt" },
+                { label: "Bonds", value: allocation.breakdown.bonds, parent: "Debt" },
+                { label: "PPF", value: allocation.breakdown.ppf, parent: "Debt" },
+                { label: "EPF", value: allocation.breakdown.epf, parent: "Debt" },
+                { label: "NPS", value: allocation.breakdown.nps, parent: "Debt" },
+                {
+                  label: "LIC / Insurance",
+                  value: allocation.breakdown.lic + allocation.breakdown.investPlans,
+                  parent: "Debt",
+                },
+                { label: "Gold & SGBs", value: allocation.gold, parent: "Gold" },
+                {
+                  label: "Bank Balance (Cash)",
+                  value: allocation.breakdown.cash,
+                  parent: "Cash",
+                },
+              ]
+                .filter((r) => r.value > 0)
+                .map((row, i) => (
+                  <tr
+                    key={i}
+                    style={{ borderBottom: `1px solid ${THEME.line}` }}
+                    className="table-row-hover"
+                  >
+                    <td style={{ ...td, paddingLeft: 16, color: THEME.ink, fontWeight: 700 }}>
+                      {row.label}
+                      <Badge
+                        variant="muted"
+                        style={{ marginLeft: 8, fontSize: 10, padding: "2px 6px" }}
+                      >
+                        {row.parent}
+                      </Badge>
+                    </td>
+                    <td style={{ ...tdRight, fontWeight: 700 }}>
+                      <Prv>{fmtINRFull(row.value)}</Prv>
+                    </td>
+                    <td
+                      style={{ ...tdRight, paddingRight: 16, color: THEME.muted, fontWeight: 600 }}
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    label: "Stocks (Direct Equity)",
-                    value: allocation.breakdown.equityStocks,
-                    parent: "Equity",
-                  },
-                  {
-                    label: "Equity Mutual Funds",
-                    value: allocation.breakdown.equityMF,
-                    parent: "Equity",
-                  },
-                  {
-                    label: "Debt Mutual Funds",
-                    value: allocation.breakdown.debtMF,
-                    parent: "Debt",
-                  },
-                  { label: "Fixed Deposits", value: allocation.breakdown.fd, parent: "Debt" },
-                  { label: "Recurring Deposits", value: allocation.breakdown.rd, parent: "Debt" },
-                  { label: "Bonds", value: allocation.breakdown.bonds, parent: "Debt" },
-                  { label: "PPF", value: allocation.breakdown.ppf, parent: "Debt" },
-                  { label: "EPF", value: allocation.breakdown.epf, parent: "Debt" },
-                  { label: "NPS", value: allocation.breakdown.nps, parent: "Debt" },
-                  {
-                    label: "LIC / Insurance",
-                    value: allocation.breakdown.lic + allocation.breakdown.investPlans,
-                    parent: "Debt",
-                  },
-                  { label: "Gold & SGBs", value: allocation.gold, parent: "Gold" },
-                  {
-                    label: "Bank Balance (Cash)",
-                    value: allocation.breakdown.cash,
-                    parent: "Cash",
-                  },
-                ]
-                  .filter((r) => r.value > 0)
-                  .map((row, i) => (
-                    <tr key={i} style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                      <td style={{ padding: "8px 10px", color: THEME.ink }}>
-                        {row.label}
-                        <Badge variant="muted" style={{ marginLeft: 8, fontSize: 10 }}>
-                          {row.parent}
-                        </Badge>
-                      </td>
-                      <td style={{ padding: "8px 10px", fontWeight: 600, color: THEME.ink }}>
-                        <Prv>{fmtINRFull(row.value)}</Prv>
-                      </td>
-                      <td style={{ padding: "8px 10px", color: THEME.muted }}>
-                        {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+                      {allocation.total ? ((row.value / allocation.total) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </Card>
 
       {/* Disclaimer */}
       <div
         style={{
-          marginTop: 16,
-          padding: "12px 16px",
-          borderRadius: 10,
-          background: "rgba(99,102,241,0.05)",
-          border: `1px solid ${THEME.line}`,
+          padding: "14px 18px",
+          borderRadius: 14,
+          background: "color-mix(in srgb, var(--accent) 5%, var(--surface-0))",
+          border: `1.5px solid ${THEME.line}`,
         }}
       >
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 10,
             fontSize: 12,
             color: THEME.muted,
+            lineHeight: 1.4,
+            fontWeight: 500,
           }}
         >
-          <Info size={14} />
-          Rebalancing suggestions are indicative. Consult your financial advisor before making
-          investment decisions. Tax implications of selling should be considered.
+          <Info size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
+          <span>
+            Rebalancing suggestions are indicative. Consult your financial advisor before making
+            investment decisions. Tax implications of selling should be considered.
+          </span>
         </div>
       </div>
     </div>
