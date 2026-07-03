@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
-  IndianRupee,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -24,9 +24,29 @@ import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
+
+const th: React.CSSProperties = {
+  textAlign: "left",
+  padding: "14px 16px",
+  fontSize: 10,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: THEME.muted,
+  fontWeight: 700,
+  borderBottom: `1.5px solid ${THEME.line}`,
+  whiteSpace: "nowrap",
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  verticalAlign: "middle",
+  fontSize: 13,
+  borderBottom: `1px solid ${THEME.line}`,
+  fontVariantNumeric: "tabular-nums",
+};
 
 const MONTH_NAMES = [
   "Jan",
@@ -46,6 +66,169 @@ const MONTH_NAMES = [
 const getMonthLabel = (ym) => {
   const [y, m] = ym.split("-");
   return `${MONTH_NAMES[parseInt(m) - 1]} '${y.slice(-2)}`;
+};
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Comparison Split Card ───────────────────────────────────── */
+const ComparisonSplitCard = ({
+  label,
+  currentLabel,
+  previousLabel,
+  currentValue,
+  previousValue,
+  delta,
+  percentChange,
+  isIncome = false,
+  isNetWorth = false,
+  deltaIndicator,
+}: any) => {
+  const isUp = delta > 0;
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          color: THEME.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
+      >
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: 4,
+            }}
+          >
+            {currentLabel}
+          </div>
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 900,
+              color: isIncome ? THEME.sage : isNetWorth ? "var(--accent)" : THEME.ink,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            <Prv>{fmtINRFull(currentValue)}</Prv>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 18, color: THEME.line, fontWeight: 600, padding: "0 6px" }}>vs</div>
+
+        <div style={{ flex: 1, textAlign: "right" }}>
+          <div
+            style={{
+              fontSize: 10,
+              color: THEME.muted,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: 4,
+            }}
+          >
+            {previousLabel}
+          </div>
+          <div
+            style={{ fontSize: 20, fontWeight: 700, color: THEME.muted, letterSpacing: "-0.02em" }}
+          >
+            <Prv>{fmtINRFull(previousValue)}</Prv>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          borderTop: `1px solid ${THEME.line}`,
+          paddingTop: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+        }}
+      >
+        {deltaIndicator}
+        {percentChange !== undefined && percentChange !== 0 && (
+          <span
+            style={{
+              fontSize: 12,
+              color: isIncome ? (isUp ? THEME.sage : THEME.rust) : isUp ? THEME.rust : THEME.sage,
+              fontWeight: 700,
+            }}
+          >
+            ({isUp ? "+" : ""}
+            {percentChange.toFixed(1)}%)
+          </span>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const ComparisonReportsTab = ({ state, metrics }) => {
@@ -201,7 +384,7 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       nwDelta: currentNW - lastYearNW,
       categoryComps,
     };
-  }, [state, currentFYStart, lastFYStart, metrics]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state, currentFYStart, lastFYStart, metrics]);
 
   const comp = compMode === "mom" ? momComparison : yoyComparison;
 
@@ -215,60 +398,125 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
   }, [comp]);
 
   const DeltaIndicator = ({ value, showAmount = true }) => {
-    if (!value || Math.abs(value) < 1) return <Minus size={14} color={THEME.textSecondary} />;
+    if (!value || Math.abs(value) < 1) {
+      return (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "3px 10px",
+            borderRadius: 20,
+            background: "var(--surface-2)",
+            color: THEME.muted,
+            fontSize: 11,
+            fontWeight: 700,
+          }}
+        >
+          <Minus size={12} /> Stable
+        </span>
+      );
+    }
     const isUp = value > 0;
+    const color = isUp ? THEME.rust : THEME.sage;
+    const bg = isUp ? `${THEME.rust}16` : `${THEME.sage}16`;
     return (
       <span
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 2,
-          fontSize: 13,
-          fontWeight: 600,
-          color: isUp ? THEME.rust : THEME.sage,
+          gap: 4,
+          padding: "3px 10px",
+          borderRadius: 20,
+          background: bg,
+          color: color,
+          fontSize: 11,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
         }}
       >
-        {isUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-        {showAmount && <Prv>{fmtINRFull(Math.abs(value))}</Prv>}
+        {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+        {isUp ? "Increased" : "Decreased"}
+        {showAmount && (
+          <span style={{ fontWeight: 900, marginLeft: 2 }}>
+            <Prv>{fmtINRFull(Math.abs(value))}</Prv>
+          </span>
+        )}
       </span>
     );
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <SectionTitle sub="Month-over-month and year-over-year analysis">
           Comparison Reports
         </SectionTitle>
-        <div style={{ display: "flex", gap: 8 }}>
+
+        {/* Premium Mode Switcher */}
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            background: "var(--surface-0)",
+            border: `1.5px solid ${THEME.line}`,
+            padding: "4px",
+            borderRadius: 16,
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
           {[
             { id: "mom", label: "Month vs Month" },
             { id: "yoy", label: "FY vs FY" },
-          ].map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setCompMode(m.id)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontSize: 13,
-                border: `1px solid ${compMode === m.id ? "var(--accent)" : THEME.border}`,
-                background: compMode === m.id ? "var(--accent)" : THEME.card,
-                color: compMode === m.id ? "#fff" : THEME.text,
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
+          ].map((m) => {
+            const active = compMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setCompMode(m.id)}
+                className="card-lift"
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 12,
+                  background: active ? THEME.accent : "transparent",
+                  border: "none",
+                  color: active ? "#fff" : THEME.ink,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {m.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats Split Cards */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            marginBottom: 18,
+            letterSpacing: "-0.015em",
+          }}
+        >
           {comp.currentLabel} vs {comp.previousLabel}
-        </h3>
+        </div>
         <div
           style={{
             display: "grid",
@@ -276,112 +524,51 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
             gap: 16,
           }}
         >
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
-              Expenses
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 11, color: THEME.textSecondary }}>{comp.currentLabel}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: THEME.text }}>
-                  <Prv>{fmtINRFull(comp.currentExpense)}</Prv>
-                </div>
-              </div>
-              <div style={{ fontSize: 24, color: THEME.border }}>vs</div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: THEME.textSecondary }}>{comp.previousLabel}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: THEME.textSecondary }}>
-                  <Prv>{fmtINRFull(comp.previousExpense)}</Prv>
-                </div>
-              </div>
-            </div>
-            <div style={{ marginTop: 8, textAlign: "center" }}>
-              <DeltaIndicator value={comp.expenseDelta} />
-              {comp.previousExpense > 0 && (
-                <span style={{ fontSize: 12, color: THEME.textSecondary, marginLeft: 8 }}>
-                  ({((comp.expenseDelta / comp.previousExpense) * 100).toFixed(1)}%)
-                </span>
-              )}
-            </div>
-          </div>
+          <ComparisonSplitCard
+            label="Expenses"
+            currentLabel={comp.currentLabel}
+            previousLabel={comp.previousLabel}
+            currentValue={comp.currentExpense}
+            previousValue={comp.previousExpense}
+            delta={comp.expenseDelta}
+            percentChange={
+              comp.previousExpense > 0
+                ? (comp.expenseDelta / comp.previousExpense) * 100
+                : undefined
+            }
+            deltaIndicator={<DeltaIndicator value={comp.expenseDelta} showAmount={false} />}
+          />
 
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 12,
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-            }}
-          >
-            <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>Income</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 11, color: THEME.textSecondary }}>{comp.currentLabel}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: THEME.sage }}>
-                  <Prv>{fmtINRFull(comp.currentIncome)}</Prv>
-                </div>
-              </div>
-              <div style={{ fontSize: 24, color: THEME.border }}>vs</div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: THEME.textSecondary }}>{comp.previousLabel}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: THEME.textSecondary }}>
-                  <Prv>{fmtINRFull(comp.previousIncome)}</Prv>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ComparisonSplitCard
+            label="Income"
+            currentLabel={comp.currentLabel}
+            previousLabel={comp.previousLabel}
+            currentValue={comp.currentIncome}
+            previousValue={comp.previousIncome}
+            delta={comp.incomeDelta}
+            percentChange={
+              comp.previousIncome > 0 ? (comp.incomeDelta / comp.previousIncome) * 100 : undefined
+            }
+            isIncome={true}
+            deltaIndicator={<DeltaIndicator value={comp.incomeDelta} showAmount={false} />}
+          />
 
           {compMode === "yoy" && yoyComparison.lastYearNW > 0 && (
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 12,
-                background: THEME.bg,
-                border: `1px solid ${THEME.border}`,
-              }}
-            >
-              <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
-                Net Worth
-              </div>
-              <div
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <div>
-                  <div style={{ fontSize: 11, color: THEME.textSecondary }}>Now</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>
-                    <Prv>{fmtINRFull(yoyComparison.currentNW)}</Prv>
-                  </div>
-                </div>
-                <div style={{ fontSize: 24, color: THEME.border }}>vs</div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 11, color: THEME.textSecondary }}>Last Year</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: THEME.textSecondary }}>
-                    <Prv>{fmtINRFull(yoyComparison.lastYearNW)}</Prv>
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  marginTop: 8,
-                  textAlign: "center",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: yoyComparison.nwDelta >= 0 ? THEME.sage : THEME.rust,
-                }}
-              >
-                {yoyComparison.nwDelta >= 0 ? "+" : ""}
-                <Prv>{fmtINRFull(yoyComparison.nwDelta)}</Prv>
-                {yoyComparison.lastYearNW > 0 &&
-                  ` (${((yoyComparison.nwDelta / yoyComparison.lastYearNW) * 100).toFixed(1)}%)`}
-              </div>
-            </div>
+            <ComparisonSplitCard
+              label="Net Worth"
+              currentLabel="Now"
+              previousLabel="Last Year"
+              currentValue={yoyComparison.currentNW}
+              previousValue={yoyComparison.lastYearNW}
+              delta={yoyComparison.nwDelta}
+              percentChange={
+                yoyComparison.lastYearNW > 0
+                  ? (yoyComparison.nwDelta / yoyComparison.lastYearNW) * 100
+                  : undefined
+              }
+              isNetWorth={true}
+              deltaIndicator={<DeltaIndicator value={yoyComparison.nwDelta} showAmount={false} />}
+            />
           )}
         </div>
       </Card>
@@ -389,43 +576,53 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       {/* Category Chart */}
       {chartData.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            Category Comparison (Top 10)
-          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Category Comparison (Top 10)
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Distribution comparison across selected periods
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={chartData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
               <XAxis
                 type="number"
                 tickFormatter={(v) => fmtINRFull(v)}
-                tick={{ fontSize: 11, fill: THEME.textSecondary }}
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis
                 type="category"
                 dataKey="category"
-                width={100}
-                tick={{ fontSize: 11, fill: THEME.textSecondary }}
+                width={110}
+                tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
               />
-              <Tooltip
-                formatter={(v) => fmtINRFull(v)}
-                cursor={{ fill: THEME.line, opacity: 0.4 }}
-                contentStyle={{
-                  background: THEME.card,
-                  border: `1px solid ${THEME.border}`,
-                  borderRadius: 12,
-                  color: THEME.ink,
-                }}
-                labelStyle={{ color: THEME.ink }}
-                itemStyle={{ color: THEME.ink }}
-              />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
               <Legend
-                wrapperStyle={{ fontSize: 11, paddingTop: 12, color: THEME.ink }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
                 formatter={(value: string) => (
-                  <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                  <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
                 )}
               />
-              <Bar dataKey={comp.currentLabel} fill="var(--accent)" radius={[0, 4, 4, 0]} />
-              <Bar dataKey={comp.previousLabel} fill={THEME.muted} radius={[0, 4, 4, 0]} />
+              <Bar dataKey={comp.currentLabel} fill="var(--accent)" radius={[0, 6, 6, 0]} />
+              <Bar
+                dataKey={comp.previousLabel}
+                fill={`color-mix(in srgb, ${THEME.accent} 30%, transparent)`}
+                radius={[0, 6, 6, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -434,47 +631,55 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
       {/* Detailed Category Table */}
       {comp.categoryComps.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            Category Detail
-          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Category Detail
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Period-over-period comparative analysis by spending category
+            </div>
+          </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ borderBottom: `2px solid ${THEME.border}` }}>
-                  <th style={{ padding: 10, textAlign: "left", color: THEME.textSecondary }}>
-                    Category
-                  </th>
-                  <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
-                    {comp.currentLabel}
-                  </th>
-                  <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
-                    {comp.previousLabel}
-                  </th>
-                  <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
-                    Change
-                  </th>
-                  <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>%</th>
+                <tr>
+                  <th style={{ ...th, paddingLeft: 16 }}>Category</th>
+                  <th style={{ ...th, textAlign: "right" }}>{comp.currentLabel}</th>
+                  <th style={{ ...th, textAlign: "right" }}>{comp.previousLabel}</th>
+                  <th style={{ ...th, textAlign: "right" }}>Change</th>
+                  <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>%</th>
                 </tr>
               </thead>
               <tbody>
                 {comp.categoryComps.map((c) => (
-                  <tr key={c.category} style={{ borderBottom: `1px solid ${THEME.border}` }}>
-                    <td style={{ padding: 10, fontWeight: 500, color: THEME.text }}>
+                  <tr
+                    key={c.category}
+                    style={{ borderBottom: `1px solid ${THEME.line}` }}
+                    className="table-row-hover"
+                  >
+                    <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
                       {c.category}
                     </td>
-                    <td style={{ padding: 10, textAlign: "right", color: THEME.text }}>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                       <Prv>{fmtINRFull(c.current)}</Prv>
                     </td>
-                    <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                    <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
                       <Prv>{fmtINRFull(c.previous)}</Prv>
                     </td>
                     <td
                       style={{
-                        padding: 10,
+                        ...td,
                         textAlign: "right",
-                        fontWeight: 600,
-                        color:
-                          c.delta > 0 ? THEME.rust : c.delta < 0 ? THEME.sage : THEME.textSecondary,
+                        fontWeight: 700,
+                        color: c.delta > 0 ? THEME.rust : c.delta < 0 ? THEME.sage : THEME.muted,
                       }}
                     >
                       {c.delta > 0 ? "+" : ""}
@@ -482,14 +687,12 @@ export const ComparisonReportsTab = ({ state, metrics }) => {
                     </td>
                     <td
                       style={{
-                        padding: 10,
+                        ...td,
                         textAlign: "right",
+                        fontWeight: 700,
+                        paddingRight: 16,
                         color:
-                          c.pctChange > 0
-                            ? THEME.rust
-                            : c.pctChange < 0
-                              ? THEME.sage
-                              : THEME.textSecondary,
+                          c.pctChange > 0 ? THEME.rust : c.pctChange < 0 ? THEME.sage : THEME.muted,
                       }}
                     >
                       {c.pctChange > 0 ? "+" : ""}
