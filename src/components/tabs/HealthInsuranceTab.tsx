@@ -15,7 +15,8 @@ import {
   ChevronUp,
   X,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -85,6 +86,7 @@ const EMPTY: any = {
 };
 
 function PolicyForm({ initial, onSave, onClose }: any) {
+  const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [members, setMembers] = useState<{ name: string; relation: string }[]>(
     initial?.insuredMembers || []
@@ -164,9 +166,9 @@ function PolicyForm({ initial, onSave, onClose }: any) {
             value={form.owner}
             onChange={(e) => set("owner", e.target.value)}
           >
-            {PROFILES.map((p: any) => (
+            {familyProfiles.map((p: any) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>

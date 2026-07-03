@@ -17,7 +17,8 @@ import {
   IndianRupee,
   Building2,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, today } from "../../utils/finance";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -270,6 +271,7 @@ const cardShell: React.CSSProperties = {
 // ─── Property Modal ──────────────────────────────────────────────────────────
 
 function PropertyModal({ existing, onClose, onSave }: any) {
+  const { familyProfiles } = useMasterData();
   const isEdit = !!existing;
   const [f, setF] = useState(
     existing || {
@@ -324,7 +326,7 @@ function PropertyModal({ existing, onClose, onSave }: any) {
         </Field>
         <Field label="Owner">
           <select style={input} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
-            {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {familyProfiles.map((p) => <option key={p.id} value={p.id}>{formatProfileOption(p)}</option>)}
           </select>
         </Field>
         <Field label="Location" style={{ gridColumn: "1 / -1" }}>

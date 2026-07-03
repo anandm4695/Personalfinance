@@ -32,8 +32,8 @@ import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
 
 // Modular Imports
-import { THEME, DENSITY, PROFILES } from "./utils/constants";
-import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
+import { THEME, DENSITY } from "./utils/constants";
+import { DEFAULT_MASTER_DATA, MasterDataContext, formatProfileOption } from "./utils/masterData";
 import {
   fmtINRFull,
   uid,
@@ -272,6 +272,11 @@ function FinanceDashboard() {
 
     return newState;
   });
+
+  // Note: cannot use useMasterData() here — the MasterDataContext.Provider is rendered
+  // further down inside this same component's JSX, so useContext would only see the
+  // default value, not the live state.masterData. Read it straight from state instead.
+  const familyProfiles = state.masterData?.familyProfiles || DEFAULT_MASTER_DATA.familyProfiles;
 
   // 2. Cross-tab sync: If another tab calls localStorage.clear() (full reset), reload this tab too.
   // IMPORTANT: Do NOT reload on normal data writes (e.g. finance_dashboard_v1 key changes).
@@ -3388,9 +3393,9 @@ function FinanceDashboard() {
                   title="Switch profile"
                 >
                   <option value="all">All</option>
-                  {PROFILES.map((p) => (
+                  {familyProfiles.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {formatProfileOption(p)}
                     </option>
                   ))}
                 </select>

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -15,6 +16,7 @@ const input = {
 };
 
 export function SubModal({ onClose, onSave, initialValues = null }: any) {
+  const { familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initialValues
       ? {
@@ -46,9 +48,9 @@ export function SubModal({ onClose, onSave, initialValues = null }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>

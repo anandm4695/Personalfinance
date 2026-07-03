@@ -1,7 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { today, fmtINRFull } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -338,6 +339,7 @@ function TenantSplitCard({
    RentalPropertyModal  (Rented Out)
 ══════════════════════════════════════════════════════════════════ */
 export function RentalPropertyModal({ initial, onClose, onSave }: any) {
+  const { familyProfiles } = useMasterData();
   // Initialise tenants from saved data or default single tenant
   const initTenants = (): any[] => {
     if (initial?.tenants?.length > 0) return initial.tenants;
@@ -435,9 +437,9 @@ export function RentalPropertyModal({ initial, onClose, onSave }: any) {
             value={f.owner}
             onChange={(e) => setF({ ...f, owner: e.target.value })}
           >
-            {PROFILES.map((p) => (
+            {familyProfiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>
@@ -982,6 +984,7 @@ function LandlordSplitCard({
    RentedInPropertyModal  — MAIN (with multi-landlord support)
 ══════════════════════════════════════════════════════════════════ */
 export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
+  const { familyProfiles } = useMasterData();
   // Initialise landlords from saved data or default single landlord
   const initLandlords = (): any[] => {
     if (initial?.landlords?.length > 0) return initial.landlords;
@@ -1097,9 +1100,9 @@ export function RentedInPropertyModal({ initial, onClose, onSave }: any) {
             value={f.owner}
             onChange={(e) => setF({ ...f, owner: e.target.value })}
           >
-            {PROFILES.map((p) => (
+            {familyProfiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>

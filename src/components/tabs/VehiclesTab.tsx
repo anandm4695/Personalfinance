@@ -34,7 +34,8 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, fmtINRExact, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -500,6 +501,7 @@ const EMPTY_VEHICLE = {
 };
 
 function VehicleModal({ existing, onClose, onSave }: any) {
+  const { familyProfiles } = useMasterData();
   const isEdit = !!existing;
   const [f, setF] = useState<any>(
     existing
@@ -620,8 +622,8 @@ function VehicleModal({ existing, onClose, onSave }: any) {
         </Field>
         <Field label="Owner">
           <select style={inp} value={f.owner || "self"} onChange={(e) => set("owner", e.target.value)}>
-            {PROFILES.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+            {familyProfiles.map((p) => (
+              <option key={p.id} value={p.id}>{formatProfileOption(p)}</option>
             ))}
           </select>
         </Field>

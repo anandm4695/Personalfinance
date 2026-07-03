@@ -20,7 +20,8 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -60,6 +61,7 @@ const EMPTY = {
 };
 
 function ScoreForm({ initial, onSave, onClose }: any) {
+  const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
@@ -117,9 +119,9 @@ function ScoreForm({ initial, onSave, onClose }: any) {
             value={form.owner}
             onChange={(e) => set("owner", e.target.value)}
           >
-            {PROFILES.map((p: any) => (
+            {familyProfiles.map((p: any) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>

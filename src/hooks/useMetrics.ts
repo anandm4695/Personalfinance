@@ -11,7 +11,7 @@ import {
   getTaxDueForDashboard,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
-import { PROFILES } from "../utils/constants";
+import { DEFAULT_MASTER_DATA, FamilyProfile } from "../utils/masterData";
 
 export function getFilteredStateForProfile(state: any, profileId: string) {
   if (profileId === "all") return state;
@@ -266,6 +266,12 @@ export function useMetrics(
   trendData: any[];
   greeting: { title: string; subtitle: string };
 } {
+  // Read directly from state rather than useMasterData(): this hook is invoked from
+  // FinanceDashboard's render body before that component's own MasterDataContext.Provider
+  // is mounted, so useContext here would only ever see the default value, not live edits.
+  const familyProfiles: FamilyProfile[] =
+    state.masterData?.familyProfiles || DEFAULT_MASTER_DATA.familyProfiles;
+
   const filteredState = useMemo(() => {
     return getFilteredStateForProfile(state, activeProfile);
   }, [state, activeProfile]);
@@ -767,7 +773,7 @@ export function useMetrics(
           .map(([name, value]) => ({ name, value }))
           .filter((c) => c.value > 0);
       })(),
-      familyBreakdown: PROFILES.map((p) => {
+      familyBreakdown: familyProfiles.map((p) => {
         const pState = getFilteredStateForProfile(state, p.id);
         const { netWorth, totalCover } = calculateProfileNWAndCover(pState, marketData);
         return {

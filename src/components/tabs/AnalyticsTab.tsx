@@ -41,7 +41,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
+import { THEME, PIE_COLORS } from "../../utils/constants";
+import { useMasterData } from "../../utils/masterData";
 import {
   fmtINRFull,
   getCCDueDate,
@@ -592,6 +593,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   onUpdateWidgets,
   activeProfile = "all",
 }) => {
+  const { familyProfiles } = useMasterData();
   const isDark = state.settings?.darkMode ?? false;
   const [sub, setSub] = useState("dashboard");
   const [showWidgetConfig, setShowWidgetConfig] = useState(false);
@@ -3460,7 +3462,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     ,{" "}
                     {activeProfile === "all"
                       ? state.profile?.name || "there"
-                      : PROFILES.find((p) => p.id === activeProfile)?.name || activeProfile}
+                      : familyProfiles.find((p) => p.id === activeProfile)?.name || activeProfile}
                   </span>
                   <span style={{ fontSize: 18 }}>👋</span>
                 </div>
@@ -3468,7 +3470,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   Here is the consolidated summary of your{" "}
                   {activeProfile === "all"
                     ? "family wealth portfolios"
-                    : `${PROFILES.find((p) => p.id === activeProfile)?.name}'s portfolio`}
+                    : `${familyProfiles.find((p) => p.id === activeProfile)?.name}'s portfolio`}
                   .
                 </div>
               </div>

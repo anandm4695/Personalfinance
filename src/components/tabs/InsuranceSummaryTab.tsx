@@ -14,7 +14,8 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, fmtINRExact, uid } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -145,8 +146,9 @@ const InsurerLogo = ({
    ══════════════════════════════════════════════════════════════════════ */
 
 const OwnerBadge = ({ owner }: { owner?: string }) => {
+  const { familyProfiles } = useMasterData();
   if (!owner) return null;
-  const p = PROFILES.find((x) => x.id === owner);
+  const p = familyProfiles.find((x) => x.id === owner);
   if (!p) return null;
   return (
     <Badge variant="accent" style={{ fontSize: 10 }}>
@@ -156,6 +158,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
 };
 
 const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
+  const { familyProfiles } = useMasterData();
   const todayStr = (() => {
     const d = new Date();
     const yStr = d.getFullYear();
@@ -525,9 +528,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               value={lic.owner || "self"}
               onChange={(e) => handleFieldChange("owner", e.target.value)}
             >
-              {PROFILES.map((p: any) => (
+              {familyProfiles.map((p: any) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {formatProfileOption(p)}
                 </option>
               ))}
             </select>
@@ -816,9 +819,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               value={invest.owner || "self"}
               onChange={(e) => handleInvestFieldChange("owner", e.target.value)}
             >
-              {PROFILES.map((p: any) => (
+              {familyProfiles.map((p: any) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {formatProfileOption(p)}
                 </option>
               ))}
             </select>
@@ -1142,9 +1145,9 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave }: any) => {
               value={term.owner || "self"}
               onChange={(e) => handleTermFieldChange("owner", e.target.value)}
             >
-              {PROFILES.map((p: any) => (
+              {familyProfiles.map((p: any) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {formatProfileOption(p)}
                 </option>
               ))}
             </select>

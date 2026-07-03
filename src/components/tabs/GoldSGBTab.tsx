@@ -24,7 +24,8 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINR, fmtINRFull, uid, today } from "../../utils/finance";
 import { supabase } from "../../supabaseClient";
 import { Card } from "../ui/Card";
@@ -55,6 +56,7 @@ const DEFAULT_GOLD_PRICE = 7200; // ₹ per gram for 24K
 const PURITY_FACTOR: Record<string, number> = { "24K": 1, "22K": 22 / 24, "18K": 18 / 24, "14K": 14 / 24 };
 
 export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
+  const { familyProfiles } = useMasterData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_GOLD });
@@ -305,7 +307,7 @@ export const GoldSGBTab = ({ state, addItem, removeItem, updateItem }) => {
             <Field label="Owner">
               <select value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${THEME.border}`, background: THEME.card, color: THEME.text }}>
-                {PROFILES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {familyProfiles.map((p) => <option key={p.id} value={p.id}>{formatProfileOption(p)}</option>)}
               </select>
             </Field>
             <Field label="Notes">

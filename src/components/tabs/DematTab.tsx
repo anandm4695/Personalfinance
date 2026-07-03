@@ -25,7 +25,8 @@ import {
   Lightbulb,
   CheckCircle2,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv } from "../../context/PrivacyContext";
 import { fmtINRFull, calcCAGR, today, calcXIRR } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -4617,6 +4618,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
 }
 
 function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: any) {
+  const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(initial || { broker: "", dpId: "", clientId: "", owner: defaultOwner });
   return (
@@ -4627,9 +4629,9 @@ function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: 
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -4664,6 +4666,7 @@ function DematModal({ onClose, onSave, initial = null, activeProfile = "all" }: 
 }
 
 function StockModal({ demats, onClose, onSave, initial = null, defaults = null, activeProfile = "all" }: any) {
+  const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
     initial || {
@@ -4685,9 +4688,9 @@ function StockModal({ demats, onClose, onSave, initial = null, defaults = null, 
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>

@@ -1,5 +1,11 @@
 import React from "react";
 
+export interface FamilyProfile {
+  id: string;
+  name: string;
+  relation: string;
+}
+
 export interface MasterData {
   transactionCategories: string[];
   ccTransactionCategories: string[];
@@ -10,7 +16,11 @@ export interface MasterData {
   loanTypes: string[];
   prepaidCardTypes: string[];
   ccNetworks: string[];
+  familyProfiles: FamilyProfile[];
 }
+
+// Formats a family profile for dropdowns/lists where the relation helps scanning.
+export const formatProfileOption = (p: FamilyProfile) => `${p.name} (${p.relation})`;
 
 export const DEFAULT_MASTER_DATA: MasterData = {
   transactionCategories: [
@@ -78,6 +88,12 @@ export const DEFAULT_MASTER_DATA: MasterData = {
     "Fuel Card",
   ],
   ccNetworks: ["Visa", "Mastercard", "Amex", "RuPay", "Diners"],
+  familyProfiles: [
+    { id: "self", name: "Anand Mohta", relation: "Self" },
+    { id: "wife", name: "Dharna Anand Mohta", relation: "Wife" },
+    { id: "daughter", name: "Revika Anand Mohta", relation: "Daughter" },
+    { id: "huf", name: "Anand Mohta HUF", relation: "HUF" },
+  ],
 };
 
 export const MasterDataContext = React.createContext<MasterData>(DEFAULT_MASTER_DATA);

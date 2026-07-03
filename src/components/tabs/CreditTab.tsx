@@ -35,10 +35,10 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINRFull, fmtINRExact, today, uid } from "../../utils/finance";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
@@ -374,8 +374,9 @@ const CardNetworkLogo = ({ network }: { network?: string }) => {
 };
 
 const OwnerBadge = ({ owner }: { owner?: string }) => {
+  const { familyProfiles } = useMasterData();
   if (!owner) return null;
-  const p = PROFILES.find((x) => x.id === owner);
+  const p = familyProfiles.find((x) => x.id === owner);
   if (!p) return null;
   return (
     <Badge variant="accent" style={{ fontSize: 10 }}>
@@ -5384,6 +5385,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
 }
 
 function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
+  const { familyProfiles } = useMasterData();
   if (!items.length) return <LoanEmptyState type="given" onAdd={onAdd} />;
   const now = new Date();
   const totalLent = items.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
@@ -5553,7 +5555,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
           const firstLetter = l.borrower ? l.borrower.charAt(0).toUpperCase() : "?";
 
           // Find Profile Name
-          const ownerProfile = PROFILES.find((p: any) => p.id === l.owner);
+          const ownerProfile = familyProfiles.find((p: any) => p.id === l.owner);
           const ownerLabel = ownerProfile ? ownerProfile.name : "Self";
 
           return (
@@ -5923,7 +5925,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
 }
 
 function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) {
-  const { ccNetworks } = useMasterData();
+  const { ccNetworks, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
       issuer: "",
@@ -5956,9 +5958,9 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -6224,7 +6226,7 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [] }: any) 
 }
 
 function PrepaidModal({ onClose, onSave, initial = null }: any) {
-  const { prepaidCardTypes } = useMasterData();
+  const { prepaidCardTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
       owner: "self",
@@ -6244,9 +6246,9 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -6920,6 +6922,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
 }
 
 function InformalPersonForm({ personLabel, onSave, onClose }: any) {
+  const { familyProfiles } = useMasterData();
   const [f, setF] = useState({ owner: "self", person: "", note: "", tranches: [], payments: [] });
   return (
     <>
@@ -6929,9 +6932,9 @@ function InformalPersonForm({ personLabel, onSave, onClose }: any) {
           value={f.owner}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -6998,7 +7001,7 @@ function InformalAmountForm({ label, onSave, onClose }: any) {
 }
 
 function LoanTakenModal({ onClose, onSave, initial = null }: any) {
-  const { loanTypes } = useMasterData();
+  const { loanTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
       lender: "",
@@ -7019,9 +7022,9 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -7099,6 +7102,7 @@ function LoanTakenModal({ onClose, onSave, initial = null }: any) {
 }
 
 function LoanGivenModal({ onClose, onSave, initial = null }: any) {
+  const { familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial || {
       borrower: "",
@@ -7119,9 +7123,9 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>

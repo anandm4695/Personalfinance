@@ -36,9 +36,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, getEffectiveRent, getLocalDateString } from "../../utils/finance";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Card } from "../ui/Card";
@@ -2113,7 +2113,7 @@ export function BudgetTab({ state, addItem, removeItem, updateItem, metrics: _me
 
 // ── BUDGET MODAL COMPONENT ──
 export function BudgetModal({ onClose, onSave, initialValues = null, existing = [] }: any) {
-  const { transactionCategories: allCats } = useMasterData();
+  const { transactionCategories: allCats, familyProfiles } = useMasterData();
   const availableCats = allCats.filter((c: string) => !existing.includes(c));
   const defaultCat = initialValues?.category || availableCats[0] || allCats[0];
   const [f, setF] = useState(
@@ -2134,9 +2134,9 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -2177,7 +2177,7 @@ export function BudgetModal({ onClose, onSave, initialValues = null, existing = 
 
 // ── RECURRING EXPENSES MODAL COMPONENT ──
 export function RecurringModal({ onClose, onSave, initialValues = null, accounts = [] }: any) {
-  const { transactionCategories: cats } = useMasterData();
+  const { transactionCategories: cats, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initialValues
       ? {
@@ -2218,9 +2218,9 @@ export function RecurringModal({ onClose, onSave, initialValues = null, accounts
             value={f.owner}
             onChange={(e) => setF({ ...f, owner: e.target.value })}
           >
-            {PROFILES.map((p) => (
+            {familyProfiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>

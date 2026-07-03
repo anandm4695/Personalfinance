@@ -30,7 +30,8 @@ import {
   Scale,
   X,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { uid, today as todayFn } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
@@ -266,6 +267,7 @@ const actionBtnBase: React.CSSProperties = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => {
+  const { familyProfiles } = useMasterData();
   const documents: any[] = state.documents || [];
 
   // ── UI State ────────────────────────────────────────────────────────────
@@ -611,7 +613,7 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           {doc.owner && (
             <div style={{ marginTop: 10 }}>
               <Badge variant="muted" style={{ fontSize: 10, textTransform: "capitalize" }}>
-                {PROFILES.find((p) => p.id === doc.owner)?.name || doc.owner}
+                {familyProfiles.find((p) => p.id === doc.owner)?.name || doc.owner}
               </Badge>
             </div>
           )}
@@ -894,9 +896,9 @@ export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem }) => 
           {/* Owner */}
           <Field label="Owner">
             <Select value={form.owner} onChange={(e) => setField("owner", e.target.value)}>
-              {PROFILES.map((p) => (
+              {familyProfiles.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {formatProfileOption(p)}
                 </option>
               ))}
             </Select>

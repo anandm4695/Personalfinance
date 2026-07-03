@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { today } from "../../utils/finance";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
@@ -17,7 +17,7 @@ const input = {
 };
 
 export function GoalModal({ initial, onClose, onSave }: any) {
-  const { goalCategories } = useMasterData();
+  const { goalCategories, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial
       ? { ...initial }
@@ -41,9 +41,9 @@ export function GoalModal({ initial, onClose, onSave }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>

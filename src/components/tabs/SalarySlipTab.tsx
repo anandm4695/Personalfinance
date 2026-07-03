@@ -26,7 +26,8 @@ import {
   Legend,
 } from "recharts";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -84,6 +85,7 @@ function autoCompute(form: any) {
 }
 
 function SlipForm({ initial, onSave, onClose, apiKey }: any) {
+  const { familyProfiles } = useMasterData();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
@@ -169,9 +171,9 @@ Return only the JSON, no explanation.`;
             value={form.owner}
             onChange={(e) => set("owner", e.target.value)}
           >
-            {PROFILES.map((p: any) => (
+            {familyProfiles.map((p: any) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {formatProfileOption(p)}
               </option>
             ))}
           </select>

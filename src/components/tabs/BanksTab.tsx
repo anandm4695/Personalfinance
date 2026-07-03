@@ -16,10 +16,10 @@ import {
   ArrowDown,
   ArrowUpDown,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, autoCateg, getLocalDateString } from "../../utils/finance";
 import { Prv } from "../../context/PrivacyContext";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
@@ -182,8 +182,9 @@ const accountLabel = (a: any): string => {
 };
 
 const OwnerBadge = ({ owner }: { owner?: string }) => {
+  const { familyProfiles } = useMasterData();
   if (!owner) return null;
-  const p = PROFILES.find((x) => x.id === owner);
+  const p = familyProfiles.find((x) => x.id === owner);
   if (!p) return null;
   return (
     <Badge variant="accent" style={{ fontSize: 10 }}>
@@ -2042,7 +2043,7 @@ function getLinkConfig(category: string, type: string, state: any) {
 }
 
 function BankModal({ onClose, onSave }: any) {
-  const { bankAccountTypes } = useMasterData();
+  const { bankAccountTypes, familyProfiles } = useMasterData();
   const [f, setF] = useState({
     owner: "self",
     bankName: "",
@@ -2058,9 +2059,9 @@ function BankModal({ onClose, onSave }: any) {
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -2107,7 +2108,7 @@ function BankModal({ onClose, onSave }: any) {
 }
 
 function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) {
-  const { transactionCategories: cats } = useMasterData();
+  const { transactionCategories: cats, familyProfiles } = useMasterData();
   const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
   const [f, setF] = useState({
     owner: "self",
@@ -2156,9 +2157,9 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
@@ -2361,7 +2362,7 @@ function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave }: any) 
 }
 
 function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any) {
-  const { transactionCategories: cats } = useMasterData();
+  const { transactionCategories: cats, familyProfiles } = useMasterData();
   const [f, setF] = useState({
     owner: txn?.owner || "self",
     date: txn?.date || today(),
@@ -2381,9 +2382,9 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave }: any
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>

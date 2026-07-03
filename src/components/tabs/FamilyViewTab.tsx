@@ -31,7 +31,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS, PROFILES } from "../../utils/constants";
+import { THEME, PIE_COLORS } from "../../utils/constants";
+import { useMasterData } from "../../utils/masterData";
 import { fmtINRFull, rdMaturity, calculateEpfBalance, monthsBetween, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -94,8 +95,6 @@ const ASSET_CLASS_COLORS_DARK = {
 
 const getMemberColors = (dark: boolean) => dark ? MEMBER_COLORS_DARK : MEMBER_COLORS_LIGHT;
 const getAssetClassColors = (dark: boolean) => dark ? ASSET_CLASS_COLORS_DARK : ASSET_CLASS_COLORS_LIGHT;
-
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
 // ── Custom Tooltip for Recharts ────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -350,13 +349,14 @@ const getTopHoldings = (state, owner) => {
 };
 
 export const FamilyViewTab = ({ state, metrics, marketData }) => {
+  const { familyProfiles } = useMasterData();
   const dark = state.settings?.darkMode ?? false;
   const MEMBER_COLORS = getMemberColors(dark);
   const ASSET_CLASS_COLORS = getAssetClassColors(dark);
 
   const familyData = useMemo(() => {
     const colors = getMemberColors(dark);
-    const members = PROFILES.map((p, idx) => {
+    const members = familyProfiles.map((p, idx) => {
       const assets = memberAssets(state, p.id, marketData);
       const topHoldings = getTopHoldings(state, p.id);
       const allocation = getAllocationData(assets);
@@ -391,7 +391,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     const totalLifeCover = activeMembers.reduce((s, m) => s + m.totalLifeCover, 0);
 
     return { members, activeMembers, totalNetWorth, totalAssets, totalLiabilities, totalLifeCover };
-  }, [state, dark, marketData]);
+  }, [state, dark, marketData, familyProfiles]);
 
   const unownedAssets = useMemo(() => {
     const flagged = [];
@@ -421,7 +421,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       { key: "informalBorrowed", label: "Informal Borrowing" },
     ];
 
-    const profileIds = PROFILES.map((p) => p.id);
+    const profileIds = familyProfiles.map((p) => p.id);
 
     allArrays.forEach(({ key, label }) => {
       (state[key] || []).forEach((item) => {
@@ -438,7 +438,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     });
 
     return flagged;
-  }, [state]);
+  }, [state, familyProfiles]);
 
   const comparisonData = useMemo(() => {
     const classes = [
@@ -464,7 +464,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         const row = { name: c.label };
         let hasValue = false;
         familyData.activeMembers.forEach((m) => {
-          row[capitalize(m.id)] = m[c.key] || 0;
+          row[m.name] = m[c.key] || 0;
           if (m[c.key] > 0) hasValue = true;
         });
         return hasValue ? row : null;
@@ -476,7 +476,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     return familyData.activeMembers
       .filter((m) => m.netWorth > 0)
       .map((m) => ({
-        name: capitalize(m.id),
+        name: m.name,
         value: m.netWorth,
         color: m.color,
       }));
@@ -668,10 +668,15 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       fontSize: 13,
                       fontWeight: 700,
                       color: "#fff",
-                      minWidth: 70,
+                      minWidth: 120,
+                      maxWidth: 160,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
+                    title={m.name}
                   >
-                    {capitalize(m.id)}
+                    {m.name}
                   </span>
                   <div
                     style={{
@@ -853,7 +858,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           </div>
           <div>
             <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
-              {activeMembers.length} / {PROFILES.length}
+              {activeMembers.length} / {familyProfiles.length}
             </div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginTop: 4 }}>
               Profiles with Registered Assets
@@ -1096,7 +1101,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.01em" }}>
-                    {capitalize(m.id)}
+                    {m.name}
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
                     {m.allocation.length} asset {m.allocation.length === 1 ? "class" : "classes"} · {pct}% of family
@@ -1367,7 +1372,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                   {activeMembers.map((m) => (
                     <Bar
                       key={m.id}
-                      dataKey={capitalize(m.id)}
+                      dataKey={m.name}
                       fill={`url(#gBar-${m.id})`}
                       stroke={m.color}
                       strokeWidth={1}
@@ -1433,7 +1438,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
                 <div style={{ flex: 1, minWidth: 120 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                    {capitalize(m.id)}
+                    {m.name}
                   </div>
                   <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, display: "flex", gap: 6, flexWrap: "wrap", fontWeight: 600 }}>
                     <span>LIC: <Prv>{fmtINRFull(m.licCover)}</Prv></span>

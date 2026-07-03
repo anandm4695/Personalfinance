@@ -260,10 +260,3 @@ export const PIE_COLORS = [
 ];
 
 export const STORAGE_KEY = "finance_dashboard_v1";
-
-export const PROFILES = [
-  { id: "self", name: "Self" },
-  { id: "wife", name: "Wife" },
-  { id: "daughter", name: "Daughter" },
-  { id: "huf", name: "HUF" },
-];

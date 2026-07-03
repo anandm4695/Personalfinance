@@ -32,6 +32,7 @@ import {
   ChevronUp,
   Edit3,
   Trash2,
+  Users,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import { DEFAULT_MASTER_DATA } from "../../utils/masterData";
@@ -1127,6 +1128,167 @@ function ProfileSection({ state, updateProfile }: any) {
           style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
         >
           {saved ? "Saved!" : "Save Profile"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Section: Family Profiles ──────────────────────────────────────────────────
+function FamilyProfilesSection({ masterData, updateMasterData }: any) {
+  const savedProfiles: any[] = masterData?.familyProfiles || DEFAULT_MASTER_DATA.familyProfiles;
+  const [rows, setRows] = useState(savedProfiles);
+  const [saved, setSaved] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  // Sync if parent masterData changes (e.g., DB load after mount).
+  useEffect(() => {
+    setRows(masterData?.familyProfiles || DEFAULT_MASTER_DATA.familyProfiles);
+  }, [masterData?.familyProfiles]);
+
+  const isDirty = JSON.stringify(rows) !== JSON.stringify(savedProfiles);
+
+  const setName = (id: string, name: string) =>
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, name } : r)));
+
+  const save = () => {
+    updateMasterData("familyProfiles", rows);
+    setSaved(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setSaved(false), 2200);
+  };
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
+
+  const inp = {
+    width: "100%",
+    padding: "10px 12px",
+    background: "var(--t-paper)",
+    border: `1.5px solid ${THEME.line}`,
+    borderRadius: 10,
+    color: THEME.ink,
+    fontSize: 14,
+    boxSizing: "border-box" as const,
+  };
+
+  return (
+    <Card style={{ padding: 24 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Family Profiles</div>
+        <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4 }}>
+          These names appear across owner selectors, filters, and reports wherever records are
+          tagged by family member. The four relations (Self / Wife / Daughter / HUF) are fixed
+          since existing records are linked to them, but you can rename each one.
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 16, marginBottom: 24 }}>
+        {rows.map((p) => {
+          const initials = (p.name || "?")
+            .split(" ")
+            .map((w: string) => w[0] || "")
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+          return (
+            <div
+              key={p.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 16px",
+                background: "var(--surface-0)",
+                border: `1px solid ${THEME.line}`,
+                borderRadius: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: `${THEME.accent}22`,
+                  border: `2px solid ${THEME.accent}44`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  color: THEME.accent,
+                  flexShrink: 0,
+                }}
+              >
+                {initials}
+              </div>
+              <div style={{ width: 90, flexShrink: 0 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase" as const,
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  Relation
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
+                  {p.relation}
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <input
+                  style={inp}
+                  value={p.name}
+                  onChange={(e) => setName(p.id, e.target.value)}
+                  placeholder={p.relation}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+      >
+        {isDirty ? (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.gold,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: THEME.gold,
+                display: "inline-block",
+              }}
+            />
+            Unsaved changes
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: THEME.muted }}>Family profile names</span>
+        )}
+        <Button
+          onClick={save}
+          icon={saved ? <Check size={15} /> : undefined}
+          style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
+        >
+          {saved ? "Saved!" : "Save Family Profiles"}
         </Button>
       </div>
     </Card>
@@ -3112,6 +3274,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
 const TOP_TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "profile", label: "Profile", icon: User },
+  { id: "family", label: "Family Profiles", icon: Users },
   { id: "masterdata", label: "Master Data", icon: Tags },
   { id: "ai", label: "AI Advisor", icon: Bot },
   { id: "email", label: "Email Reports", icon: Mail },
@@ -3306,6 +3469,12 @@ export function SettingsTab({
       {tab === "profile" && (
         <div key="profile" className="tab-content-enter">
           <ProfileSection state={state} updateProfile={updateProfile} />
+        </div>
+      )}
+
+      {tab === "family" && (
+        <div key="family" className="tab-content-enter">
+          <FamilyProfilesSection masterData={masterData} updateMasterData={updateMasterData} />
         </div>
       )}
 

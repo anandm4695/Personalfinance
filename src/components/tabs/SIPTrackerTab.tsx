@@ -12,9 +12,9 @@ import {
   IndianRupee,
   TrendingUp,
 } from "lucide-react";
-import { THEME, PROFILES } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, monthsBetween, getLocalDateString } from "../../utils/finance";
-import { useMasterData } from "../../utils/masterData";
+import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -646,6 +646,7 @@ export function SIPTrackerTab({ state, addItem, removeItem, updateItem, metrics 
 
 // ── SIP Card ─────────────────────────────────────────────────────────────────
 function SIPCard({ sip, onEdit, onRemove }: any) {
+  const { familyProfiles } = useMasterData();
   const isOverdue = sip.daysUntilDue !== null && sip.daysUntilDue < 0;
   const isDueSoon = sip.daysUntilDue !== null && sip.daysUntilDue >= 0 && sip.daysUntilDue <= 7;
   const statusColor = sip.isCompleted
@@ -658,7 +659,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
   const fundColor = FUND_COLORS[sip.fundType] || THEME.muted;
   const alertColor = isOverdue ? THEME.rust : THEME.gold;
 
-  const ownerProfile = PROFILES?.find?.((p: any) => p.id === sip.owner);
+  const ownerProfile = familyProfiles?.find?.((p: any) => p.id === sip.owner);
   const ownerLabel =
     ownerProfile?.name ||
     (sip.owner ? sip.owner.charAt(0).toUpperCase() + sip.owner.slice(1) : null);
@@ -1000,7 +1001,7 @@ function SIPCard({ sip, onEdit, onRemove }: any) {
 
 // ── SIP Modal ─────────────────────────────────────────────────────────────────
 function SIPModal({ onClose, onSave, initial }: any) {
-  const { mfCategories } = useMasterData();
+  const { mfCategories, familyProfiles } = useMasterData();
   const [f, setF] = useState(
     initial
       ? {
@@ -1040,9 +1041,9 @@ function SIPModal({ onClose, onSave, initial }: any) {
           value={f.owner}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
-          {PROFILES.map((p) => (
+          {familyProfiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {formatProfileOption(p)}
             </option>
           ))}
         </select>
