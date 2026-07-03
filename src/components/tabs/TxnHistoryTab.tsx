@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo, useCallback } from "react";
 import {
@@ -14,24 +15,25 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Prv } from "../../context/PrivacyContext";
 
 const th = {
   textAlign: "left" as const,
-  padding: "12px 10px",
+  padding: "14px 16px",
   fontSize: 10,
   letterSpacing: "0.1em",
   textTransform: "uppercase" as const,
   color: THEME.muted,
   fontWeight: 700,
-  borderBottom: `1px solid ${THEME.line}`,
+  borderBottom: `1.5px solid ${THEME.line}`,
   whiteSpace: "nowrap" as const,
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
 };
+
 const td = {
-  padding: "16px 10px",
+  padding: "14px 16px",
   verticalAlign: "middle" as const,
   fontSize: 13,
   borderBottom: `1px solid ${THEME.line}`,
@@ -44,6 +46,161 @@ function livePrice(s: any, marketData: any): number {
   const md = marketData?.[yfSym];
   return md?.price !== undefined ? Number(md.price) : Number(s.currentPrice || 0);
 }
+
+/* ── Premium Summary Card ─────────────────────────────────────── */
+const SummaryCard = ({ label, value, color, icon: Icon }: any) => (
+  <div
+    className="card-lift"
+    style={{
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      border: `1.5px solid ${THEME.line}`,
+      borderTop: `4px solid ${color}`,
+      borderRadius: 16,
+      padding: "18px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+    }}
+  >
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color,
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: THEME.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+    <div
+      style={{
+        fontSize: 26,
+        fontWeight: 900,
+        color: THEME.ink,
+        letterSpacing: "-0.04em",
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      <Prv>{value}</Prv>
+    </div>
+  </div>
+);
+
+/* ── Premium Drill-Down Card ──────────────────────────────────── */
+const PremiumDrillDownCard = ({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  subColor,
+  color,
+  active,
+  onClick,
+}: any) => (
+  <div
+    onClick={onClick}
+    className="card-lift"
+    style={{
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 15%, var(--surface-0)) 100%)",
+      border: `1.5px solid ${active ? THEME.accent : THEME.line}`,
+      borderTop: `4px solid ${color}`,
+      borderRadius: 16,
+      padding: "20px 22px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      boxShadow: active
+        ? "0 8px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7)"
+        : "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      cursor: "pointer",
+      position: "relative",
+    }}
+  >
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: color,
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          }}
+        >
+          {label}
+        </div>
+        {sub && (
+          <div
+            style={{
+              fontSize: 10,
+              color: subColor || THEME.muted,
+              fontWeight: subColor ? 700 : 400,
+              marginTop: 2,
+              opacity: subColor ? 1 : 0.8,
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div
+      style={{
+        fontSize: 26,
+        fontWeight: 900,
+        color: THEME.ink,
+        letterSpacing: "-0.04em",
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+        marginTop: 4,
+      }}
+    >
+      <Prv>{value}</Prv>
+    </div>
+  </div>
+);
 
 export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
   const currentFY = (() => {
@@ -284,19 +441,23 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div
           style={{
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             borderRadius: 8,
-            background: `${color}18`,
+            background: `color-mix(in srgb, ${color} 12%, transparent)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
-          <Icon size={15} color={color} />
+          <Icon size={16} color={color} />
         </div>
-        <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>{title}</span>
+        <span
+          style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.015em" }}
+        >
+          {title}
+        </span>
         {count > 0 && (
           <span
             style={{
@@ -304,7 +465,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               borderRadius: 20,
               fontSize: 10,
               fontWeight: 800,
-              background: `${color}14`,
+              background: `color-mix(in srgb, ${color} 10%, transparent)`,
               color,
             }}
           >
@@ -313,7 +474,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         )}
       </div>
       {subText && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, paddingLeft: 40 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, paddingLeft: 42 }}>
           {subText}
         </div>
       )}
@@ -343,7 +504,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "transparent" }}>
-                <th style={{ ...th, paddingLeft: 10 }}>
+                <th style={{ ...th, paddingLeft: 16 }}>
                   {type === "stock" ? "Company" : "Scheme"}
                 </th>
                 <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
@@ -374,17 +535,20 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     }}
                     className="table-row-hover"
                   >
-                    <td style={{ ...td, paddingLeft: 10 }}>
-                      <b>{type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}</b>
+                    <td style={{ ...td, paddingLeft: 16 }}>
+                      <span style={{ fontWeight: 700, color: THEME.ink }}>
+                        {type === "stock" ? s.symbol?.replace(/\.(NS|BO)$/i, "") : s.scheme}
+                      </span>
                       {type === "stock" && (
                         <span
                           style={{
-                            fontSize: 10,
-                            marginLeft: 5,
+                            fontSize: 9,
+                            marginLeft: 6,
                             color: THEME.muted,
-                            background: THEME.line,
-                            padding: "1px 4px",
-                            borderRadius: 3,
+                            background: "var(--surface-2)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 700,
                           }}
                         >
                           {s.exchange || "NSE"}
@@ -393,12 +557,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                       {type === "mf" && s.type && (
                         <span
                           style={{
-                            fontSize: 10,
-                            marginLeft: 5,
+                            fontSize: 9,
+                            marginLeft: 6,
                             color: THEME.muted,
-                            background: THEME.line,
-                            padding: "1px 4px",
-                            borderRadius: 3,
+                            background: "var(--surface-2)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 700,
                           }}
                         >
                           {s.type}
@@ -408,16 +573,16 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
                       {fmtDate(s.buyDate)}
                     </td>
-                    <td style={{ ...td, textAlign: "right" }}>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                       ₹{buyP.toFixed(type === "mf" ? 4 : 2)}
                     </td>
-                    <td style={{ ...td, textAlign: "right" }}>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>
                       {type === "stock" ? s.qty : Number(s.units).toFixed(3)}
                     </td>
                     <td style={{ ...td, textAlign: "right", color: THEME.muted, fontSize: 12 }}>
                       {fmtDate(s.sellDate)}
                     </td>
-                    <td style={{ ...td, textAlign: "right" }}>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                       <span style={{ color: sellP >= buyP ? THEME.sage : THEME.rust }}>
                         ₹{sellP.toFixed(type === "mf" ? 4 : 2)} {sellP >= buyP ? "↑" : "↓"}
                       </span>
@@ -445,14 +610,23 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     >
                       {s.broker || "—"}
                     </td>
-                    <td style={td}>
+                    <td style={{ ...td, paddingRight: 16 }}>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() =>
                           removeItem(type === "stock" ? "stockSells" : "mfSells", s.id)
                         }
-                        style={{ padding: 6, color: THEME.rust }}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: THEME.rust,
+                        }}
                       >
                         <Trash2 size={14} />
                       </Button>
@@ -462,8 +636,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               })}
             </tbody>
             <tfoot>
-              <tr style={{ background: `${THEME.accent}08` }}>
-                <td colSpan={6} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>
+              <tr style={{ background: "var(--surface-1)" }}>
+                <td
+                  colSpan={6}
+                  style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
+                >
                   Total Realized P&L
                 </td>
                 <td
@@ -493,12 +670,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         Global Ledger
       </SectionTitle>
 
-      {/* Search & Period bar */}
+      {/* Premium Search & Period Selector bar */}
       <div
         style={{
           display: "flex",
           gap: 16,
-          marginBottom: 16,
+          marginBottom: 18,
           flexWrap: "wrap",
           alignItems: "center",
         }}
@@ -520,13 +697,13 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               width: "100%",
               padding: "10px 14px 10px 40px",
               borderRadius: 12,
-              border: `1px solid ${THEME.line}`,
+              border: `1.5px solid ${THEME.line}`,
               background: "var(--surface-0)",
               color: THEME.ink,
               fontSize: 13.5,
               outline: "none",
               boxShadow: "var(--shadow-sm)",
-              transition: "border 0.2s ease",
+              transition: "all 0.2s ease",
             }}
             className="focus:border-accent"
           />
@@ -541,6 +718,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             borderRadius: 12,
             border: `1px solid ${THEME.line}`,
             height: 42,
+            boxShadow: "var(--shadow-sm)",
           }}
         >
           <span
@@ -563,6 +741,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               fontSize: 13,
               cursor: "pointer",
               outline: "none",
+              paddingRight: "20px",
             }}
             value={selectedFY}
             onChange={(e) => setSelectedFY(Number(e.target.value))}
@@ -576,7 +755,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
       </div>
 
-      {/* FY Summary strip */}
+      {/* Premium FY Summary strip */}
       <div
         style={{
           display: "grid",
@@ -585,93 +764,54 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           marginBottom: 24,
         }}
       >
-        {[
-          {
-            label: "Stocks Invested",
-            value: `₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-            color: THEME.accent,
-            Icon: BarChart3,
-          },
-          {
-            label: "MF Invested",
-            value: `₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-            color: "#7C3AED",
-            Icon: Layers,
-          },
-          {
-            label: "Realized P&L",
-            value: `${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-            color: totalRealizedPnl >= 0 ? THEME.sage : THEME.rust,
-            Icon: totalRealizedPnl >= 0 ? TrendingUp : TrendingDown,
-          },
-          {
-            label: "Cash Net Flow",
-            value: `${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-            color: cashNetFlow >= 0 ? THEME.sage : THEME.rust,
-            Icon: Coins,
-          },
-        ].map(({ label, value, color, Icon }) => (
-          <div
-            key={label}
-            className="card-lift"
-            style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              borderTop: `4px solid ${color}`,
-              borderRadius: 14,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `${color}1f`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color,
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} />
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 900,
-                color: THEME.ink,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {value}
-            </div>
-          </div>
-        ))}
+        <SummaryCard
+          label="Stocks Invested"
+          value={`₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color={THEME.accent}
+          icon={BarChart3}
+        />
+        <SummaryCard
+          label="MF Invested"
+          value={`₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color="#7C3AED"
+          icon={Layers}
+        />
+        <SummaryCard
+          label="Realized P&L"
+          value={`${totalRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(totalRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color={totalRealizedPnl >= 0 ? THEME.sage : THEME.rust}
+          icon={totalRealizedPnl >= 0 ? TrendingUp : TrendingDown}
+        />
+        <SummaryCard
+          label="Cash Net Flow"
+          value={`${cashNetFlow >= 0 ? "+" : ""}₹${Math.abs(cashNetFlow).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color={cashNetFlow >= 0 ? THEME.sage : THEME.rust}
+          icon={Coins}
+        />
       </div>
 
-      {/* Section tabs with icons + count badges */}
-      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
+      {/* Premium Sticky Section Tab Pills */}
+      <div
+        className="no-print"
+        style={{
+          display: "flex",
+          gap: 6,
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          marginBottom: 24,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: "color-mix(in srgb, var(--surface-0) 70%, transparent)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          padding: "10px 8px",
+          borderRadius: 16,
+          border: `1px solid ${THEME.line}`,
+          boxShadow: "var(--shadow-sm)",
+          scrollbarWidth: "none",
+        }}
+      >
         {sections.map((s) => {
           const Icon = s.icon;
           const count = sectionCounts[s.id] || 0;
@@ -680,10 +820,28 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
-              className={`demat-portfolio-pill ${active ? "active" : ""}`}
+              className="card-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 20,
+                background: active ? THEME.accent : "var(--surface-0)",
+                border: `1px solid ${active ? THEME.accent : THEME.line}`,
+                color: active ? "#fff" : THEME.ink,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
+                boxShadow: active
+                  ? "0 4px 12px color-mix(in srgb, var(--t-accent) 25%, transparent)"
+                  : "var(--shadow-card)",
+              }}
             >
-              <Icon size={13} />
-              {s.label}
+              <Icon size={14} style={{ color: active ? "#fff" : THEME.accent }} />
+              <span>{s.label}</span>
               {count > 0 && (
                 <span
                   style={{
@@ -691,8 +849,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     borderRadius: 20,
                     fontSize: 10,
                     fontWeight: 800,
-                    background: `${THEME.accent}22`,
-                    color: THEME.accent,
+                    background: active
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                    color: active ? "#fff" : THEME.accent,
+                    marginLeft: 4,
                   }}
                 >
                   {count}
@@ -703,14 +864,19 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         })}
       </div>
 
+      {/* Demat Account selectors */}
       {(state.demat || []).length > 1 && activeSection !== "cash_ledger" && (
         <div
           style={{
             display: "flex",
-            gap: 12,
+            gap: 8,
             flexWrap: "wrap",
             marginBottom: 24,
             alignItems: "center",
+            padding: "8px 12px",
+            background: "var(--surface-1)",
+            borderRadius: 12,
+            border: `1px solid ${THEME.line}`,
           }}
         >
           <span
@@ -720,15 +886,16 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
               fontWeight: 800,
               textTransform: "uppercase",
               letterSpacing: "0.05em",
+              marginRight: 6,
             }}
           >
             Account:
           </span>
           <Button
             size="sm"
-            variant={txnDematId === null ? "accent" : "ghost"}
+            variant={txnDematId === null ? "accent" : "secondary"}
             onClick={() => setTxnDematId(null)}
-            style={{ height: 28, padding: "0 12px", fontSize: 11 }}
+            style={{ height: 26, padding: "0 12px", fontSize: 10.5, borderRadius: 16 }}
           >
             All Accounts
           </Button>
@@ -736,9 +903,9 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
             <Button
               key={d.id}
               size="sm"
-              variant={txnDematId === d.id ? "accent" : "ghost"}
+              variant={txnDematId === d.id ? "accent" : "secondary"}
               onClick={() => setTxnDematId(d.id)}
-              style={{ height: 28, padding: "0 12px", fontSize: 11 }}
+              style={{ height: 26, padding: "0 12px", fontSize: 10.5, borderRadius: 16 }}
             >
               {d.broker || d.dpId || "Account"}
             </Button>
@@ -746,7 +913,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
         </div>
       )}
 
-      {/* Drill-Down Stat Cards */}
+      {/* Premium Drill-Down Stat Cards */}
       <div
         style={{
           display: "grid",
@@ -755,74 +922,54 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
           marginBottom: 24,
         }}
       >
-        <div
+        <PremiumDrillDownCard
+          icon={TrendingUp}
+          label="Stocks Bought"
+          value={String(stocksBoughtInFY.length)}
+          sub={`${fyLabel} · ₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color={THEME.accent}
+          active={activeSection === "stocks_bought"}
           onClick={() => setActiveSection("stocks_bought")}
-          style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-          className="hover:scale-[1.02]"
-        >
-          <StatCard
-            icon={<TrendingUp />}
-            label="Stocks Bought"
-            value={String(stocksBoughtInFY.length)}
-            sub={`${fyLabel} · ₹${totalStocksInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-            color={THEME.accent}
-          />
-        </div>
-        <div
+        />
+        <PremiumDrillDownCard
+          icon={ArrowLeftRight}
+          label="Stocks Sold"
+          value={String(stocksSoldInFY.length)}
+          sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust}
+          color={THEME.accent}
+          active={activeSection === "stocks_sold"}
           onClick={() => setActiveSection("stocks_sold")}
-          style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-          className="hover:scale-[1.02]"
-        >
-          <StatCard
-            icon={<ArrowLeftRight />}
-            label="Stocks Sold"
-            value={String(stocksSoldInFY.length)}
-            sub={`Realized: ${stocksRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(stocksRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-            subColor={stocksRealizedPnl >= 0 ? THEME.sage : THEME.rust}
-            color={THEME.accent}
-          />
-        </div>
-        <div
+        />
+        <PremiumDrillDownCard
+          icon={BarChart3}
+          label="MF Bought"
+          value={String(mfBoughtInFY.length)}
+          sub={`${fyLabel} · ₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          color={THEME.accent}
+          active={activeSection === "mf_bought"}
           onClick={() => setActiveSection("mf_bought")}
-          style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-          className="hover:scale-[1.02]"
-        >
-          <StatCard
-            icon={<BarChart3 />}
-            label="MF Bought"
-            value={String(mfBoughtInFY.length)}
-            sub={`${fyLabel} · ₹${totalMFInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-            color={THEME.accent}
-          />
-        </div>
-        <div
+        />
+        <PremiumDrillDownCard
+          icon={ArrowLeftRight}
+          label="MF Redeemed"
+          value={String(mfSoldInFY.length)}
+          sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust}
+          color={THEME.accent}
+          active={activeSection === "mf_sold"}
           onClick={() => setActiveSection("mf_sold")}
-          style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-          className="hover:scale-[1.02]"
-        >
-          <StatCard
-            icon={<ArrowLeftRight />}
-            label="MF Redeemed"
-            value={String(mfSoldInFY.length)}
-            sub={`Realized: ${mfRealizedPnl >= 0 ? "+" : ""}₹${Math.abs(mfRealizedPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-            subColor={mfRealizedPnl >= 0 ? THEME.sage : THEME.rust}
-            color={THEME.accent}
-          />
-        </div>
-        <div
+        />
+        <PremiumDrillDownCard
+          icon={Coins}
+          label="Bank & Cash Ledger"
+          value={String(cashTransactionsInFY.length)}
+          sub={`In +₹${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹${totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+          subColor={THEME.sage}
+          color="#0891B2"
+          active={activeSection === "cash_ledger"}
           onClick={() => setActiveSection("cash_ledger")}
-          style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-          className="hover:scale-[1.02]"
-        >
-          <StatCard
-            icon={<Coins />}
-            label="Bank & Cash Ledger"
-            value={String(cashTransactionsInFY.length)}
-            sub={`In +₹${totalCredits.toLocaleString("en-IN", { maximumFractionDigits: 0 })} · Out -₹${totalDebits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-            subColor={THEME.sage}
-            color="#0891B2"
-          />
-        </div>
+        />
       </div>
 
       {/* ── STOCKS BOUGHT ── */}
@@ -890,7 +1037,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 10 }}>Company</th>
+                      <th style={{ ...th, paddingLeft: 16 }}>Company</th>
                       <th style={{ ...th, textAlign: "right" }}>Qty</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy Price</th>
@@ -914,15 +1061,17 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           }}
                           className="table-row-hover"
                         >
-                          <td style={{ ...td, paddingLeft: 10 }}>
-                            <b>{s.symbol?.replace(/\.(NS|BO)$/i, "")}</b>
+                          <td style={{ ...td, paddingLeft: 16 }}>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>
+                              {s.symbol?.replace(/\.(NS|BO)$/i, "")}
+                            </span>
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 9,
                                 marginLeft: 6,
                                 color: THEME.muted,
-                                background: `${THEME.line}40`,
-                                padding: "1px 6px",
+                                background: "var(--surface-2)",
+                                padding: "2px 6px",
                                 borderRadius: 4,
                                 fontWeight: 700,
                               }}
@@ -960,8 +1109,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: `${THEME.accent}08` }}>
-                      <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>
+                    <tr style={{ background: "var(--surface-1)" }}>
+                      <td
+                        colSpan={4}
+                        style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
+                      >
                         Total Invested
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
@@ -1116,7 +1268,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 10 }}>Scheme</th>
+                      <th style={{ ...th, paddingLeft: 16 }}>Scheme</th>
                       <th style={{ ...th, textAlign: "right" }}>Units</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy Date</th>
                       <th style={{ ...th, textAlign: "right" }}>Buy NAV</th>
@@ -1145,16 +1297,18 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           }}
                           className="table-row-hover"
                         >
-                          <td style={{ ...td, paddingLeft: 10 }}>
-                            <b>{m.name || m.scheme}</b>
+                          <td style={{ ...td, paddingLeft: 16 }}>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>
+                              {m.name || m.scheme}
+                            </span>
                             {(m.category || m.mfType || m.type) && (
                               <span
                                 style={{
-                                  fontSize: 10,
+                                  fontSize: 9,
                                   marginLeft: 6,
                                   color: THEME.muted,
-                                  background: `${THEME.line}40`,
-                                  padding: "1px 6px",
+                                  background: "var(--surface-2)",
+                                  padding: "2px 6px",
                                   borderRadius: 4,
                                   fontWeight: 700,
                                 }}
@@ -1195,8 +1349,11 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: `${THEME.accent}08` }}>
-                      <td colSpan={4} style={{ ...td, paddingLeft: 10, fontWeight: 800 }}>
+                    <tr style={{ background: "var(--surface-1)" }}>
+                      <td
+                        colSpan={4}
+                        style={{ ...td, paddingLeft: 16, fontWeight: 800, color: THEME.ink }}
+                      >
                         Total Invested
                       </td>
                       <td style={{ ...td, textAlign: "right", fontWeight: 900, fontSize: 15 }}>
@@ -1340,7 +1497,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "transparent" }}>
-                      <th style={{ ...th, paddingLeft: 10 }}>Note / Category</th>
+                      <th style={{ ...th, paddingLeft: 16 }}>Note / Category</th>
                       <th style={{ ...th, textAlign: "right" }}>Date</th>
                       <th style={{ ...th, textAlign: "right" }}>Type</th>
                       <th style={{ ...th, textAlign: "right" }}>Amount</th>
@@ -1361,15 +1518,17 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           }}
                           className="table-row-hover"
                         >
-                          <td style={{ ...td, paddingLeft: 10 }}>
-                            <b>{t.note || "General Ledger"}</b>
+                          <td style={{ ...td, paddingLeft: 16 }}>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>
+                              {t.note || "General Ledger"}
+                            </span>
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 9,
                                 marginLeft: 6,
                                 color: THEME.muted,
-                                background: `${THEME.line}40`,
-                                padding: "1px 6px",
+                                background: "var(--surface-2)",
+                                padding: "2px 6px",
                                 borderRadius: 4,
                                 fontWeight: 700,
                               }}
@@ -1424,12 +1583,21 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                           >
                             {t.description || "—"}
                           </td>
-                          <td style={td}>
+                          <td style={{ ...td, paddingRight: 16 }}>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => removeItem("transactions", t.id)}
-                              style={{ padding: 6, color: THEME.rust }}
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                padding: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: THEME.rust,
+                              }}
                             >
                               <Trash2 size={14} />
                             </Button>
@@ -1439,8 +1607,8 @@ export function TxnHistoryTab({ state, removeItem, marketData = {} }: any) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ background: `${THEME.accent}08` }}>
-                      <td colSpan={2} style={{ ...td, paddingLeft: 10 }}>
+                    <tr style={{ background: "var(--surface-1)" }}>
+                      <td colSpan={2} style={{ ...td, paddingLeft: 16 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
                           {cashTransactionsInFY.filter((t: any) => t.type === "credit").length}{" "}
                           credits ·{" "}
