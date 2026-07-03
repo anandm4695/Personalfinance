@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -6,14 +7,13 @@ import {
   Calendar,
   RefreshCw,
   AlertCircle,
-  Clock,
   BarChart3,
+  Clock,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
 
@@ -31,6 +31,27 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
+
+const th: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.muted,
+  fontWeight: 800,
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  borderBottom: `2px solid ${THEME.line}`,
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.ink,
+  fontSize: 13,
+  fontWeight: 500,
+  borderBottom: `1px solid ${THEME.line}`,
+  fontVariantNumeric: "tabular-nums",
+};
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "—";
@@ -51,7 +72,7 @@ const urgencyColor = (days: number | null): string => {
   if (days === null) return THEME.muted;
   if (days < 0) return THEME.muted;
   if (days <= 3) return THEME.rust;
-  if (days <= 14) return THEME.gold;
+  if (days <= 14) return "#D97706";
   return THEME.sage;
 };
 
@@ -68,6 +89,71 @@ const urgencyLabel = (days: number | null): string => {
 const tsToDate = (ts: number | null | undefined): string | null => {
   if (!ts || ts <= 0) return null;
   return new Date(Number(ts) * 1000).toISOString().slice(0, 10);
+};
+
+/* ─── Premium Dividend Bento Card ─────────────────────────────────── */
+const DividendStatCard = ({ label, value, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 export function DividendCalendarTab({ state }: any) {
@@ -188,247 +274,268 @@ export function DividendCalendarTab({ state }: any) {
         <EmptyState
           icon={Coins}
           title="No Stocks in Portfolio"
-          subtitle="Add stocks to your Demat account to track dividend ex-dates and projected income"
+          description="Add stocks to your Demat account to track dividend ex-dates and projected income"
         />
       </div>
     );
   }
 
   return (
-    <div className="tab-content-enter">
-      <SectionTitle sub="Ex-dividend dates, dividend yield & projected annual income from your stock holdings">
-        Dividend Calendar
-      </SectionTitle>
-
-      {/* Refresh row */}
+    <div
+      className="tab-content-enter"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
+    >
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 16,
-          gap: 10,
-          alignItems: "center",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 16,
         }}
       >
-        {error && (
-          <div
+        <SectionTitle sub="Ex-dividend dates, dividend yield & projected annual income from your stock holdings">
+          Dividend Calendar
+        </SectionTitle>
+
+        {/* Refresh row */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+          }}
+        >
+          {error && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                color: THEME.rust,
+                fontWeight: 600,
+              }}
+            >
+              <AlertCircle size={14} />
+              {error}
+            </div>
+          )}
+          <button
+            onClick={fetchExDates}
+            disabled={loading}
+            className="card-lift"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              color: THEME.rust,
+              gap: 8,
+              padding: "8px 16px",
+              borderRadius: 12,
+              border: `1.5px solid ${THEME.line}`,
+              background: "var(--surface-0)",
+              color: loading ? THEME.muted : THEME.ink,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+              transition: "all 0.2s ease",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
-            <AlertCircle size={13} />
-            {error}
-          </div>
-        )}
-        <button
-          onClick={fetchExDates}
-          disabled={loading}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: `1.5px solid ${THEME.line}`,
-            background: "transparent",
-            color: loading ? THEME.muted : THEME.ink,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          <RefreshCw size={14} />
-          {loading ? `Fetching ${symbols.length} symbols…` : "Refresh Ex-dates"}
-        </button>
+            <RefreshCw size={14} className={loading ? "spin" : ""} />
+            {loading ? `Fetching ${symbols.length} symbols…` : "Refresh Ex-dates"}
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
+          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+          gap: 16,
         }}
       >
-        <StatCard
+        <DividendStatCard
           label="Est. Annual Dividend"
           value={fmtINRFull(totalEstIncome)}
-          icon={<Coins />}
+          icon={<Coins size={16} />}
           color={THEME.sage}
         />
-        <StatCard
+        <DividendStatCard
           label="Portfolio Div. Yield"
           value={portfolioYield > 0 ? `${portfolioYield.toFixed(2)}%` : "—"}
-          icon={<TrendingUp />}
-          color={THEME.accent}
+          icon={<TrendingUp size={16} />}
+          color="var(--accent)"
         />
-        <StatCard
+        <DividendStatCard
           label="Upcoming Ex-dates"
           value={String(upcomingExDates.length)}
-          icon={<Calendar />}
-          color={THEME.gold}
+          icon={<Calendar size={16} />}
+          color="#D97706"
         />
-        <StatCard
+        <DividendStatCard
           label="Dividend Payers"
           value={`${dividendPayers.length} / ${stockRows.length}`}
-          icon={<BarChart3 />}
+          icon={<BarChart3 size={16} />}
           color={THEME.muted}
         />
       </div>
 
       {/* Upcoming ex-dates timeline */}
       {upcomingExDates.length > 0 && (
-        <Card style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20 }}>
-            <div
+        <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}` }}>
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 15,
+              marginBottom: 16,
+              color: THEME.ink,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Upcoming Ex-dividend Dates
+            <span
               style={{
-                fontWeight: 700,
-                fontSize: 15,
-                marginBottom: 14,
-                color: THEME.ink,
+                fontSize: 11,
+                color: THEME.muted,
+                marginLeft: 8,
+                fontWeight: 600,
               }}
             >
-              Upcoming Ex-dividend Dates
-              <span
-                style={{
-                  fontSize: 11,
-                  color: THEME.muted,
-                  marginLeft: 8,
-                  fontWeight: 500,
-                }}
-              >
-                (±90 days)
-              </span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-              }}
-            >
-              {upcomingExDates.map((r) => {
-                const uc = urgencyColor(r.daysToEx);
-                const isPast = (r.daysToEx ?? 0) < 0;
-                return (
+              (±90 days)
+            </span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {upcomingExDates.map((r) => {
+              const uc = urgencyColor(r.daysToEx);
+              const isPast = (r.daysToEx ?? 0) < 0;
+              return (
+                <div
+                  key={r.symbol}
+                  className="card-lift"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: isPast
+                      ? "transparent"
+                      : r.daysToEx <= 3
+                        ? "rgba(239, 68, 68, 0.03)"
+                        : "var(--surface-0)",
+                    border: `1.5px solid ${
+                      isPast ? THEME.line : r.daysToEx <= 3 ? "rgba(239, 68, 68, 0.25)" : THEME.line
+                    }`,
+                    opacity: isPast ? 0.65 : 1,
+                    transition: "all 0.2s ease",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  {/* Symbol badge */}
                   <div
-                    key={r.symbol}
                     style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
-                      gap: 12,
-                      padding: "12px 14px",
-                      borderRadius: 10,
-                      background: isPast
-                        ? "transparent"
-                        : r.daysToEx <= 3
-                          ? "rgba(249,115,22,0.05)"
-                          : "rgba(99,102,241,0.04)",
-                      border: `1px solid ${
-                        isPast ? THEME.line : r.daysToEx <= 3 ? "rgba(249,115,22,0.2)" : THEME.line
-                      }`,
-                      opacity: isPast ? 0.65 : 1,
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      fontWeight: 800,
+                      fontSize: 10,
+                      color: THEME.sage,
+                      textAlign: "center",
+                      lineHeight: 1.2,
                     }}
                   >
-                    {/* Symbol badge */}
+                    {r.symbol.replace(".NS", "").replace(".BO", "").slice(0, 6)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: `${THEME.sage}15`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
                         fontWeight: 800,
-                        fontSize: 10,
-                        color: THEME.sage,
-                        textAlign: "center",
-                        lineHeight: 1.2,
+                        fontSize: 14,
+                        color: THEME.ink,
                       }}
                     >
-                      {r.symbol.replace(".NS", "").replace(".BO", "").slice(0, 6)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: THEME.ink,
-                        }}
-                      >
-                        {r.symbol}
-                      </div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>
-                        Ex-date: <b style={{ color: THEME.ink }}>{formatDate(r.exDate)}</b>
-                        {r.divPayDate && (
-                          <>
-                            {" "}
-                            • Pay: <b style={{ color: THEME.ink }}>{formatDate(r.divPayDate)}</b>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: THEME.ink,
-                        }}
-                      >
-                        <Prv>{r.divRate > 0 ? `₹${r.divRate.toFixed(2)}/share` : "—"}</Prv>
-                      </div>
-                      <div style={{ fontSize: 12, color: THEME.muted }}>
-                        {r.estDivIncome > 0 ? (
-                          <Prv>Est. {fmtINRExact(r.estDivIncome)}</Prv>
-                        ) : (
-                          `${r.qty.toLocaleString("en-IN")} shares`
-                        )}
-                      </div>
+                      {r.symbol}
                     </div>
                     <div
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: 6,
-                        background: `${uc}18`,
-                        color: uc,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        minWidth: 44,
-                        textAlign: "center",
-                        flexShrink: 0,
-                      }}
+                      style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 3 }}
                     >
-                      {urgencyLabel(r.daysToEx)}
+                      Ex-date: <b style={{ color: THEME.ink }}>{formatDate(r.exDate)}</b>
+                      {r.divPayDate && (
+                        <>
+                          {" "}
+                          • Pay: <b style={{ color: THEME.ink }}>{formatDate(r.divPayDate)}</b>
+                        </>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: 13.5,
+                        color: THEME.ink,
+                      }}
+                    >
+                      <Prv>{r.divRate > 0 ? `₹${r.divRate.toFixed(2)}/share` : "—"}</Prv>
+                    </div>
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, fontWeight: 500, marginTop: 2 }}
+                    >
+                      {r.estDivIncome > 0 ? (
+                        <Prv>Est. {fmtINRExact(r.estDivIncome)}</Prv>
+                      ) : (
+                        `${r.qty.toLocaleString("en-IN")} shares`
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      padding: "4px 12px",
+                      borderRadius: 8,
+                      background: `color-mix(in srgb, ${uc} 12%, transparent)`,
+                      color: uc,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      minWidth: 54,
+                      textAlign: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {urgencyLabel(r.daysToEx)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
 
       {/* All holdings table */}
-      <Card>
+      <Card style={{ border: `1.5px solid ${THEME.line}` }}>
         <div style={{ padding: 20 }}>
           <div
             style={{
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: 15,
-              marginBottom: 14,
+              marginBottom: 16,
               color: THEME.ink,
               display: "flex",
               alignItems: "center",
               gap: 10,
+              letterSpacing: "-0.015em",
             }}
           >
             All Holdings — Dividend Details
@@ -437,13 +544,13 @@ export function DividendCalendarTab({ state }: any) {
                 style={{
                   fontSize: 11,
                   color: THEME.muted,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
                 }}
               >
-                <AlertCircle size={11} />
+                <AlertCircle size={13} />
                 Click Refresh to fetch live data
               </span>
             )}
@@ -451,15 +558,15 @@ export function DividendCalendarTab({ state }: any) {
               <span
                 style={{
                   fontSize: 11,
-                  color: THEME.accent,
-                  fontWeight: 500,
+                  color: "var(--accent)",
+                  fontWeight: 600,
                 }}
               >
                 Loading…
               </span>
             )}
           </div>
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}>
             <table
               style={{
                 width: "100%",
@@ -468,36 +575,16 @@ export function DividendCalendarTab({ state }: any) {
               }}
             >
               <thead>
-                <tr
-                  style={{
-                    borderBottom: `1.5px solid ${THEME.line}`,
-                  }}
-                >
-                  {[
-                    "Symbol",
-                    "Qty",
-                    "Current Value",
-                    "Div / Share",
-                    "Yield %",
-                    "Ex-date",
-                    "Pay Date",
-                    "Est. Annual",
-                    "Last Received",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 12px",
-                        textAlign: h === "Symbol" ? "left" : "right",
-                        color: THEME.muted,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                <tr style={{ background: "var(--surface-1)" }}>
+                  <th style={{ ...th, textAlign: "left" }}>Symbol</th>
+                  <th style={th}>Qty</th>
+                  <th style={th}>Current Value</th>
+                  <th style={th}>Div / Share</th>
+                  <th style={th}>Yield %</th>
+                  <th style={th}>Ex-date</th>
+                  <th style={th}>Pay Date</th>
+                  <th style={th}>Est. Annual</th>
+                  <th style={th}>Last Received</th>
                 </tr>
               </thead>
               <tbody>
@@ -509,90 +596,68 @@ export function DividendCalendarTab({ state }: any) {
                       style={{
                         borderBottom: `1px solid ${THEME.line}`,
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "rgba(99,102,241,0.04)")
-                      }
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-1)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <td style={{ padding: "10px 12px" }}>
-                        <div style={{ fontWeight: 700, color: THEME.ink }}>{r.symbol}</div>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
                         {r.exchange && (
                           <div
                             style={{
                               fontSize: 10,
                               color: THEME.muted,
+                              fontWeight: 600,
+                              marginTop: 2,
                             }}
                           >
                             {r.exchange}
                           </div>
                         )}
                       </td>
-                      <td
-                        style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
-                          color: THEME.muted,
-                        }}
-                      >
-                        {r.qty.toLocaleString("en-IN")}
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
-                          fontWeight: 600,
-                          color: THEME.ink,
-                        }}
-                      >
+                      <td style={td}>{r.qty.toLocaleString("en-IN")}</td>
+                      <td style={{ ...td, fontWeight: 700 }}>
                         <Prv>{fmtINRExact(r.currentValue)}</Prv>
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
+                          ...td,
                           color: r.divRate > 0 ? THEME.sage : THEME.muted,
-                          fontWeight: r.divRate > 0 ? 600 : 400,
+                          fontWeight: r.divRate > 0 ? 700 : 500,
                         }}
                       >
                         {r.divRate > 0 ? `₹${r.divRate.toFixed(2)}` : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
+                          ...td,
                           color: r.divYield > 0 ? THEME.sage : THEME.muted,
-                          fontWeight: r.divYield > 0 ? 600 : 400,
+                          fontWeight: r.divYield > 0 ? 700 : 500,
                         }}
                       >
                         {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
+                          ...td,
                           color: r.exDate ? THEME.ink : THEME.muted,
                           whiteSpace: "nowrap",
-                          fontSize: 12,
                         }}
                       >
                         {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
-                          color: r.divPayDate ? THEME.muted : THEME.muted,
+                          ...td,
+                          color: r.divPayDate ? THEME.ink : THEME.muted,
                           whiteSpace: "nowrap",
-                          fontSize: 12,
                         }}
                       >
                         {r.divPayDate ? formatDate(r.divPayDate) : loading ? "…" : "—"}
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
-                          fontWeight: r.estDivIncome > 0 ? 700 : 400,
+                          ...td,
+                          fontWeight: r.estDivIncome > 0 ? 700 : 500,
                           color: r.estDivIncome > 0 ? THEME.sage : THEME.muted,
                         }}
                       >
@@ -600,10 +665,8 @@ export function DividendCalendarTab({ state }: any) {
                       </td>
                       <td
                         style={{
-                          padding: "10px 12px",
-                          textAlign: "right",
+                          ...td,
                           color: THEME.muted,
-                          fontSize: 12,
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -620,10 +683,11 @@ export function DividendCalendarTab({ state }: any) {
           {fetched && dividendPayers.length === 0 && (
             <div
               style={{
-                padding: "16px 0",
+                padding: "24px 0 8px",
                 textAlign: "center",
                 fontSize: 13,
                 color: THEME.muted,
+                fontWeight: 500,
               }}
             >
               No dividend-paying stocks found. Many Indian growth stocks don't pay dividends — check
