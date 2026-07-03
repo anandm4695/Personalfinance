@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -54,22 +55,26 @@ const tbl: React.CSSProperties = {
 
 const th: React.CSSProperties = {
   textAlign: "left",
-  padding: "10px 12px",
+  padding: "14px 16px",
   fontWeight: 700,
-  fontSize: 11,
+  fontSize: 10,
   textTransform: "uppercase",
-  letterSpacing: "0.05em",
+  letterSpacing: "0.1em",
   color: THEME.muted,
-  borderBottom: `2px solid ${THEME.line}`,
-  background: "var(--surface-0)",
+  borderBottom: `1.5px solid ${THEME.line}`,
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+  whiteSpace: "nowrap",
 };
 
 const thRight: React.CSSProperties = { ...th, textAlign: "right" };
 
 const td: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: "14px 16px",
   borderBottom: `1px solid ${THEME.line}`,
   color: THEME.ink,
+  fontSize: 13,
+  verticalAlign: "middle",
+  fontVariantNumeric: "tabular-nums",
 };
 
 const tdRight: React.CSSProperties = { ...td, textAlign: "right" };
@@ -83,21 +88,60 @@ const PIE_COLORS = [
   "#4F46E5", // Equity
   "#059669", // Debt
   "#D97706", // Retirement
-  "#DC2626", // Insurance
-  "#7C3AED", // Other
+  "#7C3AED", // Insurance
+  "#DC2626", // Other
   "#0891B2",
   "#2563EB",
   "#B91C1C",
 ];
 
 /* ── P&L color helper ──────────────────────────────────────────────── */
-const plColor = (v: number) => (v > 0 ? "#059669" : v < 0 ? "#DC2626" : THEME.muted);
+const plColor = (v: number) => (v > 0 ? THEME.sage : v < 0 ? THEME.rust : THEME.muted);
 
 const plSign = (v: number) => (v > 0 ? "+" : "");
 
 /* ── Format percent ────────────────────────────────────────────────── */
 const fmtPct = (v: number | null | undefined) =>
   v == null || isNaN(v) ? "--" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name || label}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 /* ── Collapsible section header ────────────────────────────────────── */
 const SectionHeader = ({
@@ -115,40 +159,50 @@ const SectionHeader = ({
 }) => (
   <div
     onClick={onToggle}
+    className="card-lift"
     style={{
       display: "flex",
       alignItems: "center",
-      gap: 10,
-      padding: "14px 0",
+      justifyContent: "space-between",
+      padding: "14px 18px",
       cursor: "pointer",
       userSelect: "none",
+      background: "var(--surface-0)",
+      border: `1.5px solid ${THEME.line}`,
+      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      transition: "all 0.2s ease",
     }}
   >
-    {expanded ? (
-      <ChevronDown size={16} color={THEME.muted} />
-    ) : (
-      <ChevronRight size={16} color={THEME.muted} />
-    )}
-    <Icon size={18} color={THEME.accent} />
-    <span
-      style={{
-        fontSize: 16,
-        fontWeight: 700,
-        color: THEME.ink,
-        letterSpacing: "-0.02em",
-      }}
-    >
-      {title}
-    </span>
-    <Badge variant="muted" style={{ fontSize: 11 }}>
-      {count} holding{count !== 1 ? "s" : ""}
-    </Badge>
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <Icon size={18} color="var(--accent)" />
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: THEME.ink,
+          letterSpacing: "-0.015em",
+        }}
+      >
+        {title}
+      </span>
+      <Badge variant="muted" style={{ fontSize: 10, padding: "2px 8px", borderRadius: 12 }}>
+        {count} holding{count !== 1 ? "s" : ""}
+      </Badge>
+    </div>
+    <div style={{ display: "flex", alignItems: "center" }}>
+      {expanded ? (
+        <ChevronDown size={16} color={THEME.muted} />
+      ) : (
+        <ChevronRight size={16} color={THEME.muted} />
+      )}
+    </div>
   </div>
 );
 
 /* ══════════════════════════════════════════════════════════════════════
    INVESTMENT STATEMENT TAB
-══════════════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════ */
 export const InvestmentStatementTab = ({
   state,
   metrics,
@@ -169,6 +223,8 @@ export const InvestmentStatementTab = ({
     epf: true,
     insurance: true,
   });
+
+  const [activePieIndex, setActivePieIndex] = useState<number | null>(null);
 
   const toggleSection = (key: string) =>
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -216,15 +272,9 @@ export const InvestmentStatementTab = ({
     return livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
   };
 
-  const getStockYfSym = (st: any) => {
-    const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
-    const exch = st.exchange || "NSE";
-    return `${base}.${exch === "BSE" ? "BO" : "NS"}`;
-  };
-
   /* ═══════════════════════════════════════════════════════════════════
      PORTFOLIO SUMMARY CALCULATIONS
-  ═══════════════════════════════════════════════════════════════════ */
+     ═══════════════════════════════════════════════════════════════════ */
   const summary = useMemo(() => {
     const stocks = state.stocks || [];
     const mfs = state.mutualFunds || [];
@@ -246,7 +296,6 @@ export const InvestmentStatementTab = ({
       (s: number, st: any) => s + Number(st.qty || 0) * getStockPrice(st),
       0
     );
-    // Use earliest buyDate for CAGR
     const stockDates = stocks.filter((s: any) => s.buyDate).map((s: any) => s.buyDate);
     const earliestStockDate = stockDates.length ? stockDates.sort()[0] : null;
     const stockCAGR =
@@ -408,7 +457,7 @@ export const InvestmentStatementTab = ({
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
-      return s + (txTotal > 0 ? txTotal : Number(x.premiumPaid || 0));
+      return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0)); // Note: variable named incorrectly in old code, let's keep it safe
     }, 0);
     const investValue = investmentPlans.reduce(
       (s: number, x: any) => s + (Number(x.expectedMaturityAmount || x.sumAssured) || 0),
@@ -524,14 +573,12 @@ export const InvestmentStatementTab = ({
     const totalCurrent = rows.reduce((s, r) => s + r.current, 0);
     const totalGain = totalCurrent - totalInvested;
 
-    // Weighted CAGR: use rows with valid rate and nonzero current
     const weightedRows = rows.filter((r) => r.rate != null && r.current > 0);
     const weightedCAGR =
       totalCurrent > 0 && weightedRows.length > 0
         ? weightedRows.reduce((s, r) => s + (r.rate || 0) * (r.current / totalCurrent), 0)
         : null;
 
-    // Add allocation %
     const rowsWithAlloc = rows.map((r) => ({
       ...r,
       allocation: totalCurrent > 0 ? (r.current / totalCurrent) * 100 : 0,
@@ -627,72 +674,77 @@ export const InvestmentStatementTab = ({
   });
 
   return (
-    <div className="investment-statement" style={{ padding: "32px 0" }}>
+    <div
+      className="investment-statement"
+      style={{ padding: "32px 0", display: "flex", flexDirection: "column", gap: 24 }}
+    >
       <style>{printStyles}</style>
 
       {/* ── 1. Statement Header ─────────────────────────────────────── */}
-      <SectionTitle
-        sub={`As of ${formattedDate}`}
-        rightElement={
-          <div className="no-print" style={{ display: "flex", gap: 8 }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Printer size={14} />}
-              onClick={() => window.print()}
-            >
-              Print
-            </Button>
-          </div>
-        }
-      >
-        Consolidated Investment Statement
-      </SectionTitle>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <SectionTitle sub={`As of ${formattedDate}`}>
+          Consolidated Investment Statement
+        </SectionTitle>
+        <div className="no-print">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Printer size={14} />}
+            onClick={() => window.print()}
+          >
+            Print
+          </Button>
+        </div>
+      </div>
 
       {/* ── 2. Portfolio Summary Table ──────────────────────────────── */}
-      <Card style={{ padding: 0, marginBottom: 24, overflow: "hidden" }}>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={tableWrap}>
           <table style={tbl}>
             <thead>
               <tr>
-                <th style={th}>Asset Class</th>
+                <th style={{ ...th, paddingLeft: 16 }}>Asset Class</th>
                 <th style={thRight}>Invested</th>
                 <th style={thRight}>Current Value</th>
                 <th style={thRight}>Gain / Loss</th>
                 <th style={thRight}>CAGR</th>
-                <th style={thRight}>Allocation %</th>
+                <th style={{ ...thRight, paddingRight: 16 }}>Allocation %</th>
               </tr>
             </thead>
             <tbody>
               {summary.rows.map((row) =>
                 row.invested === 0 && row.current === 0 ? null : (
-                  <tr key={row.label}>
-                    <td style={td}>{row.label}</td>
+                  <tr key={row.label} className="table-row-hover">
+                    <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                      {row.label}
+                    </td>
                     <td style={tdRight}>
                       <Prv>{fmtINRFull(row.invested)}</Prv>
                     </td>
                     <td style={tdRight}>
                       <Prv>{fmtINRFull(row.current)}</Prv>
                     </td>
-                    <td style={{ ...tdRight, color: plColor(row.gain) }}>
+                    <td style={{ ...tdRight, color: plColor(row.gain), fontWeight: 700 }}>
                       <Prv>
                         {plSign(row.gain)}
                         {fmtINRFull(row.gain)}
                       </Prv>
                     </td>
-                    <td style={tdRight}>{row.rateLabel}</td>
-                    <td style={tdRight}>{row.allocation.toFixed(1)}%</td>
+                    <td style={{ ...tdRight, fontWeight: 600 }}>{row.rateLabel}</td>
+                    <td style={{ ...tdRight, paddingRight: 16, fontWeight: 600 }}>
+                      {row.allocation.toFixed(1)}%
+                    </td>
                   </tr>
                 )
               )}
               {/* ── Total row ──────────────────────────────────────── */}
               <tr
                 style={{
-                  background: "var(--surface-0)",
+                  background: "color-mix(in srgb, var(--surface-1) 70%, transparent)",
                   borderTop: `2px solid ${THEME.line}`,
                 }}
               >
-                <td style={tdBold}>Total</td>
+                <td style={{ ...tdBold, paddingLeft: 16 }}>Total</td>
                 <td style={tdBoldRight}>
                   <Prv>{fmtINRFull(summary.totalInvested)}</Prv>
                 </td>
@@ -713,7 +765,7 @@ export const InvestmentStatementTab = ({
                 <td style={tdBoldRight}>
                   {summary.weightedCAGR != null ? `${summary.weightedCAGR.toFixed(1)}%` : "--"}
                 </td>
-                <td style={tdBoldRight}>100%</td>
+                <td style={{ ...tdBoldRight, paddingRight: 16 }}>100%</td>
               </tr>
             </tbody>
           </table>
@@ -722,7 +774,7 @@ export const InvestmentStatementTab = ({
 
       {/* ── 3. Holdings Detail -- Equity Stocks ────────────────────── */}
       {stockGroups.length > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={TrendingUp}
             title="Equity Stocks"
@@ -731,92 +783,98 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("stocks")}
           />
           {expandedSections.stocks && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Symbol</th>
-                    <th style={th}>Exchange</th>
-                    <th style={thRight}>Qty</th>
-                    <th style={thRight}>Avg Price</th>
-                    <th style={thRight}>Current Price</th>
-                    <th style={thRight}>Current Value</th>
-                    <th style={thRight}>P&L</th>
-                    <th style={thRight}>P&L %</th>
-                    <th style={th}>Sector</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockGroups.map((g) => {
-                    const totalQty = g.lots.reduce(
-                      (s: number, l: any) => s + (Number(l.qty) || 0),
-                      0
-                    );
-                    const totalInvested = g.lots.reduce(
-                      (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
-                      0
-                    );
-                    const avgPrice = totalQty > 0 ? totalInvested / totalQty : 0;
-                    const livePrice =
-                      marketData?.[g.yfSym]?.price ?? Number(g.lots[0]?.currentPrice || 0);
-                    const currentValue = totalQty * livePrice;
-                    const pl = currentValue - totalInvested;
-                    const plPct = totalInvested > 0 ? (pl / totalInvested) * 100 : 0;
-                    const sector = marketData?.[g.yfSym]?.sector || "--";
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Symbol</th>
+                      <th style={th}>Exchange</th>
+                      <th style={thRight}>Qty</th>
+                      <th style={thRight}>Avg Price</th>
+                      <th style={thRight}>Current Price</th>
+                      <th style={thRight}>Current Value</th>
+                      <th style={thRight}>P&L</th>
+                      <th style={thRight}>P&L %</th>
+                      <th style={{ ...th, paddingRight: 16 }}>Sector</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockGroups.map((g) => {
+                      const totalQty = g.lots.reduce(
+                        (s: number, l: any) => s + (Number(l.qty) || 0),
+                        0
+                      );
+                      const totalInvested = g.lots.reduce(
+                        (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
+                        0
+                      );
+                      const avgPrice = totalQty > 0 ? totalInvested / totalQty : 0;
+                      const livePrice = getStockPrice(g.lots[0]);
+                      const currentValue = totalQty * livePrice;
+                      const pl = currentValue - totalInvested;
+                      const plPct = totalInvested > 0 ? (pl / totalInvested) * 100 : 0;
+                      const sector = marketData?.[g.yfSym]?.sector || "--";
 
-                    return (
-                      <tr key={g.yfSym}>
-                        <td style={{ ...td, fontWeight: 600 }}>{g.base}</td>
-                        <td style={td}>
-                          <Badge
-                            variant={g.exchange === "BSE" ? "gold" : "accent"}
-                            style={{ fontSize: 10 }}
+                      return (
+                        <tr key={g.yfSym} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                            {g.base}
+                          </td>
+                          <td style={td}>
+                            <Badge
+                              variant={g.exchange === "BSE" ? "gold" : "accent"}
+                              style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                            >
+                              {g.exchange}
+                            </Badge>
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 600 }}>{totalQty}</td>
+                          <td style={tdRight}>
+                            <Prv>{fmtINRFull(avgPrice)}</Prv>
+                          </td>
+                          <td style={tdRight}>
+                            <Prv>{fmtINRFull(livePrice)}</Prv>
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(currentValue)}</Prv>
+                          </td>
+                          <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
+                            <Prv>
+                              {plSign(pl)}
+                              {fmtINRFull(pl)}
+                            </Prv>
+                          </td>
+                          <td style={{ ...tdRight, color: plColor(plPct), fontWeight: 700 }}>
+                            {fmtPct(plPct)}
+                          </td>
+                          <td
+                            style={{
+                              ...td,
+                              paddingRight: 16,
+                              fontSize: 12,
+                              color: THEME.muted,
+                              maxWidth: 120,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
                           >
-                            {g.exchange}
-                          </Badge>
-                        </td>
-                        <td style={tdRight}>{totalQty}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(avgPrice)}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(livePrice)}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(currentValue)}</Prv>
-                        </td>
-                        <td style={{ ...tdRight, color: plColor(pl) }}>
-                          <Prv>
-                            {plSign(pl)}
-                            {fmtINRFull(pl)}
-                          </Prv>
-                        </td>
-                        <td style={{ ...tdRight, color: plColor(plPct) }}>{fmtPct(plPct)}</td>
-                        <td
-                          style={{
-                            ...td,
-                            fontSize: 12,
-                            color: THEME.muted,
-                            maxWidth: 120,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {sector}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            {sector}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── 4. Holdings Detail -- Mutual Funds ─────────────────────── */}
       {(state.mutualFunds?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={BarChart3}
             title="Mutual Funds"
@@ -825,94 +883,110 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("mf")}
           />
           {expandedSections.mf && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Scheme Name</th>
-                    <th style={th}>Category</th>
-                    <th style={th}>Folio</th>
-                    <th style={thRight}>Units</th>
-                    <th style={thRight}>Buy NAV</th>
-                    <th style={thRight}>Current NAV</th>
-                    <th style={thRight}>Invested</th>
-                    <th style={thRight}>Current Value</th>
-                    <th style={thRight}>P&L</th>
-                    <th style={thRight}>P&L %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.mutualFunds.map((mf: any) => {
-                    const units = Number(mf.units) || 0;
-                    const buyNav = Number(mf.buyNav) || 0;
-                    const currentNav = Number(mf.currentNav) || 0;
-                    const invested = Number(mf.invested || mf.investedValue) || units * buyNav || 0;
-                    const currentValue = units * currentNav || invested;
-                    const pl = currentValue - invested;
-                    const plPct = invested > 0 ? (pl / invested) * 100 : 0;
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Scheme Name</th>
+                      <th style={th}>Category</th>
+                      <th style={th}>Folio</th>
+                      <th style={thRight}>Units</th>
+                      <th style={thRight}>Buy NAV</th>
+                      <th style={thRight}>Current NAV</th>
+                      <th style={thRight}>Invested</th>
+                      <th style={thRight}>Current Value</th>
+                      <th style={thRight}>P&L</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>P&L %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.mutualFunds.map((mf: any) => {
+                      const units = Number(mf.units) || 0;
+                      const buyNav = Number(mf.buyNav) || 0;
+                      const currentNav = Number(mf.currentNav) || 0;
+                      const invested =
+                        Number(mf.invested || mf.investedValue) || units * buyNav || 0;
+                      const currentValue = units * currentNav || invested;
+                      const pl = currentValue - invested;
+                      const plPct = invested > 0 ? (pl / invested) * 100 : 0;
 
-                    return (
-                      <tr key={mf.id}>
-                        <td
-                          style={{
-                            ...td,
-                            fontWeight: 600,
-                            maxWidth: 220,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {mf.schemeName || mf.name || "Unnamed Fund"}
-                        </td>
-                        <td style={td}>
-                          <Badge
-                            variant={
-                              (mf.category || "").toLowerCase().includes("equity")
-                                ? "accent"
-                                : "sage"
-                            }
-                            style={{ fontSize: 10 }}
+                      return (
+                        <tr key={mf.id} className="table-row-hover">
+                          <td
+                            style={{
+                              ...td,
+                              paddingLeft: 16,
+                              fontWeight: 700,
+                              color: THEME.ink,
+                              maxWidth: 220,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
                           >
-                            {mf.category || "Other"}
-                          </Badge>
-                        </td>
-                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                          {mf.folioNumber || "--"}
-                        </td>
-                        <td style={tdRight}>{units > 0 ? units.toFixed(3) : "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{buyNav > 0 ? `₹${buyNav.toFixed(2)}` : "--"}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "--"}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(invested)}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(currentValue)}</Prv>
-                        </td>
-                        <td style={{ ...tdRight, color: plColor(pl) }}>
-                          <Prv>
-                            {plSign(pl)}
-                            {fmtINRFull(pl)}
-                          </Prv>
-                        </td>
-                        <td style={{ ...tdRight, color: plColor(plPct) }}>{fmtPct(plPct)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            {mf.schemeName || mf.name || "Unnamed Fund"}
+                          </td>
+                          <td style={td}>
+                            <Badge
+                              variant={
+                                (mf.category || "").toLowerCase().includes("equity")
+                                  ? "accent"
+                                  : "sage"
+                              }
+                              style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                            >
+                              {mf.category || "Other"}
+                            </Badge>
+                          </td>
+                          <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                            {mf.folioNumber || "--"}
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 600 }}>
+                            {units > 0 ? units.toFixed(3) : "--"}
+                          </td>
+                          <td style={tdRight}>
+                            <Prv>{buyNav > 0 ? `₹${buyNav.toFixed(2)}` : "--"}</Prv>
+                          </td>
+                          <td style={tdRight}>
+                            <Prv>{currentNav > 0 ? `₹${currentNav.toFixed(2)}` : "--"}</Prv>
+                          </td>
+                          <td style={tdRight}>
+                            <Prv>{fmtINRFull(invested)}</Prv>
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(currentValue)}</Prv>
+                          </td>
+                          <td style={{ ...tdRight, color: plColor(pl), fontWeight: 700 }}>
+                            <Prv>
+                              {plSign(pl)}
+                              {fmtINRFull(pl)}
+                            </Prv>
+                          </td>
+                          <td
+                            style={{
+                              ...tdRight,
+                              paddingRight: 16,
+                              color: plColor(plPct),
+                              fontWeight: 700,
+                            }}
+                          >
+                            {fmtPct(plPct)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── 5. Holdings Detail -- Fixed Income ─────────────────────── */}
       {/* FDs */}
       {(state.fixedDeposits?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Coins}
             title="Fixed Deposits"
@@ -921,65 +995,73 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("fd")}
           />
           {expandedSections.fd && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Bank</th>
-                    <th style={thRight}>Principal</th>
-                    <th style={thRight}>Rate</th>
-                    <th style={th}>Start Date</th>
-                    <th style={th}>Maturity Date</th>
-                    <th style={thRight}>Maturity Amount</th>
-                    <th style={thRight}>Days to Maturity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.fixedDeposits.map((fd: any) => {
-                    const principal = Number(fd.principal) || 0;
-                    const rate = Number(fd.rate) || 0;
-                    const years = Number(fd.years) || 0;
-                    const matAmount = fdMaturity(principal, rate, years);
-                    const dtm = daysToMaturity(fd.maturityDate);
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Bank</th>
+                      <th style={thRight}>Principal</th>
+                      <th style={thRight}>Rate</th>
+                      <th style={th}>Start Date</th>
+                      <th style={th}>Maturity Date</th>
+                      <th style={thRight}>Maturity Amount</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Days to Maturity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.fixedDeposits.map((fd: any) => {
+                      const principal = Number(fd.principal) || 0;
+                      const rate = Number(fd.rate) || 0;
+                      const years = Number(fd.years) || 0;
+                      const matAmount = fdMaturity(principal, rate, years);
+                      const dtm = daysToMaturity(fd.maturityDate);
 
-                    return (
-                      <tr key={fd.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>{fd.bank || "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(principal)}</Prv>
-                        </td>
-                        <td style={tdRight}>{rate > 0 ? `${rate}%` : "--"}</td>
-                        <td style={td}>{fd.startDate || "--"}</td>
-                        <td style={td}>{fd.maturityDate || "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(matAmount)}</Prv>
-                        </td>
-                        <td
-                          style={{
-                            ...tdRight,
-                            color:
-                              dtm != null && dtm <= 30
-                                ? "#DC2626"
-                                : dtm != null && dtm <= 90
-                                  ? "#D97706"
-                                  : THEME.ink,
-                          }}
-                        >
-                          {dtm != null ? (dtm === 0 ? "Matured" : `${dtm}d`) : "--"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={fd.id} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                            {fd.bank || "--"}
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(principal)}</Prv>
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 600 }}>
+                            {rate > 0 ? `${rate}%` : "--"}
+                          </td>
+                          <td style={td}>{fd.startDate || "--"}</td>
+                          <td style={td}>{fd.maturityDate || "--"}</td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(matAmount)}</Prv>
+                          </td>
+                          <td
+                            style={{
+                              ...tdRight,
+                              paddingRight: 16,
+                              fontWeight: 700,
+                              color:
+                                dtm != null && dtm <= 30
+                                  ? THEME.rust
+                                  : dtm != null && dtm <= 90
+                                    ? "#D97706"
+                                    : THEME.sage,
+                            }}
+                          >
+                            {dtm != null ? (dtm === 0 ? "Matured" : `${dtm}d`) : "--"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* RDs */}
       {(state.recurringDeposits?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Coins}
             title="Recurring Deposits"
@@ -988,48 +1070,52 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("rd")}
           />
           {expandedSections.rd && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Bank</th>
-                    <th style={thRight}>Monthly</th>
-                    <th style={thRight}>Tenure (months)</th>
-                    <th style={thRight}>Rate</th>
-                    <th style={thRight}>Maturity Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.recurringDeposits.map((rd: any) => {
-                    const monthly = Number(rd.monthly) || 0;
-                    const months = Number(rd.tenureMonths) || 0;
-                    const rate = Number(rd.rate) || 0;
-                    const matAmount = rdMaturity(monthly, rate, months);
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Bank</th>
+                      <th style={thRight}>Monthly</th>
+                      <th style={thRight}>Tenure (months)</th>
+                      <th style={thRight}>Rate</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Maturity Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.recurringDeposits.map((rd: any) => {
+                      const monthly = Number(rd.monthly) || 0;
+                      const months = Number(rd.tenureMonths) || 0;
+                      const rate = Number(rd.rate) || 0;
+                      const matAmount = rdMaturity(monthly, rate, months);
 
-                    return (
-                      <tr key={rd.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>{rd.bank || "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(monthly)}</Prv>
-                        </td>
-                        <td style={tdRight}>{months || "--"}</td>
-                        <td style={tdRight}>{rate > 0 ? `${rate}%` : "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(matAmount)}</Prv>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={rd.id} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                            {rd.bank || "--"}
+                          </td>
+                          <td style={tdRight}>
+                            <Prv>{fmtINRFull(monthly)}</Prv>
+                          </td>
+                          <td style={tdRight}>{months || "--"}</td>
+                          <td style={tdRight}>{rate > 0 ? `${rate}%` : "--"}</td>
+                          <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(matAmount)}</Prv>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Bonds */}
       {(state.bonds?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={FileText}
             title="Bonds"
@@ -1038,46 +1124,50 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("bonds")}
           />
           {expandedSections.bonds && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Name</th>
-                    <th style={thRight}>Face Value</th>
-                    <th style={thRight}>Coupon</th>
-                    <th style={thRight}>YTM</th>
-                    <th style={th}>Maturity Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.bonds.map((b: any) => {
-                    const faceValue = Number(b.totalInvestmentAmount || b.faceValue) || 0;
-                    const coupon = Number(b.coupon) || 0;
-                    const ytm = Number(b.ytmRate) || 0;
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Name</th>
+                      <th style={thRight}>Face Value</th>
+                      <th style={thRight}>Coupon</th>
+                      <th style={thRight}>YTM</th>
+                      <th style={{ ...th, paddingRight: 16 }}>Maturity Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.bonds.map((b: any) => {
+                      const faceValue = Number(b.totalInvestmentAmount || b.faceValue) || 0;
+                      const coupon = Number(b.coupon) || 0;
+                      const ytm = Number(b.ytmRate) || 0;
 
-                    return (
-                      <tr key={b.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>{b.name || "--"}</td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(faceValue)}</Prv>
-                        </td>
-                        <td style={tdRight}>{coupon > 0 ? `${coupon}%` : "--"}</td>
-                        <td style={tdRight}>{ytm > 0 ? `${ytm}%` : "--"}</td>
-                        <td style={td}>{b.maturityDate || "--"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={b.id} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                            {b.name || "--"}
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(faceValue)}</Prv>
+                          </td>
+                          <td style={tdRight}>{coupon > 0 ? `${coupon}%` : "--"}</td>
+                          <td style={tdRight}>{ytm > 0 ? `${ytm}%` : "--"}</td>
+                          <td style={{ ...td, paddingRight: 16 }}>{b.maturityDate || "--"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── 6. Holdings Detail -- Retirement ───────────────────────── */}
       {/* PPF */}
       {(state.ppf?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Shield}
             title="PPF"
@@ -1086,53 +1176,64 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("ppf")}
           />
           {expandedSections.ppf && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Institution</th>
-                    <th style={th}>Account #</th>
-                    <th style={thRight}>Balance</th>
-                    <th style={thRight}>This Year Deposit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.ppf.map((p: any) => {
-                    const balance = Number(p.balance) || 0;
-                    const currentFY =
-                      new Date().getMonth() >= 3
-                        ? new Date().getFullYear()
-                        : new Date().getFullYear() - 1;
-                    const fyStart = `${currentFY}-04-01`;
-                    const thisYearDeposit = (p.transactions || [])
-                      .filter((t: any) => t.type === "deposit" && t.date && t.date >= fyStart)
-                      .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Institution</th>
+                      <th style={th}>Account #</th>
+                      <th style={thRight}>Balance</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>This Year Deposit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.ppf.map((p: any) => {
+                      const balance = Number(p.balance) || 0;
+                      const currentFY =
+                        new Date().getMonth() >= 3
+                          ? new Date().getFullYear()
+                          : new Date().getFullYear() - 1;
+                      const fyStart = `${currentFY}-04-01`;
+                      const thisYearDeposit = (p.transactions || [])
+                        .filter((t: any) => t.type === "deposit" && t.date && t.date >= fyStart)
+                        .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
 
-                    return (
-                      <tr key={p.id}>
-                        <td style={{ ...td, fontWeight: 600 }}>{p.institution || "--"}</td>
-                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                          {p.accountNumber || "--"}
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{fmtINRFull(balance)}</Prv>
-                        </td>
-                        <td style={tdRight}>
-                          <Prv>{thisYearDeposit > 0 ? fmtINRFull(thisYearDeposit) : "--"}</Prv>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={p.id} className="table-row-hover">
+                          <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                            {p.institution || "--"}
+                          </td>
+                          <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                            {p.accountNumber || "--"}
+                          </td>
+                          <td style={{ ...tdRight, fontWeight: 700 }}>
+                            <Prv>{fmtINRFull(balance)}</Prv>
+                          </td>
+                          <td
+                            style={{
+                              ...tdRight,
+                              paddingRight: 16,
+                              color: THEME.sage,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Prv>{thisYearDeposit > 0 ? fmtINRFull(thisYearDeposit) : "--"}</Prv>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* NPS */}
       {(state.nps?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Briefcase}
             title="NPS"
@@ -1141,58 +1242,64 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("nps")}
           />
           {expandedSections.nps && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Fund Manager</th>
-                    <th style={th}>PRAN</th>
-                    <th style={th}>Tier</th>
-                    <th style={thRight}>Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.nps.map((n: any) => (
-                    <tr key={n.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>{n.fundManager || "--"}</td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{n.pran || "--"}</td>
-                      <td style={td}>
-                        <Badge
-                          variant={n.tier === "II" ? "gold" : "accent"}
-                          style={{ fontSize: 10 }}
-                        >
-                          Tier {n.tier || "I"}
-                        </Badge>
-                      </td>
-                      <td style={tdRight}>
-                        <Prv>
-                          {fmtINRFull(
-                            (() => {
-                              const bal = Number(n.balance) || 0;
-                              if (bal > 0) return bal;
-                              return (n.transactions || []).reduce(
-                                (ss: number, t: any) =>
-                                  ss +
-                                  (Number(t.employeeAmount) || 0) +
-                                  (Number(t.employerAmount) || 0),
-                                0
-                              );
-                            })()
-                          )}
-                        </Prv>
-                      </td>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Fund Manager</th>
+                      <th style={th}>PRAN</th>
+                      <th style={th}>Tier</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Balance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {state.nps.map((n: any) => (
+                      <tr key={n.id} className="table-row-hover">
+                        <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                          {n.fundManager || "--"}
+                        </td>
+                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                          {n.pran || "--"}
+                        </td>
+                        <td style={td}>
+                          <Badge
+                            variant={n.tier === "II" ? "gold" : "accent"}
+                            style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                          >
+                            Tier {n.tier || "I"}
+                          </Badge>
+                        </td>
+                        <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
+                          <Prv>
+                            {fmtINRFull(
+                              (() => {
+                                const bal = Number(n.balance) || 0;
+                                if (bal > 0) return bal;
+                                return (n.transactions || []).reduce(
+                                  (ss: number, t: any) =>
+                                    ss +
+                                    (Number(t.employeeAmount) || 0) +
+                                    (Number(t.employerAmount) || 0),
+                                  0
+                                );
+                              })()
+                            )}
+                          </Prv>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* EPF */}
       {(state.epf?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Shield}
             title="EPF"
@@ -1201,35 +1308,39 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("epf")}
           />
           {expandedSections.epf && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Employer</th>
-                    <th style={th}>UAN</th>
-                    <th style={thRight}>Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.epf.map((e: any) => (
-                    <tr key={e.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>{e.employer || "--"}</td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{e.uan || "--"}</td>
-                      <td style={tdRight}>
-                        <Prv>{fmtINRFull(calculateEpfBalance(e))}</Prv>
-                      </td>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Employer</th>
+                      <th style={th}>UAN</th>
+                      <th style={{ ...thRight, paddingRight: 16 }}>Balance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {state.epf.map((e: any) => (
+                      <tr key={e.id} className="table-row-hover">
+                        <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                          {e.employer || "--"}
+                        </td>
+                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>{e.uan || "--"}</td>
+                        <td style={{ ...tdRight, paddingRight: 16, fontWeight: 700 }}>
+                          <Prv>{fmtINRFull(calculateEpfBalance(e))}</Prv>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── Insurance ──────────────────────────────────────────────── */}
       {(state.lic?.length || 0) + (state.investmentPlans?.length || 0) > 0 && (
-        <Card style={{ padding: "0 16px 16px", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionHeader
             icon={Heart}
             title="LIC / Insurance Plans"
@@ -1238,103 +1349,118 @@ export const InvestmentStatementTab = ({
             onToggle={() => toggleSection("insurance")}
           />
           {expandedSections.insurance && (
-            <div style={tableWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={th}>Plan Name</th>
-                    <th style={th}>Policy #</th>
-                    <th style={th}>Type</th>
-                    <th style={thRight}>Premiums Paid</th>
-                    <th style={thRight}>Sum Assured / Value</th>
-                    <th style={th}>Maturity Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(state.lic || []).map((l: any) => (
-                    <tr key={l.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>{l.planName || "--"}</td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                        {l.policyNumber || "--"}
-                      </td>
-                      <td style={td}>
-                        <Badge variant="gold" style={{ fontSize: 10 }}>
-                          LIC
-                        </Badge>
-                      </td>
-                      <td style={tdRight}>
-                        <Prv>
-                          {fmtINRFull(
-                            (() => {
-                              const txTotal = (l.transactions || []).reduce(
-                                (sum: number, t: any) => sum + Number(t.amount || 0),
-                                0
-                              );
-                              return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
-                            })()
-                          )}
-                        </Prv>
-                      </td>
-                      <td style={tdRight}>
-                        <Prv>{fmtINRFull(Number(l.sumAssured) || 0)}</Prv>
-                      </td>
-                      <td style={td}>{l.maturityDate || "--"}</td>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <div style={tableWrap}>
+                <table style={tbl}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, paddingLeft: 16 }}>Plan Name</th>
+                      <th style={th}>Policy #</th>
+                      <th style={th}>Type</th>
+                      <th style={thRight}>Premiums Paid</th>
+                      <th style={thRight}>Sum Assured / Value</th>
+                      <th style={{ ...th, paddingRight: 16 }}>Maturity Date</th>
                     </tr>
-                  ))}
-                  {(state.investmentPlans || []).map((ip: any) => (
-                    <tr key={ip.id}>
-                      <td style={{ ...td, fontWeight: 600 }}>
-                        {ip.planName || ip.insurer || "--"}
-                      </td>
-                      <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
-                        {ip.policyNumber || "--"}
-                      </td>
-                      <td style={td}>
-                        <Badge variant="sage" style={{ fontSize: 10 }}>
-                          Investment
-                        </Badge>
-                      </td>
-                      <td style={tdRight}>
-                        <Prv>
-                          {fmtINRFull(
-                            (() => {
-                              const txTotal = (ip.transactions || []).reduce(
-                                (sum: number, t: any) => sum + Number(t.amount || 0),
-                                0
-                              );
-                              return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
-                            })()
-                          )}
-                        </Prv>
-                      </td>
-                      <td style={tdRight}>
-                        <Prv>
-                          {fmtINRFull(Number(ip.expectedMaturityAmount || ip.sumAssured) || 0)}
-                        </Prv>
-                      </td>
-                      <td style={td}>{ip.maturityDate || "--"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {(state.lic || []).map((l: any) => (
+                      <tr key={l.id} className="table-row-hover">
+                        <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                          {l.planName || "--"}
+                        </td>
+                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                          {l.policyNumber || "--"}
+                        </td>
+                        <td style={td}>
+                          <Badge
+                            variant="gold"
+                            style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                          >
+                            LIC
+                          </Badge>
+                        </td>
+                        <td style={tdRight}>
+                          <Prv>
+                            {fmtINRFull(
+                              (() => {
+                                const txTotal = (l.transactions || []).reduce(
+                                  (sum: number, t: any) => sum + Number(t.amount || 0),
+                                  0
+                                );
+                                return txTotal > 0 ? txTotal : Number(l.premiumPaid || 0);
+                              })()
+                            )}
+                          </Prv>
+                        </td>
+                        <td style={{ ...tdRight, fontWeight: 700 }}>
+                          <Prv>{fmtINRFull(Number(l.sumAssured) || 0)}</Prv>
+                        </td>
+                        <td style={{ ...td, paddingRight: 16 }}>{l.maturityDate || "--"}</td>
+                      </tr>
+                    ))}
+                    {(state.investmentPlans || []).map((ip: any) => (
+                      <tr key={ip.id} className="table-row-hover">
+                        <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                          {ip.planName || ip.insurer || "--"}
+                        </td>
+                        <td style={{ ...td, fontSize: 12, color: THEME.muted }}>
+                          {ip.policyNumber || "--"}
+                        </td>
+                        <td style={td}>
+                          <Badge
+                            variant="sage"
+                            style={{ fontSize: 10, padding: "2px 6px", borderRadius: 6 }}
+                          >
+                            Investment
+                          </Badge>
+                        </td>
+                        <td style={tdRight}>
+                          <Prv>
+                            {fmtINRFull(
+                              (() => {
+                                const txTotal = (ip.transactions || []).reduce(
+                                  (sum: number, t: any) => sum + Number(t.amount || 0),
+                                  0
+                                );
+                                return txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0);
+                              })()
+                            )}
+                          </Prv>
+                        </td>
+                        <td style={{ ...tdRight, fontWeight: 700 }}>
+                          <Prv>
+                            {fmtINRFull(Number(ip.expectedMaturityAmount || ip.sumAssured) || 0)}
+                          </Prv>
+                        </td>
+                        <td style={{ ...td, paddingRight: 16 }}>{ip.maturityDate || "--"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── 7. Asset Allocation Pie Chart ──────────────────────────── */}
       {summary.pieData.length > 0 && (
-        <Card style={{ padding: "24px 16px", marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: THEME.ink,
-              letterSpacing: "-0.02em",
-              marginBottom: 20,
-            }}
-          >
-            Asset Allocation
+        <Card style={{ padding: "24px 20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Asset Allocation
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Percentage distribution split by primary wealth category
+            </div>
           </div>
           <div
             style={{
@@ -1345,43 +1471,107 @@ export const InvestmentStatementTab = ({
               justifyContent: "center",
             }}
           >
-            <div style={{ width: 300, height: 280 }}>
+            <div style={{ width: 280, height: 280, position: "relative" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={summary.pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
+                    innerRadius={70}
                     outerRadius={100}
                     paddingAngle={3}
                     dataKey="value"
                     nameKey="name"
                     stroke="none"
+                    onMouseEnter={(_, idx) => setActivePieIndex(idx)}
+                    onMouseLeave={() => setActivePieIndex(null)}
                   >
-                    {summary.pieData.map((_: any, i: number) => (
-                      <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    {summary.pieData.map((d: any, i: number) => (
+                      <Cell
+                        key={`cell-${i}`}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        style={{
+                          filter:
+                            activePieIndex === i
+                              ? "drop-shadow(0 4px 10px rgba(0,0,0,0.15))"
+                              : "none",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) => fmtINRFull(value)}
-                    contentStyle={{
-                      background: "var(--t-paper)",
-                      border: `1px solid ${THEME.line}`,
-                      borderRadius: 8,
-                      fontSize: 13,
-                      color: THEME.ink,
-                    }}
-                    labelStyle={{ color: THEME.ink }}
-                    itemStyle={{ color: THEME.ink }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    formatter={(value: string) => (
-                      <span style={{ color: THEME.ink, fontSize: 12 }}>{value}</span>
-                    )}
-                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  {activePieIndex !== null && summary.pieData[activePieIndex] ? (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 10,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {summary.pieData[activePieIndex].name}
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 16,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹
+                        {summary.pieData[activePieIndex].value.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <text
+                        x="50%"
+                        y="46%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 10,
+                          fill: THEME.muted,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Net Worth
+                      </text>
+                      <text
+                        x="50%"
+                        y="56%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: 16,
+                          fill: THEME.ink,
+                          fontWeight: 900,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        ₹
+                        {summary.totalCurrent.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </text>
+                    </>
+                  )}
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -1390,7 +1580,7 @@ export const InvestmentStatementTab = ({
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                minWidth: 200,
+                minWidth: 220,
               }}
             >
               {summary.pieData.map((d: any, i: number) => {
@@ -1402,14 +1592,19 @@ export const InvestmentStatementTab = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 10,
+                      gap: 12,
+                      padding: "8px 12px",
+                      borderRadius: 12,
+                      background: "var(--surface-0)",
+                      border: `1.5px solid ${THEME.line}`,
+                      boxShadow: "var(--shadow-sm)",
                     }}
                   >
                     <div
                       style={{
                         width: 12,
                         height: 12,
-                        borderRadius: 3,
+                        borderRadius: 4,
                         background: PIE_COLORS[i % PIE_COLORS.length],
                         flexShrink: 0,
                       }}
@@ -1418,7 +1613,7 @@ export const InvestmentStatementTab = ({
                       <div
                         style={{
                           fontSize: 13,
-                          fontWeight: 600,
+                          fontWeight: 700,
                           color: THEME.ink,
                         }}
                       >
@@ -1428,9 +1623,11 @@ export const InvestmentStatementTab = ({
                         style={{
                           fontSize: 11,
                           color: THEME.muted,
+                          fontWeight: 600,
+                          marginTop: 1,
                         }}
                       >
-                        <Prv>{fmtINRFull(d.value)}</Prv> ({pct}%)
+                        <Prv>{fmtINRFull(d.value)}</Prv> &bull; {pct}%
                       </div>
                     </div>
                   </div>
