@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -20,16 +21,34 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
-  LineChart,
-  Line,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
+
+const th: React.CSSProperties = {
+  textAlign: "left",
+  padding: "14px 16px",
+  fontSize: 10,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: THEME.muted,
+  fontWeight: 700,
+  borderBottom: `1.5px solid ${THEME.line}`,
+  whiteSpace: "nowrap",
+  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  verticalAlign: "middle",
+  fontSize: 13,
+  borderBottom: `1px solid ${THEME.line}`,
+  fontVariantNumeric: "tabular-nums",
+};
 
 const MONTH_NAMES = [
   "Jan",
@@ -45,6 +64,126 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.stroke,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : fmtINRFull(p.value)}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Premium Stat Card ───────────────────────────────────────── */
+const PremiumStatCard = ({ label, value, color, icon: Icon, sub, subColor }: any) => (
+  <div
+    className="card-lift"
+    style={{
+      background:
+        "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+      border: `1.5px solid ${THEME.line}`,
+      borderTop: `4px solid ${color}`,
+      borderRadius: 16,
+      padding: "18px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+    }}
+  >
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${color} 15%, transparent) 0%, color-mix(in srgb, ${color} 8%, transparent) 100%)`,
+          border: `1.5px solid color-mix(in srgb, ${color} 25%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color,
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          }}
+        >
+          {label}
+        </div>
+        {sub && (
+          <div
+            style={{
+              fontSize: 10,
+              color: subColor || THEME.muted,
+              fontWeight: subColor ? 700 : 400,
+              marginTop: 2,
+              opacity: subColor ? 1 : 0.8,
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
+    <div
+      style={{
+        fontSize: 26,
+        fontWeight: 900,
+        color: THEME.ink,
+        letterSpacing: "-0.04em",
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+        marginTop: 4,
+      }}
+    >
+      <Prv>{value}</Prv>
+    </div>
+  </div>
+);
 
 export const ExpenseForecastTab = ({ state, metrics }) => {
   const [forecastMonths, setForecastMonths] = useState(6);
@@ -114,9 +253,8 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
     for (let i = 1; i <= forecastMonths; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const targetMonth = d.getMonth(); // 0-indexed
+      const targetMonth = d.getMonth();
 
-      // Use same-month historical data if available (seasonal), else use recent average
       const sameMonthData = historicalData.filter(
         (h) => parseInt(h.month.split("-")[1]) - 1 === targetMonth
       );
@@ -181,7 +319,6 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
     return Math.round(monthlyAvg * 12);
   }, [historicalData]);
 
-  const totalCategories = categoryStats.length;
   const trendingUp = categoryStats.filter((c) => c.trend === "up").length;
   const trendingDown = categoryStats.filter((c) => c.trend === "down").length;
 
@@ -206,6 +343,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
         Expense Forecast
       </SectionTitle>
 
+      {/* Stat summary cards */}
       <div
         style={{
           display: "grid",
@@ -213,29 +351,33 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
           gap: 14,
         }}
       >
-        <StatCard
+        <PremiumStatCard
           label="Annual Projection"
           value={fmtINRFull(annualProjection)}
-          icon={<Calendar />}
+          icon={Calendar}
           color="var(--accent)"
         />
-        <StatCard
+        <PremiumStatCard
           label="Monthly Average"
           value={fmtINRFull(Math.round(annualProjection / 12))}
-          icon={<BarChart3 />}
+          icon={BarChart3}
           color={THEME.accent}
         />
-        <StatCard
+        <PremiumStatCard
           label="Trending Up"
           value={`${trendingUp} categories`}
-          icon={<ArrowUp />}
+          icon={ArrowUp}
           color="#EF4444"
+          sub="Rising spending velocity"
+          subColor="#EF4444"
         />
-        <StatCard
+        <PremiumStatCard
           label="Trending Down"
           value={`${trendingDown} categories`}
-          icon={<ArrowDown />}
+          icon={ArrowDown}
           color="#10B981"
+          sub="Cooling spending velocity"
+          subColor="#10B981"
         />
       </div>
 
@@ -246,55 +388,95 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 16,
+            marginBottom: 20,
+            flexWrap: "wrap",
+            gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: THEME.text }}>
-            Expense Forecast
-          </h3>
-          <select
-            value={forecastMonths}
-            onChange={(e) => setForecastMonths(Number(e.target.value))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Expense Forecast
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Historical spend versus predictive model bounds
+            </div>
+          </div>
+
+          <div
             style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: `1px solid ${THEME.border}`,
-              background: THEME.card,
-              color: THEME.text,
-              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "var(--surface-0)",
+              padding: "4px 14px",
+              borderRadius: 12,
+              border: `1px solid ${THEME.line}`,
+              height: 38,
+              boxShadow: "var(--shadow-sm)",
             }}
           >
-            {[3, 6, 9, 12].map((m) => (
-              <option key={m} value={m}>
-                Next {m} months
-              </option>
-            ))}
-          </select>
+            <span
+              style={{
+                fontSize: 10,
+                color: THEME.muted,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Horizon
+            </span>
+            <select
+              value={forecastMonths}
+              onChange={(e) => setForecastMonths(Number(e.target.value))}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: THEME.ink,
+                fontWeight: 800,
+                fontSize: 12.5,
+                cursor: "pointer",
+                outline: "none",
+                paddingRight: "20px",
+              }}
+            >
+              {[3, 6, 9, 12].map((m) => (
+                <option key={m} value={m}>
+                  Next {m} months
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: THEME.muted }}
+              tickLine={false}
+              axisLine={{ stroke: THEME.line }}
+            />
             <YAxis
               tickFormatter={(v) => fmtINRFull(v)}
-              tick={{ fontSize: 11, fill: THEME.textSecondary }}
+              tick={{ fontSize: 11, fill: THEME.muted }}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip
-              formatter={(v) => fmtINRFull(v)}
-              cursor={{ stroke: THEME.line }}
-              contentStyle={{
-                background: THEME.card,
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 12,
-                color: THEME.ink,
-              }}
-              labelStyle={{ color: THEME.ink }}
-              itemStyle={{ color: THEME.ink }}
-            />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: THEME.line }} />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
               formatter={(value: string) => (
-                <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
               )}
             />
             <Area
@@ -302,7 +484,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
               dataKey="upper"
               stroke="none"
               fill={THEME.rust}
-              fillOpacity={0.1}
+              fillOpacity={0.06}
               name="Upper Bound"
             />
             <Area
@@ -310,7 +492,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
               dataKey="lower"
               stroke="none"
               fill={THEME.sage}
-              fillOpacity={0.1}
+              fillOpacity={0.06}
               name="Lower Bound"
             />
             <Area
@@ -318,7 +500,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
               dataKey="predicted"
               stroke="var(--accent)"
               fill="var(--accent)"
-              fillOpacity={0.1}
+              fillOpacity={0.08}
               strokeWidth={2}
               name="Predicted"
             />
@@ -327,7 +509,7 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
               dataKey="total"
               stroke="var(--t-accent)"
               fill="none"
-              strokeWidth={2}
+              strokeWidth={2.5}
               name="Actual"
             />
           </AreaChart>
@@ -336,91 +518,113 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
 
       {/* Seasonal Patterns */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Seasonal Spending Patterns
-        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Seasonal Spending Patterns
+          </h3>
+          <div style={{ fontSize: 11, color: THEME.muted }}>
+            Average monthly expenditure levels mapped across the calendar year
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={seasonalPatterns}>
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: THEME.textSecondary }} />
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11, fill: THEME.muted }}
+              tickLine={false}
+              axisLine={{ stroke: THEME.line }}
+            />
             <YAxis
               tickFormatter={(v) => fmtINRFull(v)}
-              tick={{ fontSize: 11, fill: THEME.textSecondary }}
+              tick={{ fontSize: 11, fill: THEME.muted }}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip
-              formatter={(v) => fmtINRFull(v)}
-              cursor={{ fill: THEME.line, opacity: 0.4 }}
-              contentStyle={{
-                background: THEME.card,
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 12,
-                color: THEME.ink,
-              }}
-              labelStyle={{ color: THEME.ink }}
-              itemStyle={{ color: THEME.ink }}
-            />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: THEME.line, opacity: 0.4 }} />
             <Bar dataKey="avg" name="Average Spend" fill="var(--accent)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
-      {/* Category Trends */}
+      {/* Category Trends Table */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.text }}>
-          Category Trends
-        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              letterSpacing: "-0.015em",
+            }}
+          >
+            Category Trends
+          </h3>
+          <div style={{ fontSize: 11, color: THEME.muted }}>
+            Velocity analysis comparing recent spending patterns against baseline averages
+          </div>
+        </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${THEME.border}` }}>
-                <th style={{ padding: 10, textAlign: "left", color: THEME.textSecondary }}>
-                  Category
-                </th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
-                  Monthly Avg
-                </th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
-                  Recent (3m)
-                </th>
-                <th style={{ padding: 10, textAlign: "center", color: THEME.textSecondary }}>
-                  Trend
-                </th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Min</th>
-                <th style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>Max</th>
+              <tr>
+                <th style={{ ...th, paddingLeft: 16 }}>Category</th>
+                <th style={{ ...th, textAlign: "right" }}>Monthly Avg</th>
+                <th style={{ ...th, textAlign: "right" }}>Recent (3m)</th>
+                <th style={{ ...th, textAlign: "center" }}>Trend</th>
+                <th style={{ ...th, textAlign: "right" }}>Min</th>
+                <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>Max</th>
               </tr>
             </thead>
             <tbody>
               {categoryStats.slice(0, 15).map((c) => (
-                <tr key={c.category} style={{ borderBottom: `1px solid ${THEME.border}` }}>
-                  <td style={{ padding: 10, fontWeight: 500, color: THEME.text }}>{c.category}</td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}>
+                <tr
+                  key={c.category}
+                  style={{ borderBottom: `1px solid ${THEME.line}` }}
+                  className="table-row-hover"
+                >
+                  <td style={{ ...td, paddingLeft: 16, fontWeight: 700, color: THEME.ink }}>
+                    {c.category}
+                  </td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                     <Prv>{fmtINRFull(c.avg)}</Prv>
                   </td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.text }}>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
                     <Prv>{fmtINRFull(c.recentAvg)}</Prv>
                   </td>
-                  <td style={{ padding: 10, textAlign: "center" }}>
+                  <td style={{ ...td, textAlign: "center" }}>
                     <span
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 4,
-                        padding: "2px 8px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 600,
+                        padding: "3px 10px",
+                        borderRadius: 20,
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
                         background:
                           c.trend === "up"
-                            ? "#EF444420"
+                            ? "#EF444416"
                             : c.trend === "down"
-                              ? "#10B98120"
-                              : `${THEME.border}`,
+                              ? "#10B98116"
+                              : "var(--surface-2)",
                         color:
                           c.trend === "up"
                             ? "#EF4444"
                             : c.trend === "down"
                               ? "#10B981"
-                              : THEME.textSecondary,
+                              : THEME.muted,
                       }}
                     >
                       {c.trend === "up" ? (
@@ -433,10 +637,18 @@ export const ExpenseForecastTab = ({ state, metrics }) => {
                       {c.trend === "up" ? "Rising" : c.trend === "down" ? "Falling" : "Stable"}
                     </span>
                   </td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                  <td style={{ ...td, textAlign: "right", color: THEME.muted, fontWeight: 500 }}>
                     {fmtINRFull(c.min)}
                   </td>
-                  <td style={{ padding: 10, textAlign: "right", color: THEME.textSecondary }}>
+                  <td
+                    style={{
+                      ...td,
+                      textAlign: "right",
+                      color: THEME.muted,
+                      fontWeight: 500,
+                      paddingRight: 16,
+                    }}
+                  >
                     {fmtINRFull(c.max)}
                   </td>
                 </tr>
