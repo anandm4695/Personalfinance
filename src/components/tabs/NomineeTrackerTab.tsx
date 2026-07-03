@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -17,13 +18,10 @@ import {
   AlertTriangle,
   Users,
   Scale,
-  BookOpen,
   Briefcase,
-  X,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINR,
   fmtINRFull,
   today,
   monthsBetween,
@@ -36,7 +34,6 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { StatCard } from "../ui/StatCard";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
 
@@ -186,10 +183,6 @@ const CONTACT_ROLES = ["Lawyer", "CA", "Financial Advisor", "Insurance Agent", "
 
 type FilterMode = "all" | "missing" | "covered";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: flatten all assets into a unified list
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface FlatAsset {
   key: string;
   label: string;
@@ -228,12 +221,79 @@ function flattenAssets(state: any): FlatAsset[] {
   return result;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
+/* ─── Premium Nominee Bento Card ─────────────────────────────────── */
+const NomineeStatCard = ({ label, value, sub, subColor, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+        {sub && (
+          <div
+            style={{ fontSize: 12, color: subColor || THEME.muted, marginTop: 4, fontWeight: 600 }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: any) => {
-  // ── State ────────────────────────────────────────────────────────────────
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
   const [assignModal, setAssignModal] = useState<FlatAsset | null>(null);
@@ -263,7 +323,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     notes: "",
   });
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+  // Derived data
   const allAssets = useMemo(() => flattenAssets(state), [state]);
 
   const totalAssets = allAssets.length;
@@ -294,7 +354,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
   const willDocs = documents.filter((d: any) => d.type === "will");
   const keyContacts = documents.filter((d: any) => d.type === "key_contact");
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // Handlers
   const openAssignModal = (asset: FlatAsset) => {
     setAssignName(asset.nominee);
     setAssignRelation(asset.nomineeRelation || "Spouse");
@@ -379,7 +439,6 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     resetContactForm();
   };
 
-  // ── Empty state ──────────────────────────────────────────────────────────
   if (totalAssets === 0) {
     return (
       <div style={{ padding: "24px 0" }}>
@@ -390,7 +449,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           icon={Shield}
           gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`}
           dotColor={THEME.accent}
-          title="No assets found"
+          title="No Assets Found"
           description="Add bank accounts, investments, insurance policies and other assets first, then come back to track nominee assignments."
           pills={["Bank Accounts", "Investments", "Insurance", "Real Estate"]}
           buttonLabel="Go to Dashboard"
@@ -400,48 +459,58 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: "24px 0" }}>
-      {/* ── Section Title ──────────────────────────────────────────── */}
+    <div
+      className="tab-content-enter"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
+    >
       <SectionTitle sub="Track nominee assignments, will documents and key financial contacts across all your assets.">
         Will & Nominee Tracker
       </SectionTitle>
 
-      {/* ── Coverage Dashboard ─────────────────────────────────────── */}
-      <Card style={{ padding: "28px 28px 24px", marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      {/* Coverage Dashboard */}
+      <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}` }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            marginBottom: 20,
+            flexWrap: "wrap",
+          }}
+        >
           <div
             style={{
               width: 44,
               height: 44,
-              borderRadius: 14,
+              borderRadius: 12,
               background:
                 coveragePercent === 100
                   ? `linear-gradient(135deg, ${THEME.sage} 0%, #34d399 100%)`
                   : coveragePercent >= 50
-                    ? `linear-gradient(135deg, ${THEME.gold} 0%, #fbbf24 100%)`
+                    ? `linear-gradient(135deg, #D97706 0%, #fbbf24 100%)`
                     : `linear-gradient(135deg, ${THEME.rust} 0%, #f87171 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             {coveragePercent === 100 ? (
-              <ShieldCheck size={24} color="#fff" />
+              <ShieldCheck size={22} color="#fff" />
             ) : coveragePercent >= 50 ? (
-              <ShieldAlert size={24} color="#fff" />
+              <ShieldAlert size={22} color="#fff" />
             ) : (
-              <ShieldX size={24} color="#fff" />
+              <ShieldX size={22} color="#fff" />
             )}
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 160 }}>
             <div
-              style={{ fontSize: 20, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.03em" }}
+              style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, letterSpacing: "-0.015em" }}
             >
-              Nominee Coverage
+              Nominee Coverage Status
             </div>
-            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
               {coveragePercent === 100
                 ? "All assets have nominees assigned"
                 : `${missingAssets.length} asset${missingAssets.length === 1 ? "" : "s"} still need nominees`}
@@ -449,15 +518,14 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           </div>
           <div
             style={{
-              marginLeft: "auto",
-              fontSize: 36,
+              fontSize: 32,
               fontWeight: 900,
               letterSpacing: "-0.04em",
               color:
                 coveragePercent === 100
                   ? THEME.sage
                   : coveragePercent >= 50
-                    ? THEME.gold
+                    ? "#D97706"
                     : THEME.rust,
               fontVariantNumeric: "tabular-nums",
             }}
@@ -466,12 +534,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           </div>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress track */}
         <div
           style={{
-            height: 10,
-            borderRadius: 5,
-            background: `color-mix(in srgb, ${THEME.line} 60%, transparent)`,
+            height: 8,
+            borderRadius: 4,
+            background: THEME.line,
             overflow: "hidden",
             marginBottom: 24,
           }}
@@ -480,93 +548,101 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
             style={{
               width: `${coveragePercent}%`,
               height: "100%",
-              borderRadius: 5,
+              borderRadius: 4,
               background:
                 coveragePercent === 100
                   ? `linear-gradient(90deg, ${THEME.sage}, #34d399)`
                   : coveragePercent >= 50
-                    ? `linear-gradient(90deg, ${THEME.gold}, #fbbf24)`
+                    ? `linear-gradient(90deg, #D97706, #fbbf24)`
                     : `linear-gradient(90deg, ${THEME.rust}, #f87171)`,
-              transition: "width 0.6s ease",
+              transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           />
         </div>
 
-        {/* Stat cards */}
+        {/* Stat cards Grid */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 14,
+            gap: 16,
           }}
         >
-          <StatCard
+          <NomineeStatCard
             label="Assets Covered"
             value={String(coveredAssets.length)}
             sub={`of ${totalAssets} total`}
-            icon={<ShieldCheck />}
+            icon={<ShieldCheck size={16} />}
             color={THEME.sage}
           />
-          <StatCard
+          <NomineeStatCard
             label="Without Nominee"
             value={String(missingAssets.length)}
             sub={missingAssets.length === 0 ? "None remaining" : "Action needed"}
             subColor={missingAssets.length > 0 ? THEME.rust : undefined}
-            icon={<ShieldAlert />}
+            icon={<ShieldAlert size={16} />}
             color={missingAssets.length > 0 ? THEME.rust : THEME.sage}
           />
-          <StatCard
+          <NomineeStatCard
             label="Value at Risk"
             value={fmtINRFull(valueAtRisk)}
             sub="Without nominee protection"
-            icon={<AlertTriangle />}
-            color={THEME.gold}
+            icon={<AlertTriangle size={16} />}
+            color="#D97706"
           />
         </div>
       </Card>
 
-      {/* ── Filter & Search Bar ────────────────────────────────────── */}
+      {/* Filter & Search Bar */}
       <div
         style={{
           display: "flex",
           gap: 12,
-          marginBottom: 20,
           flexWrap: "wrap",
           alignItems: "center",
         }}
       >
-        {(["all", "missing", "covered"] as FilterMode[]).map((f) => {
-          const counts = {
-            all: totalAssets,
-            missing: missingAssets.length,
-            covered: coveredAssets.length,
-          };
-          const labels = { all: "All Assets", missing: "Missing Nominees", covered: "Covered" };
-          const isActive = filter === f;
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                padding: "7px 16px",
-                borderRadius: 20,
-                border: `1.5px solid ${isActive ? THEME.accent : THEME.line}`,
-                background: isActive
-                  ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
-                  : "transparent",
-                color: isActive ? THEME.accent : THEME.muted,
-                fontWeight: 700,
-                fontSize: 12,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                letterSpacing: "0.02em",
-              }}
-            >
-              {labels[f]} ({counts[f]})
-            </button>
-          );
-        })}
-        <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            background: "var(--surface-0)",
+            border: `1.5px solid ${THEME.line}`,
+            padding: 4,
+            borderRadius: 14,
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          {(["all", "missing", "covered"] as FilterMode[]).map((f) => {
+            const counts = {
+              all: totalAssets,
+              missing: missingAssets.length,
+              covered: coveredAssets.length,
+            };
+            const labels = { all: "All Assets", missing: "Missing Nominees", covered: "Covered" };
+            const isActive = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: isActive ? "var(--accent)" : "transparent",
+                  color: isActive ? "#fff" : THEME.ink,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {labels[f]} ({counts[f]})
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
           <Search
             size={14}
             style={{
@@ -586,10 +662,10 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               width: "100%",
               padding: "8px 12px 8px 34px",
               fontSize: 13,
-              fontWeight: 500,
-              borderRadius: 10,
+              fontWeight: 600,
+              borderRadius: 12,
               border: `1.5px solid ${THEME.line}`,
-              background: "var(--surface-0, #fff)",
+              background: "var(--surface-0)",
               color: THEME.ink,
               outline: "none",
             }}
@@ -597,11 +673,17 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </div>
       </div>
 
-      {/* ── Asset-wise Nominee Grid ────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 40 }}>
+      {/* Asset Nominees List Grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {filteredAssets.length === 0 ? (
-          <Card style={{ padding: "40px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 15, color: THEME.muted, fontWeight: 600 }}>
+          <Card
+            style={{
+              padding: "40px 24px",
+              textAlign: "center",
+              border: `1.5px solid ${THEME.line}`,
+            }}
+          >
+            <div style={{ fontSize: 14, color: THEME.muted, fontWeight: 600 }}>
               No assets match your search or filter.
             </div>
           </Card>
@@ -609,66 +691,66 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           filteredAssets.map((asset) => (
             <Card
               key={`${asset.key}-${asset.id}`}
+              className="card-lift"
               style={{
                 padding: "16px 20px",
                 display: "flex",
                 alignItems: "center",
                 gap: 16,
                 flexWrap: "wrap",
+                border: `1.5px solid ${THEME.line}`,
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.2s ease",
               }}
-              hover
             >
-              {/* Asset type icon */}
+              {/* Status badge */}
               <div
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
                   background: asset.covered
                     ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
                     : `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  color: asset.covered ? THEME.sage : THEME.rust,
                   flexShrink: 0,
                 }}
               >
-                {asset.covered ? (
-                  <ShieldCheck size={18} color={THEME.sage} />
-                ) : (
-                  <ShieldAlert size={18} color={THEME.rust} />
-                )}
+                {asset.covered ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
               </div>
 
               {/* Asset info */}
               <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
                     {asset.name}
                   </span>
-                  <Badge variant="muted" style={{ fontSize: 10 }}>
+                  <Badge variant="muted" style={{ fontSize: 10, padding: "2px 6px" }}>
                     {asset.label}
                   </Badge>
                 </div>
                 {asset.identifier && (
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
                     <Prv>{asset.identifier}</Prv>
                   </div>
                 )}
               </div>
 
               {/* Value */}
-              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 100 }}>
+              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 110 }}>
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
+                    fontSize: 10,
+                    fontWeight: 800,
                     color: THEME.muted,
                     textTransform: "uppercase",
-                    letterSpacing: "0.05em",
+                    letterSpacing: "0.08em",
                   }}
                 >
-                  Value
+                  Asset Value
                 </div>
                 <div
                   style={{
@@ -676,6 +758,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                     fontWeight: 800,
                     color: THEME.ink,
                     fontVariantNumeric: "tabular-nums",
+                    marginTop: 2,
                   }}
                 >
                   <Prv>{fmtINRFull(asset.value)}</Prv>
@@ -683,28 +766,34 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               </div>
 
               {/* Nominee info */}
-              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 120 }}>
+              <div style={{ flex: "0 0 auto", textAlign: "right", minWidth: 130 }}>
                 {asset.covered ? (
                   <>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: THEME.ink }}>
                       {asset.nominee}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted }}>{asset.nomineeRelation}</div>
+                    <div
+                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 2 }}
+                    >
+                      {asset.nomineeRelation}
+                    </div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>No nominee</div>
+                  <div style={{ fontSize: 12.5, color: THEME.rust, fontWeight: 700 }}>
+                    No Nominee Assigned
+                  </div>
                 )}
               </div>
 
-              {/* Status badge */}
+              {/* Status capsule */}
               <Badge
                 variant={asset.covered ? "sage" : "rust"}
-                style={{ fontSize: 10, flexShrink: 0 }}
+                style={{ fontSize: 10, padding: "3px 8px" }}
               >
                 {asset.covered ? "Covered" : "Missing"}
               </Badge>
 
-              {/* Action button */}
+              {/* Action trigger */}
               <Button
                 variant={asset.covered ? "ghost" : "primary"}
                 size="sm"
@@ -719,7 +808,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         )}
       </div>
 
-      {/* ── Will Tracker Section ───────────────────────────────────── */}
+      {/* Will Documents Section */}
       <SectionTitle
         sub="Keep track of your will documents, their physical location and legal details."
         rightElement={
@@ -740,23 +829,25 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
       </SectionTitle>
 
       {willDocs.length === 0 && !showWillForm ? (
-        <Card style={{ padding: "40px 24px", textAlign: "center", marginBottom: 40 }}>
+        <Card
+          style={{ padding: "40px 24px", textAlign: "center", border: `1.5px solid ${THEME.line}` }}
+        >
           <div
             style={{
               width: 52,
               height: 52,
               borderRadius: 16,
-              background: `linear-gradient(135deg, ${THEME.gold} 0%, #fbbf24 100%)`,
+              background: `linear-gradient(135deg, #D97706 0%, #fbbf24 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
             }}
           >
-            <Scale size={26} color="#fff" />
+            <Scale size={24} color="#fff" />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
-            No will documents recorded
+            No Will Documents Recorded
           </div>
           <div
             style={{
@@ -765,6 +856,8 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               marginBottom: 20,
               maxWidth: 380,
               margin: "0 auto 20px",
+              fontWeight: 500,
+              lineHeight: 1.4,
             }}
           >
             Record your will details including date, physical location, witnesses and lawyer
@@ -775,9 +868,18 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           </Button>
         </Card>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {willDocs.map((doc: any) => (
-            <Card key={doc.id} style={{ padding: "20px 24px" }}>
+            <Card
+              key={doc.id}
+              className="card-lift"
+              style={{
+                padding: 24,
+                border: `1.5px solid ${THEME.line}`,
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.2s ease",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -792,26 +894,29 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                     style={{
                       width: 40,
                       height: 40,
-                      borderRadius: 12,
-                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                      borderRadius: 10,
+                      background: `color-mix(in srgb, #D97706 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      color: "#D97706",
                       flexShrink: 0,
                     }}
                   >
-                    <Scale size={20} color={THEME.gold} />
+                    <Scale size={18} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
                       Will Document
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                    <div
+                      style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 600 }}
+                    >
                       Dated: {doc.date || "Not specified"}
                     </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 6 }}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -838,7 +943,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                   gap: 16,
                   marginTop: 16,
                   padding: "16px 0 0",
-                  borderTop: `1px solid ${THEME.line}`,
+                  borderTop: `1.5px solid ${THEME.line}`,
                 }}
               >
                 {[
@@ -853,7 +958,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                         <div
                           style={{
                             fontSize: 10,
-                            fontWeight: 700,
+                            fontWeight: 800,
                             color: THEME.muted,
                             textTransform: "uppercase",
                             letterSpacing: "0.08em",
@@ -862,7 +967,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                         >
                           {f.label}
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                           {f.value}
                         </div>
                       </div>
@@ -873,11 +978,16 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               {doc.notes && (
                 <div
                   style={{
-                    marginTop: 12,
-                    fontSize: 13,
+                    marginTop: 14,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: "var(--surface-1)",
+                    border: `1.5px solid ${THEME.line}`,
+                    fontSize: 12.5,
                     color: THEME.muted,
-                    lineHeight: 1.6,
+                    lineHeight: 1.5,
                     fontStyle: "italic",
+                    fontWeight: 500,
                   }}
                 >
                   {doc.notes}
@@ -888,7 +998,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </div>
       )}
 
-      {/* ── Key Contacts Section ───────────────────────────────────── */}
+      {/* Key Contacts Section */}
       <SectionTitle
         sub="Important financial contacts — lawyers, CAs, financial advisors and insurance agents."
         rightElement={
@@ -909,23 +1019,25 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
       </SectionTitle>
 
       {keyContacts.length === 0 && !showContactForm ? (
-        <Card style={{ padding: "40px 24px", textAlign: "center", marginBottom: 24 }}>
+        <Card
+          style={{ padding: "40px 24px", textAlign: "center", border: `1.5px solid ${THEME.line}` }}
+        >
           <div
             style={{
               width: 52,
               height: 52,
               borderRadius: 16,
-              background: `linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)`,
+              background: `linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 65%, white) 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
             }}
           >
-            <Users size={26} color="#fff" />
+            <Users size={24} color="#fff" />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
-            No key contacts added
+            No Key Contacts Added
           </div>
           <div
             style={{
@@ -934,6 +1046,8 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               marginBottom: 20,
               maxWidth: 380,
               margin: "0 auto 20px",
+              fontWeight: 500,
+              lineHeight: 1.4,
             }}
           >
             Add important contacts like your lawyer, chartered accountant, financial advisor or
@@ -952,83 +1066,119 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 14,
-            marginBottom: 24,
+            gap: 16,
           }}
         >
           {keyContacts.map((c: any) => (
-            <Card key={c.id} style={{ padding: "20px 22px" }}>
+            <Card
+              key={c.id}
+              className="card-lift"
+              style={{
+                padding: "20px 22px",
+                border: `1.5px solid ${THEME.line}`,
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.2s ease",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
                   justifyContent: "space-between",
-                  marginBottom: 12,
+                  marginBottom: 14,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
                       width: 38,
                       height: 38,
                       borderRadius: 10,
-                      background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                      background: `color-mix(in srgb, var(--accent) 12%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      color: "var(--accent)",
                       flexShrink: 0,
                     }}
                   >
-                    <Briefcase size={18} color={THEME.accent} />
+                    <Briefcase size={16} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{c.name}</div>
-                    <Badge variant="accent" style={{ fontSize: 10, marginTop: 4 }}>
+                    <div style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
+                      {c.name}
+                    </div>
+                    <Badge variant="accent" style={{ fontSize: 9.5, marginTop: 4 }}>
                       {c.role}
                     </Badge>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
+                <div style={{ display: "flex", gap: 6 }}>
                   <button
                     onClick={() => openEditContact(c)}
+                    className="card-lift"
                     style={{
-                      background: "none",
-                      border: "none",
+                      background: "var(--surface-0)",
+                      border: `1.5px solid ${THEME.line}`,
+                      borderRadius: 8,
                       cursor: "pointer",
-                      padding: 4,
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       color: THEME.muted,
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    <Edit2 size={14} />
+                    <Edit2 size={13} />
                   </button>
                   <button
                     onClick={() => removeItem("documents", c.id)}
+                    className="card-lift"
                     style={{
-                      background: "none",
-                      border: "none",
+                      background: `${THEME.rust}09`,
+                      border: `1.5px solid ${THEME.rust}30`,
+                      borderRadius: 8,
                       cursor: "pointer",
-                      padding: 4,
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       color: THEME.rust,
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
 
               {(c.phone || c.email) && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
                   {c.phone && (
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        fontSize: 13,
+                        fontSize: 12.5,
                         color: THEME.muted,
+                        fontWeight: 500,
                       }}
                     >
-                      <Phone size={13} />
+                      <Phone size={13} style={{ color: "var(--accent)" }} />
                       <Prv>{c.phone}</Prv>
                     </div>
                   )}
@@ -1038,11 +1188,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        fontSize: 13,
+                        fontSize: 12.5,
                         color: THEME.muted,
+                        fontWeight: 500,
                       }}
                     >
-                      <Mail size={13} />
+                      <Mail size={13} style={{ color: "var(--accent)" }} />
                       <Prv>{c.email}</Prv>
                     </div>
                   )}
@@ -1052,11 +1203,12 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
               {c.notes && (
                 <div
                   style={{
-                    marginTop: 10,
+                    marginTop: 12,
                     fontSize: 12,
                     color: THEME.muted,
-                    lineHeight: 1.5,
+                    lineHeight: 1.4,
                     fontStyle: "italic",
+                    fontWeight: 500,
                   }}
                 >
                   {c.notes}
@@ -1067,25 +1219,27 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </div>
       )}
 
-      {/* ── Assign Nominee Modal ───────────────────────────────────── */}
+      {/* Assign Nominee Modal */}
       {assignModal && (
         <Modal
           title={assignModal.covered ? "Edit Nominee" : "Assign Nominee"}
           onClose={() => setAssignModal(null)}
         >
           <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <Badge variant="muted" style={{ fontSize: 10 }}>
                 {assignModal.label}
               </Badge>
-              <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                 {assignModal.name}
               </span>
             </div>
             {assignModal.identifier && (
-              <div style={{ fontSize: 12, color: THEME.muted }}>{assignModal.identifier}</div>
+              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>
+                {assignModal.identifier}
+              </div>
             )}
-            <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 600, marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: THEME.ink, fontWeight: 700, marginTop: 8 }}>
               Value: <Prv>{fmtINRFull(assignModal.value)}</Prv>
             </div>
           </div>
@@ -1117,7 +1271,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </Modal>
       )}
 
-      {/* ── Will Document Modal ────────────────────────────────────── */}
+      {/* Will Document Modal */}
       {showWillForm && (
         <Modal
           title={editWill ? "Edit Will Document" : "Add Will Document"}
@@ -1195,7 +1349,7 @@ export const NomineeTrackerTab = ({ state, addItem, removeItem, updateItem }: an
         </Modal>
       )}
 
-      {/* ── Key Contact Modal ──────────────────────────────────────── */}
+      {/* Key Contact Modal */}
       {showContactForm && (
         <Modal
           title={editContact ? "Edit Contact" : "Add Key Contact"}
