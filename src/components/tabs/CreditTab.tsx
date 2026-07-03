@@ -273,9 +273,9 @@ const EmptyHint = ({ text }: { text: string }) => (
 function InformalEmptyState({ isBorrowed, onAdd }: any) {
   const Icon = isBorrowed ? TrendingDown : TrendingUp;
   const gradient = isBorrowed
-    ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
-    : "linear-gradient(135deg,#15803d 0%,#4ade80 100%)";
-  const dotColor = isBorrowed ? "#dc2626" : "#16a34a";
+    ? "linear-gradient(135deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 65%, white) 100%)"
+    : "linear-gradient(135deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)";
+  const dotColor = isBorrowed ? "var(--t-rust)" : "var(--t-accent)";
   const pills = isBorrowed
     ? [
         "Track Borrowed Amount",
@@ -1437,6 +1437,7 @@ export function CreditTab({ state, addItem, removeItem, updateItem, subTab, onSu
             onRemove={(id: any) => removeItem("loansGiven", id)}
             onEdit={setEditId}
             onAdd={() => setModal("given")}
+            onUpdate={(id: any, patch: any) => updateItem("loansGiven", id, patch)}
           />
         )}
         {sub === "borrowed" && (
@@ -4691,9 +4692,9 @@ function LoanEmptyState({ type, onAdd }: any) {
   const isTaken = type === "taken";
   const Icon = isTaken ? TrendingDown : TrendingUp;
   const gradient = isTaken
-    ? "linear-gradient(135deg,#dc2626 0%,#f87171 100%)"
-    : "linear-gradient(135deg,#0284c7 0%,#38bdf8 100%)";
-  const dotColor = isTaken ? "#dc2626" : "#0ea5e9";
+    ? "linear-gradient(135deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 65%, white) 100%)"
+    : "linear-gradient(135deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 65%, white) 100%)";
+  const dotColor = isTaken ? "var(--t-rust)" : "var(--t-accent)";
   const pills = isTaken
     ? ["Home / Car / Personal Loans", "EMI Tracking", "Payoff Progress", "Interest Remaining"]
     : ["Loans to Friends & Family", "Due Date Tracking", "Interest Rate", "Outstanding Balance"];
@@ -5233,7 +5234,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
   );
 }
 
-function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
+function LoanGivenList({ items, onRemove, onEdit, onAdd, onUpdate }: any) {
   if (!items.length) return <LoanEmptyState type="given" onAdd={onAdd} />;
   const now = new Date();
   const totalLent = items.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
@@ -5241,6 +5242,10 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
   const overdueItems = items.filter(
     (l: any) => l.dueDate && new Date(l.dueDate) < now && Number(l.outstanding || 0) > 0
   );
+
+  const [logExpanded, setLogExpanded] = useState<Set<string>>(new Set());
+  const [logInputs, setLogInputs] = useState<Record<string, string>>({});
+
   const fmtLoanDate = (d: string) =>
     d
       ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
@@ -5249,6 +5254,25 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
           year: "2-digit",
         })
       : "—";
+
+  const getAvatarGradient = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      ["#3b82f6", "#60a5fa"], // Blue
+      ["#7c3aed", "#a78bfa"], // Violet
+      ["#059669", "#34d399"], // Emerald
+      ["#d97706", "#fbbf24"], // Amber
+      ["#2563eb", "#60a5fa"], // Indigo
+      ["#0d9488", "#5eead4"], // Teal
+      ["#dc2626", "#f87171"], // Red
+    ];
+    const idx = Math.abs(hash) % colors.length;
+    return `linear-gradient(135deg, ${colors[idx][0]} 0%, ${colors[idx][1]} 100%)`;
+  };
+
   return (
     <div>
       <div
@@ -5263,31 +5287,31 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
           {
             label: "Total Lent",
             value: <Prv>{fmtINRFull(totalLent)}</Prv>,
-            sub: `${items.length} loan${items.length !== 1 ? "s" : ""} given`,
-            color: THEME.sage,
+            sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
+            color: "var(--t-accent)",
             Icon: TrendingUp,
           },
           {
             label: "Outstanding",
             value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Pending recovery" : "Fully recovered",
-            color: totalOutstanding > 0 ? THEME.gold : THEME.sage,
+            color: totalOutstanding > 0 ? "var(--t-gold)" : "var(--t-sage)",
             Icon: IndianRupee,
           },
           {
             label: "Overdue",
             value: String(overdueItems.length),
             sub: overdueItems.length > 0 ? "Require follow-up" : "All on schedule",
-            color: overdueItems.length > 0 ? THEME.rust : THEME.sage,
+            color: overdueItems.length > 0 ? "var(--t-rust)" : "var(--t-sage)",
             Icon: AlertCircle,
           },
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="card-lift"
+            className="glass card-lift"
             style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
+              background: "transparent",
+              border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
               padding: "18px 20px",
@@ -5303,7 +5327,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: `${color}1f`,
+                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -5315,11 +5339,11 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
               </div>
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: "var(--t-muted)",
                   textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.08em",
                 }}
               >
                 {label}
@@ -5329,7 +5353,7 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
               style={{
                 fontSize: 26,
                 fontWeight: 900,
-                color: THEME.ink,
+                color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
@@ -5337,13 +5361,17 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
           </div>
         ))}
       </div>
       <Grid>
         {items.map((l: any) => {
-          const isPaidOff = Number(l.outstanding || 0) === 0;
+          const principal = Number(l.principal) || 0;
+          const outstanding = Number(l.outstanding) || 0;
+          const rate = Number(l.rate) || 0;
+          
+          const isPaidOff = outstanding === 0;
           const isOverdue = !isPaidOff && l.dueDate && new Date(l.dueDate) < now;
           const daysOverdue = isOverdue
             ? Math.floor((now.getTime() - new Date(l.dueDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -5356,13 +5384,36 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
           const daysUntilDue = dueSoon
             ? Math.ceil((new Date(l.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
             : 0;
+
+          const startDate = l.date ? new Date(l.date + "T00:00:00") : null;
+          const endDate = l.dueDate ? new Date(l.dueDate + "T00:00:00") : null;
+          const daysElapsed = startDate ? Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          const totalTenureDays = (startDate && endDate) ? Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+          // Accrued simple interest to date
+          const accruedInterest = (principal * (rate / 100) * daysElapsed) / 365.25;
+          // Simple interest at maturity
+          const maturityInterest = (principal * (rate / 100) * (totalTenureDays || daysElapsed)) / 365.25;
+          const maturityValue = principal + maturityInterest;
+
+          const recovered = Math.max(0, principal - outstanding);
+          const recoveredPct = principal > 0 ? Math.min(100, (recovered / principal) * 100) : 0;
+          
+          const barColor = isPaidOff ? "var(--t-sage)" : isOverdue ? "var(--t-rust)" : "var(--t-accent)";
+          const avatarGradient = getAvatarGradient(l.borrower || "B");
+          const firstLetter = l.borrower ? l.borrower.charAt(0).toUpperCase() : "?";
+
+          // Find Profile Name
+          const ownerProfile = PROFILES.find((p: any) => p.id === l.owner);
+          const ownerLabel = ownerProfile ? ownerProfile.name : "Self";
+
           return (
             <InvestCard
               key={l.id}
               onRemove={() => onRemove(l.id)}
               onEdit={() => onEdit(l.id)}
               cardStyle={{
-                borderTop: `3px solid ${isOverdue ? THEME.rust : isPaidOff ? THEME.sage : THEME.sage}`,
+                borderTop: `4px solid ${isOverdue ? "var(--t-rust)" : isPaidOff ? "var(--t-sage)" : "var(--t-accent)"}`,
               }}
             >
               <div
@@ -5370,127 +5421,349 @@ function LoanGivenList({ items, onRemove, onEdit, onAdd }: any) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 4,
+                  marginBottom: 10,
+                  paddingRight: 64
                 }}
               >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: avatarGradient,
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    {firstLetter}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--t-ink)", lineHeight: 1.2 }}>
+                      {l.borrower}
+                    </div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "var(--t-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 2 }}>
+                      Profile: {ownerLabel}
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                  {isOverdue && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: "#fff",
+                        background: "var(--t-rust)",
+                        padding: "2px 8px",
+                        borderRadius: 99,
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      {daysOverdue}d OVERDUE
+                    </span>
+                  )}
+                  {dueSoon && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: "var(--t-gold)",
+                        background: "color-mix(in srgb, var(--t-gold) 15%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)",
+                        padding: "2px 8px",
+                        borderRadius: 99,
+                      }}
+                    >
+                      Due in {daysUntilDue}d
+                    </span>
+                  )}
+                  {isPaidOff && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: "var(--t-sage)",
+                        background: "color-mix(in srgb, var(--t-sage) 12%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--t-sage) 25%, transparent)",
+                        borderRadius: 6,
+                        padding: "2px 8px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      SETTLED
+                    </span>
+                  )}
+                  {!isPaidOff && !isOverdue && !dueSoon && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: "var(--t-accent)",
+                        background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
+                        borderRadius: 6,
+                        padding: "2px 8px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <span style={{ fontSize: 9, textTransform: "uppercase", color: "var(--t-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>
+                  Outstanding Balance
+                </span>
                 <div
                   style={{
-                    fontSize: 10,
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    color: THEME.sage,
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: isPaidOff ? "var(--t-sage)" : isOverdue ? "var(--t-rust)" : "var(--t-ink)",
+                    fontVariantNumeric: "tabular-nums",
+                    letterSpacing: "-0.03em",
+                    marginTop: 2
                   }}
                 >
-                  Receivable
+                  <Prv>{fmtINRFull(outstanding)}</Prv>
                 </div>
-                {isOverdue && (
-                  <span
+              </div>
+
+              {principal > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div
                     style={{
-                      fontSize: 9,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      color: "var(--t-muted)",
+                      marginBottom: 6,
                       fontWeight: 700,
-                      color: "#fff",
-                      background: THEME.rust,
-                      padding: "2px 8px",
-                      borderRadius: 99,
+                      textTransform: "uppercase",
                       letterSpacing: "0.05em",
                     }}
                   >
-                    {daysOverdue}d OVERDUE
-                  </span>
-                )}
-                {dueSoon && (
-                  <span
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: THEME.gold,
-                      background: `${THEME.gold}20`,
-                      border: `1px solid ${THEME.gold}44`,
-                      padding: "2px 8px",
-                      borderRadius: 99,
-                    }}
-                  >
-                    Due in {daysUntilDue}d
-                  </span>
-                )}
-                {isPaidOff && (
-                  <span
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: THEME.sage,
-                      background: `${THEME.sage}18`,
-                      border: `1px solid ${THEME.sage}44`,
-                      borderRadius: 4,
-                      padding: "2px 6px",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    SETTLED
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  marginTop: 4,
-                }}
-              >
-                {l.borrower}
-              </div>
-              <div
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 22,
-                  fontWeight: 800,
-                  marginTop: 12,
-                  color: isPaidOff ? THEME.sage : isOverdue ? THEME.rust : THEME.sage,
-                }}
-              >
-                {fmtINRFull(l.outstanding)}
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                    <span>Recovery Progress</span>
+                    <span style={{ color: barColor, fontWeight: 800 }}>
+                      {recoveredPct.toFixed(1)}% Recovered
+                    </span>
+                  </div>
+                  <div className="progress-track" style={{ height: 6 }}>
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${Math.min(recoveredPct, 100)}%`,
+                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
-                  { k: "Principal", v: fmtINRFull(l.principal), color: THEME.sage },
-                  { k: "Rate", v: l.rate ? `${l.rate}%` : "—", color: THEME.muted },
-                  { k: "Given On", v: fmtLoanDate(l.date), color: THEME.muted },
-                  {
-                    k: "Due By",
-                    v: fmtLoanDate(l.dueDate),
-                    color: isOverdue ? THEME.rust : THEME.muted,
+                  { k: "Principal", v: fmtINRExact(principal), color: "var(--t-muted)" },
+                  { k: "Interest ROI", v: rate ? `${rate.toFixed(2)}%` : "—", color: "var(--t-muted)" },
+                  { 
+                    k: "Accrued Int.", 
+                    v: rate ? fmtINRExact(accruedInterest) : "—", 
+                    color: rate && accruedInterest > 0 ? "var(--t-sage)" : "var(--t-muted)",
+                    tooltip: "Simple interest accrued to date" 
                   },
-                ].map(({ k, v, color }) => (
+                  { 
+                    k: "Est. Maturity", 
+                    v: rate ? fmtINRExact(maturityValue) : fmtINRExact(principal), 
+                    color: rate ? "var(--t-accent)" : "var(--t-muted)",
+                    tooltip: "Principal + estimated interest at maturity"
+                  },
+                  { k: "Given On", v: fmtLoanDate(l.date), color: "var(--t-muted)" },
+                  {
+                    k: "Due Date",
+                    v: fmtLoanDate(l.dueDate),
+                    color: isOverdue ? "var(--t-rust)" : "var(--t-muted)",
+                  },
+                ].map(({ k, v, color, tooltip }: any) => (
                   <div
                     key={k}
+                    title={tooltip}
                     style={{
                       display: "flex",
                       flexDirection: "column",
                       gap: 2,
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      background: `${color}09`,
-                      border: `1px solid ${color}22`,
-                      flex: "1 1 70px",
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
+                      border: "1px solid var(--t-line)",
+                      flex: "1 1 80px",
                     }}
                   >
                     <span
                       style={{
                         fontSize: 9,
                         textTransform: "uppercase" as const,
-                        color: THEME.muted,
+                        color: "var(--t-muted)",
                         fontWeight: 700,
+                        letterSpacing: "0.04em"
                       }}
                     >
                       {k}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: color === "var(--t-muted)" ? "var(--t-ink)" : color }}>
+                      {v}
+                    </span>
                   </div>
                 ))}
               </div>
+
               {l.note && (
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8 }}>"{l.note}"</div>
+                <div 
+                  style={{ 
+                    fontSize: 12.5, 
+                    color: "var(--t-muted)", 
+                    marginTop: 12,
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "color-mix(in srgb, var(--surface-1) 40%, transparent)",
+                    borderLeft: `3px solid var(--t-line)`,
+                    fontStyle: "italic"
+                  }}
+                >
+                  "{l.note}"
+                </div>
+              )}
+
+              {onUpdate && !isPaidOff && (
+                <div
+                  style={{ marginTop: 14, borderTop: `1px solid var(--t-line)`, paddingTop: 12 }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--t-ink)", display: "flex", alignItems: "center", gap: 6 }}>
+                      📥 Quick Repayment
+                    </div>
+                    <button
+                      onClick={() =>
+                        setLogExpanded((prev) => {
+                          const next = new Set(prev);
+                          next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                          return next;
+                        })
+                      }
+                      style={{
+                        fontSize: 11,
+                        color: "var(--t-accent)",
+                        background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+                        border: "none",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        padding: "4px 10px",
+                        transition: "background 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 15%, transparent)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 8%, transparent)"; }}
+                    >
+                      {logExpanded.has(l.id) ? "Collapse ▲" : "Log Payment ▼"}
+                    </button>
+                  </div>
+                  {logExpanded.has(l.id) && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: 12,
+                        background: "color-mix(in srgb, var(--surface-1) 30%, transparent)",
+                        borderRadius: 12,
+                        border: `1px solid var(--t-line)`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <div style={{ position: "relative", flex: 1 }}>
+                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--t-muted)", fontWeight: 700 }}>₹</span>
+                          <input
+                            type="number"
+                            placeholder="Amount received"
+                            value={logInputs[l.id] || ""}
+                            onChange={(e) =>
+                              setLogInputs((prev) => ({ ...prev, [l.id]: e.target.value }))
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "6px 10px 6px 20px",
+                              borderRadius: 8,
+                              border: `1px solid var(--t-line)`,
+                              background: "var(--surface-0)",
+                              fontSize: 13,
+                              fontWeight: 800,
+                              color: "var(--t-ink)",
+                              outline: "none",
+                            }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const amt = Number(logInputs[l.id]) || 0;
+                            if (amt <= 0) return;
+                            const nextOutstanding = Math.max(0, outstanding - amt);
+                            onUpdate(l.id, { outstanding: nextOutstanding });
+                            setLogInputs((prev) => ({ ...prev, [l.id]: "" }));
+                            setLogExpanded((prev) => {
+                              const next = new Set(prev);
+                              next.delete(l.id);
+                              return next;
+                            });
+                          }}
+                          style={{
+                            background: "var(--t-sage)",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 8,
+                            padding: "6px 14px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                      {logInputs[l.id] &&
+                        Number(logInputs[l.id]) > 0 &&
+                        (() => {
+                          const val = Number(logInputs[l.id]);
+                          const nextOutstanding = Math.max(0, outstanding - val);
+                          const nextRecovered = Math.max(0, principal - nextOutstanding);
+                          const nextRecoveredPct = principal > 0 ? Math.min(100, (nextRecovered / principal) * 100) : 0;
+                          return (
+                            <div style={{ fontSize: 11, color: "var(--t-muted)", fontWeight: 500, lineHeight: 1.4 }}>
+                              New Outstanding: <strong style={{ color: "var(--t-ink)" }}>{fmtINRFull(nextOutstanding)}</strong> · 
+                              New Progress: <strong style={{ color: "var(--t-sage)" }}>{nextRecoveredPct.toFixed(1)}%</strong>
+                              {val >= outstanding && <span style={{ color: "var(--t-sage)", fontWeight: 700 }}> (Settles the loan!)</span>}
+                            </div>
+                          );
+                        })()}
+                    </div>
+                  )}
+                </div>
               )}
             </InvestCard>
           );
@@ -5899,11 +6172,12 @@ function PrepaidModal({ onClose, onSave, initial = null }: any) {
 function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }: any) {
   const isBorrowed = direction === "borrowed";
   const personLabel = isBorrowed ? "Lender" : "Borrower";
-  const accentColor = isBorrowed ? THEME.rust : THEME.sage;
+  const accentColor = isBorrowed ? "var(--t-rust)" : "var(--t-accent)";
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addPersonOpen, setAddPersonOpen] = useState(false);
   const [trancheTarget, setTrancheTarget] = useState<any>(null);
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
+
   const totalBorrowed = items.reduce(
     (s: number, p: any) =>
       s + (p.tranches || []).reduce((a: number, t: any) => a + Number(t.amount || 0), 0),
@@ -5915,10 +6189,30 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
     0
   );
   const totalOutstanding = totalBorrowed - totalPaid;
+
   const fmtD = (d: string) =>
     d
       ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })
       : "—";
+
+  const getAvatarGradient = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      ["#3b82f6", "#60a5fa"], // Blue
+      ["#7c3aed", "#a78bfa"], // Violet
+      ["#059669", "#34d399"], // Emerald
+      ["#d97706", "#fbbf24"], // Amber
+      ["#2563eb", "#60a5fa"], // Indigo
+      ["#0d9488", "#5eead4"], // Teal
+      ["#dc2626", "#f87171"], // Red
+    ];
+    const idx = Math.abs(hash) % colors.length;
+    return `linear-gradient(135deg, ${colors[idx][0]} 0%, ${colors[idx][1]} 100%)`;
+  };
+
   return (
     <div>
       <div
@@ -5934,30 +6228,30 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
             label: isBorrowed ? "Total Borrowed" : "Total Lent",
             value: <Prv>{fmtINRFull(totalBorrowed)}</Prv>,
             sub: "Principal amount",
-            color: isBorrowed ? THEME.rust : THEME.sage,
+            color: isBorrowed ? "var(--t-rust)" : "var(--t-accent)",
             Icon: isBorrowed ? TrendingDown : TrendingUp,
           },
           {
             label: isBorrowed ? "Total Repaid" : "Received Back",
             value: <Prv>{fmtINRFull(totalPaid)}</Prv>,
             sub: "Payment history",
-            color: THEME.sage,
+            color: "var(--t-sage)",
             Icon: CheckCircle2,
           },
           {
             label: "Outstanding",
             value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
             sub: totalOutstanding > 0 ? "Pending settlement" : "Fully settled",
-            color: totalOutstanding > 0 ? accentColor : THEME.sage,
+            color: totalOutstanding > 0 ? accentColor : "var(--t-sage)",
             Icon: Wallet,
           },
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="card-lift"
+            className="glass card-lift"
             style={{
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
+              background: "transparent",
+              border: `1px solid var(--t-line)`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
               padding: "18px 20px",
@@ -5973,7 +6267,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: `${color}1f`,
+                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -5985,11 +6279,11 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
               </div>
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: "var(--t-muted)",
                   textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.08em",
                 }}
               >
                 {label}
@@ -5999,7 +6293,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
               style={{
                 fontSize: 26,
                 fontWeight: 900,
-                color: THEME.ink,
+                color: "var(--t-ink)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
@@ -6007,7 +6301,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 10, color: "var(--t-muted)", fontWeight: 500 }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -6030,69 +6324,140 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
           const outstanding = totalT - totalP;
           const isExpanded = expandedId === person.id;
           const settled = outstanding <= 0;
+
+          const progressPct = totalT > 0 ? Math.min(100, (totalP / totalT) * 100) : 0;
+          const progressColor = settled ? "var(--t-sage)" : accentColor;
+          
+          const avatarGradient = getAvatarGradient(person.person || "P");
+          const firstLetter = person.person ? person.person.charAt(0).toUpperCase() : "?";
+
           return (
-            <div key={person.id} style={{ ...card, padding: 0, overflow: "hidden" }}>
+            <div 
+              key={person.id} 
+              className="glass card-lift"
+              style={{ 
+                ...card, 
+                background: "transparent", 
+                padding: 0, 
+                overflow: "hidden",
+                border: "1px solid var(--t-line)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 14,
-                  padding: "14px 18px",
+                  padding: "16px 20px",
                   cursor: "pointer",
-                  borderBottom: isExpanded ? `1px solid ${THEME.line}` : "none",
+                  borderBottom: isExpanded ? `1px solid var(--t-line)` : "none",
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : person.id)}
               >
-                <div style={{ color: THEME.muted, flexShrink: 0 }}>
-                  {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                <div style={{ color: "var(--t-muted)", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: 16 }}>{person.person}</span>
-                    {settled && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          background: THEME.sage + "22",
-                          color: THEME.sage,
-                          padding: "2px 7px",
-                          borderRadius: 99,
-                          fontWeight: 700,
-                        }}
-                      >
-                        SETTLED
-                      </span>
-                    )}
-                    {person.note && (
-                      <span style={{ fontSize: 12, color: THEME.muted }}>· {person.note}</span>
-                    )}
+                
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "1 1 200px" }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: avatarGradient,
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                      flexShrink: 0
+                    }}
+                  >
+                    {firstLetter}
                   </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                    {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length}{" "}
-                    payment{payments.length !== 1 ? "s" : ""}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 800, fontSize: 16, color: "var(--t-ink)" }}>{person.person}</span>
+                      {settled && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: "var(--t-sage)",
+                            background: "color-mix(in srgb, var(--t-sage) 12%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--t-sage) 25%, transparent)",
+                            borderRadius: 6,
+                            padding: "2px 8px",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          SETTLED
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: 2, fontWeight: 500 }}>
+                      {tranches.length} loan{tranches.length !== 1 ? "s" : ""} · {payments.length} payment{payments.length !== 1 ? "s" : ""}
+                      {person.note && <span style={{ color: "var(--t-muted)", fontStyle: "italic" }}> ({person.note})</span>}
+                    </div>
                   </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase" }}>
+
+                <div style={{ flex: "2 2 150px", display: "flex", flexDirection: "column", gap: 4, padding: "0 12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                    <span>Settlement</span>
+                    <span style={{ color: progressColor, fontWeight: 800 }}>{progressPct.toFixed(0)}%</span>
+                  </div>
+                  <div className="progress-track" style={{ height: 5, borderRadius: 99 }}>
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${progressPct}%`,
+                        background: progressColor,
+                        borderRadius: 99
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0, minWidth: 100 }}>
+                  <div style={{ fontSize: 9, color: "var(--t-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     Outstanding
                   </div>
                   <div
                     style={{
                       fontSize: 20,
-                      fontWeight: 800,
-                      color: settled ? THEME.sage : accentColor,
+                      fontWeight: 900,
+                      color: settled ? "var(--t-sage)" : accentColor,
+                      fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.02em",
+                      marginTop: 2
                     }}
                   >
                     {settled ? "₹0" : fmtINRFull(outstanding)}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                
+                <div style={{ display: "flex", gap: 4, flexShrink: 0, paddingLeft: 8 }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemove(person.id);
                     }}
-                    style={{ ...iconBtn, color: THEME.rust }}
+                    style={{ 
+                      ...iconBtn, 
+                      color: "var(--t-rust)",
+                      background: "rgba(239, 68, 68, 0.08)",
+                      border: "1px solid rgba(239, 68, 68, 0.2)",
+                      borderRadius: 8,
+                      width: 28, height: 28,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; }}
                     title="Delete person"
                   >
                     <Trash2 size={13} />
@@ -6100,71 +6465,98 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                 </div>
               </div>
               {isExpanded && (
-                <div>
-                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${THEME.line}` }}>
+                <div style={{ background: "color-mix(in srgb, var(--surface-1) 15%, transparent)" }}>
+                  <div style={{ padding: "16px 20px", borderBottom: `1px solid var(--t-line)` }}>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        marginBottom: 8,
+                        marginBottom: 10,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 12,
-                          fontWeight: 700,
+                          fontSize: 11,
+                          fontWeight: 800,
                           textTransform: "uppercase",
                           color: accentColor,
+                          letterSpacing: "0.05em",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6
                         }}
                       >
-                        {isBorrowed ? "Loans Received" : "Loans Given"}
+                        <List size={13} /> {isBorrowed ? "Loans Received (Tranches)" : "Loans Given (Tranches)"}
                       </div>
                       <button
-                        style={{ ...btnGhost, fontSize: 11, padding: "3px 10px" }}
+                        style={{ 
+                          ...btnGhost, 
+                          fontSize: 11, 
+                          padding: "4px 10px", 
+                          display: "inline-flex", 
+                          alignItems: "center", 
+                          gap: 4,
+                          background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
+                          color: "var(--t-accent)",
+                          borderRadius: 6,
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: 700
+                        }}
                         onClick={() => setTrancheTarget(person)}
                       >
-                        <Plus size={11} /> Add Loan
+                        <Plus size={11} /> Add Tranche
                       </button>
                     </div>
                     {tranches.length === 0 ? (
-                      <div style={{ fontSize: 12, color: THEME.muted }}>No loans recorded yet</div>
+                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>No loans recorded yet</div>
                     ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                         <thead>
-                          <tr style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                            <th style={{ ...th, paddingLeft: 0, textAlign: "left" }}>Date</th>
-                            <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                          <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
+                            <th style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}>Date</th>
+                            <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
                             <th style={{ ...th, textAlign: "left" }}>Note</th>
-                            <th style={th}></th>
+                            <th style={{ ...th, width: "40px" }}></th>
                           </tr>
                         </thead>
                         <tbody>
                           {tranches.map((t: any) => (
-                            <tr key={t.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                              <td style={{ ...td, paddingLeft: 0, color: THEME.muted }}>
+                            <tr key={t.id} style={{ borderBottom: `1px dashed var(--t-line)` }}>
+                              <td style={{ ...td, paddingLeft: 0, color: "var(--t-muted)" }}>
                                 {fmtD(t.date)}
                               </td>
                               <td
                                 style={{
                                   ...td,
                                   textAlign: "right",
-                                  fontWeight: 600,
+                                  fontWeight: 800,
                                   color: accentColor,
+                                  fontVariantNumeric: "tabular-nums"
                                 }}
                               >
                                 {fmtINRExact(t.amount)}
                               </td>
-                              <td style={{ ...td, color: THEME.muted }}>{t.note || "—"}</td>
-                              <td style={td}>
+                              <td style={{ ...td, color: "var(--t-muted)" }}>{t.note || "—"}</td>
+                              <td style={{ ...td, textAlign: "right" }}>
                                 <button
-                                  style={iconBtn}
+                                  style={{
+                                    ...iconBtn,
+                                    color: "var(--t-muted)",
+                                    background: "transparent",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 4
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--t-rust)"; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--t-muted)"; }}
                                   onClick={() => {
                                     const updated = tranches.filter((x: any) => x.id !== t.id);
                                     onUpdate(person.id, { tranches: updated });
                                   }}
                                 >
-                                  <Trash2 size={11} />
+                                  <Trash2 size={12} />
                                 </button>
                               </td>
                             </tr>
@@ -6172,13 +6564,14 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                         </tbody>
                         <tfoot>
                           <tr>
-                            <td style={{ ...td, paddingLeft: 0, fontWeight: 700 }}>Total</td>
+                            <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>Total</td>
                             <td
                               style={{
                                 ...td,
                                 textAlign: "right",
-                                fontWeight: 700,
+                                fontWeight: 900,
                                 color: accentColor,
+                                fontVariantNumeric: "tabular-nums"
                               }}
                             >
                               {fmtINRExact(totalT)}
@@ -6189,72 +6582,97 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                       </table>
                     )}
                   </div>
-                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${THEME.line}` }}>
+                  <div style={{ padding: "16px 20px", borderBottom: `1px solid var(--t-line)` }}>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        marginBottom: 8,
+                        marginBottom: 10,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 12,
-                          fontWeight: 700,
+                          fontSize: 11,
+                          fontWeight: 800,
                           textTransform: "uppercase",
-                          color: THEME.sage,
+                          color: "var(--t-sage)",
+                          letterSpacing: "0.05em",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6
                         }}
                       >
-                        {isBorrowed ? "Repayments Made" : "Repayments Received"}
+                        <CheckCircle2 size={13} /> {isBorrowed ? "Repayments Made" : "Repayments Received"}
                       </div>
                       <button
-                        style={{ ...btnGhost, fontSize: 11, padding: "3px 10px" }}
+                        style={{ 
+                          ...btnGhost, 
+                          fontSize: 11, 
+                          padding: "4px 10px", 
+                          display: "inline-flex", 
+                          alignItems: "center", 
+                          gap: 4,
+                          background: "color-mix(in srgb, var(--t-sage) 8%, transparent)",
+                          color: "var(--t-sage)",
+                          borderRadius: 6,
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: 700
+                        }}
                         onClick={() => setPaymentTarget(person)}
                       >
                         <Plus size={11} /> Record Payment
                       </button>
                     </div>
                     {payments.length === 0 ? (
-                      <div style={{ fontSize: 12, color: THEME.muted }}>
-                        No payments recorded yet
-                      </div>
+                      <div style={{ fontSize: 12, color: "var(--t-muted)", padding: "8px 0" }}>No payments recorded yet</div>
                     ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                         <thead>
-                          <tr style={{ borderBottom: `1px solid ${THEME.line}` }}>
-                            <th style={{ ...th, paddingLeft: 0, textAlign: "left" }}>Date</th>
-                            <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                          <tr style={{ borderBottom: `1px solid var(--t-line)` }}>
+                            <th style={{ ...th, paddingLeft: 0, textAlign: "left", width: "120px" }}>Date</th>
+                            <th style={{ ...th, textAlign: "right", width: "120px" }}>Amount</th>
                             <th style={{ ...th, textAlign: "left" }}>Note</th>
-                            <th style={th}></th>
+                            <th style={{ ...th, width: "40px" }}></th>
                           </tr>
                         </thead>
                         <tbody>
                           {payments.map((p: any) => (
-                            <tr key={p.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
-                              <td style={{ ...td, paddingLeft: 0, color: THEME.muted }}>
+                            <tr key={p.id} style={{ borderBottom: `1px dashed var(--t-line)` }}>
+                              <td style={{ ...td, paddingLeft: 0, color: "var(--t-muted)" }}>
                                 {fmtD(p.date)}
                               </td>
                               <td
                                 style={{
                                   ...td,
                                   textAlign: "right",
-                                  fontWeight: 600,
-                                  color: THEME.sage,
+                                  fontWeight: 800,
+                                  color: "var(--t-sage)",
+                                  fontVariantNumeric: "tabular-nums"
                                 }}
                               >
                                 {fmtINRExact(p.amount)}
                               </td>
-                              <td style={{ ...td, color: THEME.muted }}>{p.note || "—"}</td>
-                              <td style={td}>
+                              <td style={{ ...td, color: "var(--t-muted)" }}>{p.note || "—"}</td>
+                              <td style={{ ...td, textAlign: "right" }}>
                                 <button
-                                  style={iconBtn}
+                                  style={{
+                                    ...iconBtn,
+                                    color: "var(--t-muted)",
+                                    background: "transparent",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 4
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--t-rust)"; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--t-muted)"; }}
                                   onClick={() => {
                                     const updated = payments.filter((x: any) => x.id !== p.id);
                                     onUpdate(person.id, { payments: updated });
                                   }}
                                 >
-                                  <Trash2 size={11} />
+                                  <Trash2 size={12} />
                                 </button>
                               </td>
                             </tr>
@@ -6262,13 +6680,14 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                         </tbody>
                         <tfoot>
                           <tr>
-                            <td style={{ ...td, paddingLeft: 0, fontWeight: 700 }}>Total Paid</td>
+                            <td style={{ ...td, paddingLeft: 0, fontWeight: 800, color: "var(--t-ink)" }}>Total Paid</td>
                             <td
                               style={{
                                 ...td,
                                 textAlign: "right",
-                                fontWeight: 700,
-                                color: THEME.sage,
+                                fontWeight: 900,
+                                color: "var(--t-sage)",
+                                fontVariantNumeric: "tabular-nums"
                               }}
                             >
                               {fmtINRExact(totalP)}
@@ -6281,42 +6700,18 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove }:
                   </div>
                   <div
                     style={{
-                      padding: "10px 18px",
+                      padding: "12px 20px",
                       display: "flex",
                       alignItems: "center",
                       gap: 16,
                       fontSize: 13,
+                      fontWeight: 600,
                     }}
                   >
-                    <span style={{ color: THEME.muted }}>Balance: </span>
-                    <b style={{ color: settled ? THEME.sage : accentColor, fontSize: 15 }}>
+                    <span style={{ color: "var(--t-muted)" }}>Ledger Balance: </span>
+                    <span style={{ color: settled ? "var(--t-sage)" : accentColor, fontSize: 14, fontWeight: 800 }}>
                       {settled ? "Fully Settled ✓" : `${fmtINRFull(outstanding)} pending`}
-                    </b>
-                    {!settled && totalT > 0 && (
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 6,
-                          background: THEME.line,
-                          borderRadius: 3,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: Math.min((totalP / totalT) * 100, 100) + "%",
-                            background: accentColor,
-                            borderRadius: 3,
-                          }}
-                        />
-                      </div>
-                    )}
-                    {!settled && totalT > 0 && (
-                      <span style={{ fontSize: 11, color: THEME.muted }}>
-                        {((totalP / totalT) * 100).toFixed(0)}% paid
-                      </span>
-                    )}
+                    </span>
                   </div>
                 </div>
               )}
@@ -6580,32 +6975,46 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           style={input}
           value={f.borrower}
           onChange={(e) => setF({ ...f, borrower: e.target.value })}
+          placeholder="e.g. John Doe"
         />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Principal">
+        <Field label="Principal (₹)">
           <input
             style={input}
             type="number"
             value={f.principal}
-            onChange={(e) => setF({ ...f, principal: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              setF((prev: any) => {
+                const shouldSync = !prev.outstanding || prev.outstanding === prev.principal;
+                return {
+                  ...prev,
+                  principal: val,
+                  outstanding: shouldSync ? val : prev.outstanding,
+                };
+              });
+            }}
+            placeholder="0.00"
           />
         </Field>
-        <Field label="Outstanding">
+        <Field label="Outstanding Balance (₹)">
           <input
             style={input}
             type="number"
             value={f.outstanding}
             onChange={(e) => setF({ ...f, outstanding: e.target.value })}
+            placeholder={f.principal || "0.00"}
           />
         </Field>
-        <Field label="Interest %">
+        <Field label="Interest Rate (% p.a.)">
           <input
             style={input}
             type="number"
             step="0.01"
             value={f.rate}
             onChange={(e) => setF({ ...f, rate: e.target.value })}
+            placeholder="e.g. 12"
           />
         </Field>
         <Field label="Given On">
@@ -6625,16 +7034,20 @@ function LoanGivenModal({ onClose, onSave, initial = null }: any) {
           />
         </Field>
       </div>
-      <Field label="Note">
+      <Field label="Note / Purpose">
         <input
           style={input}
           value={f.note}
           onChange={(e) => setF({ ...f, note: e.target.value })}
+          placeholder="e.g. Friendly loan for emergency expense"
         />
       </Field>
+      <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: -4, marginBottom: 12, fontStyle: "italic" }}>
+        * Outstanding balance defaults to the principal amount if left empty.
+      </div>
       <ModalActions onSave={() => {
         if (!f.borrower || !f.principal) return;
-        onSave({ ...f, outstanding: f.outstanding || f.principal });
+        onSave({ ...f, outstanding: f.outstanding !== "" ? f.outstanding : f.principal });
       }} onClose={onClose} />
     </Modal>
   );
