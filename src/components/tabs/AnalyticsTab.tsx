@@ -3459,7 +3459,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     })()}
                     ,{" "}
                     {activeProfile === "all"
-                      ? "Anand Mohta"
+                      ? state.profile?.name || "there"
                       : PROFILES.find((p) => p.id === activeProfile)?.name || activeProfile}
                   </span>
                   <span style={{ fontSize: 18 }}>👋</span>
