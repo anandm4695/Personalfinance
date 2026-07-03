@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   Award,
   IndianRupee,
   Info,
-  Zap,
   Shield,
 } from "lucide-react";
 import {
@@ -25,37 +25,146 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  LineChart,
-  Line,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { EmptyState } from "../ui/EmptyState";
 
 // Indian market benchmark returns (approximate)
 const BENCHMARKS = {
-  nifty50: { label: "Nifty 50", return1Y: 15, return3Y: 12, return5Y: 14, color: "#3B82F6" },
+  nifty50: { label: "Nifty 50", return1Y: 15, return3Y: 12, return5Y: 14, color: "#4F46E5" },
   niftyMidcap: {
     label: "Nifty Midcap 150",
     return1Y: 22,
     return3Y: 18,
     return5Y: 20,
-    color: "#10B981",
+    color: "#059669",
   },
-  fdRate: { label: "FD Rate (SBI)", return1Y: 7.1, return3Y: 6.5, return5Y: 6.8, color: "#F59E0B" },
+  fdRate: { label: "FD Rate (SBI)", return1Y: 7.1, return3Y: 6.5, return5Y: 6.8, color: "#D97706" },
   inflation: {
     label: "Inflation (CPI)",
     return1Y: 5.5,
     return3Y: 5.8,
     return5Y: 5.5,
-    color: "#EF4444",
+    color: "#DC2626",
   },
   gold: { label: "Gold", return1Y: 18, return3Y: 13, return5Y: 12, color: "#F59E0B" },
-  ppf: { label: "PPF Rate", return1Y: 7.1, return3Y: 7.1, return5Y: 7.6, color: "#8B5CF6" },
+  ppf: { label: "PPF Rate", return1Y: 7.1, return3Y: 7.1, return5Y: 7.6, color: "#7C3AED" },
+};
+
+/* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
+const ChartTooltip = ({ active, payload, label, formatter }: any) => {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter((p: any) => p.value !== 0 && p.value != null);
+  if (!visible.length) return null;
+  return (
+    <div
+      style={{
+        background: "color-mix(in srgb, var(--surface-0) 85%, transparent)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: `1.5px solid ${THEME.line}`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+        {label}
+      </div>
+      {visible.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: p.color || p.fill,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: THEME.muted, fontWeight: 500 }}>{p.name}:</span>
+          <span style={{ fontWeight: 700, color: THEME.ink }}>
+            <Prv>{formatter ? formatter(p.value) : p.value}</Prv>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Premium Stat Bento Card ─────────────────────────────────── */
+const BenchmarkStatCard = ({ label, value, sub, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+        {sub && (
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: color || THEME.muted }}>
+            ({sub})
+          </span>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
@@ -210,7 +319,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
   const overallScore = Math.round(
     healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length
   );
-  const scoreColor = overallScore >= 70 ? THEME.sage : overallScore >= 40 ? THEME.gold : THEME.rust;
+  const scoreColor = overallScore >= 70 ? THEME.sage : overallScore >= 40 ? "#D97706" : THEME.rust;
   const scoreLabel = overallScore >= 70 ? "Excellent" : overallScore >= 40 ? "Good" : "Needs Work";
 
   return (
@@ -219,71 +328,140 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
         Performance Benchmark
       </SectionTitle>
 
-      {/* Summary */}
+      {/* Summary Stat Grid */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
         }}
       >
-        <StatCard
+        <BenchmarkStatCard
           label="Overall Return"
           value={`${portfolioReturns.overall.return.toFixed(1)}%`}
-          icon={<TrendingUp />}
+          icon={
+            portfolioReturns.overall.return >= 0 ? (
+              <TrendingUp size={16} />
+            ) : (
+              <TrendingDown size={16} />
+            )
+          }
           color={portfolioReturns.overall.return >= 0 ? THEME.sage : THEME.rust}
         />
-        <StatCard
+        <BenchmarkStatCard
           label="Total Invested"
           value={<Prv>{fmtINRFull(portfolioReturns.overall.invested)}</Prv>}
-          icon={<IndianRupee />}
-          color={THEME.accent}
+          icon={<IndianRupee size={16} />}
+          color="var(--accent)"
         />
-        <StatCard
+        <BenchmarkStatCard
           label="Current Value"
           value={<Prv>{fmtINRFull(portfolioReturns.overall.current)}</Prv>}
-          icon={<Target />}
-          color={THEME.accent}
+          icon={<Target size={16} />}
+          color="var(--accent)"
         />
-        <StatCard
+        <BenchmarkStatCard
           label="Financial Health"
           value={String(overallScore)}
           sub={scoreLabel}
-          icon={<Shield />}
+          icon={<Shield size={16} />}
           color={scoreColor}
         />
       </div>
 
       {/* Benchmark Comparison */}
       <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>
-          Your Returns vs Benchmarks
-        </h3>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Your Returns vs Benchmarks
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Comparative performance mapping against market benchmarks
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              background: "var(--surface-0)",
+              border: `1.5px solid ${THEME.line}`,
+              padding: "4px",
+              borderRadius: 16,
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            {[
+              { id: "1y", label: "1 Year" },
+              { id: "3y", label: "3 Years" },
+              { id: "5y", label: "5 Years" },
+            ].map((p) => {
+              const active = period === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriod(p.id)}
+                  className="card-lift"
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 12,
+                    background: active ? "var(--accent)" : "transparent",
+                    border: "none",
+                    color: active ? "#fff" : THEME.ink,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={comparisonData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
+            <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} horizontal={false} />
             <XAxis
               type="number"
-              tick={{ fontSize: 11, fill: THEME.inkSecondary }}
+              tick={{ fontSize: 11, fill: THEME.muted }}
               tickFormatter={(v) => `${v}%`}
+              axisLine={false}
+              tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
               width={130}
-              tick={{ fontSize: 12, fill: THEME.inkSecondary }}
+              tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
             />
             <Tooltip
               formatter={(v) => `${v.toFixed(1)}%`}
+              content={<ChartTooltip formatter={(v) => `${v.toFixed(1)}%`} />}
               cursor={{ fill: THEME.line, opacity: 0.4 }}
-              contentStyle={{
-                background: THEME.card,
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 12,
-                color: THEME.ink,
-              }}
-              labelStyle={{ color: THEME.ink }}
-              itemStyle={{ color: THEME.ink }}
             />
             <Bar
               dataKey="return"
@@ -314,123 +492,189 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
       {/* Asset-wise comparison */}
       {assetComparison.length > 0 && (
         <Card style={{ padding: 24 }}>
-          <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>
-            Asset Class Performance
-          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Asset Class Performance
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Side-by-side returns breakdown by asset class
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={assetComparison}>
-              <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-              <XAxis dataKey="category" tick={{ fontSize: 12, fill: THEME.inkSecondary }} />
+              <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
+              <XAxis
+                dataKey="category"
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                tickLine={false}
+                axisLine={false}
+              />
               <YAxis
                 tickFormatter={(v) => `${v}%`}
-                tick={{ fontSize: 11, fill: THEME.inkSecondary }}
+                tick={{ fontSize: 11, fill: THEME.muted }}
+                axisLine={false}
+                tickLine={false}
               />
               <Tooltip
                 formatter={(v) => `${v.toFixed(1)}%`}
+                content={<ChartTooltip formatter={(v) => `${v.toFixed(1)}%`} />}
                 cursor={{ fill: THEME.line, opacity: 0.4 }}
-                contentStyle={{
-                  background: THEME.card,
-                  border: `1px solid ${THEME.border}`,
-                  borderRadius: 12,
-                  color: THEME.ink,
-                }}
-                labelStyle={{ color: THEME.ink }}
-                itemStyle={{ color: THEME.ink }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, paddingTop: 12, color: THEME.ink }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
                 formatter={(value: string) => (
-                  <span style={{ color: THEME.ink, fontWeight: 500 }}>{value}</span>
+                  <span style={{ color: THEME.ink, fontWeight: 600 }}>{value}</span>
                 )}
               />
               <Bar dataKey="yours" name="Your Return" fill="var(--accent)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="benchmark" name="Benchmark" fill={THEME.muted} radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="benchmark"
+                name="Benchmark"
+                fill={`color-mix(in srgb, var(--accent) 30%, transparent)`}
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </Card>
       )}
 
       {/* Financial Health Radar */}
-      <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>
-          Financial Health Radar
-        </h3>
-        <ResponsiveContainer width="100%" height={350}>
-          <RadarChart data={healthScore} cx="50%" cy="50%" outerRadius="80%">
-            <PolarGrid stroke={THEME.muted} strokeOpacity={0.3} />
-            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: THEME.inkSecondary }} />
-            <PolarRadiusAxis
-              angle={30}
-              domain={[0, 100]}
-              tick={{ fontSize: 10, fill: THEME.inkSecondary }}
-            />
-            <Radar
-              name="Your Score"
-              dataKey="score"
-              stroke="var(--accent)"
-              fill="var(--accent)"
-              fillOpacity={0.2}
-              strokeWidth={2}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </Card>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 16,
+        }}
+      >
+        <Card style={{ padding: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Financial Health Radar
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Visual index alignment score matching primary targets
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart data={healthScore} cx="50%" cy="50%" outerRadius="80%">
+              <PolarGrid stroke={THEME.line} strokeOpacity={0.7} />
+              <PolarAngleAxis
+                dataKey="metric"
+                tick={{ fontSize: 11, fill: THEME.ink, fontWeight: 600 }}
+              />
+              <PolarRadiusAxis
+                angle={30}
+                domain={[0, 100]}
+                tick={{ fontSize: 9.5, fill: THEME.muted, fontWeight: 600 }}
+                axisLine={false}
+              />
+              <Radar
+                name="Your Score"
+                dataKey="score"
+                stroke="var(--accent)"
+                fill="var(--accent)"
+                fillOpacity={0.15}
+                strokeWidth={2.5}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </Card>
 
-      {/* Detailed Scores */}
-      <Card style={{ padding: 24 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: THEME.ink }}>
-          Score Breakdown
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {healthScore.map((h) => {
-            const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? THEME.gold : THEME.rust;
-            return (
-              <div
-                key={h.metric}
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: THEME.bg,
-                  border: `1px solid ${THEME.border}`,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: THEME.ink }}>
-                    {h.metric}
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color }}>
-                    {Math.round(h.score)}/100
-                  </span>
-                </div>
+        {/* Detailed Scores */}
+        <Card style={{ padding: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.015em",
+              }}
+            >
+              Score Breakdown
+            </h3>
+            <div style={{ fontSize: 11, color: THEME.muted }}>
+              Individual breakdown elements scoring metrics
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {healthScore.map((h) => {
+              const color = h.score >= 70 ? THEME.sage : h.score >= 40 ? "#D97706" : THEME.rust;
+              return (
                 <div
+                  key={h.metric}
+                  className="card-lift"
                   style={{
-                    height: 6,
-                    borderRadius: 3,
-                    background: `color-mix(in srgb, ${THEME.muted} 25%, transparent)`,
-                    overflow: "hidden",
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: "var(--surface-0)",
+                    border: `1.5px solid ${THEME.line}`,
+                    boxShadow: "var(--shadow-sm)",
+                    transition: "all 0.25s ease",
                   }}
                 >
                   <div
                     style={{
-                      height: "100%",
-                      width: `${h.score}%`,
-                      borderRadius: 3,
-                      background: color,
-                      transition: "width 0.5s",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 10,
+                      alignItems: "center",
                     }}
-                  />
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                      {h.metric}
+                    </span>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color }}>
+                      {Math.round(h.score)}/100
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 3,
+                      background: `color-mix(in srgb, ${THEME.line} 80%, transparent)`,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${h.score}%`,
+                        borderRadius: 3,
+                        background: color,
+                        transition: "width 0.5s",
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };
