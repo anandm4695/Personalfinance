@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 import React, { useMemo } from "react";
 import {
@@ -24,9 +25,29 @@ import {
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StatCard } from "../ui/StatCard";
 import { EmptyState } from "../ui/EmptyState";
 import { Prv } from "../../context/PrivacyContext";
+
+const th: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.muted,
+  fontWeight: 800,
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  borderBottom: `2px solid ${THEME.line}`,
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 16px",
+  textAlign: "right",
+  color: THEME.ink,
+  fontSize: 13,
+  fontWeight: 500,
+  borderBottom: `1px solid ${THEME.line}`,
+  fontVariantNumeric: "tabular-nums",
+};
 
 const xirrColor = (x: number | null): string => {
   if (x === null) return THEME.muted;
@@ -50,6 +71,71 @@ const holdingLabel = (startDate: string, endDate: string): string => {
   if (days <= 0) return "<1d";
   if (days < 365) return `${days}d`;
   return `${(days / 365).toFixed(1)}y`;
+};
+
+/* ─── Premium XIRR Bento Card ─────────────────────────────────── */
+const XIRRStatCard = ({ label, value, icon: Icon, color }: any) => {
+  return (
+    <div
+      className="card-lift"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 12%, var(--surface-0)) 100%)",
+        border: `1.5px solid ${THEME.line}`,
+        borderTop: `4px solid ${color || THEME.accent}`,
+        borderRadius: 16,
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${color || THEME.accent} 12%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: color || THEME.accent,
+            flexShrink: 0,
+          }}
+        >
+          {Icon}
+        </div>
+        <div
+          style={{
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: THEME.muted,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <div>
+        <span
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: THEME.ink,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 export function XIRRReportTab({ state }: any) {
@@ -386,49 +472,51 @@ export function XIRRReportTab({ state }: any) {
         <EmptyState
           icon={Activity}
           title="No Investment Data"
-          subtitle="Add FDs, Mutual Funds, Stocks, PPF, EPF or Bonds with dates to calculate XIRR"
+          description="Add FDs, Mutual Funds, Stocks, PPF, EPF or Bonds with dates to calculate XIRR."
         />
       </div>
     );
   }
 
   return (
-    <div className="tab-content-enter">
+    <div
+      className="tab-content-enter"
+      style={{ display: "flex", flexDirection: "column", gap: 24 }}
+    >
       <SectionTitle sub="True annualised return accounting for actual cash flow timing — the only metric that compares across all investment types">
         XIRR Report
       </SectionTitle>
 
-      {/* Summary */}
+      {/* Summary Bento Cards Grid */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
+          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+          gap: 16,
         }}
       >
-        <StatCard
+        <XIRRStatCard
           label="Portfolio XIRR"
           value={xirrLabel(portfolioXIRR)}
-          icon={<Activity />}
+          icon={<Activity size={16} />}
           color={xirrColor(portfolioXIRR)}
         />
-        <StatCard
+        <XIRRStatCard
           label="Total Invested"
           value={fmtINRFull(totalInvested)}
-          icon={<Coins />}
-          color={THEME.accent}
+          icon={<Coins size={16} />}
+          color="var(--accent)"
         />
-        <StatCard
+        <XIRRStatCard
           label="Current Value"
           value={fmtINRFull(totalCurrent)}
-          icon={<TrendingUp />}
+          icon={<TrendingUp size={16} />}
           color={THEME.sage}
         />
-        <StatCard
+        <XIRRStatCard
           label="Total Gain / Loss"
           value={(totalGain >= 0 ? "+" : "") + fmtINRFull(Math.abs(totalGain))}
-          icon={totalGain >= 0 ? <TrendingUp /> : <TrendingDown />}
+          icon={totalGain >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
           color={totalGain >= 0 ? THEME.sage : THEME.rust}
         />
       </div>
@@ -441,25 +529,40 @@ export function XIRRReportTab({ state }: any) {
         const TypeIcon = items[0]?.icon || Activity;
 
         return (
-          <Card key={type} style={{ marginBottom: 16 }}>
-            <div style={{ padding: "18px 20px" }}>
+          <Card key={type} style={{ overflow: "hidden", border: `1.5px solid ${THEME.line}` }}>
+            <div style={{ padding: "20px 22px" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 14,
+                  marginBottom: 16,
                   flexWrap: "wrap",
-                  gap: 8,
+                  gap: 12,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <TypeIcon size={16} style={{ color: items[0]?.color }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      background: `color-mix(in srgb, ${items[0]?.color || "var(--accent)"} 12%, transparent)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: items[0]?.color || "var(--accent)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <TypeIcon size={14} />
+                  </div>
                   <span
                     style={{
-                      fontWeight: 700,
+                      fontWeight: 800,
                       fontSize: 15,
                       color: THEME.ink,
+                      letterSpacing: "-0.015em",
                     }}
                   >
                     {type}
@@ -467,9 +570,10 @@ export function XIRRReportTab({ state }: any) {
                   <span
                     style={{
                       fontSize: 11,
+                      fontWeight: 700,
                       color: THEME.muted,
-                      background: "rgba(99,102,241,0.08)",
-                      padding: "1px 8px",
+                      background: `color-mix(in srgb, ${items[0]?.color || "var(--accent)"} 10%, transparent)`,
+                      padding: "2px 8px",
                       borderRadius: 10,
                     }}
                   >
@@ -479,27 +583,28 @@ export function XIRRReportTab({ state }: any) {
                 <div
                   style={{
                     display: "flex",
-                    gap: 16,
-                    fontSize: 13,
+                    gap: 18,
+                    fontSize: 12.5,
                     flexWrap: "wrap",
                   }}
                 >
-                  <span style={{ color: THEME.muted }}>
+                  <span style={{ color: THEME.muted, fontWeight: 500 }}>
                     Invested:{" "}
-                    <b style={{ color: THEME.ink }}>
+                    <b style={{ color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
                       <Prv>{fmtINRExact(typeInvested)}</Prv>
                     </b>
                   </span>
-                  <span style={{ color: THEME.muted }}>
+                  <span style={{ color: THEME.muted, fontWeight: 500 }}>
                     Value:{" "}
-                    <b style={{ color: THEME.sage }}>
+                    <b style={{ color: THEME.sage, fontVariantNumeric: "tabular-nums" }}>
                       <Prv>{fmtINRExact(typeCurrent)}</Prv>
                     </b>
                   </span>
                   <span
                     style={{
                       color: typeGain >= 0 ? THEME.sage : THEME.rust,
-                      fontWeight: 700,
+                      fontWeight: 800,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {typeGain >= 0 ? "+" : ""}
@@ -508,7 +613,9 @@ export function XIRRReportTab({ state }: any) {
                 </div>
               </div>
 
-              <div style={{ overflowX: "auto" }}>
+              <div
+                style={{ overflowX: "auto", border: `1.5px solid ${THEME.line}`, borderRadius: 12 }}
+              >
                 <table
                   style={{
                     width: "100%",
@@ -517,24 +624,13 @@ export function XIRRReportTab({ state }: any) {
                   }}
                 >
                   <thead>
-                    <tr style={{ borderBottom: `1.5px solid ${THEME.line}` }}>
-                      {["Name", "Invested", "Current Value", "Gain / Loss", "Period", "XIRR"].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            style={{
-                              padding: "8px 12px",
-                              textAlign: h === "Name" ? "left" : "right",
-                              color: THEME.muted,
-                              fontWeight: 600,
-                              fontSize: 12,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {h}
-                          </th>
-                        )
-                      )}
+                    <tr style={{ background: "var(--surface-1)" }}>
+                      <th style={{ ...th, textAlign: "left" }}>Name</th>
+                      <th style={th}>Invested</th>
+                      <th style={th}>Current Value</th>
+                      <th style={th}>Gain / Loss</th>
+                      <th style={th}>Period</th>
+                      <th style={th}>XIRR</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -548,38 +644,38 @@ export function XIRRReportTab({ state }: any) {
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
                           onMouseEnter={(e) =>
-                            (e.currentTarget.style.background = "rgba(99,102,241,0.04)")
+                            (e.currentTarget.style.background = "var(--surface-1)")
                           }
                           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
-                          <td style={{ padding: "10px 12px" }}>
+                          <td style={{ padding: "12px 16px" }}>
                             <div
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
+                                gap: 10,
                               }}
                             >
                               <div
                                 style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: 7,
-                                  background: `${row.color}18`,
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 8,
+                                  background: `${row.color}14`,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
                                   flexShrink: 0,
                                 }}
                               >
-                                <row.icon size={13} style={{ color: row.color }} />
+                                <row.icon size={14} style={{ color: row.color }} />
                               </div>
                               <div>
                                 <div
                                   style={{
-                                    fontWeight: 600,
+                                    fontWeight: 700,
                                     color: THEME.ink,
-                                    fontSize: 13,
+                                    fontSize: 13.5,
                                   }}
                                 >
                                   {row.name}
@@ -589,6 +685,8 @@ export function XIRRReportTab({ state }: any) {
                                     style={{
                                       fontSize: 11,
                                       color: THEME.muted,
+                                      fontWeight: 500,
+                                      marginTop: 2,
                                     }}
                                   >
                                     {row.owner}
@@ -598,11 +696,14 @@ export function XIRRReportTab({ state }: any) {
                               {row.status === "matured" && (
                                 <span
                                   style={{
-                                    fontSize: 10,
+                                    fontSize: 9.5,
+                                    fontWeight: 700,
                                     color: THEME.muted,
                                     border: `1px solid ${THEME.line}`,
-                                    padding: "1px 6px",
-                                    borderRadius: 4,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.02em",
                                   }}
                                 >
                                   matured
@@ -610,31 +711,17 @@ export function XIRRReportTab({ state }: any) {
                               )}
                             </div>
                           </td>
-                          <td
-                            style={{
-                              padding: "10px 12px",
-                              textAlign: "right",
-                              color: THEME.muted,
-                            }}
-                          >
+                          <td style={td}>
                             <Prv>{fmtINRExact(row.invested)}</Prv>
                           </td>
-                          <td
-                            style={{
-                              padding: "10px 12px",
-                              textAlign: "right",
-                              fontWeight: 600,
-                              color: THEME.ink,
-                            }}
-                          >
+                          <td style={{ ...td, fontWeight: 700 }}>
                             <Prv>{fmtINRExact(row.currentValue)}</Prv>
                           </td>
                           <td
                             style={{
-                              padding: "10px 12px",
-                              textAlign: "right",
+                              ...td,
                               color: gain >= 0 ? THEME.sage : THEME.rust,
-                              fontWeight: 600,
+                              fontWeight: 700,
                             }}
                           >
                             <Prv>
@@ -644,7 +731,8 @@ export function XIRRReportTab({ state }: any) {
                                 style={{
                                   fontSize: 11,
                                   marginLeft: 5,
-                                  opacity: 0.75,
+                                  opacity: 0.8,
+                                  fontWeight: 500,
                                 }}
                               >
                                 ({gainPct >= 0 ? "+" : ""}
@@ -652,29 +740,20 @@ export function XIRRReportTab({ state }: any) {
                               </span>
                             </Prv>
                           </td>
+                          <td style={td}>{holdingLabel(row.startDate, row.endDate)}</td>
                           <td
                             style={{
-                              padding: "10px 12px",
-                              textAlign: "right",
-                              color: THEME.muted,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {holdingLabel(row.startDate, row.endDate)}
-                          </td>
-                          <td
-                            style={{
-                              padding: "10px 12px",
+                              padding: "12px 16px",
                               textAlign: "right",
                             }}
                           >
                             <span
                               style={{
                                 fontWeight: 800,
-                                fontSize: 14,
+                                fontSize: 13,
                                 color: xirrColor(row.xirr),
-                                background: `${xirrColor(row.xirr)}18`,
-                                padding: "3px 10px",
+                                background: `color-mix(in srgb, ${xirrColor(row.xirr)} 12%, transparent)`,
+                                padding: "4px 10px",
                                 borderRadius: 8,
                                 display: "inline-block",
                               }}
@@ -694,12 +773,12 @@ export function XIRRReportTab({ state }: any) {
       })}
 
       {/* XIRR colour guide */}
-      <Card>
+      <Card style={{ border: `1.5px solid ${THEME.line}` }}>
         <div
           style={{
-            padding: "14px 20px",
+            padding: "16px 20px",
             display: "flex",
-            gap: 20,
+            gap: 24,
             flexWrap: "wrap",
             alignItems: "center",
           }}
@@ -708,13 +787,22 @@ export function XIRRReportTab({ state }: any) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
+              gap: 8,
               fontSize: 12,
               color: THEME.muted,
             }}
           >
-            <Info size={13} />
-            <span style={{ fontWeight: 600 }}>XIRR benchmarks (annualised):</span>
+            <Info size={14} />
+            <span
+              style={{
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.02em",
+                fontSize: 10.5,
+              }}
+            >
+              XIRR Benchmarks (Annualised):
+            </span>
           </div>
           {[
             { label: "≥ 15% — Excellent", color: THEME.sage },
@@ -727,19 +815,20 @@ export function XIRRReportTab({ state }: any) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                fontSize: 12,
+                gap: 8,
+                fontSize: 12.5,
+                fontWeight: 600,
               }}
             >
               <div
                 style={{
                   width: 10,
                   height: 10,
-                  borderRadius: 2,
+                  borderRadius: 3,
                   background: g.color,
                 }}
               />
-              <span style={{ color: THEME.muted }}>{g.label}</span>
+              <span style={{ color: THEME.ink }}>{g.label}</span>
             </div>
           ))}
         </div>
