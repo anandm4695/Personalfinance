@@ -446,14 +446,43 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const InvestCard = ({ children, onRemove, onEdit, cardStyle }: any) => (
-  <div style={{ ...card, position: "relative", ...cardStyle }}>
-    <div style={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 4 }}>
-      <button onClick={onEdit} style={iconBtn}>
-        <Edit3 size={14} />
+const InvestCard = ({ children, onRemove, onEdit, cardStyle, className = "" }: any) => (
+  <div
+    className={`glass card-lift ${className}`}
+    style={{
+      ...card,
+      background: "transparent",
+      position: "relative",
+      borderRadius: 16,
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
+      border: "1px solid var(--t-line)",
+      ...cardStyle
+    }}
+  >
+    <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6, zIndex: 10 }}>
+      <button onClick={onEdit} style={{
+        ...iconBtn,
+        background: "color-mix(in srgb, var(--surface-0) 50%, transparent)",
+        border: "1px solid var(--t-line)",
+        borderRadius: 8,
+        width: 28, height: 28,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: THEME.muted,
+        transition: "all 0.2s ease"
+      }} onMouseEnter={(e) => { e.currentTarget.style.color = THEME.accent; }} onMouseLeave={(e) => { e.currentTarget.style.color = THEME.muted; }}>
+        <Edit3 size={13} />
       </button>
-      <button onClick={onRemove} style={iconBtn}>
-        <Trash2 size={14} />
+      <button onClick={onRemove} style={{
+        ...iconBtn,
+        background: "rgba(239, 68, 68, 0.08)",
+        border: "1px solid rgba(239, 68, 68, 0.2)",
+        borderRadius: 8,
+        width: 28, height: 28,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: THEME.rust,
+        transition: "all 0.2s ease"
+      }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"; }}>
+        <Trash2 size={13} />
       </button>
     </div>
     {children}
@@ -4770,19 +4799,19 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
           {
             label: "Total Borrowed",
             value: <Prv>{fmtINRFull(totalPrincipal)}</Prv>,
-            sub: `${items.length} loan${items.length !== 1 ? "s" : ""}`,
+            sub: `${items.length} active loan${items.length !== 1 ? "s" : ""}`,
             color: THEME.muted,
             Icon: TrendingDown,
           },
           {
-            label: "Outstanding",
+            label: "Outstanding Balance",
             value: <Prv>{fmtINRFull(totalOutstanding)}</Prv>,
-            sub: totalOutstanding > 0 ? "Balance remaining" : "All paid off",
+            sub: totalOutstanding > 0 ? "Debt remaining" : "All paid off",
             color: THEME.rust,
             Icon: Wallet,
           },
           {
-            label: "Monthly EMI",
+            label: "Monthly EMI Outflow",
             value: <Prv>{fmtINRFull(totalEMI)}</Prv>,
             sub: "Combined monthly payment",
             color: THEME.accent,
@@ -4791,9 +4820,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
         ].map(({ label, value, sub, color, Icon }) => (
           <div
             key={label}
-            className="card-lift"
+            className="glass card-lift"
             style={{
-              background: "var(--surface-0)",
+              background: "transparent",
               border: `1px solid ${THEME.line}`,
               borderTop: `4px solid ${color}`,
               borderRadius: 14,
@@ -4810,7 +4839,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: `${color}1f`,
+                  background: `color-mix(in srgb, ${color} 10%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -4822,11 +4851,11 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               </div>
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 10,
+                  fontWeight: 800,
                   color: THEME.muted,
                   textTransform: "uppercase" as const,
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.08em",
                 }}
               >
                 {label}
@@ -4844,7 +4873,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
             >
               {value}
             </div>
-            {sub && <div style={{ fontSize: 10, color: THEME.muted }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -4874,39 +4903,41 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               key={l.id}
               onRemove={() => onRemove(l.id)}
               onEdit={() => onEdit(l.id)}
-              cardStyle={{ borderTop: `3px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}
+              cardStyle={{ borderTop: `4px solid ${isPaidOff ? THEME.sage : THEME.rust}` }}
             >
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
+                  paddingRight: 64
                 }}
               >
                 <div>
                   <div
                     style={{
                       fontSize: 10,
-                      letterSpacing: "0.05em",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: isPaidOff ? THEME.sage : THEME.rust,
                     }}
                   >
                     {l.type || "Loan"}
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{l.lender}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4, color: THEME.ink, letterSpacing: "-0.01em" }}>{l.lender}</div>
                 </div>
                 {isPaidOff && (
                   <span
                     style={{
                       fontSize: 9,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       color: THEME.sage,
-                      background: `${THEME.sage}18`,
-                      border: `1px solid ${THEME.sage}44`,
-                      borderRadius: 4,
-                      padding: "2px 6px",
-                      letterSpacing: "0.08em",
+                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                      borderRadius: 6,
+                      padding: "3px 8px",
+                      letterSpacing: "0.05em",
                     }}
                   >
                     PAID OFF
@@ -4917,57 +4948,61 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               <div
                 style={{
                   fontSize: 26,
-                  fontWeight: 800,
+                  fontWeight: 900,
                   marginTop: 10,
                   color: isPaidOff ? THEME.sage : THEME.rust,
                   fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "-0.03em"
                 }}
               >
-                {fmtINRFull(outstanding)}
+                <Prv>{fmtINRFull(outstanding)}</Prv>
               </div>
 
               {/* Payoff progress bar */}
               {principal > 0 && (
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 16 }}>
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      fontSize: 9,
+                      fontSize: 10,
                       color: THEME.muted,
-                      marginBottom: 5,
-                      fontWeight: 600,
+                      marginBottom: 6,
+                      fontWeight: 700,
                       textTransform: "uppercase",
-                      letterSpacing: "0.08em",
+                      letterSpacing: "0.05em",
                     }}
                   >
-                    <span>Repaid</span>
-                    <span style={{ color: barColor, fontWeight: 700 }}>
+                    <span>Repayment Progress</span>
+                    <span style={{ color: barColor, fontWeight: 800 }}>
                       {paidPct.toFixed(1)}%{months > 0 ? ` · ${months} mo left` : ""}
                     </span>
                   </div>
-                  <div className="progress-track">
+                  <div className="progress-track" style={{ height: 6 }}>
                     <div
                       className="progress-fill"
-                      style={{ width: `${Math.min(paidPct, 100)}%`, background: barColor }}
+                      style={{
+                        width: `${Math.min(paidPct, 100)}%`,
+                        background: `linear-gradient(90deg, ${barColor}, color-mix(in srgb, ${barColor} 65%, white))`
+                      }}
                     />
                   </div>
                 </div>
               )}
 
               {/* Stat cells */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                 {[
                   { k: "Principal", v: fmtINRExact(l.principal), color: THEME.muted },
-                  { k: "EMI", v: `${fmtINRExact(emi)}/mo`, color: THEME.accent },
-                  { k: "Rate", v: `${l.rate}%`, color: THEME.muted },
+                  { k: "EMI Amount", v: `${fmtINRExact(emi)}/mo`, color: THEME.accent },
+                  { k: "Interest Rate", v: `${l.rate}%`, color: THEME.muted },
                   { k: "Months Left", v: months > 0 ? String(months) : "—", color: THEME.ink },
-                  ...(payoffDate ? [{ k: "Payoff By", v: payoffDate, color: THEME.sage }] : []),
+                  ...(payoffDate ? [{ k: "Payoff Date", v: payoffDate, color: THEME.sage }] : []),
                   ...(paid > 0
-                    ? [{ k: "Principal Paid", v: fmtINRExact(paid), color: THEME.sage }]
+                    ? [{ k: "Total Paid", v: fmtINRExact(paid), color: THEME.sage }]
                     : []),
                   ...(interestRemaining > 0
-                    ? [{ k: "Interest Left", v: fmtINRExact(interestRemaining), color: THEME.rust }]
+                    ? [{ k: "Est. Interest Left", v: fmtINRExact(interestRemaining), color: THEME.rust }]
                     : []),
                 ].map(({ k, v, color }) => (
                   <div
@@ -4976,11 +5011,11 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       display: "flex",
                       flexDirection: "column",
                       gap: 2,
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      background: `${color}09`,
-                      border: `1px solid ${color}22`,
-                      flex: "1 1 70px",
+                      padding: "8px 12px",
+                      borderRadius: 10,
+                      background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
+                      border: "1px solid var(--t-line)",
+                      flex: "1 1 80px",
                     }}
                   >
                     <span
@@ -4989,11 +5024,12 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                         textTransform: "uppercase" as const,
                         color: THEME.muted,
                         fontWeight: 700,
+                        letterSpacing: "0.04em"
                       }}
                     >
                       {k}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color }}>{v}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: color === THEME.muted ? THEME.ink : color }}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -5001,7 +5037,7 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
               {/* Prepayment Calculator */}
               {!isPaidOff && outstanding > 0 && (
                 <div
-                  style={{ marginTop: 14, borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}
+                  style={{ marginTop: 16, borderTop: `1px solid var(--t-line)`, paddingTop: 14 }}
                 >
                   <div
                     style={{
@@ -5010,8 +5046,8 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       alignItems: "center",
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
-                      Prepayment Calculator
+                    <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                      ⚡ Prepayment Calculator
                     </div>
                     <button
                       onClick={() =>
@@ -5024,14 +5060,18 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       style={{
                         fontSize: 11,
                         color: THEME.accent,
-                        background: "none",
+                        background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
                         border: "none",
+                        borderRadius: 6,
                         cursor: "pointer",
-                        fontWeight: 700,
-                        padding: "2px 6px",
+                        fontWeight: 800,
+                        padding: "4px 10px",
+                        transition: "background 0.2s ease"
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 15%, transparent)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--t-accent) 8%, transparent)"; }}
                     >
-                      {prepayExpanded.has(l.id) ? "Hide ▲" : "Show ▼"}
+                      {prepayExpanded.has(l.id) ? "Collapse ▲" : "Simulate ▼"}
                     </button>
                   </div>
                   {prepayExpanded.has(l.id) && (
@@ -5039,9 +5079,9 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                       style={{
                         marginTop: 12,
                         padding: 14,
-                        background: `${THEME.accent}09`,
-                        borderRadius: 10,
-                        border: `1px solid ${THEME.accent}1a`,
+                        background: "color-mix(in srgb, var(--surface-1) 30%, transparent)",
+                        borderRadius: 12,
+                        border: `1px solid var(--t-line)`,
                       }}
                     >
                       <div
@@ -5053,27 +5093,34 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                           marginBottom: 12,
                         }}
                       >
-                        <span style={{ fontSize: 12, color: THEME.muted }}>If I prepay</span>
-                        <input
-                          type="number"
-                          placeholder="₹ amount"
-                          value={prepayInputs[l.id] || ""}
-                          onChange={(e) =>
-                            setPrepayInputs((prev) => ({ ...prev, [l.id]: e.target.value }))
-                          }
-                          style={{
-                            width: 110,
-                            padding: "5px 8px",
-                            borderRadius: 6,
-                            border: `1px solid ${THEME.line}`,
-                            background: "var(--surface-0)",
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: THEME.ink,
-                            outline: "none",
-                          }}
-                        />
-                        <span style={{ fontSize: 12, color: THEME.muted }}>today</span>
+                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>If I prepay a lump sum of</span>
+                        <div style={{ position: "relative", display: "inline-block" }}>
+                          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: THEME.muted, fontWeight: 700 }}>₹</span>
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={prepayInputs[l.id] || ""}
+                            onChange={(e) =>
+                              setPrepayInputs((prev) => ({ ...prev, [l.id]: e.target.value }))
+                            }
+                            style={{
+                              width: 120,
+                              padding: "6px 10px 6px 20px",
+                              borderRadius: 8,
+                              border: `1px solid var(--t-line)`,
+                              background: "var(--surface-0)",
+                              fontSize: 13,
+                              fontWeight: 800,
+                              color: THEME.ink,
+                              outline: "none",
+                              boxShadow: "var(--shadow-xs)",
+                              transition: "border-color 0.2s ease"
+                            }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = THEME.accent; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--t-line)"; }}
+                          />
+                        </div>
+                        <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 500 }}>today:</span>
                       </div>
                       {prepayInputs[l.id] &&
                         Number(prepayInputs[l.id]) > 0 &&
@@ -5083,17 +5130,19 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                             return (
                               <div
                                 style={{
-                                  padding: "10px 12px",
-                                  borderRadius: 8,
-                                  background: `${THEME.sage}0f`,
-                                  border: `1px solid ${THEME.sage}26`,
+                                  padding: "12px 14px",
+                                  borderRadius: 10,
+                                  background: "color-mix(in srgb, var(--t-sage) 8%, transparent)",
+                                  border: "1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)",
+                                  borderLeft: `4px solid var(--t-sage)`,
                                   fontSize: 13,
-                                  fontWeight: 700,
-                                  color: THEME.sage,
+                                  fontWeight: 600,
+                                  color: THEME.ink,
+                                  lineHeight: 1.4
                                 }}
                               >
-                                Full payoff! Save {fmtINRExact(interestRemaining)} in interest & close
-                                loan today.
+                                🎉 <strong style={{ color: THEME.sage, textTransform: "uppercase", fontSize: 11, display: "block", marginBottom: 2 }}>Full Loan Settlement</strong>
+                                You will completely close this loan today, saving **{fmtINRFull(interestRemaining)}** in estimated remaining interest!
                               </div>
                             );
                           }
@@ -5121,17 +5170,17 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               {[
                                 {
-                                  label: "Months Saved",
-                                  value: `${monthsSaved} mo`,
+                                  label: "Time Saved",
+                                  value: `${monthsSaved} months`,
                                   color: THEME.sage,
                                 },
                                 {
                                   label: "Interest Saved",
-                                  value: fmtINRExact(interestSaved),
+                                  value: fmtINRFull(interestSaved),
                                   color: THEME.sage,
                                 },
                                 {
-                                  label: "New Payoff",
+                                  label: "New Payoff Date",
                                   value: newPayoff.toLocaleString("en-IN", {
                                     month: "short",
                                     year: "numeric",
@@ -5146,10 +5195,10 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                     flexDirection: "column",
                                     gap: 2,
                                     padding: "8px 14px",
-                                    borderRadius: 8,
-                                    background: `${color}09`,
-                                    border: `1px solid ${color}22`,
-                                    flex: "1 1 80px",
+                                    borderRadius: 10,
+                                    background: "color-mix(in srgb, var(--surface-0) 40%, transparent)",
+                                    border: "1px solid var(--t-line)",
+                                    flex: "1 1 90px",
                                     textAlign: "center" as const,
                                   }}
                                 >
@@ -5159,11 +5208,12 @@ function LoanTakenList({ items, onRemove, onEdit, onAdd }: any) {
                                       textTransform: "uppercase" as const,
                                       color: THEME.muted,
                                       fontWeight: 700,
+                                      letterSpacing: "0.04em"
                                     }}
                                   >
                                     {label}
                                   </span>
-                                  <span style={{ fontSize: 14, fontWeight: 800, color }}>
+                                  <span style={{ fontSize: 13.5, fontWeight: 900, color }}>
                                     {value}
                                   </span>
                                 </div>
